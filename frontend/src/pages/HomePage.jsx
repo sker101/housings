@@ -1,204 +1,219 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { apiClient, extractErrorMessage } from '../api/client';
+import { Link, useNavigate } from 'react-router-dom';
 import ListingCard from '../components/ListingCard';
-import { DUMMY_ROOMS, mapApiListing } from '../data/rooms';
+import { useAuth } from '../context/AuthContext';
+import {
+  fetchApprovedListings,
+  fetchSavedListingIds,
+  toggleSavedListing
+} from '../lib/listings';
 
-const HERO_IMAGE =
-  'https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=2200&q=80';
-
-const DEFAULT_FILTERS = {
-  location: 'ALL',
-  priceBand: 'ALL'
-};
-
-const PRICE_BANDS = {
-  ALL: {},
-  UNDER_200K: { max: 200000 },
-  RANGE_200_350: { min: 200000, max: 350000 },
-  ABOVE_350: { min: 350000 }
-};
+const UNIVERSITY_OPTIONS = ['UDSM', 'ARDHI', 'MUHAS', 'IFM'];
 
 export default function HomePage() {
-  const [filters, setFilters] = useState(DEFAULT_FILTERS);
-  const [liveListings, setLiveListings] = useState([]);
+  const navigate = useNavigate();
+  const { user, token, isAuthenticated } = useAuth();
+
+  const [query, setQuery] = useState('');
+  const [university, setUniversity] = useState('UDSM');
+  const [featuredListings, setFeaturedListings] = useState([]);
+  const [savedIds, setSavedIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const searchParams = useMemo(() => {
-    const params = {
-      universityCode: 'UDSM',
-      page: 0,
-      size: 48
-    };
-
-    if (filters.location !== 'ALL') {
-      params.query = filters.location;
-    }
-
-    const band = PRICE_BANDS[filters.priceBand] || {};
-    if (band.min != null) params.minRent = band.min;
-    if (band.max != null) params.maxRent = band.max;
-
-    return params;
-  }, [filters]);
-
   useEffect(() => {
-    let isMounted = true;
+    let mounted = true;
 
     async function loadListings() {
       setLoading(true);
       setError('');
+
       try {
-        const { data } = await apiClient.get('/public/listings', { params: searchParams });
-        if (isMounted) {
-          setLiveListings((data.content || []).map(mapApiListing));
+        const rows = await fetchApprovedListings(
+          {
+            query: '',
+            sort: 'featured',
+            limit: 12
+          },
+          token
+        );
+
+        if (mounted) {
+          setFeaturedListings(rows);
         }
       } catch (err) {
-        if (isMounted) {
-          setError(extractErrorMessage(err));
-          setLiveListings([]);
+        if (mounted) {
+          setError(err.message);
+          setFeaturedListings([]);
         }
       } finally {
-        if (isMounted) {
+        if (mounted) {
           setLoading(false);
         }
       }
     }
 
     loadListings();
+
     return () => {
-      isMounted = false;
+      mounted = false;
     };
-  }, [searchParams]);
+  }, [token]);
 
-  const featuredRooms = useMemo(() => {
-    const source = liveListings.length > 0 ? liveListings : DUMMY_ROOMS;
-    const band = PRICE_BANDS[filters.priceBand] || {};
+  useEffect(() => {
+    let mounted = true;
 
-    return source.filter((room) => {
-      const locationMatch =
-        filters.location === 'ALL' || room.location.toLowerCase().includes(filters.location.toLowerCase());
+    async function loadSaved() {
+      if (!user?.userId || !token) {
+        setSavedIds(new Set());
+        return;
+      }
 
-      const minMatch = band.min == null || Number(room.rentAmount) >= band.min;
-      const maxMatch = band.max == null || Number(room.rentAmount) <= band.max;
+      try {
+        const ids = await fetchSavedListingIds(user.userId, token);
+        if (mounted) {
+          setSavedIds(new Set(ids));
+        }
+      } catch {
+        if (mounted) {
+          setSavedIds(new Set());
+        }
+      }
+    }
 
-      return locationMatch && minMatch && maxMatch;
+    loadSaved();
+
+    return () => {
+      mounted = false;
+    };
+  }, [user?.userId, token]);
+
+  const shownListings = useMemo(() => {
+    return featuredListings.filter((listing) => {
+      if (university === 'ALL') {
+        return true;
+      }
+
+      if (!Array.isArray(listing.nearUniversities)) {
+        return false;
+      }
+
+      return listing.nearUniversities.includes(university);
     });
-  }, [liveListings, filters]);
+  }, [featuredListings, university]);
+
+  const handleSearchSubmit = (event) => {
+    event.preventDefault();
+
+    const params = new URLSearchParams();
+    if (query.trim()) {
+      params.set('q', query.trim());
+    }
+    if (university && university !== 'ALL') {
+      params.set('university', university);
+    }
+
+    navigate(`/search${params.toString() ? `?${params.toString()}` : ''}`);
+  };
+
+  const handleToggleSave = async (listingId) => {
+    if (!isAuthenticated || !user?.userId) {
+      navigate('/login');
+      return;
+    }
+
+    try {
+      const nextSaved = await toggleSavedListing({
+        tenantId: user.userId,
+        listingId,
+        accessToken: token
+      });
+
+      setSavedIds((prev) => {
+        const updated = new Set(prev);
+        if (nextSaved) {
+          updated.add(listingId);
+        } else {
+          updated.delete(listingId);
+        }
+        return updated;
+      });
+    } catch (err) {
+      setError(err.message);
+    }
+  };
 
   return (
-    <div className="landing-page">
-      <section className="landing-hero">
-        <img className="landing-hero__image" src={HERO_IMAGE} alt="Student housing in Dar es Salaam" />
-        <div className="landing-hero__overlay" />
-
-        <div className="container landing-hero__inner">
-          <p className="landing-hero__eyebrow">Verified rooms near UDSM</p>
-          <h1>Find Affordable Student Housing in Dar es Salaam</h1>
-          <p className="landing-hero__subtitle">
-            Verified rooms so you can live safely, avoid brokers, and move fast.
+    <div className="page">
+      <section className="hero">
+        <div className="hero__content container">
+          <p className="hero__eyebrow">Verified Student Housing</p>
+          <h1>Find trusted rooms near campus in minutes.</h1>
+          <p className="hero__subtitle">
+            Search, compare, and message verified listers around Dar es Salaam.
           </p>
 
-          <form className="hero-search" onSubmit={(event) => event.preventDefault()}>
-            <select
-              value={filters.location}
-              onChange={(event) => setFilters((prev) => ({ ...prev, location: event.target.value }))}
-            >
-              <option value="ALL">All Locations</option>
-              <option value="Ubungo">Ubungo</option>
-              <option value="Sinza">Sinza</option>
-              <option value="Mlimani">Mlimani</option>
-              <option value="Mwenge">Mwenge</option>
-              <option value="Makongo">Makongo</option>
-            </select>
+          <form className="search-panel" onSubmit={handleSearchSubmit}>
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search by title, ward, district"
+            />
 
             <select
-              value={filters.priceBand}
-              onChange={(event) => setFilters((prev) => ({ ...prev, priceBand: event.target.value }))}
+              value={university}
+              onChange={(event) => setUniversity(event.target.value)}
             >
-              <option value="ALL">Any Price</option>
-              <option value="UNDER_200K">Under 200k TZS</option>
-              <option value="RANGE_200_350">200k - 350k TZS</option>
-              <option value="ABOVE_350">Above 350k TZS</option>
+              <option value="ALL">All universities</option>
+              {UNIVERSITY_OPTIONS.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
             </select>
 
-            <button className="btn btn--search" type="submit">
+            <button type="submit" className="btn">
               Search
             </button>
           </form>
 
-          {error ? <p className="landing-hero__note">Showing curated rooms while live listings refresh.</p> : null}
-        </div>
-      </section>
-
-      <section id="featured-rooms" className="featured-section">
-        <div className="container">
-          <div className="section-header">
-            <div>
-              <h2>Featured Rooms</h2>
-              <p>Hand-picked verified listings</p>
-            </div>
-            <a href="#featured-rooms">View All</a>
-          </div>
-
-          {loading ? <p className="loading-text">Refreshing listings...</p> : null}
-
-          <div className="listing-grid">
-            {featuredRooms.map((listing) => (
-              <ListingCard key={listing.id} listing={listing} />
+          <div className="hero__chips">
+            {UNIVERSITY_OPTIONS.map((item) => (
+              <button
+                key={item}
+                type="button"
+                className={`hero__chip ${university === item ? 'is-active' : ''}`}
+                onClick={() => setUniversity(item)}
+              >
+                {item}
+              </button>
             ))}
           </div>
         </div>
       </section>
 
-      <section id="why-campusstay" className="why-section">
-        <div className="container">
-          <h2>Why Choose CampusStay?</h2>
-          <p>We make finding student housing simple, safe, and affordable.</p>
-
-          <div className="why-grid">
-            <article className="why-card">
-              <div className="why-card__icon">✓</div>
-              <h3>Verified Listings</h3>
-              <p>Every room is reviewed before going public to reduce scams.</p>
-            </article>
-
-            <article className="why-card">
-              <div className="why-card__icon">☎</div>
-              <h3>Direct Contact</h3>
-              <p>Talk directly to landlords with no hidden broker fees.</p>
-            </article>
-
-            <article className="why-card">
-              <div className="why-card__icon">$</div>
-              <h3>Affordable Prices</h3>
-              <p>Rooms across budgets, from budget shared options to private units.</p>
-            </article>
-
-            <article className="why-card">
-              <div className="why-card__icon">🛡</div>
-              <h3>Safe & Trusted</h3>
-              <p>Built for students in Dar es Salaam with trust at the center.</p>
-            </article>
+      <section className="section container">
+        <div className="section__header">
+          <div>
+            <h2>Featured Listings</h2>
+            <p>Approved and verified homes from trusted listers.</p>
           </div>
+          <Link to="/search">View all</Link>
         </div>
-      </section>
 
-      <section id="list-property" className="cta-strip">
-        <div className="container">
-          <div className="cta-strip__inner">
-            <h2>Ready to find your perfect room?</h2>
-            <p>Whether you are a student or a landlord, CampusStay TZ has you covered.</p>
-            <div className="cta-strip__actions">
-              <Link to="/" className="btn btn--light">
-                Find a Room
-              </Link>
-              <Link to="/list-property" className="btn btn--ghost-light">
-                List Property
-              </Link>
-            </div>
-          </div>
+        {loading ? <p className="muted">Loading listings...</p> : null}
+        {error ? <p className="error-text">{error}</p> : null}
+
+        <div className="listing-grid">
+          {shownListings.map((listing) => (
+            <ListingCard
+              key={listing.id}
+              listing={listing}
+              onToggleSave={handleToggleSave}
+              isSaved={savedIds.has(listing.id)}
+            />
+          ))}
         </div>
       </section>
     </div>

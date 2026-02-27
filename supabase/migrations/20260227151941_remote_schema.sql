@@ -1,0 +1,2 @@
+-- No-op snapshot migration created by `supabase db pull` after linking.
+-- Kept to preserve local/remote migration history alignment.

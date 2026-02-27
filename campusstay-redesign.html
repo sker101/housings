@@ -1,0 +1,2014 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CampusStay TZ — Full Redesign Specification</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --ink: #0D0D0D;
+            --paper: #F7F4EE;
+            --cream: #EDE9E0;
+            --jade: #1A6B4A;
+            --jade-light: #2A8F63;
+            --jade-muted: #E8F3EE;
+            --amber: #D4840A;
+            --amber-light: #FFF3DC;
+            --red: #C0392B;
+            --red-light: #FDECEA;
+            --blue: #1A4B8C;
+            --blue-light: #E8EFF8;
+            --mid: #6B6560;
+            --border: #D8D3CA;
+            --tag-bg: #ECEAE4;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--paper);
+            color: var(--ink);
+            font-size: 15px;
+            line-height: 1.7;
+        }
+
+        /* ── COVER ── */
+        .cover {
+            min-height: 100vh;
+            background: var(--ink);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 60px 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cover::before {
+            content: '';
+            position: absolute;
+            top: -120px;
+            right: -120px;
+            width: 500px;
+            height: 500px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #1A6B4A55 0%, transparent 70%);
+        }
+
+        .cover::after {
+            content: '';
+            position: absolute;
+            bottom: -80px;
+            left: -80px;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #D4840A33 0%, transparent 70%);
+        }
+
+        .cover-eyebrow {
+            font-family: 'Syne', sans-serif;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--jade-light);
+            margin-bottom: 24px;
+        }
+
+        .cover-title {
+            font-family: 'Syne', sans-serif;
+            font-size: clamp(42px, 10vw, 72px);
+            font-weight: 800;
+            line-height: 1;
+            color: #F7F4EE;
+            margin-bottom: 8px;
+        }
+
+        .cover-title span {
+            color: var(--jade-light);
+        }
+
+        .cover-sub {
+            font-family: 'Syne', sans-serif;
+            font-size: clamp(18px, 4vw, 26px);
+            font-weight: 400;
+            color: #9E9890;
+            margin-bottom: 48px;
+            line-height: 1.3;
+        }
+
+        .cover-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .cover-pill {
+            background: #1E1E1E;
+            border: 1px solid #333;
+            color: #B0ABA3;
+            font-size: 12px;
+            padding: 6px 14px;
+            border-radius: 100px;
+            font-family: 'Syne', sans-serif;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+        }
+
+        .cover-pill.green {
+            background: #0F2E1F;
+            border-color: var(--jade);
+            color: var(--jade-light);
+        }
+
+        /* ── LAYOUT ── */
+        .doc {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* ── SECTION ── */
+        .section {
+            padding: 72px 0 0;
+        }
+
+        .section-label {
+            font-family: 'Syne', sans-serif;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            color: var(--jade);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-label::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .section-title {
+            font-family: 'Syne', sans-serif;
+            font-size: clamp(26px, 5vw, 38px);
+            font-weight: 800;
+            line-height: 1.15;
+            margin-bottom: 32px;
+            color: var(--ink);
+        }
+
+        /* ── PROSE ── */
+        p {
+            color: #3A3530;
+            margin-bottom: 16px;
+        }
+
+        p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* ── DIVIDER ── */
+        hr {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 48px 0 0;
+        }
+
+        /* ── ROLE CARDS ── */
+        .role-grid {
+            display: grid;
+            gap: 16px;
+            margin-bottom: 0;
+        }
+
+        .role-card {
+            background: var(--cream);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+        }
+
+        .role-card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .role-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .role-icon.green {
+            background: var(--jade-muted);
+        }
+
+        .role-icon.amber {
+            background: var(--amber-light);
+        }
+
+        .role-icon.blue {
+            background: var(--blue-light);
+        }
+
+        .role-icon.red {
+            background: var(--red-light);
+        }
+
+        .role-name {
+            font-family: 'Syne', sans-serif;
+            font-size: 17px;
+            font-weight: 700;
+        }
+
+        .role-tagline {
+            font-size: 13px;
+            color: var(--mid);
+        }
+
+        .role-perms {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .perm-tag {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 12px;
+            padding: 3px 10px;
+            color: var(--ink);
+            font-weight: 500;
+        }
+
+        /* ── FEATURE BLOCKS ── */
+        .feature-block {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 28px;
+            margin-bottom: 16px;
+        }
+
+        .feature-block-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 14px;
+        }
+
+        .feature-title {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 17px;
+        }
+
+        .phase-badge {
+            font-size: 11px;
+            font-weight: 700;
+            font-family: 'Syne', sans-serif;
+            letter-spacing: 0.08em;
+            padding: 4px 10px;
+            border-radius: 100px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .phase-badge.v1 {
+            background: var(--jade-muted);
+            color: var(--jade);
+        }
+
+        .phase-badge.v2 {
+            background: var(--amber-light);
+            color: var(--amber);
+        }
+
+        .phase-badge.v3 {
+            background: var(--blue-light);
+            color: var(--blue);
+        }
+
+        .feature-desc {
+            font-size: 14px;
+            color: #4A4540;
+            margin-bottom: 14px;
+        }
+
+        .feature-points {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .feature-points li {
+            font-size: 13.5px;
+            color: #3A3530;
+            padding-left: 18px;
+            position: relative;
+        }
+
+        .feature-points li::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: var(--jade);
+            font-size: 12px;
+        }
+
+        /* ── SCHEMA TABLE ── */
+        .schema-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+            font-size: 13px;
+        }
+
+        .schema-table th {
+            background: var(--ink);
+            color: #F7F4EE;
+            font-family: 'Syne', sans-serif;
+            font-size: 11px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            text-align: left;
+            padding: 10px 14px;
+        }
+
+        .schema-table th:first-child {
+            border-radius: 8px 0 0 0;
+        }
+
+        .schema-table th:last-child {
+            border-radius: 0 8px 0 0;
+        }
+
+        .schema-table td {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: top;
+        }
+
+        .schema-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .schema-table tr:nth-child(even) td {
+            background: var(--cream);
+        }
+
+        code {
+            font-family: 'Courier New', monospace;
+            background: var(--tag-bg);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: var(--jade);
+        }
+
+        .type-tag {
+            font-size: 11px;
+            font-family: 'Syne', sans-serif;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: var(--blue-light);
+            color: var(--blue);
+            white-space: nowrap;
+        }
+
+        .type-tag.enum {
+            background: var(--amber-light);
+            color: var(--amber);
+        }
+
+        .type-tag.bool {
+            background: var(--jade-muted);
+            color: var(--jade);
+        }
+
+        .type-tag.rel {
+            background: var(--red-light);
+            color: var(--red);
+        }
+
+        /* ── SCREEN FLOWS ── */
+        .flow-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
+        .flow-step {
+            display: flex;
+            gap: 16px;
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .flow-step:last-child {
+            border-bottom: none;
+        }
+
+        .flow-num {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--ink);
+            color: var(--paper);
+            font-family: 'Syne', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .flow-content {}
+
+        .flow-screen {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 15px;
+            margin-bottom: 4px;
+        }
+
+        .flow-desc {
+            font-size: 13.5px;
+            color: #4A4540;
+        }
+
+        .flow-route {
+            display: inline-block;
+            margin-top: 6px;
+            font-size: 11px;
+            font-family: 'Courier New', monospace;
+            background: var(--cream);
+            border: 1px solid var(--border);
+            padding: 2px 8px;
+            border-radius: 4px;
+            color: var(--mid);
+        }
+
+        /* ── TECH STACK ── */
+        .stack-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .stack-card {
+            background: var(--cream);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 18px;
+        }
+
+        .stack-layer {
+            font-family: 'Syne', sans-serif;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--mid);
+            margin-bottom: 6px;
+        }
+
+        .stack-tech {
+            font-family: 'Syne', sans-serif;
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .stack-reason {
+            font-size: 12.5px;
+            color: var(--mid);
+        }
+
+        /* ── API ENDPOINT LIST ── */
+        .endpoint {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+
+        .endpoint:last-child {
+            border-bottom: none;
+        }
+
+        .method {
+            font-family: 'Syne', sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 5px;
+            min-width: 52px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .method.get {
+            background: var(--jade-muted);
+            color: var(--jade);
+        }
+
+        .method.post {
+            background: var(--blue-light);
+            color: var(--blue);
+        }
+
+        .method.put {
+            background: var(--amber-light);
+            color: var(--amber);
+        }
+
+        .method.del {
+            background: var(--red-light);
+            color: var(--red);
+        }
+
+        .endpoint-path {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: var(--ink);
+            flex: 1;
+            min-width: 180px;
+        }
+
+        .endpoint-desc {
+            font-size: 12.5px;
+            color: var(--mid);
+            width: 100%;
+            padding-left: 62px;
+            margin-top: -4px;
+        }
+
+        /* ── PHASE TIMELINE ── */
+        .timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
+        .timeline-phase {
+            border-left: 3px solid var(--border);
+            padding: 0 0 40px 28px;
+            position: relative;
+        }
+
+        .timeline-phase::before {
+            content: '';
+            position: absolute;
+            left: -8px;
+            top: 4px;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--paper);
+            border: 3px solid var(--jade);
+        }
+
+        .timeline-phase:last-child {
+            padding-bottom: 0;
+        }
+
+        .timeline-label {
+            font-family: 'Syne', sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--jade);
+            margin-bottom: 6px;
+        }
+
+        .timeline-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 20px;
+            font-weight: 800;
+            margin-bottom: 12px;
+        }
+
+        .timeline-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .timeline-item {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 12.5px;
+            padding: 5px 12px;
+        }
+
+        /* ── DESIGN SYSTEM ── */
+        .color-swatches {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+        }
+
+        .swatch {
+            width: 56px;
+            height: 56px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            position: relative;
+        }
+
+        .swatch-label {
+            position: absolute;
+            bottom: -20px;
+            left: 0;
+            font-size: 10px;
+            color: var(--mid);
+            white-space: nowrap;
+        }
+
+        .type-sample {
+            margin-bottom: 20px;
+        }
+
+        .type-specimen {
+            font-family: 'Syne', sans-serif;
+            font-size: 36px;
+            font-weight: 800;
+            line-height: 1;
+            color: var(--ink);
+            margin-bottom: 4px;
+        }
+
+        .type-meta {
+            font-size: 12px;
+            color: var(--mid);
+        }
+
+        /* ── FOOTER ── */
+        .doc-footer {
+            background: var(--ink);
+            color: #6B6560;
+            text-align: center;
+            padding: 40px 24px;
+            margin-top: 80px;
+            font-size: 13px;
+        }
+
+        .doc-footer strong {
+            color: var(--jade-light);
+            font-family: 'Syne', sans-serif;
+        }
+
+        @media (max-width: 600px) {
+            .stack-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .cover {
+                padding: 48px 24px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ══════════════════════════════════════ COVER -->
+    <div class="cover">
+        <div style="max-width:800px;margin:0 auto;width:100%;position:relative;z-index:1;">
+            <div class="cover-eyebrow">Full Product Redesign Specification · 2025</div>
+            <div class="cover-title">Campus<span>Stay</span> TZ</div>
+            <div class="cover-sub">Built right, once.<br>Verified housing for Tanzanian students.</div>
+            <div class="cover-meta">
+                <span class="cover-pill green">Supabase + React</span>
+                <span class="cover-pill">Mobile-First</span>
+                <span class="cover-pill">4 User Roles</span>
+                <span class="cover-pill">Multi-University</span>
+                <span class="cover-pill">Real-Time Chat</span>
+                <span class="cover-pill">OTP Verification</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════ VISION -->
+    <div class="doc">
+        <div class="section">
+            <div class="section-label">01 — Vision</div>
+            <div class="section-title">What CampusStay TZ becomes</div>
+            <p>CampusStay TZ is Tanzania's trust-first student housing marketplace. It connects verified landlords,
+                dalalis, and property managers with students and other tenants who need safe, affordable accommodation
+                near universities in Dar es Salaam and beyond.</p>
+            <p>The redesign is not cosmetic. It rebuilds the product from the data model up — replacing the Spring Boot
+                backend with Supabase for realtime, auth, storage, and Postgres in one unified platform — while
+                designing every screen for a mobile-first audience that primarily uses 4G on Android devices.</p>
+            <p>The core promise: every listing is verified. Every landlord is accountable. Every student is protected.
+            </p>
+        </div>
+
+        <hr>
+
+        <!-- ══════════════════════════════════════ USER ROLES -->
+        <div class="section">
+            <div class="section-label">02 — User Roles</div>
+            <div class="section-title">Four roles, one platform</div>
+            <div class="role-grid">
+
+                <div class="role-card">
+                    <div class="role-card-header">
+                        <div class="role-icon green">🎓</div>
+                        <div>
+                            <div class="role-name">Student / Tenant</div>
+                            <div class="role-tagline">Anyone seeking accommodation</div>
+                        </div>
+                    </div>
+                    <div class="role-perms">
+                        <span class="perm-tag">Search & filter listings</span>
+                        <span class="perm-tag">Save favourites</span>
+                        <span class="perm-tag">Send inquiries</span>
+                        <span class="perm-tag">In-app chat</span>
+                        <span class="perm-tag">Book & pay rent</span>
+                        <span class="perm-tag">Leave reviews</span>
+                        <span class="perm-tag">OTP phone verification</span>
+                        <span class="perm-tag">University affiliation (optional)</span>
+                    </div>
+                </div>
+
+                <div class="role-card">
+                    <div class="role-card-header">
+                        <div class="role-icon amber">🏠</div>
+                        <div>
+                            <div class="role-name">Landlord / Dalali / Manager</div>
+                            <div class="role-tagline">Anyone listing a property</div>
+                        </div>
+                    </div>
+                    <div class="role-perms">
+                        <span class="perm-tag">Submit listings (4-step wizard)</span>
+                        <span class="perm-tag">Manage listings</span>
+                        <span class="perm-tag">Respond to inquiries</span>
+                        <span class="perm-tag">In-app chat</span>
+                        <span class="perm-tag">Set availability</span>
+                        <span class="perm-tag">View analytics</span>
+                        <span class="perm-tag">ID + selfie verification</span>
+                        <span class="perm-tag">Payout setup</span>
+                    </div>
+                </div>
+
+                <div class="role-card">
+                    <div class="role-card-header">
+                        <div class="role-icon blue">🛡️</div>
+                        <div>
+                            <div class="role-name">Admin</div>
+                            <div class="role-tagline">Platform trust & safety</div>
+                        </div>
+                    </div>
+                    <div class="role-perms">
+                        <span class="perm-tag">Approve/reject landlords</span>
+                        <span class="perm-tag">Approve/reject listings</span>
+                        <span class="perm-tag">Flag/unflag content</span>
+                        <span class="perm-tag">Suspend accounts</span>
+                        <span class="perm-tag">View audit log</span>
+                        <span class="perm-tag">Dashboard metrics</span>
+                        <span class="perm-tag">Bulk actions</span>
+                        <span class="perm-tag">Rejection reason templates</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <hr>
+
+        <!-- ══════════════════════════════════════ FEATURES -->
+        <div class="section">
+            <div class="section-label">03 — Feature Set</div>
+            <div class="section-title">Every feature, phased</div>
+
+            <div class="feature-block">
+                <div class="feature-block-header">
+                    <div class="feature-title">🔐 Authentication & Verification</div>
+                    <span class="phase-badge v1">V1 Core</span>
+                </div>
+                <div class="feature-desc">Supabase Auth handles email/password registration. Phone OTP verification via
+                    Africa's Talking or Supabase SMS. ID/passport upload + selfie stored in Supabase Storage. Admin
+                    manually reviews identity docs before landlord activation.</div>
+                <ul class="feature-points">
+                    <li>Email + password registration with email confirmation link</li>
+                    <li>Phone number OTP verification (required for landlords, optional for tenants)</li>
+                    <li>National ID / Passport document upload (Supabase Storage, private bucket)</li>
+                    <li>Selfie upload for liveness check</li>
+                    <li>Role selection at registration (student/tenant vs. lister)</li>
+                    <li>Lister sub-role: Property Owner, Property Manager, or Dalali</li>
+                    <li>Persistent sessions with Supabase JWT refresh tokens</li>
+                    <li>Logout all devices</li>
+                </ul>
+            </div>
+
+            <div class="feature-block">
+                <div class="feature-block-header">
+                    <div class="feature-title">🔍 Listing Search & Discovery</div>
+                    <span class="phase-badge v1">V1 Core</span>
+                </div>
+                <div class="feature-desc">The home screen is a powerful search experience. Tenants filter by location,
+                    price, gender preference, amenities, and university proximity. Results show on a card list and
+                    optionally a map.</div>
+                <ul class="feature-points">
+                    <li>Full-text search on listing title, description, ward, district</li>
+                    <li>Filter by: price range, gender preference (male/female/mixed), room type, utilities included
+                    </li>
+                    <li>Filter by university proximity (UDSM, Ardhi, MUHAS, IFM, Makumira)</li>
+                    <li>Sort by: newest, price low-to-high, highest rated, featured</li>
+                    <li>Map view with pins using Leaflet.js + OpenStreetMap (free, no API key)</li>
+                    <li>Infinite scroll on card list</li>
+                    <li>Verified badge on approved listings</li>
+                    <li>Availability status chip: Available / Occupied / Coming Soon</li>
+                </ul>
+            </div>
+
+            <div class="feature-block">
+                <div class="feature-block-header">
+                    <div class="feature-title">📋 Listing Detail Page</div>
+                    <span class="phase-badge v1">V1 Core</span>
+                </div>
+                <div class="feature-desc">Rich room detail view with scrollable photo gallery, structured metadata
+                    sections, and a sticky CTA for inquiry or booking.</div>
+                <ul class="feature-points">
+                    <li>Scrollable photo gallery (bedroom, kitchen, bathroom, outside)</li>
+                    <li>Overview: price, room type, available from, gender preference</li>
+                    <li>Amenities checklist: WiFi, water, electricity, generator, security, parking</li>
+                    <li>Location section: ward/district/street + embedded map pin</li>
+                    <li>House rules section</li>
+                    <li>Landlord profile card: name, verified badge, member since, response rate</li>
+                    <li>Reviews section with star ratings</li>
+                    <li>Sticky bottom bar: Save ♥ · Inquire · Book (phase-gated)</li>
+                    <li>Share button (native share sheet on mobile)</li>
+                </ul>
+            </div>
+
+            <div class="feature-block">
+                <div class="feature-block-header">
+                    <div class="feature-title">📝 Listing Wizard (Lister)</div>
+                    <span class="phase-badge v1">V1 Core</span>
+                </div>
+                <div class="feature-desc">Redesigned 5-step wizard with auto-save, validation, and AI photo checks. Each
+                    step is a dedicated screen on mobile.</div>
+                <ul class="feature-points">
+                    <li>Step 1 — Identity: Legal name, phone OTP, profile photo, ID/selfie upload</li>
+                    <li>Step 2 — Property Basics: Title, description, room type, gender preference, availability date
+                    </li>
+                    <li>Step 3 — Location & Price: Region → District → Ward → Street dropdowns, map pin capture, monthly
+                        price, utilities included toggle, payout bank setup</li>
+                    <li>Step 4 — Amenities & Rules: Checklist (WiFi, water, electricity, security, parking, generator) +
+                        house rules free text</li>
+                    <li>Step 5 — Photos & Review: Upload 4 required angles (bedroom, kitchen, bathroom, outside), AI
+                        angle verification, mandatory policy acceptance, submit</li>
+                    <li>Auto-save draft to Supabase (not localStorage) so it persists across devices</li>
+                    <li>Blocking reason shown inline before submit button</li>
+                    <li>Submission creates listing in PENDING status</li>
+                </ul>
+            </div>
+
+            <div class="feature-block">
+                <div class="feature-block-header">
+                    <div class="feature-title">💬 Inquiry & In-App Chat</div>
+                    <span class="phase-badge v1">V1 Core</span>
+                </div>
+                <div class="feature-desc">Tenants can send a structured inquiry from a listing page, which opens a chat
+                    thread with the landlord. Realtime via Supabase Realtime.</div>
+                <ul class="feature-points">
+                    <li>Inquiry form: name (pre-filled), move-in date, message, contact preference</li>
+                    <li>Inquiry creates a conversation thread between tenant and landlord</li>
+                    <li>Realtime chat powered by Supabase Realtime subscriptions</li>
+                    <li>Message seen/delivered status</li>
+                    <li>Landlord can mark inquiry as: Interested / Not Available / Booked</li>
+                    <li>In-app notification badge for unread messages</li>
+                    <li>Chat list screen showing all active conversations</li>
+                    <li>No external contact details shared until both parties consent</li>
+                </ul>
+            </div>
+
+            <div class="feature-block">
+                <div class="feature-block-header">
+                    <div class="feature-title">❤️ Saved Favourites</div>
+                    <span class="phase-badge v1">V1 Core</span>
+                </div>
+                <div class="feature-desc">Tenants can save listings to revisit later. Saved listings are synced to
+                    Supabase and available on any device.</div>
+                <ul class="feature-points">
+                    <li>Heart button on listing card and detail page</li>
+                    <li>Saved listings tab in tenant profile</li>
+                    <li>Notification if a saved listing becomes unavailable or gets a price change</li>
+                </ul>
+            </div>
+
+            <div class="feature-block">
+                <div class="feature-block-header">
+                    <div class="feature-title">📊 Landlord Dashboard</div>
+                    <span class="phase-badge v1">V1 Core</span>
+                </div>
+                <div class="feature-desc">The landlord's home base. Shows listing status, inquiries, and basic
+                    performance data.</div>
+                <ul class="feature-points">
+                    <li>Listing status cards: Pending / Approved / Rejected (with reason) / Flagged</li>
+                    <li>View count and inquiry count per listing</li>
+                    <li>Unread message badge</li>
+                    <li>Quick actions: Edit listing, Mark as occupied, Relist</li>
+                    <li>Verification status indicator with next steps</li>
+                    <li>Rejection reason displayed clearly so landlord can fix and resubmit</li>
+                </ul>
+            </div>
+
+            <div class="feature-block">
+                <div class="feature-block-header">
+                    <div class="feature-title">🛡️ Admin Panel</div>
+                    <span class="phase-badge v1">V1 Core</span>
+                </div>
+                <div class="feature-desc">Rebuilt admin panel with bulk actions, rejection reason templates, and a full
+                    audit trail.</div>
+                <ul class="feature-points">
+                    <li>Dashboard: total listings, pending queue count, flagged count, new signups today</li>
+                    <li>Landlord queue: view ID docs, selfie, profile — Approve / Reject / Suspend with reason</li>
+                    <li>Listing queue: view full listing + photos — Approve / Reject / Flag / Unflag</li>
+                    <li>Bulk approve / bulk reject with shared reason</li>
+                    <li>Rejection reason templates (pre-written, selectable)</li>
+                    <li>Full audit log: who did what, when, on which entity</li>
+                    <li>Search/filter landlords and listings by status, date, university</li>
+                </ul>
+            </div>
+
+            <div class="feature-block">
+                <div class="feature-block-header">
+                    <div class="feature-title">⭐ Reviews & Ratings</div>
+                    <span class="phase-badge v2">V2</span>
+                </div>
+                <div class="feature-desc">After a confirmed stay or booking, tenants can rate the property and landlord.
+                    Reviews are the platform's long-term trust signal.</div>
+                <ul class="feature-points">
+                    <li>Star rating (1–5) + written review</li>
+                    <li>Dimensions: Accuracy, Cleanliness, Communication, Location, Value</li>
+                    <li>Landlord can leave a reply</li>
+                    <li>Admin can remove inappropriate reviews</li>
+                    <li>Aggregate rating shown on listing card and detail page</li>
+                </ul>
+            </div>
+
+            <div class="feature-block">
+                <div class="feature-block-header">
+                    <div class="feature-title">📅 Booking & Availability</div>
+                    <span class="phase-badge v2">V2</span>
+                </div>
+                <div class="feature-desc">Tenants can request a booking for a specific move-in date. Landlords confirm
+                    or decline. No payment processing in V2 — intent only.</div>
+                <ul class="feature-points">
+                    <li>Available from date on each listing</li>
+                    <li>Vacancy status: Available / Occupied / Coming Soon</li>
+                    <li>Booking request form: move-in date, duration, message</li>
+                    <li>Landlord confirms or declines within 48 hours</li>
+                    <li>Confirmed booking marks listing as Occupied</li>
+                </ul>
+            </div>
+
+            <div class="feature-block">
+                <div class="feature-block-header">
+                    <div class="feature-title">💳 Rent Payment Tracking</div>
+                    <span class="phase-badge v3">V3</span>
+                </div>
+                <div class="feature-desc">Track monthly rent payments within the platform. M-Pesa and Tigopesa
+                    integration for Tanzania-native mobile money.</div>
+                <ul class="feature-points">
+                    <li>Payment schedule per active booking</li>
+                    <li>M-Pesa / Tigopesa STK push integration</li>
+                    <li>Payment receipt stored in Supabase</li>
+                    <li>Landlord payout dashboard</li>
+                    <li>Commission tracking for dalali accounts</li>
+                </ul>
+            </div>
+
+            <div class="feature-block">
+                <div class="feature-block-header">
+                    <div class="feature-title">📈 Monetization Tiers</div>
+                    <span class="phase-badge v3">V3</span>
+                </div>
+                <div class="feature-desc">Subscription plans for landlords. Free tier allows 1 listing. Verified tier
+                    unlocks more listings and badge. Premium tier adds featured placement.</div>
+                <ul class="feature-points">
+                    <li>Free: 1 listing, basic badge</li>
+                    <li>Verified (TZS 15,000/mo): up to 5 listings, verified badge, analytics</li>
+                    <li>Premium (TZS 35,000/mo): unlimited listings, featured placement, priority review</li>
+                    <li>Dalali commission tracking (% per confirmed booking)</li>
+                </ul>
+            </div>
+
+        </div>
+
+        <hr>
+
+        <!-- ══════════════════════════════════════ SCREEN FLOWS -->
+        <div class="section">
+            <div class="section-label">04 — Screen Flows</div>
+            <div class="section-title">Every screen, mapped</div>
+
+            <p style="margin-bottom:24px;font-weight:500;font-family:'Syne',sans-serif;">Tenant / Student Flow</p>
+            <div class="flow-list">
+                <div class="flow-step">
+                    <div class="flow-num">1</div>
+                    <div class="flow-content">
+                        <div class="flow-screen">Landing / Home</div>
+                        <div class="flow-desc">Search bar prominent at top, featured listings below, university filter
+                            chips (UDSM, Ardhi, MUHAS, IFM). No login required to browse.</div>
+                        <span class="flow-route">/</span>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-num">2</div>
+                    <div class="flow-content">
+                        <div class="flow-screen">Search Results</div>
+                        <div class="flow-desc">Filtered card list with sort + filter drawer. Toggle between list view
+                            and map view. Infinite scroll.</div>
+                        <span class="flow-route">/search?q=&district=&price_max=</span>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-num">3</div>
+                    <div class="flow-content">
+                        <div class="flow-screen">Listing Detail</div>
+                        <div class="flow-desc">Photo gallery, all metadata, landlord card, reviews. Sticky bottom bar:
+                            Save · Inquire. Login gate on Inquire if not authenticated.</div>
+                        <span class="flow-route">/rooms/:id</span>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-num">4</div>
+                    <div class="flow-content">
+                        <div class="flow-screen">Register / Login</div>
+                        <div class="flow-desc">Role selection (Tenant vs. Lister) at registration. OTP phone
+                            verification step after email confirmation. Password strength indicator.</div>
+                        <span class="flow-route">/register · /login</span>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-num">5</div>
+                    <div class="flow-content">
+                        <div class="flow-screen">Inquiry Form</div>
+                        <div class="flow-desc">Modal or bottom sheet. Pre-filled name, pick move-in date, write message.
+                            Submitting opens a chat thread.</div>
+                        <span class="flow-route">/rooms/:id → inquiry sheet</span>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-num">6</div>
+                    <div class="flow-content">
+                        <div class="flow-screen">Messages / Chat</div>
+                        <div class="flow-desc">List of conversations. Tap to open realtime chat thread. Message status
+                            indicators.</div>
+                        <span class="flow-route">/messages · /messages/:threadId</span>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-num">7</div>
+                    <div class="flow-content">
+                        <div class="flow-screen">Saved Listings</div>
+                        <div class="flow-desc">Grid of saved listings. Badge if listing status changed since saved.
+                        </div>
+                        <span class="flow-route">/saved</span>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-num">8</div>
+                    <div class="flow-content">
+                        <div class="flow-screen">Tenant Profile</div>
+                        <div class="flow-desc">Name, phone, university affiliation, verification status, preferences
+                            (budget, location, move-in date).</div>
+                        <span class="flow-route">/profile</span>
+                    </div>
+                </div>
+            </div>
+
+            <p style="margin:40px 0 24px;font-weight:500;font-family:'Syne',sans-serif;">Landlord / Lister Flow</p>
+            <div class="flow-list">
+                <div class="flow-step">
+                    <div class="flow-num">1</div>
+                    <div class="flow-content">
+                        <div class="flow-screen">Landlord Dashboard</div>
+                        <div class="flow-desc">Listing status cards, unread messages badge, inquiry count, quick
+                            actions. Verification status banner at top if not yet approved.</div>
+                        <span class="flow-route">/landlord</span>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-num">2</div>
+                    <div class="flow-content">
+                        <div class="flow-screen">List Property Wizard</div>
+                        <div class="flow-desc">5 steps: Identity → Basics → Location & Price → Amenities & Rules →
+                            Photos & Submit. Draft auto-saved to Supabase.</div>
+                        <span class="flow-route">/list-property</span>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-num">3</div>
+                    <div class="flow-content">
+                        <div class="flow-screen">Edit Listing</div>
+                        <div class="flow-desc">Same wizard UI pre-filled. Edits go back to Pending if listing was
+                            previously approved (re-review required).</div>
+                        <span class="flow-route">/landlord/listings/:id/edit</span>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-num">4</div>
+                    <div class="flow-content">
+                        <div class="flow-screen">Messages</div>
+                        <div class="flow-desc">Shared messages screen. Landlord sees threads per listing. Can mark
+                            inquiry status.</div>
+                        <span class="flow-route">/messages</span>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-num">5</div>
+                    <div class="flow-content">
+                        <div class="flow-screen">Listing Analytics (V2)</div>
+                        <div class="flow-desc">Views, saves, inquiries over time. Comparison to similar listings.</div>
+                        <span class="flow-route">/landlord/listings/:id/analytics</span>
+                    </div>
+                </div>
+            </div>
+
+            <p style="margin:40px 0 24px;font-weight:500;font-family:'Syne',sans-serif;">Admin Flow</p>
+            <div class="flow-list">
+                <div class="flow-step">
+                    <div class="flow-num">1</div>
+                    <div class="flow-content">
+                        <div class="flow-screen">Admin Dashboard</div>
+                        <div class="flow-desc">Metrics: total listings, pending queue, flagged count, signups today.
+                            Quick-access to queues.</div>
+                        <span class="flow-route">/admin</span>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-num">2</div>
+                    <div class="flow-content">
+                        <div class="flow-screen">Landlord Review Queue</div>
+                        <div class="flow-desc">List of pending landlords. Tap to see ID doc, selfie, profile. Approve /
+                            Reject / Suspend. Bulk actions. Rejection reason dropdown + custom text.</div>
+                        <span class="flow-route">/admin/landlords</span>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-num">3</div>
+                    <div class="flow-content">
+                        <div class="flow-screen">Listing Review Queue</div>
+                        <div class="flow-desc">Pending and flagged listings. Full listing preview with photos. Approve /
+                            Reject / Flag / Unflag. Bulk actions.</div>
+                        <span class="flow-route">/admin/listings</span>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-num">4</div>
+                    <div class="flow-content">
+                        <div class="flow-screen">Audit Log</div>
+                        <div class="flow-desc">Chronological log of all admin actions. Filterable by admin, action type,
+                            entity.</div>
+                        <span class="flow-route">/admin/audit-log</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <hr>
+
+        <!-- ══════════════════════════════════════ DB SCHEMA -->
+        <div class="section">
+            <div class="section-label">05 — Database Schema</div>
+            <div class="section-title">Supabase Postgres tables</div>
+
+            <p style="margin-bottom:20px;">All tables use Supabase RLS (Row Level Security). Auth users are managed by
+                <code>supabase.auth.users</code>. Every table has <code>created_at</code> and <code>updated_at</code>
+                timestamps.</p>
+
+            <!-- profiles -->
+            <p style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:8px;">profiles</p>
+            <div style="overflow-x:auto;margin-bottom:32px;">
+                <table class="schema-table">
+                    <thead>
+                        <tr>
+                            <th>Column</th>
+                            <th>Type</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>id</code></td>
+                            <td><span class="type-tag">uuid</span></td>
+                            <td>FK → auth.users.id, PK</td>
+                        </tr>
+                        <tr>
+                            <td><code>role</code></td>
+                            <td><span class="type-tag enum">enum</span></td>
+                            <td>student · lister · admin</td>
+                        </tr>
+                        <tr>
+                            <td><code>lister_type</code></td>
+                            <td><span class="type-tag enum">enum</span></td>
+                            <td>owner · manager · dalali · null</td>
+                        </tr>
+                        <tr>
+                            <td><code>full_name</code></td>
+                            <td><span class="type-tag">text</span></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td><code>phone</code></td>
+                            <td><span class="type-tag">text</span></td>
+                            <td>unique</td>
+                        </tr>
+                        <tr>
+                            <td><code>phone_verified</code></td>
+                            <td><span class="type-tag bool">bool</span></td>
+                            <td>set after OTP</td>
+                        </tr>
+                        <tr>
+                            <td><code>university</code></td>
+                            <td><span class="type-tag">text</span></td>
+                            <td>nullable (tenants)</td>
+                        </tr>
+                        <tr>
+                            <td><code>profile_photo_url</code></td>
+                            <td><span class="type-tag">text</span></td>
+                            <td>Supabase Storage URL</td>
+                        </tr>
+                        <tr>
+                            <td><code>id_doc_url</code></td>
+                            <td><span class="type-tag">text</span></td>
+                            <td>private bucket</td>
+                        </tr>
+                        <tr>
+                            <td><code>selfie_url</code></td>
+                            <td><span class="type-tag">text</span></td>
+                            <td>private bucket</td>
+                        </tr>
+                        <tr>
+                            <td><code>verification_status</code></td>
+                            <td><span class="type-tag enum">enum</span></td>
+                            <td>unverified · pending · verified · rejected · suspended</td>
+                        </tr>
+                        <tr>
+                            <td><code>subscription_plan</code></td>
+                            <td><span class="type-tag enum">enum</span></td>
+                            <td>free · verified · premium</td>
+                        </tr>
+                        <tr>
+                            <td><code>commission_rate_pct</code></td>
+                            <td><span class="type-tag">numeric</span></td>
+                            <td>for dalali accounts</td>
+                        </tr>
+                        <tr>
+                            <td><code>payout_provider</code></td>
+                            <td><span class="type-tag">text</span></td>
+                            <td>bank / mpesa / tigopesa</td>
+                        </tr>
+                        <tr>
+                            <td><code>payout_reference</code></td>
+                            <td><span class="type-tag">text</span></td>
+                            <td>account or wallet number</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- listings -->
+            <p style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:8px;">listings</p>
+            <div style="overflow-x:auto;margin-bottom:32px;">
+                <table class="schema-table">
+                    <thead>
+                        <tr>
+                            <th>Column</th>
+                            <th>Type</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>id</code></td>
+                            <td><span class="type-tag">uuid</span></td>
+                            <td>PK</td>
+                        </tr>
+                        <tr>
+                            <td><code>lister_id</code></td>
+                            <td><span class="type-tag rel">uuid</span></td>
+                            <td>FK → profiles.id</td>
+                        </tr>
+                        <tr>
+                            <td><code>title</code></td>
+                            <td><span class="type-tag">text</span></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td><code>description</code></td>
+                            <td><span class="type-tag">text</span></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td><code>room_type</code></td>
+                            <td><span class="type-tag enum">enum</span></td>
+                            <td>single · shared · bedsit · studio · apartment</td>
+                        </tr>
+                        <tr>
+                            <td><code>gender_preference</code></td>
+                            <td><span class="type-tag enum">enum</span></td>
+                            <td>any · male · female</td>
+                        </tr>
+                        <tr>
+                            <td><code>price_monthly</code></td>
+                            <td><span class="type-tag">integer</span></td>
+                            <td>TZS</td>
+                        </tr>
+                        <tr>
+                            <td><code>utilities_included</code></td>
+                            <td><span class="type-tag bool">bool</span></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td><code>region</code></td>
+                            <td><span class="type-tag">text</span></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td><code>district</code></td>
+                            <td><span class="type-tag">text</span></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td><code>ward</code></td>
+                            <td><span class="type-tag">text</span></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td><code>street</code></td>
+                            <td><span class="type-tag">text</span></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td><code>lat</code></td>
+                            <td><span class="type-tag">numeric</span></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td><code>lng</code></td>
+                            <td><span class="type-tag">numeric</span></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td><code>amenities</code></td>
+                            <td><span class="type-tag">jsonb</span></td>
+                            <td>{wifi, water, electricity, generator, security, parking}</td>
+                        </tr>
+                        <tr>
+                            <td><code>house_rules</code></td>
+                            <td><span class="type-tag">text</span></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td><code>available_from</code></td>
+                            <td><span class="type-tag">date</span></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td><code>vacancy_status</code></td>
+                            <td><span class="type-tag enum">enum</span></td>
+                            <td>available · occupied · coming_soon</td>
+                        </tr>
+                        <tr>
+                            <td><code>status</code></td>
+                            <td><span class="type-tag enum">enum</span></td>
+                            <td>draft · pending · approved · rejected · flagged · suspended</td>
+                        </tr>
+                        <tr>
+                            <td><code>rejection_reason</code></td>
+                            <td><span class="type-tag">text</span></td>
+                            <td>nullable</td>
+                        </tr>
+                        <tr>
+                            <td><code>featured</code></td>
+                            <td><span class="type-tag bool">bool</span></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td><code>promotion_level</code></td>
+                            <td><span class="type-tag">integer</span></td>
+                            <td>0–3</td>
+                        </tr>
+                        <tr>
+                            <td><code>promotion_expires_at</code></td>
+                            <td><span class="type-tag">timestamptz</span></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td><code>view_count</code></td>
+                            <td><span class="type-tag">integer</span></td>
+                            <td>incremented server-side</td>
+                        </tr>
+                        <tr>
+                            <td><code>near_universities</code></td>
+                            <td><span class="type-tag">text[]</span></td>
+                            <td>array of university slugs</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- listing_photos -->
+            <p style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:8px;">listing_photos</p>
+            <div style="overflow-x:auto;margin-bottom:32px;">
+                <table class="schema-table">
+                    <thead>
+                        <tr>
+                            <th>Column</th>
+                            <th>Type</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>id</code></td>
+                            <td><span class="type-tag">uuid</span></td>
+                            <td>PK</td>
+                        </tr>
+                        <tr>
+                            <td><code>listing_id</code></td>
+                            <td><span class="type-tag rel">uuid</span></td>
+                            <td>FK → listings.id</td>
+                        </tr>
+                        <tr>
+                            <td><code>angle</code></td>
+                            <td><span class="type-tag enum">enum</span></td>
+                            <td>bedroom · kitchen · bathroom · outside</td>
+                        </tr>
+                        <tr>
+                            <td><code>storage_path</code></td>
+                            <td><span class="type-tag">text</span></td>
+                            <td>Supabase Storage path</td>
+                        </tr>
+                        <tr>
+                            <td><code>public_url</code></td>
+                            <td><span class="type-tag">text</span></td>
+                            <td>CDN URL</td>
+                        </tr>
+                        <tr>
+                            <td><code>ai_verified</code></td>
+                            <td><span class="type-tag bool">bool</span></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td><code>ai_confidence</code></td>
+                            <td><span class="type-tag">numeric</span></td>
+                            <td>0.0–1.0</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- conversations + messages -->
+            <p style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:8px;">conversations</p>
+            <div style="overflow-x:auto;margin-bottom:32px;">
+                <table class="schema-table">
+                    <thead>
+                        <tr>
+                            <th>Column</th>
+                            <th>Type</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>id</code></td>
+                            <td><span class="type-tag">uuid</span></td>
+                            <td>PK</td>
+                        </tr>
+                        <tr>
+                            <td><code>listing_id</code></td>
+                            <td><span class="type-tag rel">uuid</span></td>
+                            <td>FK → listings.id</td>
+                        </tr>
+                        <tr>
+                            <td><code>tenant_id</code></td>
+                            <td><span class="type-tag rel">uuid</span></td>
+                            <td>FK → profiles.id</td>
+                        </tr>
+                        <tr>
+                            <td><code>lister_id</code></td>
+                            <td><span class="type-tag rel">uuid</span></td>
+                            <td>FK → profiles.id</td>
+                        </tr>
+                        <tr>
+                            <td><code>inquiry_status</code></td>
+                            <td><span class="type-tag enum">enum</span></td>
+                            <td>open · interested · unavailable · booked</td>
+                        </tr>
+                        <tr>
+                            <td><code>move_in_date</code></td>
+                            <td><span class="type-tag">date</span></td>
+                            <td>from inquiry form</td>
+                        </tr>
+                        <tr>
+                            <td><code>last_message_at</code></td>
+                            <td><span class="type-tag">timestamptz</span></td>
+                            <td>for sorting</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <p style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:8px;">messages</p>
+            <div style="overflow-x:auto;margin-bottom:32px;">
+                <table class="schema-table">
+                    <thead>
+                        <tr>
+                            <th>Column</th>
+                            <th>Type</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>id</code></td>
+                            <td><span class="type-tag">uuid</span></td>
+                            <td>PK</td>
+                        </tr>
+                        <tr>
+                            <td><code>conversation_id</code></td>
+                            <td><span class="type-tag rel">uuid</span></td>
+                            <td>FK → conversations.id</td>
+                        </tr>
+                        <tr>
+                            <td><code>sender_id</code></td>
+                            <td><span class="type-tag rel">uuid</span></td>
+                            <td>FK → profiles.id</td>
+                        </tr>
+                        <tr>
+                            <td><code>body</code></td>
+                            <td><span class="type-tag">text</span></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td><code>seen_at</code></td>
+                            <td><span class="type-tag">timestamptz</span></td>
+                            <td>nullable</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- saved_listings -->
+            <p style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:8px;">saved_listings</p>
+            <div style="overflow-x:auto;margin-bottom:32px;">
+                <table class="schema-table">
+                    <thead>
+                        <tr>
+                            <th>Column</th>
+                            <th>Type</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>tenant_id</code></td>
+                            <td><span class="type-tag rel">uuid</span></td>
+                            <td>FK → profiles.id</td>
+                        </tr>
+                        <tr>
+                            <td><code>listing_id</code></td>
+                            <td><span class="type-tag rel">uuid</span></td>
+                            <td>FK → listings.id</td>
+                        </tr>
+                        <tr>
+                            <td><code>saved_at</code></td>
+                            <td><span class="type-tag">timestamptz</span></td>
+                            <td></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- admin_audit_log -->
+            <p style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:8px;">admin_audit_log</p>
+            <div style="overflow-x:auto;margin-bottom:32px;">
+                <table class="schema-table">
+                    <thead>
+                        <tr>
+                            <th>Column</th>
+                            <th>Type</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>id</code></td>
+                            <td><span class="type-tag">uuid</span></td>
+                            <td>PK</td>
+                        </tr>
+                        <tr>
+                            <td><code>admin_id</code></td>
+                            <td><span class="type-tag rel">uuid</span></td>
+                            <td>FK → profiles.id</td>
+                        </tr>
+                        <tr>
+                            <td><code>action</code></td>
+                            <td><span class="type-tag enum">enum</span></td>
+                            <td>approve_landlord · reject_landlord · approve_listing · reject_listing · flag · unflag ·
+                                suspend</td>
+                        </tr>
+                        <tr>
+                            <td><code>target_type</code></td>
+                            <td><span class="type-tag enum">enum</span></td>
+                            <td>landlord · listing</td>
+                        </tr>
+                        <tr>
+                            <td><code>target_id</code></td>
+                            <td><span class="type-tag">uuid</span></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td><code>reason</code></td>
+                            <td><span class="type-tag">text</span></td>
+                            <td>nullable</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- listing_drafts -->
+            <p style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:8px;">listing_drafts</p>
+            <div style="overflow-x:auto;margin-bottom:0;">
+                <table class="schema-table">
+                    <thead>
+                        <tr>
+                            <th>Column</th>
+                            <th>Type</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>lister_id</code></td>
+                            <td><span class="type-tag rel">uuid</span></td>
+                            <td>PK, FK → profiles.id. One draft per lister.</td>
+                        </tr>
+                        <tr>
+                            <td><code>current_step</code></td>
+                            <td><span class="type-tag">integer</span></td>
+                            <td>1–5</td>
+                        </tr>
+                        <tr>
+                            <td><code>data</code></td>
+                            <td><span class="type-tag">jsonb</span></td>
+                            <td>all non-file wizard fields</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+
+        <hr>
+
+        <!-- ══════════════════════════════════════ TECH STACK -->
+        <div class="section">
+            <div class="section-label">06 — Tech Stack</div>
+            <div class="section-title">Supabase + React, chosen deliberately</div>
+            <div class="stack-grid">
+                <div class="stack-card">
+                    <div class="stack-layer">Auth</div>
+                    <div class="stack-tech">Supabase Auth</div>
+                    <div class="stack-reason">Email/password + OTP SMS. JWT refresh tokens. RLS integration. No separate
+                        auth server needed.</div>
+                </div>
+                <div class="stack-card">
+                    <div class="stack-layer">Database</div>
+                    <div class="stack-tech">Supabase Postgres</div>
+                    <div class="stack-reason">Managed Postgres with RLS policies. Replaces Spring Boot + Flyway. Schema
+                        migrations via Supabase CLI.</div>
+                </div>
+                <div class="stack-card">
+                    <div class="stack-layer">Realtime</div>
+                    <div class="stack-tech">Supabase Realtime</div>
+                    <div class="stack-reason">Chat subscriptions and live notification badges with zero additional
+                        infrastructure.</div>
+                </div>
+                <div class="stack-card">
+                    <div class="stack-layer">File Storage</div>
+                    <div class="stack-tech">Supabase Storage</div>
+                    <div class="stack-reason">Public bucket for listing photos (CDN-served). Private bucket for ID docs
+                        and selfies. Replaces local disk/DB blob storage.</div>
+                </div>
+                <div class="stack-card">
+                    <div class="stack-layer">Frontend</div>
+                    <div class="stack-tech">React + Vite</div>
+                    <div class="stack-reason">Existing team familiarity. Fast HMR dev experience. Tailwind CSS for
+                        styling.</div>
+                </div>
+                <div class="stack-card">
+                    <div class="stack-layer">Routing</div>
+                    <div class="stack-tech">React Router v6</div>
+                    <div class="stack-reason">Nested routes for role-protected areas (landlord, admin). Lazy loading per
+                        route.</div>
+                </div>
+                <div class="stack-card">
+                    <div class="stack-layer">State</div>
+                    <div class="stack-tech">Zustand</div>
+                    <div class="stack-reason">Lightweight global state for auth user, unread message count, saved
+                        listings. No Redux boilerplate.</div>
+                </div>
+                <div class="stack-card">
+                    <div class="stack-layer">Map</div>
+                    <div class="stack-tech">Leaflet.js + OSM</div>
+                    <div class="stack-reason">Free, no API key. OpenStreetMap tiles. Good Tanzania coverage. Works on
+                        low-bandwidth connections.</div>
+                </div>
+                <div class="stack-card">
+                    <div class="stack-layer">AI Photo Check</div>
+                    <div class="stack-tech">OpenAI Vision API</div>
+                    <div class="stack-reason">Called from a Supabase Edge Function on listing submission. Keeps API key
+                        server-side.</div>
+                </div>
+                <div class="stack-card">
+                    <div class="stack-layer">Backend Logic</div>
+                    <div class="stack-tech">Supabase Edge Functions</div>
+                    <div class="stack-reason">Deno-based serverless functions for: OTP verification, AI photo check,
+                        view count increment, notification triggers. Replaces Spring Boot.</div>
+                </div>
+                <div class="stack-card">
+                    <div class="stack-layer">SMS / OTP</div>
+                    <div class="stack-tech">Africa's Talking</div>
+                    <div class="stack-reason">Tanzania-native SMS gateway. Cheapest per-SMS rate for TZ. Supabase Auth
+                        custom SMS hook.</div>
+                </div>
+                <div class="stack-card">
+                    <div class="stack-layer">Deployment</div>
+                    <div class="stack-tech">Vercel (frontend)</div>
+                    <div class="stack-reason">Zero-config React deployment. Free tier sufficient for early scale.
+                        Backend is fully Supabase — no Docker needed.</div>
+                </div>
+            </div>
+        </div>
+
+        <hr>
+
+        <!-- ══════════════════════════════════════ API / EDGE FUNCTIONS -->
+        <div class="section">
+            <div class="section-label">07 — API Design</div>
+            <div class="section-title">Supabase client + Edge Functions</div>
+            <p style="margin-bottom:24px;">Most data access happens through the Supabase JS client directly (with RLS
+                enforcing access control). Edge Functions handle operations that require server-side logic or secret API
+                keys.</p>
+
+            <p style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:12px;">Supabase Edge Functions</p>
+            <div class="endpoint">
+                <span class="method post">POST</span>
+                <span class="endpoint-path">/functions/v1/verify-phone-otp</span>
+                <span class="endpoint-desc">Sends OTP via Africa's Talking, verifies code, updates
+                    profiles.phone_verified</span>
+            </div>
+            <div class="endpoint">
+                <span class="method post">POST</span>
+                <span class="endpoint-path">/functions/v1/inspect-photo</span>
+                <span class="endpoint-desc">Accepts image URL + expected angle, calls OpenAI Vision, returns {pass,
+                    confidence, reason}</span>
+            </div>
+            <div class="endpoint">
+                <span class="method post">POST</span>
+                <span class="endpoint-path">/functions/v1/submit-listing</span>
+                <span class="endpoint-desc">Validates all required fields + AI photo results, creates listing row in
+                    PENDING status</span>
+            </div>
+            <div class="endpoint">
+                <span class="method post">POST</span>
+                <span class="endpoint-path">/functions/v1/increment-view</span>
+                <span class="endpoint-desc">Atomically increments listings.view_count for a given listing ID (prevents
+                    client-side manipulation)</span>
+            </div>
+            <div class="endpoint">
+                <span class="method post">POST</span>
+                <span class="endpoint-path">/functions/v1/admin-action</span>
+                <span class="endpoint-desc">Handles approve/reject/flag/suspend with audit log entry. Admin JWT
+                    required.</span>
+            </div>
+
+            <p style="font-family:'Syne',sans-serif;font-weight:700;margin:28px 0 12px;">Key Supabase Client Queries
+                (RLS-protected)</p>
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <span class="endpoint-path">listings (status=approved)</span>
+                <span class="endpoint-desc">Public search. RLS: anyone can read approved listings. Filters applied
+                    client-side via query params.</span>
+            </div>
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <span class="endpoint-path">listings (lister_id=me)</span>
+                <span class="endpoint-desc">Landlord's own listings. RLS: lister can read all their own listings
+                    regardless of status.</span>
+            </div>
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <span class="endpoint-path">conversations + messages</span>
+                <span class="endpoint-desc">RLS: only tenant_id or lister_id of the conversation can read
+                    messages.</span>
+            </div>
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <span class="endpoint-path">profiles (admin only)</span>
+                <span class="endpoint-desc">RLS: role=admin can read all profiles. Others can only read their
+                    own.</span>
+            </div>
+            <div class="endpoint">
+                <span class="method post">POST</span>
+                <span class="endpoint-path">saved_listings</span>
+                <span class="endpoint-desc">Insert/delete. RLS: tenant can only insert rows where tenant_id = their own
+                    auth.uid().</span>
+            </div>
+        </div>
+
+        <hr>
+
+        <!-- ══════════════════════════════════════ DESIGN SYSTEM -->
+        <div class="section">
+            <div class="section-label">08 — Design System</div>
+            <div class="section-title">Visual language</div>
+
+            <p style="margin-bottom:28px;">The visual direction is warm and grounded — earthy neutrals with jade green
+                as the primary trust color. The palette avoids the cold blues and purple gradients common in generic
+                fintech UI. It should feel local, reliable, and human.</p>
+
+            <p style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:32px;">Colour Palette</p>
+            <div class="color-swatches">
+                <div style="position:relative;margin-bottom:24px;">
+                    <div class="swatch" style="background:#0D0D0D;"></div>
+                    <div class="swatch-label">Ink #0D0D0D</div>
+                </div>
+                <div style="position:relative;margin-bottom:24px;">
+                    <div class="swatch" style="background:#F7F4EE;border:1px solid #D8D3CA;"></div>
+                    <div class="swatch-label">Paper #F7F4EE</div>
+                </div>
+                <div style="position:relative;margin-bottom:24px;">
+                    <div class="swatch" style="background:#1A6B4A;"></div>
+                    <div class="swatch-label">Jade #1A6B4A</div>
+                </div>
+                <div style="position:relative;margin-bottom:24px;">
+                    <div class="swatch" style="background:#2A8F63;"></div>
+                    <div class="swatch-label">Jade Light</div>
+                </div>
+                <div style="position:relative;margin-bottom:24px;">
+                    <div class="swatch" style="background:#D4840A;"></div>
+                    <div class="swatch-label">Amber #D4840A</div>
+                </div>
+                <div style="position:relative;margin-bottom:24px;">
+                    <div class="swatch" style="background:#C0392B;"></div>
+                    <div class="swatch-label">Alert #C0392B</div>
+                </div>
+                <div style="position:relative;margin-bottom:24px;">
+                    <div class="swatch" style="background:#1A4B8C;"></div>
+                    <div class="swatch-label">Blue #1A4B8C</div>
+                </div>
+                <div style="position:relative;margin-bottom:24px;">
+                    <div class="swatch" style="background:#6B6560;"></div>
+                    <div class="swatch-label">Mid #6B6560</div>
+                </div>
+            </div>
+
+            <p style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:20px;margin-top:8px;">Typography</p>
+            <div class="type-sample">
+                <div class="type-specimen">Syne — Headings</div>
+                <div class="type-meta">Syne 800 · Screen titles, listing titles, section headers, button labels</div>
+            </div>
+            <div class="type-sample">
+                <div style="font-family:'DM Sans',sans-serif;font-size:24px;font-weight:300;margin-bottom:4px;">DM Sans
+                    — Body</div>
+                <div class="type-meta">DM Sans 300–500 · Descriptions, labels, metadata, chat messages</div>
+            </div>
+
+            <p style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:16px;margin-top:28px;">Mobile UI
+                Principles</p>
+            <p>Minimum touch target 48×48px. Bottom navigation bar (4 tabs: Home, Search, Messages, Profile). No
+                horizontal scroll except photo galleries. All modals are bottom sheets on mobile. Forms use sticky
+                submit buttons at the bottom of the viewport. Skeleton loaders instead of spinners for content-heavy
+                screens.</p>
+        </div>
+
+        <hr>
+
+        <!-- ══════════════════════════════════════ PHASE TIMELINE -->
+        <div class="section">
+            <div class="section-label">09 — Build Phases</div>
+            <div class="section-title">What to build, in order</div>
+            <div class="timeline">
+                <div class="timeline-phase">
+                    <div class="timeline-label">Phase 1 — Foundation (Weeks 1–6)</div>
+                    <div class="timeline-title">Verified Marketplace</div>
+                    <div class="timeline-items">
+                        <span class="timeline-item">Supabase project setup + schema</span>
+                        <span class="timeline-item">Auth (email + OTP phone)</span>
+                        <span class="timeline-item">Role-based routing</span>
+                        <span class="timeline-item">Listing wizard (5 steps)</span>
+                        <span class="timeline-item">AI photo check (Edge Function)</span>
+                        <span class="timeline-item">Admin panel (approve/reject/flag)</span>
+                        <span class="timeline-item">Audit log</span>
+                        <span class="timeline-item">Public search + filters</span>
+                        <span class="timeline-item">Listing detail page</span>
+                        <span class="timeline-item">Landlord dashboard</span>
+                        <span class="timeline-item">Saved favourites</span>
+                        <span class="timeline-item">Inquiry form + realtime chat</span>
+                        <span class="timeline-item">Vercel deployment</span>
+                    </div>
+                </div>
+                <div class="timeline-phase">
+                    <div class="timeline-label">Phase 2 — Trust & Engagement (Weeks 7–12)</div>
+                    <div class="timeline-title">Reviews, Bookings & Analytics</div>
+                    <div class="timeline-items">
+                        <span class="timeline-item">Reviews & ratings system</span>
+                        <span class="timeline-item">Booking request flow</span>
+                        <span class="timeline-item">Vacancy status management</span>
+                        <span class="timeline-item">Landlord analytics dashboard</span>
+                        <span class="timeline-item">Multi-university support</span>
+                        <span class="timeline-item">Map view (Leaflet)</span>
+                        <span class="timeline-item">Push notifications (PWA)</span>
+                        <span class="timeline-item">Tenant preference profile</span>
+                    </div>
+                </div>
+                <div class="timeline-phase">
+                    <div class="timeline-label">Phase 3 — Monetization (Weeks 13–20)</div>
+                    <div class="timeline-title">Payments & Subscription</div>
+                    <div class="timeline-items">
+                        <span class="timeline-item">Subscription tiers (free/verified/premium)</span>
+                        <span class="timeline-item">M-Pesa / Tigopesa integration</span>
+                        <span class="timeline-item">Rent payment tracking</span>
+                        <span class="timeline-item">Dalali commission dashboard</span>
+                        <span class="timeline-item">Featured listing placement</span>
+                        <span class="timeline-item">Invoice generation</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <hr>
+
+        <!-- ══════════════════════════════════════ MIGRATION NOTE -->
+        <div class="section" style="padding-bottom:0;">
+            <div class="section-label">10 — Migration Note</div>
+            <div class="section-title">Moving from Spring Boot</div>
+            <p>The existing Spring Boot backend can be retired incrementally. Start by standing up the Supabase project
+                and migrating the database schema with equivalent Postgres tables and RLS policies. Port the AI photo
+                check endpoint to a Supabase Edge Function first — this is the only truly custom server-side logic. The
+                admin action endpoints follow. Auth migrates automatically since Supabase handles it natively. Once the
+                Edge Functions cover all custom logic, the frontend can be pointed at Supabase directly and the Spring
+                Boot container retired.</p>
+            <p>Existing listing data and user accounts can be exported from Postgres and imported into Supabase using
+                <code>pg_dump</code> / <code>psql</code>. ID documents should be re-uploaded to Supabase Storage private
+                buckets, or migrated by copying files from the old volume.</p>
+            <p>Docker Compose is no longer needed in the new architecture — development uses the Supabase CLI
+                (<code>supabase start</code>) which spins up a local Supabase stack, and production is the hosted
+                Supabase project.</p>
+        </div>
+
+    </div>
+
+    <div class="doc-footer">
+        <strong>CampusStay TZ</strong> — Full Redesign Specification<br>
+        Built right, once. February 2025.
+    </div>
+
+</body>
+
+</html>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function RegisterStudentPage() {
@@ -10,6 +10,7 @@ export default function RegisterStudentPage() {
     fullName: '',
     email: '',
     phone: '',
+    university: '',
     password: ''
   });
   const [error, setError] = useState('');
@@ -27,10 +28,10 @@ export default function RegisterStudentPage() {
   };
 
   return (
-    <div className="container narrow">
-      <section className="auth-card">
-        <h1>Student registration</h1>
-        <p>Find verified housing around UDSM in minutes.</p>
+    <div className="container section auth-page">
+      <section className="card auth-form-card">
+        <h1>Student Registration</h1>
+        <p>Create your account to save listings and message listers.</p>
 
         {error ? <p className="error-text">{error}</p> : null}
 
@@ -40,7 +41,9 @@ export default function RegisterStudentPage() {
             <input
               required
               value={formData.fullName}
-              onChange={(event) => setFormData((prev) => ({ ...prev, fullName: event.target.value }))}
+              onChange={(event) =>
+                setFormData((prev) => ({ ...prev, fullName: event.target.value }))
+              }
             />
           </label>
 
@@ -50,7 +53,9 @@ export default function RegisterStudentPage() {
               type="email"
               required
               value={formData.email}
-              onChange={(event) => setFormData((prev) => ({ ...prev, email: event.target.value }))}
+              onChange={(event) =>
+                setFormData((prev) => ({ ...prev, email: event.target.value }))
+              }
             />
           </label>
 
@@ -60,7 +65,20 @@ export default function RegisterStudentPage() {
               required
               placeholder="+2557XXXXXXXX"
               value={formData.phone}
-              onChange={(event) => setFormData((prev) => ({ ...prev, phone: event.target.value }))}
+              onChange={(event) =>
+                setFormData((prev) => ({ ...prev, phone: event.target.value }))
+              }
+            />
+          </label>
+
+          <label>
+            University (optional)
+            <input
+              value={formData.university}
+              onChange={(event) =>
+                setFormData((prev) => ({ ...prev, university: event.target.value }))
+              }
+              placeholder="UDSM, MUHAS, IFM..."
             />
           </label>
 
@@ -71,7 +89,9 @@ export default function RegisterStudentPage() {
               minLength={8}
               required
               value={formData.password}
-              onChange={(event) => setFormData((prev) => ({ ...prev, password: event.target.value }))}
+              onChange={(event) =>
+                setFormData((prev) => ({ ...prev, password: event.target.value }))
+              }
             />
           </label>
 
@@ -79,6 +99,10 @@ export default function RegisterStudentPage() {
             {loading ? 'Creating account...' : 'Create student account'}
           </button>
         </form>
+
+        <div className="auth-links">
+          <Link to="/login">I already have an account</Link>
+        </div>
       </section>
     </div>
   );

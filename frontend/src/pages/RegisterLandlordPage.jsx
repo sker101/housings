@@ -1,6 +1,12 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+
+const LISTER_TYPES = [
+  { value: 'owner', label: 'Property Owner' },
+  { value: 'manager', label: 'Property Manager' },
+  { value: 'dalali', label: 'Dalali / Agent' }
+];
 
 export default function RegisterLandlordPage() {
   const { registerLandlord, loading } = useAuth();
@@ -10,7 +16,7 @@ export default function RegisterLandlordPage() {
     fullName: '',
     email: '',
     phone: '',
-    identityDocumentPlaceholder: '',
+    listerType: 'owner',
     password: ''
   });
   const [error, setError] = useState('');
@@ -28,12 +34,10 @@ export default function RegisterLandlordPage() {
   };
 
   return (
-    <div className="container narrow">
-      <section className="auth-card">
-        <h1>Landlord onboarding</h1>
-        <p>
-          Your account and first listing require admin verification before public visibility.
-        </p>
+    <div className="container section auth-page">
+      <section className="card auth-form-card">
+        <h1>Lister Registration</h1>
+        <p>Register as an owner, manager, or dalali to submit verified listings.</p>
 
         {error ? <p className="error-text">{error}</p> : null}
 
@@ -43,7 +47,9 @@ export default function RegisterLandlordPage() {
             <input
               required
               value={formData.fullName}
-              onChange={(event) => setFormData((prev) => ({ ...prev, fullName: event.target.value }))}
+              onChange={(event) =>
+                setFormData((prev) => ({ ...prev, fullName: event.target.value }))
+              }
             />
           </label>
 
@@ -53,30 +59,38 @@ export default function RegisterLandlordPage() {
               type="email"
               required
               value={formData.email}
-              onChange={(event) => setFormData((prev) => ({ ...prev, email: event.target.value }))}
+              onChange={(event) =>
+                setFormData((prev) => ({ ...prev, email: event.target.value }))
+              }
             />
           </label>
 
           <label>
-            Phone number (required)
+            Phone number
             <input
               required
               placeholder="+2557XXXXXXXX"
               value={formData.phone}
-              onChange={(event) => setFormData((prev) => ({ ...prev, phone: event.target.value }))}
+              onChange={(event) =>
+                setFormData((prev) => ({ ...prev, phone: event.target.value }))
+              }
             />
           </label>
 
           <label>
-            ID document placeholder
-            <input
-              required
-              placeholder="NIDA-XXXXXX or file reference"
-              value={formData.identityDocumentPlaceholder}
+            Lister type
+            <select
+              value={formData.listerType}
               onChange={(event) =>
-                setFormData((prev) => ({ ...prev, identityDocumentPlaceholder: event.target.value }))
+                setFormData((prev) => ({ ...prev, listerType: event.target.value }))
               }
-            />
+            >
+              {LISTER_TYPES.map((type) => (
+                <option key={type.value} value={type.value}>
+                  {type.label}
+                </option>
+              ))}
+            </select>
           </label>
 
           <label>
@@ -86,14 +100,20 @@ export default function RegisterLandlordPage() {
               minLength={8}
               required
               value={formData.password}
-              onChange={(event) => setFormData((prev) => ({ ...prev, password: event.target.value }))}
+              onChange={(event) =>
+                setFormData((prev) => ({ ...prev, password: event.target.value }))
+              }
             />
           </label>
 
           <button className="btn" type="submit" disabled={loading}>
-            {loading ? 'Submitting...' : 'Submit onboarding'}
+            {loading ? 'Creating account...' : 'Create lister account'}
           </button>
         </form>
+
+        <div className="auth-links">
+          <Link to="/login">I already have an account</Link>
+        </div>
       </section>
     </div>
   );
