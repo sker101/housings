@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import ListingMap from '../components/ListingMap';
 import ListingCard from '../components/ListingCard';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -14,8 +15,10 @@ const SORT_OPTIONS = [
   { value: 'price_asc', label: 'Price low to high' },
   { value: 'price_desc', label: 'Price high to low' }
 ];
+const PAGE_SIZE = 24;
 
 export default function SearchPage() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, token } = useAuth();
 
@@ -29,9 +32,13 @@ export default function SearchPage() {
   });
   const [viewMode, setViewMode] = useState('list');
   const [listings, setListings] = useState([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
   const [savedIds, setSavedIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
+  const loadMoreRef = useRef(null);
 
   useEffect(() => {
     let mounted = true;
@@ -41,15 +48,22 @@ export default function SearchPage() {
       setError('');
 
       try {
-        const rows = await fetchApprovedListings(filters, token);
+        const rows = await fetchApprovedListings(
+          { ...filters, limit: PAGE_SIZE, offset: 0 },
+          token
+        );
 
         if (mounted) {
           setListings(rows);
+          setPage(1);
+          setHasMore(rows.length === PAGE_SIZE);
         }
       } catch (err) {
         if (mounted) {
           setError(err.message);
           setListings([]);
+          setHasMore(false);
+          setPage(1);
         }
       } finally {
         if (mounted) {
@@ -64,6 +78,60 @@ export default function SearchPage() {
       mounted = false;
     };
   }, [filters, token]);
+
+  const loadMore = useCallback(async () => {
+    if (loading || loadingMore || !hasMore) {
+      return;
+    }
+
+    setLoadingMore(true);
+    setError('');
+
+    try {
+      const rows = await fetchApprovedListings(
+        {
+          ...filters,
+          limit: PAGE_SIZE,
+          offset: page * PAGE_SIZE
+        },
+        token
+      );
+
+      setListings((prev) => [...prev, ...rows]);
+      setPage((prev) => prev + 1);
+      setHasMore(rows.length === PAGE_SIZE);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [filters, hasMore, loading, loadingMore, page, token]);
+
+  useEffect(() => {
+    if (viewMode !== 'list' || loading || loadingMore || !hasMore) {
+      return undefined;
+    }
+
+    const node = loadMoreRef.current;
+    if (!node) {
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          loadMore();
+        }
+      },
+      { rootMargin: '220px' }
+    );
+
+    observer.observe(node);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [hasMore, loadMore, loading, loadingMore, viewMode]);
 
   useEffect(() => {
     let mounted = true;
@@ -98,41 +166,10 @@ export default function SearchPage() {
       return 'Searching...';
     }
 
-    return `${listings.length} results`;
+    return `Showing ${listings.length} result${listings.length === 1 ? '' : 's'}`;
   }, [loading, listings.length]);
 
-  const mapPoints = useMemo(() => {
-    const withCoords = listings
-      .filter(
-        (listing) =>
-          Number.isFinite(Number(listing.lat)) && Number.isFinite(Number(listing.lng))
-      )
-      .map((listing) => ({
-        id: listing.id,
-        title: listing.title,
-        lat: Number(listing.lat),
-        lng: Number(listing.lng)
-      }));
-
-    if (withCoords.length === 0) {
-      return [];
-    }
-
-    const lats = withCoords.map((item) => item.lat);
-    const lngs = withCoords.map((item) => item.lng);
-    const minLat = Math.min(...lats);
-    const maxLat = Math.max(...lats);
-    const minLng = Math.min(...lngs);
-    const maxLng = Math.max(...lngs);
-    const latRange = Math.max(maxLat - minLat, 0.01);
-    const lngRange = Math.max(maxLng - minLng, 0.01);
-
-    return withCoords.map((item) => ({
-      ...item,
-      x: ((item.lng - minLng) / lngRange) * 100,
-      y: ((maxLat - item.lat) / latRange) * 100
-    }));
-  }, [listings]);
+  const mapListings = useMemo(() => listings, [listings]);
 
   const updateFilter = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -251,41 +288,43 @@ export default function SearchPage() {
       {viewMode === 'map' ? (
         <section className="card map-view">
           <h2>Map View</h2>
-          {mapPoints.length === 0 ? (
-            <p className="muted">No listing coordinates available for this result set.</p>
-          ) : (
-            <>
-              <div className="map-canvas" aria-label="Listing map preview">
-                {mapPoints.map((point) => (
-                  <Link
-                    key={point.id}
-                    to={`/rooms/${point.id}`}
-                    className="map-marker"
-                    style={{ left: `${point.x}%`, top: `${point.y}%` }}
-                    title={point.title}
-                  >
-                    •
-                  </Link>
-                ))}
-              </div>
-              <p className="muted map-note">
-                Tap a marker to open listing details. Leaflet integration is planned in the next
-                UI pass.
-              </p>
-            </>
-          )}
+          <ListingMap
+            listings={mapListings}
+            onMarkerSelect={(listing) => navigate(`/rooms/${listing.id}`)}
+          />
+          {hasMore ? (
+            <button type="button" className="btn btn--ghost btn--small" onClick={loadMore} disabled={loadingMore}>
+              {loadingMore ? 'Loading...' : 'Load more map results'}
+            </button>
+          ) : null}
         </section>
       ) : (
-        <div className="listing-grid">
-          {listings.map((listing) => (
-            <ListingCard
-              key={listing.id}
-              listing={listing}
-              onToggleSave={handleToggleSave}
-              isSaved={savedIds.has(listing.id)}
-            />
-          ))}
-        </div>
+        <>
+          <div className="listing-grid">
+            {listings.map((listing) => (
+              <ListingCard
+                key={listing.id}
+                listing={listing}
+                onToggleSave={handleToggleSave}
+                isSaved={savedIds.has(listing.id)}
+              />
+            ))}
+          </div>
+
+          {hasMore ? (
+            <div className="search-load-more">
+              <button
+                type="button"
+                className="btn btn--ghost"
+                onClick={loadMore}
+                disabled={loadingMore}
+              >
+                {loadingMore ? 'Loading more...' : 'Load more'}
+              </button>
+              <div ref={loadMoreRef} aria-hidden="true" />
+            </div>
+          ) : null}
+        </>
       )}
     </div>
   );

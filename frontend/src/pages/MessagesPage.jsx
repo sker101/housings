@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { subscribeToTableChanges } from '../lib/realtime';
 import { insertRows, selectRows, updateRows } from '../lib/supabase';
+
+const INQUIRY_STATUS_OPTIONS = ['open', 'interested', 'unavailable', 'booked'];
 
 function formatTimestamp(value) {
   if (!value) {
@@ -15,6 +18,17 @@ function formatTimestamp(value) {
   }
 }
 
+function humanizeStatus(value) {
+  if (!value) {
+    return 'Open';
+  }
+
+  return String(value)
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
 export default function MessagesPage() {
   const navigate = useNavigate();
   const { threadId } = useParams();
@@ -25,11 +39,24 @@ export default function MessagesPage() {
   const [messageBody, setMessageBody] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [realtimeState, setRealtimeState] = useState('connecting');
+  const [statusValue, setStatusValue] = useState('open');
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   const activeConversation = useMemo(
     () => conversations.find((item) => item.id === threadId) || null,
     [conversations, threadId]
   );
+
+  const canManageInquiryStatus = Boolean(
+    activeConversation &&
+    user?.userId &&
+    (user.userId === activeConversation.lister_id || user.role === 'admin')
+  );
+
+  useEffect(() => {
+    setStatusValue(activeConversation?.inquiry_status || 'open');
+  }, [activeConversation?.id, activeConversation?.inquiry_status]);
 
   useEffect(() => {
     let mounted = true;
@@ -102,11 +129,35 @@ export default function MessagesPage() {
 
     loadConversations();
 
-    const intervalId = setInterval(loadConversations, 7000);
+    if (!user?.userId || !token) {
+      return () => {
+        mounted = false;
+      };
+    }
+
+    const handleConversationEvent = () => {
+      loadConversations();
+    };
+
+    const unsubscribeTenant = subscribeToTableChanges({
+      table: 'conversations',
+      filter: `tenant_id=eq.${user.userId}`,
+      accessToken: token,
+      onEvent: handleConversationEvent,
+      onStatus: (status) => setRealtimeState(status)
+    });
+
+    const unsubscribeLister = subscribeToTableChanges({
+      table: 'conversations',
+      filter: `lister_id=eq.${user.userId}`,
+      accessToken: token,
+      onEvent: handleConversationEvent
+    });
 
     return () => {
       mounted = false;
-      clearInterval(intervalId);
+      unsubscribeTenant();
+      unsubscribeLister();
     };
   }, [user?.userId, token, threadId, navigate]);
 
@@ -155,11 +206,25 @@ export default function MessagesPage() {
 
     loadMessages();
 
-    const intervalId = setInterval(loadMessages, 4000);
+    if (!threadId || !token) {
+      return () => {
+        mounted = false;
+      };
+    }
+
+    const unsubscribe = subscribeToTableChanges({
+      table: 'messages',
+      filter: `conversation_id=eq.${threadId}`,
+      accessToken: token,
+      onEvent: () => {
+        loadMessages();
+      },
+      onStatus: (status) => setRealtimeState(status)
+    });
 
     return () => {
       mounted = false;
-      clearInterval(intervalId);
+      unsubscribe();
     };
   }, [threadId, token, user?.userId]);
 
@@ -181,15 +246,6 @@ export default function MessagesPage() {
         { accessToken: token }
       );
 
-      await updateRows(
-        'conversations',
-        { last_message_at: new Date().toISOString() },
-        {
-          filters: [{ column: 'id', op: 'eq', value: threadId }],
-          accessToken: token
-        }
-      );
-
       setMessageBody('');
 
       const rows = await selectRows('messages', {
@@ -201,6 +257,41 @@ export default function MessagesPage() {
       setMessages(rows);
     } catch (err) {
       setError(err.message);
+    }
+  };
+
+  const updateInquiryStatus = async () => {
+    if (!threadId || !token || !canManageInquiryStatus) {
+      return;
+    }
+
+    setUpdatingStatus(true);
+    setError('');
+
+    try {
+      const rows = await updateRows(
+        'conversations',
+        { inquiry_status: statusValue },
+        {
+          filters: [{ column: 'id', op: 'eq', value: threadId }],
+          accessToken: token
+        }
+      );
+
+      const updated = rows[0];
+      if (updated) {
+        setConversations((prev) =>
+          prev.map((conversation) =>
+            conversation.id === threadId
+              ? { ...conversation, inquiry_status: updated.inquiry_status }
+              : conversation
+          )
+        );
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUpdatingStatus(false);
     }
   };
 
@@ -221,7 +312,7 @@ export default function MessagesPage() {
               className={`conversation-item ${conversation.id === threadId ? 'is-active' : ''}`}
             >
               <strong>{conversation.listing?.title || 'Listing conversation'}</strong>
-              <span>{formatTimestamp(conversation.last_message_at)}</span>
+              <span>{humanizeStatus(conversation.inquiry_status)} • {formatTimestamp(conversation.last_message_at)}</span>
             </Link>
           ))}
         </aside>
@@ -231,7 +322,32 @@ export default function MessagesPage() {
             <>
               <header className="message-thread__header">
                 <h2>{activeConversation.listing?.title || 'Conversation'}</h2>
-                <p className="muted">Status: {activeConversation.inquiry_status || 'open'}</p>
+                <p className="muted">
+                  Status: {humanizeStatus(activeConversation.inquiry_status)} • Chat:{' '}
+                  {realtimeState === 'subscribed' ? 'Live' : 'Connecting...'}
+                </p>
+                {canManageInquiryStatus ? (
+                  <div className="message-thread__status-row">
+                    <select
+                      value={statusValue}
+                      onChange={(event) => setStatusValue(event.target.value)}
+                    >
+                      {INQUIRY_STATUS_OPTIONS.map((option) => (
+                        <option key={option} value={option}>
+                          {humanizeStatus(option)}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      className="btn btn--small"
+                      onClick={updateInquiryStatus}
+                      disabled={updatingStatus}
+                    >
+                      {updatingStatus ? 'Saving...' : 'Update inquiry'}
+                    </button>
+                  </div>
+                ) : null}
               </header>
 
               <div className="message-list">

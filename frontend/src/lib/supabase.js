@@ -246,7 +246,7 @@ export async function selectRows(table, options = {}) {
   applyFilters(searchParams, filters);
 
   if (or) {
-    searchParams.set('or', or);
+    searchParams.set('or', `(${or})`);
   }
 
   if (order) {

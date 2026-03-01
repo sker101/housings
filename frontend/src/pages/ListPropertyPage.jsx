@@ -56,6 +56,41 @@ const DEFAULT_FORM = {
   policyAccepted: false
 };
 
+const DAR_DISTRICTS = [
+  { value: '', label: 'Select district' },
+  { value: 'Kinondoni', label: 'Kinondoni' },
+  { value: 'Ubungo', label: 'Ubungo' },
+  { value: 'Ilala', label: 'Ilala' },
+  { value: 'Temeke', label: 'Temeke' },
+  { value: 'Kigamboni', label: 'Kigamboni' }
+];
+
+const DAR_WARDS = {
+  Kinondoni: [
+    'Kinondoni', 'Magomeni', 'Mzimuni', 'Ndugumbi', 'Tandale',
+    'Mwananyamala', 'Kijitonyama', 'Sinza', 'Manzese', 'Mikocheni',
+    'Msasani', 'Kawe', 'Mbezi', 'Kunduchi', 'Bunju'
+  ],
+  Ubungo: [
+    'Ubungo', 'Sinza', 'Manzese', 'Makuburi', 'Mburahati',
+    'Kimara', 'Kibamba', 'Saranga', 'Kwembe', 'Goba',
+    'Makongo', 'Mbezi Juu'
+  ],
+  Ilala: [
+    'Ilala', 'Kariakoo', 'Buguruni', 'Vingunguti', 'Gerezani',
+    'Tabata', 'Segerea', 'Ukonga', 'Pugu', 'Msongola',
+    'Chanika'
+  ],
+  Temeke: [
+    'Temeke', 'Chang\'ombe', 'Kurasini', 'Tandika', 'Mbagala',
+    'Chamazi', 'Kimbiji', 'Somangila', 'Yombo Vituka'
+  ],
+  Kigamboni: [
+    'Kigamboni', 'Kibada', 'Kisiwani', 'Tungi', 'Vijibweni',
+    'Somangila', 'Pemba Mnazi'
+  ]
+};
+
 function validateStep(step, form, files) {
   if (step === 0) {
     if (!form.fullName.trim()) {
@@ -124,6 +159,9 @@ export default function ListPropertyPage() {
   const [success, setSuccess] = useState('');
 
   const hasListerRole = user?.role === 'LISTER';
+  const verificationStatus = user?.verificationStatus || 'pending';
+  const isVerified = verificationStatus === 'approved';
+  const [gettingLocation, setGettingLocation] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -273,6 +311,15 @@ export default function ListPropertyPage() {
 
     if (!hasListerRole || !user?.userId || !token) {
       setError('Only authenticated listers can submit listings.');
+      return;
+    }
+
+    if (!isVerified) {
+      setError(
+        'Your account must be verified by an admin before you can submit listings. ' +
+        'Your current verification status is: ' + verificationStatus.toUpperCase() + '. ' +
+        'Please wait for admin approval or contact support.'
+      );
       return;
     }
 
@@ -434,6 +481,32 @@ export default function ListPropertyPage() {
     );
   }
 
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      setError('Geolocation is not supported by your browser.');
+      return;
+    }
+
+    setGettingLocation(true);
+    setError('');
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        updateField('lat', position.coords.latitude.toFixed(6));
+        updateField('lng', position.coords.longitude.toFixed(6));
+        setGettingLocation(false);
+        setSuccess('Location captured.');
+      },
+      (geoError) => {
+        setGettingLocation(false);
+        setError(`Unable to get location: ${geoError.message}`);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  const wardOptions = DAR_WARDS[form.district] || [];
+
   return (
     <div className="container section">
       <div className="section__header">
@@ -443,6 +516,20 @@ export default function ListPropertyPage() {
         </div>
         <p className="muted">{savingDraft ? 'Saving draft...' : 'Draft autosave active'}</p>
       </div>
+
+      {/* Verification status banner */}
+      {!isVerified ? (
+        <div className={`verification-banner verification-banner--${verificationStatus}`}>
+          <strong>Verification: {verificationStatus.toUpperCase()}</strong>
+          <span>
+            {verificationStatus === 'pending'
+              ? 'Your account is awaiting admin verification. You can prepare your listing draft but cannot submit until approved.'
+              : verificationStatus === 'rejected'
+                ? 'Your verification was rejected. Please contact support to resolve this before submitting.'
+                : 'Verification in progress.'}
+          </span>
+        </div>
+      ) : null}
 
       <section className="list-flow-checklist">
         {checklist.map((item, index) => (
@@ -554,26 +641,44 @@ export default function ListPropertyPage() {
           <div className="form-grid">
             <label>
               Region
-              <input
+              <select
                 value={form.region}
                 onChange={(event) => updateField('region', event.target.value)}
-              />
+              >
+                <option value="Dar es Salaam">Dar es Salaam</option>
+              </select>
             </label>
 
             <label>
               District
-              <input
+              <select
                 value={form.district}
-                onChange={(event) => updateField('district', event.target.value)}
-              />
+                onChange={(event) => {
+                  updateField('district', event.target.value);
+                  updateField('ward', '');
+                }}
+              >
+                {DAR_DISTRICTS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </label>
 
             <label>
               Ward
-              <input
+              <select
                 value={form.ward}
                 onChange={(event) => updateField('ward', event.target.value)}
-              />
+              >
+                <option value="">Select ward</option>
+                {wardOptions.map((ward) => (
+                  <option key={ward} value={ward}>
+                    {ward}
+                  </option>
+                ))}
+              </select>
             </label>
 
             <label>
@@ -581,26 +686,51 @@ export default function ListPropertyPage() {
               <input
                 value={form.street}
                 onChange={(event) => updateField('street', event.target.value)}
+                placeholder="e.g. Mlimani Street"
               />
             </label>
 
-            <label>
-              Latitude
-              <input
-                value={form.lat}
-                onChange={(event) => updateField('lat', event.target.value)}
-                placeholder="-6.7924"
-              />
-            </label>
+            <div className="form-grid__full">
+              <button
+                type="button"
+                className="location-picker-btn"
+                onClick={handleGetLocation}
+                disabled={gettingLocation}
+              >
+                {gettingLocation ? 'Getting location...' : '📍 Use my current location'}
+              </button>
+              {form.lat && form.lng ? (
+                <p className="location-coords">
+                  Coordinates: {form.lat}, {form.lng}
+                </p>
+              ) : (
+                <p className="location-coords">
+                  No coordinates set. Use the button above or enter manually below.
+                </p>
+              )}
+            </div>
 
-            <label>
-              Longitude
-              <input
-                value={form.lng}
-                onChange={(event) => updateField('lng', event.target.value)}
-                placeholder="39.2083"
-              />
-            </label>
+            <details className="form-grid__full form-grid__collapsible">
+              <summary>Enter coordinates manually</summary>
+              <div className="form-grid" style={{ marginTop: '0.5rem' }}>
+                <label>
+                  Latitude
+                  <input
+                    value={form.lat}
+                    onChange={(event) => updateField('lat', event.target.value)}
+                    placeholder="-6.7924"
+                  />
+                </label>
+                <label>
+                  Longitude
+                  <input
+                    value={form.lng}
+                    onChange={(event) => updateField('lng', event.target.value)}
+                    placeholder="39.2083"
+                  />
+                </label>
+              </div>
+            </details>
 
             <label>
               Nearby university
@@ -702,8 +832,14 @@ export default function ListPropertyPage() {
               Continue
             </button>
           ) : (
-            <button type="button" className="btn" onClick={submitListing} disabled={submitting}>
-              {submitting ? 'Submitting...' : 'Submit listing'}
+            <button
+              type="button"
+              className="btn"
+              onClick={submitListing}
+              disabled={submitting || !isVerified}
+              title={!isVerified ? 'Account verification required to submit' : ''}
+            >
+              {submitting ? 'Submitting...' : !isVerified ? 'Verification required' : 'Submit listing'}
             </button>
           )}
         </div>

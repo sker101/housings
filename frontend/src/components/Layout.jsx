@@ -1,9 +1,68 @@
+import { useEffect, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { APP_ROLE } from '../lib/roles';
+import { selectRows } from '../lib/supabase';
 
 export default function Layout({ children }) {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, token, isAuthenticated, logout } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadUnreadCount() {
+      if (!isAuthenticated || !user?.userId || !token) {
+        if (mounted) {
+          setUnreadCount(0);
+        }
+        return;
+      }
+
+      try {
+        const conversations = await selectRows('conversations', {
+          select: 'id',
+          or: `tenant_id.eq.${user.userId},lister_id.eq.${user.userId}`,
+          limit: 500,
+          accessToken: token
+        });
+
+        const conversationIds = conversations.map((item) => item.id).filter(Boolean);
+        if (conversationIds.length === 0) {
+          if (mounted) {
+            setUnreadCount(0);
+          }
+          return;
+        }
+
+        const unreadRows = await selectRows('messages', {
+          select: 'id',
+          filters: [
+            { column: 'conversation_id', op: 'in', value: `(${conversationIds.join(',')})` },
+            { column: 'sender_id', op: 'neq', value: user.userId },
+            { column: 'seen_at', op: 'is', value: 'null' }
+          ],
+          accessToken: token
+        });
+
+        if (mounted) {
+          setUnreadCount(unreadRows.length);
+        }
+      } catch {
+        if (mounted) {
+          setUnreadCount(0);
+        }
+      }
+    }
+
+    loadUnreadCount();
+    const intervalId = setInterval(loadUnreadCount, 20000);
+
+    return () => {
+      mounted = false;
+      clearInterval(intervalId);
+    };
+  }, [isAuthenticated, token, user?.userId]);
 
   const topActionLink = (() => {
     if (!isAuthenticated) {
@@ -50,7 +109,18 @@ export default function Layout({ children }) {
 
           <nav className="topbar__nav">
             <NavLink to="/search">Search</NavLink>
+            {isAuthenticated ? (
+              <NavLink to="/messages" className="nav-link-with-badge">
+                Messages
+                {unreadCount > 0 ? (
+                  <span className="nav-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
+                ) : null}
+              </NavLink>
+            ) : null}
             {user?.role === APP_ROLE.LISTER ? <NavLink to="/list-property">List Property</NavLink> : null}
+            {isAuthenticated ? (
+              <NavLink to="/profile">Profile</NavLink>
+            ) : null}
             {topActionLink}
             {isAuthenticated ? (
               <button type="button" className="btn btn--ghost btn--small" onClick={logout}>
@@ -70,8 +140,11 @@ export default function Layout({ children }) {
         <NavLink to="/search" className={({ isActive }) => (isActive ? 'is-active' : '')}>
           Search
         </NavLink>
-        <NavLink to="/messages" className={({ isActive }) => (isActive ? 'is-active' : '')}>
+        <NavLink to="/messages" className={({ isActive }) => `nav-link-with-badge ${isActive ? 'is-active' : ''}`}>
           Messages
+          {unreadCount > 0 ? (
+            <span className="nav-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
+          ) : null}
         </NavLink>
         <NavLink to="/profile" className={({ isActive }) => (isActive ? 'is-active' : '')}>
           Profile

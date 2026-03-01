@@ -1,7 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { selectRows, updateRows } from '../lib/supabase';
+import { invokeFunction, selectRows, updateRows } from '../lib/supabase';
 import { humanizeRole } from '../lib/roles';
+
+function humanizeReason(value) {
+  if (!value) {
+    return 'Unable to verify phone number.';
+  }
+
+  return String(value)
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
 
 export default function ProfilePage() {
   const { user, token, refreshMe } = useAuth();
@@ -17,6 +28,12 @@ export default function ProfilePage() {
   const [verificationStatus, setVerificationStatus] = useState(
     user?.landlordVerificationStatus || ''
   );
+  const [phoneVerified, setPhoneVerified] = useState(Boolean(user?.phoneVerified));
+  const [storedPhone, setStoredPhone] = useState(user?.phone || '');
+  const [otpCode, setOtpCode] = useState('');
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
+  const [otpHint, setOtpHint] = useState('');
 
   useEffect(() => {
     let mounted = true;
@@ -28,7 +45,7 @@ export default function ProfilePage() {
 
       try {
         const rows = await selectRows('profiles', {
-          select: 'id,full_name,phone,university,verification_status',
+          select: 'id,full_name,phone,phone_verified,university,verification_status',
           filters: [{ column: 'id', op: 'eq', value: user.userId }],
           limit: 1,
           accessToken: token
@@ -40,6 +57,8 @@ export default function ProfilePage() {
             phone: rows[0].phone || '',
             university: rows[0].university || ''
           });
+          setStoredPhone(rows[0].phone || '');
+          setPhoneVerified(Boolean(rows[0].phone_verified));
           setVerificationStatus(
             String(rows[0].verification_status || '').toUpperCase()
           );
@@ -74,11 +93,16 @@ export default function ProfilePage() {
     setSuccess('');
 
     try {
+      const nextPhone = form.phone.trim();
+      const previousPhone = String(storedPhone || '').trim();
+      const phoneChanged = nextPhone !== previousPhone;
+
       await updateRows(
         'profiles',
         {
           full_name: form.fullName.trim(),
-          phone: form.phone.trim(),
+          phone: nextPhone,
+          phone_verified: phoneChanged ? false : phoneVerified,
           university: form.university.trim() || null
         },
         {
@@ -87,12 +111,101 @@ export default function ProfilePage() {
         }
       );
 
+      if (phoneChanged) {
+        setPhoneVerified(false);
+        setStoredPhone(nextPhone);
+        setOtpCode('');
+        setOtpHint('');
+      }
+
       await refreshMe();
-      setSuccess('Profile updated.');
+      setSuccess(
+        phoneChanged ? 'Profile updated. Verify your updated phone number.' : 'Profile updated.'
+      );
     } catch (err) {
       setError(err.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const sendOtp = async () => {
+    if (!user?.userId || !token) {
+      return;
+    }
+
+    const phone = form.phone.trim();
+    if (!phone) {
+      setError('Enter your phone number first.');
+      return;
+    }
+
+    setSendingOtp(true);
+    setError('');
+    setSuccess('');
+    setOtpHint('');
+
+    try {
+      const response = await invokeFunction(
+        'verify-phone-otp',
+        { action: 'send', phone },
+        token
+      );
+
+      setSuccess('OTP sent. Enter the code to complete verification.');
+      if (response?.code) {
+        setOtpHint(`Dev OTP code: ${response.code}`);
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSendingOtp(false);
+    }
+  };
+
+  const verifyOtp = async () => {
+    if (!user?.userId || !token) {
+      return;
+    }
+
+    const phone = form.phone.trim();
+    const code = otpCode.trim();
+
+    if (!phone) {
+      setError('Enter your phone number first.');
+      return;
+    }
+
+    if (!code) {
+      setError('Enter the OTP code.');
+      return;
+    }
+
+    setVerifyingOtp(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const response = await invokeFunction(
+        'verify-phone-otp',
+        { action: 'verify', phone, code },
+        token
+      );
+
+      if (!response?.verified) {
+        throw new Error(humanizeReason(response?.reason));
+      }
+
+      setPhoneVerified(true);
+      setStoredPhone(phone);
+      setOtpCode('');
+      setOtpHint('');
+      await refreshMe();
+      setSuccess('Phone number verified.');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setVerifyingOtp(false);
     }
   };
 
@@ -109,6 +222,9 @@ export default function ProfilePage() {
         <div className="profile-card__meta">
           <p>
             Role: <strong>{humanizeRole(user?.role)}</strong>
+          </p>
+          <p>
+            Phone: <strong>{phoneVerified ? 'VERIFIED' : 'UNVERIFIED'}</strong>
           </p>
           {verificationStatus ? (
             <p>
@@ -131,7 +247,12 @@ export default function ProfilePage() {
             Phone
             <input
               value={form.phone}
-              onChange={(event) => updateField('phone', event.target.value)}
+              onChange={(event) => {
+                updateField('phone', event.target.value);
+                if (event.target.value.trim() !== String(storedPhone || '').trim()) {
+                  setPhoneVerified(false);
+                }
+              }}
               required
             />
           </label>
@@ -148,6 +269,35 @@ export default function ProfilePage() {
             {saving ? 'Saving...' : 'Save profile'}
           </button>
         </form>
+
+        <div className="profile-otp">
+          <p className="muted">
+            Phone OTP is required for listers and optional for tenants.
+          </p>
+          <div className="profile-otp__actions">
+            <button type="button" className="btn btn--ghost" onClick={sendOtp} disabled={sendingOtp}>
+              {sendingOtp ? 'Sending...' : 'Send OTP'}
+            </button>
+          </div>
+          <div className="profile-otp__verify">
+            <input
+              placeholder="Enter 6-digit code"
+              value={otpCode}
+              onChange={(event) => setOtpCode(event.target.value)}
+              inputMode="numeric"
+              maxLength={6}
+            />
+            <button
+              type="button"
+              className="btn btn--small"
+              onClick={verifyOtp}
+              disabled={verifyingOtp}
+            >
+              {verifyingOtp ? 'Verifying...' : 'Verify code'}
+            </button>
+          </div>
+          {otpHint ? <p className="muted">{otpHint}</p> : null}
+        </div>
       </section>
 
       {error ? <p className="error-text">{error}</p> : null}

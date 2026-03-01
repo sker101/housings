@@ -113,15 +113,27 @@ Edge functions added:
 
 ## Edge Functions Expected
 - `inspect-photo`
-- Optional next functions for full parity: `verify-phone-otp`, `increment-view`, `admin-action`, `submit-listing`
+- `verify-phone-otp`
+- `increment-view`
+- `admin-action`
+- `submit-listing`
 
-## Remaining Gaps to Reach Full Redesign Parity
-- OTP phone verification flow (post-registration)
-- Leaflet + OSM production map view (currently lightweight preview map)
-- True realtime subscriptions (current chat uses interval refresh)
-- Reviews/ratings, booking, payments (Phase 2/3 items)
+## Implemented Features (Beyond V1 Core)
+- ✅ **Search pagination** — infinite scroll with IntersectionObserver, 24-per-page
+- ✅ **Reviews & ratings** — star rating UI, review cards, write/edit review form on listing detail
+- ✅ **Booking flow** — booking request creation from inquiry with duration, status tracking on listing detail
+- ✅ **Map** — Leaflet bundled via npm (no CDN dependency), dynamic import with fallback
+- ✅ **Lister verification enforcement** — unverified listers can draft but not submit; status banner on wizard
+- ✅ **Location picker** — geolocation button + district/ward dropdowns (Dar es Salaam hierarchy)
+
+## Remaining Gaps to Reach Full Production
+- SMS gateway integration for production OTP delivery (current RPC returns dev OTP code for test environments)
+- Full payment processing UI (data layer exists; needs payment gateway integration)
+- Global notification center / push notifications
 - Full admin bulk workflow polish and reason-template UX hardening
+- Automated test framework (Vitest recommended)
 
 ## Notes
 - Keep `campusstay-redesign.html` unchanged; it is the reference specification.
 - If RLS policies are strict, ensure anon/authenticated policies match the route behavior above.
+

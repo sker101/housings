@@ -54,6 +54,7 @@ function buildCurrentUser(session, profile) {
       profile?.full_name || session.user.user_metadata?.full_name || session.user.email,
     email: session.user.email || '',
     phone: profile?.phone || session.user.user_metadata?.phone || '',
+    phoneVerified: Boolean(profile?.phone_verified),
     role,
     roleRaw: profile?.role || (role === APP_ROLE.LISTER ? 'lister' : 'student'),
     listerType: profile?.lister_type || '',

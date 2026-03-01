@@ -2,6 +2,7 @@ import {
   deleteRows,
   insertRows,
   selectRows,
+  upsertRows,
   updateRows
 } from './supabase';
 
@@ -55,6 +56,7 @@ export function mapListingRow(row, photos = []) {
     listerId: row.lister_id,
     rejectionReason: row.rejection_reason,
     viewCount: Number(row.view_count || 0),
+    createdAt: row.created_at,
     photos,
     imageUrl:
       photos.find((photo) => Boolean(photo?.public_url))?.public_url ||
@@ -145,6 +147,7 @@ export async function fetchApprovedListings(filters = {}, accessToken) {
       : undefined,
     order,
     limit: filters.limit || 60,
+    offset: filters.offset || 0,
     accessToken
   });
 
@@ -188,6 +191,77 @@ export async function fetchListingById(listingId, accessToken) {
     listing: mapListingRow(listingRow, photoMap.get(listingRow.id) || []),
     listerProfile
   };
+}
+
+export async function fetchRelatedListings(baseListing, accessToken, limit = 6) {
+  if (!baseListing?.id) {
+    return [];
+  }
+
+  const selectColumns =
+    'id,lister_id,title,description,room_type,gender_preference,price_monthly,utilities_included,region,district,ward,street,lat,lng,amenities,house_rules,available_from,vacancy_status,status,rejection_reason,featured,near_universities,view_count,created_at';
+
+  const basePrice = Number(baseListing.priceMonthly || 0);
+  const minPrice = Math.max(0, Math.round(basePrice * 0.7));
+  const maxPrice = Math.max(minPrice, Math.round(basePrice * 1.3));
+
+  const preferredFilters = [
+    { column: 'status', op: 'eq', value: 'approved' },
+    { column: 'id', op: 'neq', value: baseListing.id },
+    baseListing.district
+      ? { column: 'district', op: 'eq', value: baseListing.district }
+      : null,
+    { column: 'price_monthly', op: 'gte', value: minPrice },
+    { column: 'price_monthly', op: 'lte', value: maxPrice }
+  ].filter(Boolean);
+
+  let rows = await selectRows('listings', {
+    select: selectColumns,
+    filters: preferredFilters,
+    order: 'featured.desc,created_at.desc',
+    limit: limit + 4,
+    accessToken
+  });
+
+  if (rows.length < limit) {
+    const fallbackFilters = [
+      { column: 'status', op: 'eq', value: 'approved' },
+      { column: 'id', op: 'neq', value: baseListing.id },
+      baseListing.region
+        ? { column: 'region', op: 'eq', value: baseListing.region }
+        : null
+    ].filter(Boolean);
+
+    const fallbackRows = await selectRows('listings', {
+      select: selectColumns,
+      filters: fallbackFilters,
+      order: 'featured.desc,created_at.desc',
+      limit: limit + 6,
+      accessToken
+    });
+
+    rows = [...rows, ...fallbackRows];
+  }
+
+  const dedupedRows = [];
+  const seen = new Set();
+
+  rows.forEach((row) => {
+    if (!row?.id || seen.has(row.id)) {
+      return;
+    }
+
+    seen.add(row.id);
+    dedupedRows.push(row);
+  });
+
+  const picked = dedupedRows.slice(0, limit);
+  const photoMap = await fetchPhotosForListings(
+    picked.map((row) => row.id),
+    accessToken
+  );
+
+  return picked.map((row) => mapListingRow(row, photoMap.get(row.id) || []));
 }
 
 export async function toggleSavedListing({ tenantId, listingId, accessToken }) {
@@ -293,6 +367,216 @@ export async function updateListingStatus({
     filters: [{ column: 'id', op: 'eq', value: listingId }],
     accessToken
   });
+
+  return rows[0] || null;
+}
+
+async function fetchProfilesByIds(profileIds, accessToken) {
+  if (!Array.isArray(profileIds) || profileIds.length === 0) {
+    return new Map();
+  }
+
+  const rows = await selectRows('profiles', {
+    select: 'id,full_name,profile_photo_url',
+    filters: [{ column: 'id', op: 'in', value: `(${profileIds.join(',')})` }],
+    accessToken
+  });
+
+  return new Map(rows.map((row) => [row.id, row]));
+}
+
+export async function fetchListingReviews(listingId, accessToken) {
+  if (!listingId) {
+    return [];
+  }
+
+  const rows = await selectRows('reviews', {
+    select: 'id,listing_id,tenant_id,rating,comment,created_at',
+    filters: [
+      { column: 'listing_id', op: 'eq', value: listingId },
+      { column: 'is_hidden', op: 'eq', value: false }
+    ],
+    order: 'created_at.desc',
+    limit: 100,
+    accessToken
+  });
+
+  const authorMap = await fetchProfilesByIds(
+    rows.map((row) => row.tenant_id).filter(Boolean),
+    accessToken
+  );
+
+  return rows.map((row) => ({
+    id: row.id,
+    listingId: row.listing_id,
+    tenantId: row.tenant_id,
+    rating: Number(row.rating || 0),
+    comment: row.comment || '',
+    createdAt: row.created_at,
+    authorName: authorMap.get(row.tenant_id)?.full_name || 'Verified tenant',
+    authorPhotoUrl: authorMap.get(row.tenant_id)?.profile_photo_url || ''
+  }));
+}
+
+export async function upsertListingReview({
+  listingId,
+  tenantId,
+  rating,
+  comment,
+  accessToken
+}) {
+  const rows = await upsertRows(
+    'reviews',
+    {
+      listing_id: listingId,
+      tenant_id: tenantId,
+      rating: Number(rating),
+      comment: String(comment || '').trim()
+    },
+    {
+      onConflict: 'listing_id,tenant_id',
+      accessToken
+    }
+  );
+
+  return rows[0] || null;
+}
+
+export async function createBookingRequest({
+  listingId,
+  tenantId,
+  listerId,
+  moveInDate,
+  durationMonths,
+  message,
+  contactPreference,
+  accessToken
+}) {
+  const rows = await insertRows(
+    'bookings',
+    {
+      listing_id: listingId,
+      tenant_id: tenantId,
+      lister_id: listerId,
+      move_in_date: moveInDate,
+      duration_months: Number(durationMonths),
+      message: String(message || '').trim(),
+      contact_preference: contactPreference || 'in_app_chat',
+      status: 'requested'
+    },
+    { accessToken }
+  );
+
+  return rows[0] || null;
+}
+
+export async function fetchListingBookingsForUser({
+  listingId,
+  userId,
+  accessToken
+}) {
+  if (!listingId || !userId) {
+    return [];
+  }
+
+  const rows = await selectRows('bookings', {
+    select:
+      'id,listing_id,tenant_id,lister_id,move_in_date,duration_months,message,contact_preference,status,created_at,updated_at',
+    filters: [{ column: 'listing_id', op: 'eq', value: listingId }],
+    filters: [
+      { column: 'tenant_id', op: 'eq', value: userId, orGroup: true },
+      { column: 'lister_id', op: 'eq', value: userId, orGroup: true }
+    ],
+    or: `tenant_id.eq.${userId},lister_id.eq.${userId}`,
+    order: 'created_at.desc',
+    limit: 100,
+    accessToken
+  });
+
+  const profiles = await fetchProfilesByIds(
+    rows
+      .flatMap((row) => [row.tenant_id, row.lister_id])
+      .filter(Boolean),
+    accessToken
+  );
+
+  return rows.map((row) => ({
+    id: row.id,
+    listingId: row.listing_id,
+    tenantId: row.tenant_id,
+    listerId: row.lister_id,
+    moveInDate: row.move_in_date,
+    durationMonths: Number(row.duration_months || 0),
+    message: row.message || '',
+    contactPreference: row.contact_preference || 'in_app_chat',
+    status: row.status || 'requested',
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    tenantName: profiles.get(row.tenant_id)?.full_name || 'Tenant',
+    listerName: profiles.get(row.lister_id)?.full_name || 'Lister'
+  }));
+}
+
+export async function updateBookingStatus({
+  bookingId,
+  status,
+  accessToken
+}) {
+  const rows = await updateRows(
+    'bookings',
+    { status },
+    {
+      filters: [{ column: 'id', op: 'eq', value: bookingId }],
+      accessToken
+    }
+  );
+
+  return rows[0] || null;
+}
+
+export async function fetchPaymentRecordsForBookings(bookingIds, accessToken) {
+  if (!Array.isArray(bookingIds) || bookingIds.length === 0) {
+    return [];
+  }
+
+  const rows = await selectRows('payment_records', {
+    select:
+      'id,booking_id,amount,due_date,status,paid_at,receipt_url,created_at,updated_at',
+    filters: [{ column: 'booking_id', op: 'in', value: `(${bookingIds.join(',')})` }],
+    order: 'due_date.asc',
+    accessToken
+  });
+
+  return rows.map((row) => ({
+    id: row.id,
+    bookingId: row.booking_id,
+    amount: Number(row.amount || 0),
+    dueDate: row.due_date,
+    status: row.status || 'pending',
+    paidAt: row.paid_at,
+    receiptUrl: row.receipt_url || '',
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  }));
+}
+
+export async function markPaymentRecordPaid({
+  paymentRecordId,
+  receiptUrl,
+  accessToken
+}) {
+  const rows = await updateRows(
+    'payment_records',
+    {
+      status: 'paid',
+      paid_at: new Date().toISOString(),
+      receipt_url: receiptUrl || null
+    },
+    {
+      filters: [{ column: 'id', op: 'eq', value: paymentRecordId }],
+      accessToken
+    }
+  );
 
   return rows[0] || null;
 }
