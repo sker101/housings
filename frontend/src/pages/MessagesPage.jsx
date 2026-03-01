@@ -101,10 +101,37 @@ export default function MessagesPage() {
           });
         }
 
-        const merged = rows.map((row) => ({
-          ...row,
-          listing: listingMap.get(row.listing_id) || null
-        }));
+        const participantIds = Array.from(new Set(rows.map(r => r.tenant_id === user.userId ? r.lister_id : r.tenant_id).filter(Boolean)));
+        const participantProfileMap = new Map();
+
+        if (participantIds.length > 0) {
+          const profiles = await selectRows('profiles', {
+            select: 'id,role,full_name',
+            filters: [{ column: 'id', op: 'in', value: `(${participantIds.join(',')})` }],
+            accessToken: token
+          });
+          profiles.forEach(p => participantProfileMap.set(p.id, p));
+        }
+
+        const merged = rows.map((row) => {
+          const otherId = row.tenant_id === user.userId ? row.lister_id : row.tenant_id;
+          const otherProfile = participantProfileMap.get(otherId) || null;
+          return {
+            ...row,
+            listing: listingMap.get(row.listing_id) || null,
+            otherProfile,
+            isAdmin: otherProfile?.role === 'admin'
+          };
+        });
+
+        // Always sort admin conversations to the absolute top, then by last message time
+        merged.sort((a, b) => {
+          if (a.isAdmin && !b.isAdmin) return -1;
+          if (!a.isAdmin && b.isAdmin) return 1;
+          const timeA = new Date(a.last_message_at || a.created_at).getTime();
+          const timeB = new Date(b.last_message_at || b.created_at).getTime();
+          return timeB - timeA;
+        });
 
         if (!mounted) {
           return;
@@ -186,12 +213,29 @@ export default function MessagesPage() {
           );
         }
 
-        const rows = await selectRows('messages', {
+        const messageRows = await selectRows('messages', {
           select: 'id,conversation_id,sender_id,body,seen_at,created_at',
           filters: [{ column: 'conversation_id', op: 'eq', value: threadId }],
           order: 'created_at.asc',
           accessToken: token
         });
+
+        const senderIds = Array.from(new Set(messageRows.map(m => m.sender_id).filter(id => id !== user.userId)));
+        const profileMap = new Map();
+
+        if (senderIds.length > 0) {
+          const profiles = await selectRows('profiles', {
+            select: 'id,role,full_name',
+            filters: [{ column: 'id', op: 'in', value: `(${senderIds.join(',')})` }],
+            accessToken: token
+          });
+          profiles.forEach(p => profileMap.set(p.id, p));
+        }
+
+        const rows = messageRows.map(m => ({
+          ...m,
+          senderProfile: m.sender_id === user.userId ? user : profileMap.get(m.sender_id)
+        }));
 
         if (mounted) {
           setMessages(rows);
@@ -248,12 +292,30 @@ export default function MessagesPage() {
 
       setMessageBody('');
 
-      const rows = await selectRows('messages', {
+      const messageRows = await selectRows('messages', {
         select: 'id,conversation_id,sender_id,body,seen_at,created_at',
         filters: [{ column: 'conversation_id', op: 'eq', value: threadId }],
         order: 'created_at.asc',
         accessToken: token
       });
+
+      const senderIds = Array.from(new Set(messageRows.map(m => m.sender_id).filter(id => id !== user.userId)));
+      const profileMap = new Map();
+
+      if (senderIds.length > 0) {
+        const profiles = await selectRows('profiles', {
+          select: 'id,role,full_name',
+          filters: [{ column: 'id', op: 'in', value: `(${senderIds.join(',')})` }],
+          accessToken: token
+        });
+        profiles.forEach(p => profileMap.set(p.id, p));
+      }
+
+      const rows = messageRows.map(m => ({
+        ...m,
+        senderProfile: m.sender_id === user.userId ? user : profileMap.get(m.sender_id)
+      }));
+
       setMessages(rows);
     } catch (err) {
       setError(err.message);
@@ -310,8 +372,11 @@ export default function MessagesPage() {
               key={conversation.id}
               to={`/messages/${conversation.id}`}
               className={`conversation-item ${conversation.id === threadId ? 'is-active' : ''}`}
+              style={conversation.isAdmin ? { borderLeft: '4px solid #C0392B', backgroundColor: conversation.id === threadId ? '#FEF2F1' : '#FFF5F5' } : {}}
             >
-              <strong>{conversation.listing?.title || 'Listing conversation'}</strong>
+              <strong style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: conversation.isAdmin ? '#C0392B' : 'inherit' }}>
+                {conversation.isAdmin ? '🛡️ Admin:' : ''} {conversation.listing?.title || 'Listing conversation'}
+              </strong>
               <span>{humanizeStatus(conversation.inquiry_status)} • {formatTimestamp(conversation.last_message_at)}</span>
             </Link>
           ))}
@@ -354,8 +419,14 @@ export default function MessagesPage() {
                 {messages.map((message) => (
                   <article
                     key={message.id}
-                    className={`message-bubble ${message.sender_id === user?.userId ? 'is-mine' : ''}`}
+                    className={`message-bubble ${message.sender_id === user?.userId ? 'is-mine' : ''} ${message.senderProfile?.role === 'admin' ? 'is-admin' : ''}`}
+                    style={message.senderProfile?.role === 'admin' && message.sender_id !== user?.userId ? { background: '#FEF2F1', border: '1px solid #F5C6C2', alignSelf: 'flex-start' } : {}}
                   >
+                    {message.senderProfile?.role === 'admin' && message.sender_id !== user?.userId ? (
+                      <strong style={{ display: 'block', fontSize: '0.75rem', color: '#C0392B', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        🛡️ CampusStay Admin
+                      </strong>
+                    ) : null}
                     <p>{message.body}</p>
                     <span>
                       {formatTimestamp(message.created_at)}

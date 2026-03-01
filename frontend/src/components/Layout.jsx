@@ -119,7 +119,14 @@ export default function Layout({ children }) {
             ) : null}
             {user?.role === APP_ROLE.LISTER ? <NavLink to="/list-property">List Property</NavLink> : null}
             {isAuthenticated ? (
-              <NavLink to="/profile">Profile</NavLink>
+              <NavLink to="/profile" className="nav-profile-link">
+                <span className="nav-avatar">
+                  {(user?.fullName || 'U').charAt(0).toUpperCase()}
+                </span>
+                <span className="nav-greeting">
+                  Hi, {user?.fullName?.split(' ')[0] || 'User'}
+                </span>
+              </NavLink>
             ) : null}
             {topActionLink}
             {isAuthenticated ? (
@@ -147,7 +154,7 @@ export default function Layout({ children }) {
           ) : null}
         </NavLink>
         <NavLink to="/profile" className={({ isActive }) => (isActive ? 'is-active' : '')}>
-          Profile
+          {user?.fullName?.split(' ')[0] || 'Profile'}
         </NavLink>
       </nav>
     </div>

@@ -63,6 +63,31 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ── Trigger automated screening ───────────────────────────────────────
+    // Get the lister's user ID from the auth header
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      try {
+        const screenUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/screen-listing`;
+        await fetch(screenUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': req.headers.get('Authorization') ?? '',
+            'apikey': Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+          },
+          body: JSON.stringify({
+            listingId,
+            listerId: user.id,
+            listing,
+            photos: photos.length > 0 ? photos : [],
+          }),
+        });
+      } catch {
+        // Screening failure should not block the submission confirmation
+      }
+    }
+
     return json({ ok: true, listingId });
   } catch (error) {
     return json({ error: error instanceof Error ? error.message : 'Unexpected error' }, 500);

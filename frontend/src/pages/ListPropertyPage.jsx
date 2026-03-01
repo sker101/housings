@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   deleteRows,
@@ -142,6 +142,7 @@ function validateStep(step, form, files) {
 
 export default function ListPropertyPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, token, refreshMe } = useAuth();
 
   const [step, setStep] = useState(0);
@@ -157,6 +158,7 @@ export default function ListPropertyPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [screeningResult, setScreeningResult] = useState(null);
 
   const hasListerRole = user?.role === 'LISTER';
   const verificationStatus = user?.verificationStatus || 'pending';
@@ -173,6 +175,42 @@ export default function ListPropertyPage() {
       }
 
       try {
+        const editId = new URLSearchParams(location.search).get('edit');
+        if (editId) {
+          const records = await selectRows('listings', {
+            select: '*',
+            filters: [{ column: 'id', op: 'eq', value: editId }, { column: 'lister_id', op: 'eq', value: user.userId }],
+            limit: 1,
+            accessToken: token
+          });
+          if (records && records.length > 0 && mounted) {
+            const row = records[0];
+            setForm((prev) => ({
+              ...prev,
+              title: row.title || '',
+              description: row.description || '',
+              roomType: row.room_type || 'single',
+              genderPreference: row.gender_preference || 'any',
+              priceMonthly: String(row.price_monthly || ''),
+              region: row.region || 'Dar es Salaam',
+              district: row.district || '',
+              ward: row.ward || '',
+              street: row.street || '',
+              lat: row.lat ? String(row.lat) : '',
+              lng: row.lng ? String(row.lng) : '',
+              utilitiesIncluded: row.utilities_included || false,
+              amenities: { ...DEFAULT_FORM.amenities, ...(row.amenities || {}) },
+              houseRules: row.house_rules || '',
+              availableFrom: row.available_from ? new Date(row.available_from).toISOString().split('T')[0] : '',
+              university: (row.near_universities && row.near_universities.length > 0) ? row.near_universities[0] : 'UDSM',
+            }));
+            setStep(0);
+            setSuccess('Listing loaded for editing. Please fix the issues and re-upload your photos before submitting.');
+            setLoadingDraft(false);
+            return;
+          }
+        }
+
         const drafts = await selectRows('listing_drafts', {
           select: 'lister_id,current_step,data',
           filters: [{ column: 'lister_id', op: 'eq', value: user.userId }],
@@ -444,8 +482,46 @@ export default function ListPropertyPage() {
         accessToken: token
       });
 
+      // ── Run automated screening and show real-time feedback ───────────────
+      try {
+        const screenResult = await invokeFunction(
+          'screen-listing',
+          {
+            listingId: createdListingId,
+            listerId: user.userId,
+            listing: {
+              title: form.title.trim(),
+              description: form.description.trim(),
+              price_monthly: Number(form.priceMonthly),
+              region: form.region,
+              district: form.district,
+              ward: form.ward,
+              street: form.street,
+              lat: form.lat ? Number(form.lat) : null,
+              lng: form.lng ? Number(form.lng) : null,
+              room_type: form.roomType,
+            },
+            photos: photoRows,
+          },
+          token
+        );
+        setScreeningResult(screenResult);
+
+        if (screenResult?.published) {
+          setSuccess('🎉 Your listing passed all checks and is now live!');
+        } else {
+          setSuccess('');
+          setError('Your listing was blocked by automated screening. See the issues below.');
+        }
+        setSubmitting(false);
+        await refreshMe();
+        return; // Don't auto-navigate — let the user read the screening result
+      } catch {
+        // If screening call itself errors, still inform the user the listing was saved
+        setSuccess('Listing saved. Automated screening is running in the background.');
+      }
+
       await refreshMe();
-      setSuccess('Listing submitted for review. You will be notified after moderation.');
       setTimeout(() => {
         navigate('/landlord');
       }, 800);
@@ -845,8 +921,56 @@ export default function ListPropertyPage() {
         </div>
       </section>
 
-      {error ? <p className="error-text">{error}</p> : null}
-      {success ? <p className="success-text">{success}</p> : null}
+      {error && !screeningResult ? <p className="error-text">{error}</p> : null}
+      {success && !screeningResult ? <p className="success-text">{success}</p> : null}
+
+      {screeningResult ? (
+        <section className="card" style={{ marginTop: '1rem', border: screeningResult.published ? '1px solid #B8DFC8' : '1px solid #F5C6C2', background: screeningResult.published ? '#EDF7F1' : '#FEF2F1' }}>
+          <h2 style={{ marginBottom: '0.5rem' }}>
+            {screeningResult.published ? '🎉 Listing is Live!' : '⚠️ Listing Blocked by Automated Checks'}
+          </h2>
+          <p style={{ marginBottom: '1rem', color: 'var(--mid)' }}>
+            {screeningResult.published
+              ? 'Your listing passed all automated checks and is now publicly visible.'
+              : 'Address the issues below and resubmit. Your listing has been saved as a draft.'}
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+            {screeningResult.checks?.map((check) => (
+              <div key={check.check_type} style={{
+                display: 'flex', gap: '0.75rem', alignItems: 'flex-start',
+                padding: '0.6rem 0.75rem',
+                background: 'white',
+                borderRadius: '8px',
+                border: `1px solid ${check.result === 'block' ? '#F5C6C2' : check.result === 'warn' ? '#FCD34D' : '#B8DFC8'}`,
+              }}>
+                <span style={{ fontSize: '1.1rem' }}>
+                  {check.result === 'block' ? '🔴' : check.result === 'warn' ? '🟡' : '🟢'}
+                </span>
+                <div>
+                  <strong style={{ fontSize: '0.85rem', textTransform: 'capitalize' }}>
+                    {String(check.check_type).replace(/_/g, ' ')}
+                  </strong>
+                  {check.result !== 'pass' ? (
+                    <p style={{ fontSize: '0.8rem', color: '#6B6B5A', margin: '2px 0 0' }}>
+                      {check.detail}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <Link to="/landlord" className="btn">
+              {screeningResult.published ? 'View Live Listing' : 'Go to Dashboard'}
+            </Link>
+            {!screeningResult.published ? (
+              <button type="button" className="btn btn--ghost" onClick={() => { setScreeningResult(null); setError(''); setStep(1); }}>
+                Edit &amp; Resubmit
+              </button>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }

@@ -161,6 +161,8 @@ export default function RoomDetailsPage() {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [swipeStartX, setSwipeStartX] = useState(null);
   const [openInquiry, setOpenInquiry] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [inquiryName, setInquiryName] = useState('');
   const [moveInDate, setMoveInDate] = useState('');
   const [durationMonths, setDurationMonths] = useState('6');
   const [contactPreference, setContactPreference] = useState('in_app_chat');
@@ -181,6 +183,53 @@ export default function RoomDetailsPage() {
   // Bookings state
   const [existingBooking, setExistingBooking] = useState(null);
   const [bookingsLoading, setBookingsLoading] = useState(true);
+
+  // Report state
+  const [openReport, setOpenReport] = useState(false);
+  const [reportReason, setReportReason] = useState('fraud');
+  const [reportDescription, setReportDescription] = useState('');
+  const [submittingReport, setSubmittingReport] = useState(false);
+  const [reportSuccess, setReportSuccess] = useState(false);
+  const [reportError, setReportError] = useState('');
+
+  const REPORT_REASONS = [
+    { value: 'fraud', label: '⚠️ Fraudulent / Scam Listing' },
+    { value: 'photos_mismatch', label: '📷 Photos Don\'t Match Property' },
+    { value: 'misleading_price', label: '💸 Price is Misleading' },
+    { value: 'unsafe', label: '🔒 Unsafe or Illegal Property' },
+    { value: 'harassment', label: '😠 Landlord Harassment' },
+    { value: 'already_rented', label: '🔑 Already Rented Out' },
+    { value: 'unconducive', label: '🏚️ Unconducive Environment' },
+  ];
+
+  async function submitReport(event) {
+    event.preventDefault();
+    if (!listing?.id) return;
+    setSubmittingReport(true);
+    setReportError('');
+    try {
+      await invokeFunction('process-report', {
+        listing_id: listing.id,
+        reason: reportReason,
+        description: reportDescription,
+      }, token);
+      setReportSuccess(true);
+      setReportDescription('');
+      setTimeout(() => {
+        setOpenReport(false);
+        setReportSuccess(false);
+        // Soft refresh the local state to see if it was taken down, without a hard page reload
+        if (typeof loadListing === 'function') {
+          // We can't call loadListing directly as it's defined in the useEffect
+          // but we can just let the modal close. The user doesn't need a hard reload.
+        }
+      }, 2500);
+    } catch (err) {
+      setReportError(err.message || 'Failed to submit report. Please try again.');
+    } finally {
+      setSubmittingReport(false);
+    }
+  }
 
   useEffect(() => {
     let mounted = true;
@@ -251,6 +300,12 @@ export default function RoomDetailsPage() {
       mounted = false;
     };
   }, [roomId, token]);
+
+  useEffect(() => {
+    if (user?.fullName && !inquiryName) {
+      setInquiryName(user.fullName);
+    }
+  }, [user?.fullName, inquiryName]);
 
   useEffect(() => {
     let mounted = true;
@@ -608,6 +663,13 @@ export default function RoomDetailsPage() {
     setSubmittingInquiry(true);
     setError('');
 
+    if (inquiryName.trim() && inquiryName.trim() !== (user?.fullName || '').trim()) {
+      updateRows('profiles', { full_name: inquiryName.trim() }, {
+        filters: [{ column: 'id', op: 'eq', value: user.userId }],
+        accessToken: token
+      }).catch(() => { });
+    }
+
     try {
       const existing = await selectRows('conversations', {
         select: 'id',
@@ -831,6 +893,17 @@ export default function RoomDetailsPage() {
             </button>
             <button type="button" className="btn btn--ghost" onClick={handleShare}>
               Share
+            </button>
+          </div>
+
+          <div style={{ marginTop: '0.5rem' }}>
+            <button
+              type="button"
+              className="btn btn--ghost btn--small"
+              style={{ color: 'var(--red, #C0392B)', fontSize: '0.8rem' }}
+              onClick={() => { setOpenReport(true); setReportSuccess(false); }}
+            >
+              🚩 Report this listing
             </button>
           </div>
         </div>
@@ -1083,8 +1156,29 @@ export default function RoomDetailsPage() {
             </p>
             <form onSubmit={submitInquiry}>
               <label>
-                Your name
-                <input value={user?.fullName || ''} readOnly />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                  <span>Your name</span>
+                  {user?.fullName && !editingName ? (
+                    <button
+                      type="button"
+                      className="btn btn--small btn--ghost"
+                      onClick={() => setEditingName(true)}
+                    >
+                      Edit
+                    </button>
+                  ) : null}
+                </div>
+                {user?.fullName && !editingName ? (
+                  <input value={user.fullName} readOnly />
+                ) : (
+                  <input
+                    value={inquiryName}
+                    onChange={(event) => setInquiryName(event.target.value)}
+                    placeholder="Your full name"
+                    autoFocus={editingName}
+                    required
+                  />
+                )}
               </label>
 
               <label>
@@ -1148,6 +1242,8 @@ export default function RoomDetailsPage() {
 
               <p className="muted">{message.trim().length}/400 characters</p>
 
+              {error ? <p className="error-text" style={{ marginTop: '1rem', marginBottom: '1rem' }}>{error}</p> : null}
+
               <div className="sheet__actions">
                 <button type="button" className="btn btn--ghost" onClick={() => setOpenInquiry(false)}>
                   Cancel
@@ -1197,6 +1293,64 @@ export default function RoomDetailsPage() {
 
       {error ? <p className="error-text">{error}</p> : null}
       {notice ? <p className="success-text">{notice}</p> : null}
+
+      {openReport ? (
+        <section className="sheet-backdrop" onClick={() => setOpenReport(false)}>
+          <article className="sheet" onClick={(event) => event.stopPropagation()}>
+            <h2>🚩 Report this listing</h2>
+            <p className="muted">
+              Reports are reviewed within 24h. Critical reports trigger an immediate takedown.
+            </p>
+            {reportSuccess ? (
+              <div style={{ padding: '1.5rem', textAlign: 'center' }}>
+                <p style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>✅</p>
+                <p style={{ fontWeight: '600', color: 'var(--ink)' }}>Thank you for your report!</p>
+                <p className="muted">Our team will review it shortly.</p>
+                <button type="button" className="btn btn--ghost" style={{ marginTop: '1rem' }} onClick={() => setOpenReport(false)}>
+                  Close
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={submitReport}>
+                {reportError ? <p className="error-text" style={{ marginBottom: '1rem' }}>{reportError}</p> : null}
+                <label>
+                  Reason for report
+                  <select value={reportReason} onChange={(event) => setReportReason(event.target.value)}>
+                    {REPORT_REASONS.map((r) => (
+                      <option key={r.value} value={r.value}>{r.label}</option>
+                    ))}
+                  </select>
+                </label>
+
+                <label>
+                  Additional details (optional)
+                  <textarea
+                    value={reportDescription}
+                    onChange={(event) => setReportDescription(event.target.value)}
+                    placeholder="Describe what you observed..."
+                    maxLength={500}
+                    rows={4}
+                  />
+                </label>
+
+                <div className="sheet__actions">
+                  <button type="button" className="btn btn--ghost" onClick={() => setOpenReport(false)}>
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn"
+                    style={{ background: '#C0392B', borderColor: '#C0392B' }}
+                    disabled={submittingReport}
+                  >
+                    {submittingReport ? 'Submitting...' : 'Submit Report'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </article>
+        </section>
+      ) : null}
 
     </div>
   );

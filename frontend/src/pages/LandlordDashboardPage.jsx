@@ -13,6 +13,8 @@ export default function LandlordDashboardPage() {
 
   const [profile, setProfile] = useState(null);
   const [listings, setListings] = useState([]);
+  const [listingChecks, setListingChecks] = useState({});
+  const [statusFilter, setStatusFilter] = useState('all');
   const [conversationStats, setConversationStats] = useState({
     total: 0,
     open: 0,
@@ -80,7 +82,31 @@ export default function LandlordDashboardPage() {
         }
 
         setProfile(profileRows[0] || null);
-        setListings(listingRows.map((row) => mapListingRow(row, [])));
+        const mappedListings = listingRows.map((row) => mapListingRow(row, []));
+        setListings(mappedListings);
+
+        // Load check failures for non-approved listings
+        const nonApprovedIds = listingRows
+          .filter((r) => r.status !== 'approved')
+          .map((r) => r.id)
+          .filter(Boolean);
+        if (nonApprovedIds.length > 0) {
+          const checkRows = await selectRows('listing_checks', {
+            select: 'listing_id,check_type,result,severity,detail',
+            filters: [{ column: 'listing_id', op: 'in', value: `(${nonApprovedIds.join(',')})` },
+            { column: 'result', op: 'eq', value: 'block' }],
+            order: 'checked_at.desc',
+            limit: 100,
+            accessToken: token
+          });
+          // Group by listing_id
+          const grouped = {};
+          checkRows.forEach((c) => {
+            if (!grouped[c.listing_id]) grouped[c.listing_id] = [];
+            grouped[c.listing_id].push(c);
+          });
+          if (mounted) setListingChecks(grouped);
+        }
         setConversationStats({
           total: conversationRows.length,
           open: conversationRows.filter((row) => row.inquiry_status === 'open').length,
@@ -113,14 +139,19 @@ export default function LandlordDashboardPage() {
 
   const metrics = useMemo(
     () => [
-      { label: 'Total listings', value: listings.length },
-      { label: 'Pending', value: countByStatus(listings, 'pending') },
-      { label: 'Approved', value: countByStatus(listings, 'approved') },
-      { label: 'Rejected', value: countByStatus(listings, 'rejected') },
-      { label: 'Flagged', value: countByStatus(listings, 'flagged') }
+      { label: 'Total listings', value: listings.length, id: 'all' },
+      { label: 'Pending', value: countByStatus(listings, 'pending'), id: 'pending' },
+      { label: 'Approved', value: countByStatus(listings, 'approved'), id: 'approved' },
+      { label: 'Rejected', value: countByStatus(listings, 'rejected'), id: 'rejected' },
+      { label: 'Flagged', value: countByStatus(listings, 'flagged'), id: 'flagged' }
     ],
     [listings]
   );
+
+  const filteredListings = useMemo(() => {
+    if (statusFilter === 'all') return listings;
+    return listings.filter((listing) => listing.status === statusFilter);
+  }, [listings, statusFilter]);
 
   return (
     <div className="container section">
@@ -168,16 +199,21 @@ export default function LandlordDashboardPage() {
 
       <section className="metric-grid">
         {metrics.map((metric) => (
-          <article key={metric.label} className="metric-card">
+          <button
+            key={metric.id}
+            className={`metric-card metric-card--clickable ${statusFilter === metric.id ? 'is-active' : ''}`}
+            onClick={() => setStatusFilter(metric.id)}
+            style={{ textAlign: 'left', cursor: 'pointer', border: statusFilter === metric.id ? '2px solid var(--jade)' : '' }}
+          >
             <p>{metric.label}</p>
             <strong>{metric.value}</strong>
-          </article>
+          </button>
         ))}
       </section>
 
       <section className="card">
-        <h2>Your Listings</h2>
-        {listings.length === 0 ? <p className="muted">No listings submitted yet.</p> : null}
+        <h2>Your Listings {statusFilter !== 'all' ? `(${statusFilter})` : ''}</h2>
+        {filteredListings.length === 0 ? <p className="muted">No listings found in this category.</p> : null}
 
         <div className="table-wrap">
           <table>
@@ -191,15 +227,43 @@ export default function LandlordDashboardPage() {
               </tr>
             </thead>
             <tbody>
-              {listings.map((listing) => (
-                <tr key={listing.id}>
-                  <td>{listing.title}</td>
-                  <td>{listing.status}</td>
-                  <td>{new Intl.NumberFormat('en-TZ').format(listing.priceMonthly)} TZS</td>
-                  <td>{listing.viewCount}</td>
-                  <td>{listing.rejectionReason || '-'}</td>
-                </tr>
-              ))}
+              {filteredListings.map((listing) => {
+                const checks = listingChecks[listing.id] || [];
+                const isBlocked = listing.status === 'pending' && checks.length > 0;
+                return (
+                  <tr key={listing.id} style={isBlocked ? { background: '#FEF2F1' } : {}}>
+                    <td>
+                      <Link to={`/rooms/${listing.id}`} style={{ fontWeight: '500', color: 'var(--jade)' }}>
+                        {listing.title}
+                      </Link>
+                      {isBlocked ? (
+                        <div style={{ marginTop: '0.4rem' }}>
+                          {checks.slice(0, 2).map((c) => (
+                            <p key={c.check_type} style={{ fontSize: '0.75rem', color: '#C0392B', margin: '0 0 2px' }}>
+                              ⚠️ {c.detail}
+                            </p>
+                          ))}
+                          <Link
+                            to={`/list-property?edit=${listing.id}`}
+                            className="btn btn--small"
+                            style={{ marginTop: '0.35rem', fontSize: '0.75rem', display: 'inline-block' }}
+                          >
+                            Fix &amp; Resubmit
+                          </Link>
+                        </div>
+                      ) : null}
+                    </td>
+                    <td>
+                      <span style={listing.status === 'flagged' ? { color: '#B45309', fontWeight: 600 } : listing.status === 'approved' ? { color: '#1A6B3A', fontWeight: 600 } : {}}>
+                        {listing.status}
+                      </span>
+                    </td>
+                    <td>{new Intl.NumberFormat('en-TZ').format(listing.priceMonthly)} TZS</td>
+                    <td>{listing.viewCount}</td>
+                    <td>{listing.rejectionReason || (isBlocked ? '🔴 Auto-blocked' : '-')}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

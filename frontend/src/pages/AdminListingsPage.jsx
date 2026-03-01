@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { invokeFunction, selectRows } from '../lib/supabase';
+import { invokeFunction, selectRows, insertRows } from '../lib/supabase';
 
 const REASON_TEMPLATES = {
   reject: [
@@ -17,11 +17,14 @@ const REASON_TEMPLATES = {
 };
 
 export default function AdminListingsPage() {
-  const { token } = useAuth();
+  const { user, token } = useAuth();
+  const navigate = useNavigate();
 
   const [listings, setListings] = useState([]);
+  const [reports, setReports] = useState({});
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
+  const [messagingListerId, setMessagingListerId] = useState(null);
   const [error, setError] = useState('');
 
   const loadListings = async () => {
@@ -43,6 +46,27 @@ export default function AdminListingsPage() {
       });
 
       setListings(rows);
+
+      // Fetch reports for flagged listings
+      const flaggedIds = rows.filter((r) => r.status === 'flagged').map((r) => r.id);
+      if (flaggedIds.length > 0) {
+        const reportRows = await selectRows('listing_reports', {
+          select: 'id,listing_id,reason,description,reporter_has_booking',
+          filters: [{ column: 'listing_id', op: 'in', value: `(${flaggedIds.join(',')})` }],
+          order: 'created_at.desc',
+          accessToken: token
+        });
+
+        const groupedReports = {};
+        reportRows.forEach((rpt) => {
+          if (!groupedReports[rpt.listing_id]) groupedReports[rpt.listing_id] = [];
+          groupedReports[rpt.listing_id].push(rpt);
+        });
+        setReports(groupedReports);
+      } else {
+        setReports({});
+      }
+
       setSelectedIds((prev) => {
         const valid = new Set(rows.map((row) => row.id));
         const next = new Set();
@@ -56,6 +80,7 @@ export default function AdminListingsPage() {
     } catch (err) {
       setError(err.message);
       setListings([]);
+      setReports({});
       setSelectedIds(new Set());
     } finally {
       setLoading(false);
@@ -174,6 +199,48 @@ export default function AdminListingsPage() {
     await loadListings();
   };
 
+  const messageLister = async (listingId, listerId) => {
+    setMessagingListerId(listingId);
+    setError('');
+
+    try {
+      // Check if conversation already exists between Admin and Lister for this listing
+      const existing = await selectRows('conversations', {
+        select: 'id',
+        filters: [
+          { column: 'listing_id', op: 'eq', value: listingId },
+          { column: 'tenant_id', op: 'eq', value: user.userId }
+        ],
+        limit: 1,
+        accessToken: token
+      });
+
+      let conversationId = existing[0]?.id;
+
+      if (!conversationId) {
+        const created = await insertRows(
+          'conversations',
+          {
+            listing_id: listingId,
+            tenant_id: user.userId,
+            lister_id: listerId,
+            inquiry_status: 'open'
+          },
+          { accessToken: token }
+        );
+        conversationId = created?.[0]?.id;
+      }
+
+      if (conversationId) {
+        navigate(`/messages/${conversationId}`);
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setMessagingListerId(null);
+    }
+  };
+
   return (
     <div className="container section">
       <div className="section__header">
@@ -239,9 +306,33 @@ export default function AdminListingsPage() {
               </p>
               <p>Status: {listing.status}</p>
               <p>Reason: {listing.rejection_reason || '-'}</p>
-              <Link to={`/rooms/${listing.id}`} className="btn btn--small btn--ghost">
-                Preview
-              </Link>
+
+              {reports[listing.id] && reports[listing.id].length > 0 && (
+                <div style={{ marginTop: '0.75rem', padding: '0.5rem', background: '#FEF2F1', borderRadius: '4px', border: '1px solid #F5C6C2' }}>
+                  <strong style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.25rem' }}>🚩 User Reports ({reports[listing.id].length}):</strong>
+                  <ul style={{ paddingLeft: '1rem', fontSize: '0.8rem', color: '#C0392B', margin: 0 }}>
+                    {reports[listing.id].map(rpt => (
+                      <li key={rpt.id}>
+                        {rpt.reason.replace(/_/g, ' ')} {rpt.reporter_has_booking ? '(Tenant)' : ''}
+                        {rpt.description ? `: "${rpt.description}"` : ''}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem' }}>
+                <Link to={`/rooms/${listing.id}`} className="btn btn--small btn--ghost">
+                  Preview
+                </Link>
+                <button
+                  className="btn btn--small btn--ghost"
+                  onClick={() => messageLister(listing.id, listing.lister_id)}
+                  disabled={messagingListerId === listing.id}
+                >
+                  {messagingListerId === listing.id ? 'Loading...' : 'Message Lister'}
+                </button>
+              </div>
             </div>
 
             <div className="moderation-card__actions">
