@@ -6,11 +6,18 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 5173,
+    strictPort: true,
     proxy: {
       '/api': {
         target: process.env.VITE_DEV_API_PROXY_TARGET || 'http://localhost:8081',
         changeOrigin: true
       }
     }
+  },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: './src/setupTests.js',
+    css: true,
   }
 });

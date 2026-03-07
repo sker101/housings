@@ -3,7 +3,8 @@
 CampusStay TZ is now running as a Supabase-first React app aligned to the redesign specification in `campusstay-redesign.html`.
 
 ## Current Direction
-- Frontend: React + Vite (`frontend/`)
+- Frontend: React + Vite + TypeScript (`frontend/`)
+- Tooling: ESLint + `jsx-a11y` + TypeScript casting/interfaces
 - Backend for active product flow: Supabase Auth, PostgREST, Storage, Edge Functions
 - Legacy Spring backend (`backend/`) remains in the repo but is not required for the redesign cutover path
 
@@ -120,18 +121,22 @@ Edge functions added:
 
 ## Implemented Features (Beyond V1 Core)
 - ✅ **Search pagination** — infinite scroll with IntersectionObserver, 24-per-page
+- ✅ **TypeScript Migration** — Fully typed Supabase client, interfaces for all context providers, and 0 compiler errors.
+- ✅ **Accessibility (a11y)** — Resolved violations in key components (modals, maps, images) using semantic HTML and custom keyboard listeners.
+- ✅ **Expanded Room Options** — Tanzania-specific housing types (Self-Contained, SQ, Guesthouse, etc.) implemented across wizard and search filters.
 - ✅ **Reviews & ratings** — star rating UI, review cards, write/edit review form on listing detail
 - ✅ **Booking flow** — booking request creation from inquiry with duration, status tracking on listing detail
 - ✅ **Map** — Leaflet bundled via npm (no CDN dependency), dynamic import with fallback
 - ✅ **Lister verification enforcement** — unverified listers can draft but not submit; status banner on wizard
 - ✅ **Location picker** — geolocation button + district/ward dropdowns (Dar es Salaam hierarchy)
+- ✅ **Admin moderation polish** — bulk workflows with templated rejection/suspension reasons and custom modal UI
 
 ## Remaining Gaps to Reach Full Production
-- SMS gateway integration for production OTP delivery (current RPC returns dev OTP code for test environments)
-- Full payment processing UI (data layer exists; needs payment gateway integration)
-- Global notification center / push notifications
-- Full admin bulk workflow polish and reason-template UX hardening
-- Automated test framework (Vitest recommended)
+- **TypeScript Strictness**: Currently in `strict: false` mode to facilitate migration; needs incremental move to `strict: true`.
+- **Production SMS Gateway**: Integration for Tanzanian carriers required (currently returns fixed dev codes).
+- **Payment Gateway**: Integration (e.g., Pesapal, Selcom) for booking payments.
+- **Push Notifications**: Real-time browser notifications for new messages/bookings.
+- **End-to-End Tests**: Browser automation tests for the main submission/booking flows.
 
 ## Notes
 - Keep `campusstay-redesign.html` unchanged; it is the reference specification.
