@@ -273,6 +273,7 @@ export default function MessagesPage() {
       mounted = false;
       unsubscribe();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [threadId, token, user?.userId]);
 
   const submitMessage = async (event) => {

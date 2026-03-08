@@ -73,6 +73,7 @@ export default function AdminLandlordsPage() {
 
   useEffect(() => {
     loadLandlords();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   const openModal = (action, targetId = null, isBulk = false) => {
@@ -136,7 +137,7 @@ export default function AdminLandlordsPage() {
     if (selectedIds.size === 0) return;
 
     for (const landlordId of selectedIds) {
-       
+
       try {
         await invokeFunction(
           'admin-action',

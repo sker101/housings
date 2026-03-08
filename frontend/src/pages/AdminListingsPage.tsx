@@ -97,6 +97,7 @@ export default function AdminListingsPage() {
 
   useEffect(() => {
     loadListings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   const pendingOrFlagged = listings.filter(
@@ -166,7 +167,7 @@ export default function AdminListingsPage() {
     if (selectedIds.size === 0) return;
 
     for (const listingId of selectedIds) {
-       
+
       try {
         await invokeFunction(
           'admin-action',

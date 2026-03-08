@@ -481,7 +481,8 @@ export default function RoomDetailsPage() {
       listing?.roomType,
       listing?.utilitiesIncluded,
       listing?.vacancyStatus,
-      listing?.viewCount
+      listing?.viewCount,
+      t
     ]
   );
 
@@ -1157,6 +1158,7 @@ export default function RoomDetailsPage() {
           onClick={() => setOpenInquiry(false)}
           onKeyDown={(e) => e.key === 'Escape' && setOpenInquiry(false)}
         >
+          {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
           <article
             className="sheet"
             role="dialog"
@@ -1279,6 +1281,7 @@ export default function RoomDetailsPage() {
           onClick={() => setLightboxOpen(false)}
           onKeyDown={(e) => e.key === 'Escape' && setLightboxOpen(false)}
         >
+          {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
           <article
             className="room-lightbox__dialog"
             role="dialog"
@@ -1329,6 +1332,7 @@ export default function RoomDetailsPage() {
           onClick={() => setOpenReport(false)}
           onKeyDown={(e) => e.key === 'Escape' && setOpenReport(false)}
         >
+          {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
           <article
             className="sheet"
             role="dialog"

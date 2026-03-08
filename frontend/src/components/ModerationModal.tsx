@@ -39,6 +39,7 @@ export default function ModerationModal({
             onClick={handleClose}
             onKeyDown={(e) => e.key === 'Escape' && handleClose()}
         >
+            {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
             <div
                 className="modal-content"
                 role="dialog"

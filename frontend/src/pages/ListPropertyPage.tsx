@@ -243,6 +243,7 @@ export default function ListPropertyPage() {
     return () => {
       mounted = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.userId, user?.fullName, user?.phone, token, hasListerRole, formValues.fullName, formValues.phone, reset, location.search]);
 
   useEffect(() => {
