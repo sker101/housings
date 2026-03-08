@@ -27,6 +27,7 @@ export default function LandlordDashboardPage() {
   const [bookingListings, setBookingListings] = useState<Record<string, any>>({});
   const [actingBookingId, setActingBookingId] = useState<string | null>(null);
   const [conversationStats, setConversationStats] = useState({ total: 0, open: 0, unread: 0 });
+  const [analytics, setAnalytics] = useState({ totalViews: 0, totalSaves: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -134,6 +135,21 @@ export default function LandlordDashboardPage() {
         }
 
         if (mounted) setConversationStats({ total: conversationRows.length, open: conversationRows.filter((row) => row.inquiry_status === 'open').length, unread });
+
+        // Calculate Analytics: Total Views and Total Saves
+        const currentListingIds = listingRows.map((r: any) => r.id).filter(Boolean);
+        const totalViews = listingRows.reduce((sum, r) => sum + (Number(r.view_count) || 0), 0);
+        let totalSaves = 0;
+        if (currentListingIds.length > 0) {
+          const saveRows = await selectRows('saved_listings', {
+            select: 'listing_id',
+            filters: [{ column: 'listing_id', op: 'in', value: `(${currentListingIds.join(',')})` }],
+            limit: 1000,
+            accessToken: token
+          });
+          totalSaves = (saveRows as any[]).length;
+        }
+        if (mounted) setAnalytics({ totalViews, totalSaves });
       } catch (err: any) {
         if (mounted) {
           setError(err.message);
@@ -274,11 +290,25 @@ export default function LandlordDashboardPage() {
 
       <section className="card">
         <h2>{t('dashboard.inquiriesAndMessages')}</h2>
-        <p className="muted">
-          {t('dashboard.conversations')}: {conversationStats.total} | {t('dashboard.openInquiries')}: {conversationStats.open} |
-          {t('dashboard.unreadMessages')}: {conversationStats.unread}
-        </p>
-        <Link to="/messages" className="btn btn--small">{t('dashboard.openMessages')}</Link>
+        <div className="admin-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+          <div className="stat-card" style={{ background: 'var(--surface)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border)' }}>
+            <h3 style={{ fontSize: '0.9rem', color: 'var(--muted)', marginBottom: '0.5rem' }}>👀 {t('analytics.totalViews', 'Total Views')}</h3>
+            <p style={{ fontSize: '1.5rem', fontWeight: 700 }}>{analytics.totalViews}</p>
+          </div>
+          <div className="stat-card" style={{ background: 'var(--surface)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border)' }}>
+            <h3 style={{ fontSize: '0.9rem', color: 'var(--muted)', marginBottom: '0.5rem' }}>❤️ {t('analytics.totalSaves', 'Total Saves')}</h3>
+            <p style={{ fontSize: '1.5rem', fontWeight: 700 }}>{analytics.totalSaves}</p>
+          </div>
+          <div className="stat-card" style={{ background: 'var(--surface)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border)' }}>
+            <h3 style={{ fontSize: '0.9rem', color: 'var(--muted)', marginBottom: '0.5rem' }}>💬 {t('dashboard.unreadMessages')}</h3>
+            <p style={{ fontSize: '1.5rem', fontWeight: 700 }}>{conversationStats.unread}</p>
+          </div>
+          <div className="stat-card" style={{ background: 'var(--surface)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border)' }}>
+            <h3 style={{ fontSize: '0.9rem', color: 'var(--muted)', marginBottom: '0.5rem' }}>📑 {t('dashboard.openInquiries')}</h3>
+            <p style={{ fontSize: '1.5rem', fontWeight: 700 }}>{conversationStats.open}</p>
+          </div>
+        </div>
+        <Link to="/messages" className="btn btn--small" style={{ marginTop: '1.5rem', display: 'inline-block' }}>{t('dashboard.openMessages')}</Link>
       </section>
 
       <section className="metric-grid">
