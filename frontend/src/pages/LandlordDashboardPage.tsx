@@ -192,9 +192,23 @@ export default function LandlordDashboardPage() {
         </div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <Link className="btn btn--ghost btn--small" to="/landlord/payments">💰 Payments</Link>
-          <Link className="btn" to="/list-property">{t('dashboard.addListing')}</Link>
+          {profile?.phone_verified ? (
+            <Link className="btn" to="/list-property">{t('dashboard.addListing')}</Link>
+          ) : (
+            <button className="btn" disabled title="Please verify your phone number first">Add Listing (Requires Phone)</button>
+          )}
         </div>
       </div>
+
+      {!loading && profile && !profile.phone_verified ? (
+        <section className="card" style={{ borderLeft: '4px solid var(--danger, #cf222e)', background: '#FEF2F1' }}>
+          <h2 style={{ color: '#C0392B', fontSize: '1.2rem' }}>⚠️ Phone Verification Required</h2>
+          <p style={{ marginTop: '0.5rem', marginBottom: '1rem' }}>
+            You must verify your phone number before you can publish listings and accept bookings. This ensures trust and safety on our platform.
+          </p>
+          <Link to="/profile" className="btn btn--small">Verify Phone Number →</Link>
+        </section>
+      ) : null}
 
       {loading ? <p className="muted">{t('dashboard.loadingDashboard')}</p> : null}
       {error ? <p className="error-text">{error}</p> : null}

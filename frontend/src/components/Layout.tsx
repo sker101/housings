@@ -6,8 +6,9 @@ import { APP_ROLE } from '../lib/roles';
 import { selectRows, updateRows } from '../lib/supabase';
 
 export default function Layout({ children }) {
-  const { user, token, isAuthenticated, logout } = useAuth();
+  const { user, token, isAuthenticated, logout, networkError, setNetworkError } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [notifCount, setNotifCount] = useState(0);
   const { t, i18n } = useTranslation();
 
   const toggleLanguage = async () => {
@@ -94,6 +95,31 @@ export default function Layout({ children }) {
     };
   }, [isAuthenticated, token, user?.userId]);
 
+  // Notification bell count
+  useEffect(() => {
+    let mounted = true;
+    async function loadNotifCount() {
+      if (!isAuthenticated || !user?.userId || !token) { setNotifCount(0); return; }
+      try {
+        const rows = await selectRows('notifications', {
+          select: 'id',
+          filters: [
+            { column: 'user_id', op: 'eq', value: user.userId },
+            { column: 'read_at', op: 'is', value: 'null' }
+          ],
+          limit: 99,
+          accessToken: token
+        });
+        if (mounted) setNotifCount(rows.length);
+      } catch {
+        if (mounted) setNotifCount(0);
+      }
+    }
+    loadNotifCount();
+    const id = setInterval(loadNotifCount, 30000);
+    return () => { mounted = false; clearInterval(id); };
+  }, [isAuthenticated, token, user?.userId]);
+
   const topActionLink = (() => {
     if (!isAuthenticated) {
       return (
@@ -155,6 +181,14 @@ export default function Layout({ children }) {
                 ) : null}
               </NavLink>
             ) : null}
+            {isAuthenticated ? (
+              <NavLink to="/notifications" className="nav-link-with-badge" title="Notifications">
+                🔔
+                {notifCount > 0 ? (
+                  <span className="nav-badge">{notifCount > 99 ? '99+' : notifCount}</span>
+                ) : null}
+              </NavLink>
+            ) : null}
             {user?.role === APP_ROLE.LISTER ? <NavLink to="/list-property">{t('nav.listProperty')}</NavLink> : null}
             {isAuthenticated ? (
               <NavLink to="/profile" className="nav-profile-link">
@@ -175,6 +209,19 @@ export default function Layout({ children }) {
           </nav>
         </div>
       </header>
+
+      {networkError ? (
+        <div style={{ background: '#cf222e', color: 'white', padding: '0.75rem', textAlign: 'center', fontSize: '0.9rem', position: 'sticky', top: '60px', zIndex: 90 }}>
+          Unable to connect to the server. Please check your internet connection and try again.
+          <button
+            type="button"
+            onClick={() => { setNetworkError(false); window.location.reload(); }}
+            style={{ marginLeft: '1rem', background: 'transparent', border: '1px solid white', color: 'white', padding: '0.15rem 0.5rem', borderRadius: '4px', cursor: 'pointer' }}
+          >
+            Retry
+          </button>
+        </div>
+      ) : null}
 
       <main className="main-content">{children}</main>
 

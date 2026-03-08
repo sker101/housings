@@ -14,6 +14,7 @@ import ListPropertyPage from './pages/ListPropertyPage';
 import LoginPage from './pages/LoginPage';
 import MessagesPage from './pages/MessagesPage';
 import NotFoundPage from './pages/NotFoundPage';
+import NotificationsPage from './pages/NotificationsPage';
 import PaymentsPage from './pages/PaymentsPage';
 import ProfilePage from './pages/ProfilePage';
 import RegisterLandlordPage from './pages/RegisterLandlordPage';
@@ -33,6 +34,14 @@ export default function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/rooms/:roomId" element={<RoomDetailsPage />} />
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute roles={[APP_ROLE.STUDENT, APP_ROLE.LISTER, APP_ROLE.ADMIN]}>
+              <NotificationsPage />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/messages"

@@ -39,6 +39,11 @@ export default function ProfilePage() {
   const [verifyingOtp, setVerifyingOtp] = useState(false);
   const [otpHint, setOtpHint] = useState('');
 
+  // Re-verification state
+  const [resubmitting, setResubmitting] = useState(false);
+  const [idDocUrl, setIdDocUrl] = useState('');
+  const [selfieUrl, setSelfieUrl] = useState('');
+
   useEffect(() => {
     let mounted = true;
 
@@ -235,6 +240,32 @@ export default function ProfilePage() {
     }
   };
 
+  const handleResubmitDocs = async () => {
+    if (!idDocUrl || !selfieUrl) {
+      setError('Please provide both ID and Selfie documents.');
+      return;
+    }
+    setResubmitting(true);
+    setError('');
+    try {
+      await updateRows(
+        'profiles',
+        {
+          id_doc_url: idDocUrl,
+          selfie_url: selfieUrl,
+          verification_status: 'pending'
+        },
+        { filters: [{ column: 'id', op: 'eq', value: user.userId }], accessToken: token }
+      );
+      setVerificationStatus('PENDING');
+      setSuccess('Documents submitted successfully. Awaiting admin review.');
+    } catch (err: any) {
+      setError(err.message || 'Failed to resubmit documents.');
+    } finally {
+      setResubmitting(false);
+    }
+  };
+
   return (
     <div className="container section">
       <div className="section__header">
@@ -258,6 +289,34 @@ export default function ProfilePage() {
             </p>
           ) : null}
         </div>
+
+        {verificationStatus === 'REJECTED' ? (
+          <div style={{ padding: '1rem', background: '#FEF2F1', border: '1px solid #FAD1D1', borderRadius: '8px', marginBottom: '1.5rem' }}>
+            <h3 style={{ color: '#C0392B', marginBottom: '0.5rem', fontSize: '1.05rem' }}>Verification Rejected</h3>
+            <p style={{ marginBottom: '1rem', fontSize: '0.9rem', color: '#7f1d1d' }}>
+              Your previous identity documents were rejected. Please upload clear, legible photos of your ID and a matching selfie holding the ID.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <label>
+                New ID Document URL (temporary text input for now):
+                <input value={idDocUrl} onChange={(e) => setIdDocUrl(e.target.value)} />
+              </label>
+              <label>
+                New Selfie URL (temporary text input for now):
+                <input value={selfieUrl} onChange={(e) => setSelfieUrl(e.target.value)} />
+              </label>
+              <button
+                type="button"
+                className="btn btn--small"
+                onClick={handleResubmitDocs}
+                disabled={resubmitting || !idDocUrl || !selfieUrl}
+                style={{ alignSelf: 'flex-start' }}
+              >
+                {resubmitting ? 'Submitting…' : 'Resubmit Documents'}
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         <form onSubmit={handleSubmit}>
           <label>

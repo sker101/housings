@@ -84,6 +84,7 @@ export function AuthProvider({ children }) {
   const [{ session, persistent }, setSessionState] = useState(() => readStoredSession());
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [networkError, setNetworkError] = useState(false);
 
   const applySession = useCallback((nextSession, rememberMe = true) => {
     if (!nextSession) {
@@ -335,9 +336,11 @@ export function AuthProvider({ children }) {
       logout,
       registerStudent,
       registerLandlord,
-      refreshMe
+      refreshMe,
+      networkError,
+      setNetworkError
     }),
-    [user, session, loading, login, logout, registerStudent, registerLandlord, refreshMe]
+    [user, session, loading, login, logout, registerStudent, registerLandlord, refreshMe, networkError]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
