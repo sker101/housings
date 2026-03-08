@@ -198,6 +198,28 @@ export async function signUpWithPassword({ email, password, data }) {
   });
 }
 
+export async function requestPasswordReset(email: string) {
+  return request('/auth/v1/recover', {
+    method: 'POST',
+    body: { email }
+  });
+}
+
+export async function confirmPasswordReset(accessToken: string, newPassword: string) {
+  return request('/auth/v1/user', {
+    method: 'PUT',
+    accessToken,
+    body: { password: newPassword }
+  });
+}
+
+export async function resendVerificationEmail(email: string) {
+  return request('/auth/v1/resend', {
+    method: 'POST',
+    body: { type: 'signup', email }
+  });
+}
+
 export async function refreshAuthSession(refreshToken) {
   return request('/auth/v1/token', {
     method: 'POST',

@@ -17,6 +17,7 @@ export default function LoginPage() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [emailNotConfirmed, setEmailNotConfirmed] = useState(false);
 
   const hasMinLength = formData.password.length >= 8;
   const hasNoLeadingTrailingSpace =
@@ -28,46 +29,33 @@ export default function LoginPage() {
       navigate(pathFromState, { replace: true });
       return;
     }
-
-    if (role === APP_ROLE.ADMIN) {
-      navigate('/admin', { replace: true });
-      return;
-    }
-
-    if (role === APP_ROLE.LISTER) {
-      navigate('/landlord', { replace: true });
-      return;
-    }
-
+    if (role === APP_ROLE.ADMIN) { navigate('/admin', { replace: true }); return; }
+    if (role === APP_ROLE.LISTER) { navigate('/landlord', { replace: true }); return; }
     navigate('/', { replace: true });
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError('');
+    setEmailNotConfirmed(false);
 
-    if (!hasMinLength) {
-      setError('Password must be at least 8 characters.');
-      return;
-    }
-
-    if (!hasNoLeadingTrailingSpace) {
-      setError('Password cannot start or end with spaces.');
-      return;
-    }
+    if (!hasMinLength) { setError('Password must be at least 8 characters.'); return; }
+    if (!hasNoLeadingTrailingSpace) { setError('Password cannot start or end with spaces.'); return; }
 
     try {
       const response = await login(
-        {
-          email: formData.email.trim().toLowerCase(),
-          password: formData.password
-        },
+        { email: formData.email.trim().toLowerCase(), password: formData.password },
         { rememberMe: formData.rememberMe }
       );
-
       redirectAfterLogin(response.role);
     } catch (err) {
-      setError(err.message);
+      const msg: string = (err as any).message || '';
+      if (msg.toLowerCase().includes('email not confirmed')) {
+        setEmailNotConfirmed(true);
+        setError('Your email address has not been verified yet.');
+      } else {
+        setError(msg);
+      }
     }
   };
 
@@ -83,6 +71,20 @@ export default function LoginPage() {
         <article className="auth-shell__form card">
           <h2>{t('auth.login')}</h2>
           {error ? <p className="error-text">{error}</p> : null}
+
+          {emailNotConfirmed ? (
+            <div style={{ marginBottom: '1rem', padding: '0.75rem 1rem', background: 'var(--surface-2, #f8f9fa)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+              <p style={{ marginBottom: '0.5rem', fontSize: '0.9rem' }}>
+                Check your inbox for a verification link. Didn&apos;t receive it?
+              </p>
+              <Link
+                to={`/reset-password?resend=1&email=${encodeURIComponent(formData.email)}`}
+                className="btn btn--small btn--ghost"
+              >
+                Resend verification email
+              </Link>
+            </div>
+          ) : null}
 
           <form onSubmit={handleSubmit}>
             <label>
@@ -145,6 +147,7 @@ export default function LoginPage() {
           </form>
 
           <div className="auth-links">
+            <Link to="/reset-password">Forgot password?</Link>
             <Link to="/register/student">{t('auth.createStudent')}</Link>
             <Link to="/register/landlord">{t('auth.createLister')}</Link>
           </div>

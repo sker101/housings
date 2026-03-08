@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { invokeFunction, selectRows, updateRows } from '../lib/supabase';
@@ -16,8 +17,9 @@ function humanizeReason(value) {
 }
 
 export default function ProfilePage() {
-  const { user, token, refreshMe } = useAuth();
+  const { user, token, refreshMe, logout } = useAuth();
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
   const [form, setForm] = useState({
     fullName: user?.fullName || '',
@@ -211,6 +213,28 @@ export default function ProfilePage() {
     }
   };
 
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [showDeleteSection, setShowDeleteSection] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText.toUpperCase() !== 'DELETE') {
+      setError('Please type DELETE to confirm account deletion.');
+      return;
+    }
+    setDeletingAccount(true);
+    setError('');
+    try {
+      await invokeFunction('delete-account', {}, token);
+      await logout();
+      navigate('/');
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete account. Please contact support@campusstaytz.com.');
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
+
   return (
     <div className="container section">
       <div className="section__header">
@@ -304,6 +328,50 @@ export default function ProfilePage() {
 
       {error ? <p className="error-text">{error}</p> : null}
       {success ? <p className="success-text">{success}</p> : null}
+
+      {/* Danger Zone */}
+      <section className="card" style={{ borderLeft: '4px solid var(--danger, #cf222e)', marginTop: '2rem' }}>
+        <h2 style={{ color: 'var(--danger, #cf222e)' }}>⚠️ Danger Zone</h2>
+        {!showDeleteSection ? (
+          <button
+            type="button"
+            className="btn btn--ghost"
+            style={{ color: 'var(--danger, #cf222e)', borderColor: 'var(--danger, #cf222e)' }}
+            onClick={() => setShowDeleteSection(true)}
+          >
+            Delete my account
+          </button>
+        ) : (
+          <div>
+            <p style={{ marginBottom: '0.75rem', fontSize: '0.9rem' }}>
+              This will permanently delete your account and all associated data. This action <strong>cannot be undone</strong>.
+            </p>
+            <label style={{ display: 'block', marginBottom: '0.75rem' }}>
+              Type <strong>DELETE</strong> to confirm:
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="DELETE"
+                style={{ marginTop: '0.25rem', borderColor: 'var(--danger, #cf222e)' }}
+              />
+            </label>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button
+                type="button"
+                className="btn btn--danger"
+                disabled={deletingAccount || deleteConfirmText.toUpperCase() !== 'DELETE'}
+                onClick={handleDeleteAccount}
+              >
+                {deletingAccount ? 'Deleting…' : 'Delete Account'}
+              </button>
+              <button type="button" className="btn btn--ghost" onClick={() => { setShowDeleteSection(false); setDeleteConfirmText(''); }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

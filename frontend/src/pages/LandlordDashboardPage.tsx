@@ -3,25 +3,30 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { mapListingRow } from '../lib/listings';
-import { selectRows } from '../lib/supabase';
+import { selectRows, updateRows } from '../lib/supabase';
 
 function countByStatus(listings, status) {
   return listings.filter((listing) => listing.status === status).length;
+}
+
+function formatDate(value) {
+  if (!value) return '—';
+  try { return new Date(value).toLocaleDateString(); } catch { return value; }
 }
 
 export default function LandlordDashboardPage() {
   const { user, token } = useAuth();
   const { t } = useTranslation();
 
-  const [profile, setProfile] = useState(null);
-  const [listings, setListings] = useState([]);
-  const [listingChecks, setListingChecks] = useState({});
+  const [profile, setProfile] = useState<any>(null);
+  const [listings, setListings] = useState<any[]>([]);
+  const [listingChecks, setListingChecks] = useState<Record<string, any[]>>({});
   const [statusFilter, setStatusFilter] = useState('all');
-  const [conversationStats, setConversationStats] = useState({
-    total: 0,
-    open: 0,
-    unread: 0
-  });
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [bookingTenants, setBookingTenants] = useState<Record<string, any>>({});
+  const [bookingListings, setBookingListings] = useState<Record<string, any>>({});
+  const [actingBookingId, setActingBookingId] = useState<string | null>(null);
+  const [conversationStats, setConversationStats] = useState({ total: 0, open: 0, unread: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -38,17 +43,15 @@ export default function LandlordDashboardPage() {
       setError('');
 
       try {
-        const [profileRows, listingRows, conversationRows] = await Promise.all([
+        const [profileRows, listingRows, conversationRows, bookingRows] = await Promise.all([
           selectRows('profiles', {
-            select:
-              'id,full_name,verification_status,lister_type,subscription_plan,commission_rate_pct,payout_provider,payout_reference',
+            select: 'id,full_name,verification_status,lister_type,subscription_plan,commission_rate_pct,payout_provider,payout_reference',
             filters: [{ column: 'id', op: 'eq', value: user.userId }],
             limit: 1,
             accessToken: token
           }),
           selectRows('listings', {
-            select:
-              'id,lister_id,title,description,room_type,gender_preference,price_monthly,utilities_included,region,district,ward,street,lat,lng,amenities,house_rules,available_from,vacancy_status,status,rejection_reason,featured,near_universities,view_count,created_at',
+            select: 'id,lister_id,title,description,room_type,gender_preference,price_monthly,utilities_included,region,district,ward,street,lat,lng,amenities,house_rules,available_from,vacancy_status,status,rejection_reason,featured,near_universities,view_count,created_at',
             filters: [{ column: 'lister_id', op: 'eq', value: user.userId }],
             order: 'created_at.desc',
             limit: 200,
@@ -59,6 +62,16 @@ export default function LandlordDashboardPage() {
             filters: [{ column: 'lister_id', op: 'eq', value: user.userId }],
             order: 'last_message_at.desc',
             limit: 200,
+            accessToken: token
+          }),
+          selectRows('bookings', {
+            select: 'id,listing_id,tenant_id,move_in_date,duration_months,message,contact_preference,status,created_at',
+            filters: [
+              { column: 'lister_id', op: 'eq', value: user.userId },
+              { column: 'status', op: 'eq', value: 'requested' }
+            ],
+            order: 'created_at.desc',
+            limit: 50,
             accessToken: token
           })
         ]);
@@ -79,65 +92,80 @@ export default function LandlordDashboardPage() {
           unread = unreadRows.length;
         }
 
-        if (!mounted) {
-          return;
-        }
+        if (!mounted) return;
 
         setProfile(profileRows[0] || null);
-        const mappedListings = listingRows.map((row) => mapListingRow(row, []));
-        setListings(mappedListings);
+        setListings(listingRows.map((row) => mapListingRow(row, [])));
+        setBookings(bookingRows);
+
+        // Enrich bookings with tenant + listing info
+        if (bookingRows.length > 0) {
+          const tenantIds = Array.from(new Set(bookingRows.map((b) => b.tenant_id)));
+          const bListingIds = Array.from(new Set(bookingRows.map((b) => b.listing_id)));
+          const [tenants, bListings] = await Promise.all([
+            selectRows('profiles', { select: 'id,full_name,phone', filters: [{ column: 'id', op: 'in', value: `(${tenantIds.join(',')})` }], accessToken: token }),
+            selectRows('listings', { select: 'id,title,vacancy_status', filters: [{ column: 'id', op: 'in', value: `(${bListingIds.join(',')})` }], accessToken: token })
+          ]);
+          if (mounted) {
+            setBookingTenants(Object.fromEntries(tenants.map((t) => [t.id, t])));
+            setBookingListings(Object.fromEntries(bListings.map((l) => [l.id, l])));
+          }
+        }
 
         // Load check failures for non-approved listings
-        const nonApprovedIds = listingRows
-          .filter((r) => r.status !== 'approved')
-          .map((r) => r.id)
-          .filter(Boolean);
+        const nonApprovedIds = listingRows.filter((r) => r.status !== 'approved').map((r) => r.id).filter(Boolean);
         if (nonApprovedIds.length > 0) {
           const checkRows = await selectRows('listing_checks', {
             select: 'listing_id,check_type,result,severity,detail',
-            filters: [{ column: 'listing_id', op: 'in', value: `(${nonApprovedIds.join(',')})` },
-            { column: 'result', op: 'eq', value: 'block' }],
+            filters: [
+              { column: 'listing_id', op: 'in', value: `(${nonApprovedIds.join(',')})` },
+              { column: 'result', op: 'eq', value: 'block' }
+            ],
             order: 'checked_at.desc',
             limit: 100,
             accessToken: token
           });
-          // Group by listing_id
-          const grouped = {};
+          const grouped: Record<string, any[]> = {};
           checkRows.forEach((c) => {
             if (!grouped[c.listing_id]) grouped[c.listing_id] = [];
             grouped[c.listing_id].push(c);
           });
           if (mounted) setListingChecks(grouped);
         }
-        setConversationStats({
-          total: conversationRows.length,
-          open: conversationRows.filter((row) => row.inquiry_status === 'open').length,
-          unread
-        });
-      } catch (err) {
+
+        if (mounted) setConversationStats({ total: conversationRows.length, open: conversationRows.filter((row) => row.inquiry_status === 'open').length, unread });
+      } catch (err: any) {
         if (mounted) {
           setError(err.message);
           setProfile(null);
           setListings([]);
-          setConversationStats({
-            total: 0,
-            open: 0,
-            unread: 0
-          });
+          setConversationStats({ total: 0, open: 0, unread: 0 });
         }
       } finally {
-        if (mounted) {
-          setLoading(false);
-        }
+        if (mounted) setLoading(false);
       }
     }
 
     loadData();
-
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, [user?.userId, token]);
+
+  const actOnBooking = async (bookingId: string, newStatus: 'approved' | 'declined') => {
+    setActingBookingId(bookingId);
+    setError('');
+    try {
+      await updateRows(
+        'bookings',
+        { status: newStatus },
+        { filters: [{ column: 'id', op: 'eq', value: bookingId }], accessToken: token }
+      );
+      setBookings((prev) => prev.filter((b) => b.id !== bookingId));
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setActingBookingId(null);
+    }
+  };
 
   const metrics = useMemo(
     () => [
@@ -162,23 +190,65 @@ export default function LandlordDashboardPage() {
           <h1>{t('dashboard.listerDashboard')}</h1>
           <p>{t('dashboard.listerDashboardSubtitle')}</p>
         </div>
-        <Link className="btn" to="/list-property">
-          {t('dashboard.addListing')}
-        </Link>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <Link className="btn btn--ghost btn--small" to="/landlord/payments">💰 Payments</Link>
+          <Link className="btn" to="/list-property">{t('dashboard.addListing')}</Link>
+        </div>
       </div>
 
       {loading ? <p className="muted">{t('dashboard.loadingDashboard')}</p> : null}
       {error ? <p className="error-text">{error}</p> : null}
 
+      {/* Booking Approval Panel */}
+      {bookings.length > 0 ? (
+        <section className="card" style={{ borderLeft: '4px solid var(--jade, #22c55e)' }}>
+          <h2>📋 Booking Requests <span className="badge">{bookings.length}</span></h2>
+          <p className="muted" style={{ marginBottom: '1rem' }}>Tenants waiting for your approval. Approving a booking auto-generates monthly payment records and marks the listing as occupied.</p>
+          {bookings.map((b) => {
+            const tenant = bookingTenants[b.tenant_id];
+            const bl = bookingListings[b.listing_id];
+            const isOccupied = bl?.vacancy_status === 'occupied';
+            return (
+              <div key={b.id} style={{ padding: '1rem', marginBottom: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--surface)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'flex-start' }}>
+                  <div>
+                    <p style={{ fontWeight: 600 }}>{tenant?.full_name || 'Unknown tenant'}</p>
+                    <p className="muted" style={{ fontSize: '0.85rem' }}>
+                      {bl?.title || b.listing_id} · Move-in: {formatDate(b.move_in_date)} · {b.duration_months} month{b.duration_months !== 1 ? 's' : ''}
+                    </p>
+                    <p className="muted" style={{ fontSize: '0.85rem' }}>Preference: {b.contact_preference || '—'}</p>
+                    {b.message ? <p style={{ marginTop: '0.25rem', fontSize: '0.88rem' }}>&ldquo;{b.message}&rdquo;</p> : null}
+                    {isOccupied ? <p style={{ color: '#c47900', fontSize: '0.82rem', marginTop: '0.25rem' }}>⚠️ This listing is already marked as occupied.</p> : null}
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
+                    <button
+                      className="btn btn--small"
+                      disabled={actingBookingId === b.id}
+                      onClick={() => actOnBooking(b.id, 'approved')}
+                    >
+                      {actingBookingId === b.id ? '…' : '✓ Approve'}
+                    </button>
+                    <button
+                      className="btn btn--small btn--ghost"
+                      disabled={actingBookingId === b.id}
+                      onClick={() => actOnBooking(b.id, 'declined')}
+                    >
+                      {actingBookingId === b.id ? '…' : '✗ Decline'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </section>
+      ) : null}
+
       {profile ? (
         <section className="card">
           <h2>{t('dashboard.verificationStatus')}</h2>
-          <p>
-            <strong>{String(profile.verification_status || '').toUpperCase()}</strong>
-          </p>
+          <p><strong>{String(profile.verification_status || '').toUpperCase()}</strong></p>
           <p className="muted">
-            {t('auth.listerType')}: {profile.lister_type || t('auth.owner')} | {t('dashboard.plan')}:{' '}
-            {profile.subscription_plan || 'free'}
+            {t('auth.listerType')}: {profile.lister_type || t('auth.owner')} | {t('dashboard.plan')}: {profile.subscription_plan || 'free'}
           </p>
           {profile.payout_provider ? (
             <p className="muted">
@@ -194,15 +264,14 @@ export default function LandlordDashboardPage() {
           {t('dashboard.conversations')}: {conversationStats.total} | {t('dashboard.openInquiries')}: {conversationStats.open} |
           {t('dashboard.unreadMessages')}: {conversationStats.unread}
         </p>
-        <Link to="/messages" className="btn btn--small">
-          {t('dashboard.openMessages')}
-        </Link>
+        <Link to="/messages" className="btn btn--small">{t('dashboard.openMessages')}</Link>
       </section>
 
       <section className="metric-grid">
         {metrics.map((metric) => (
           <button
             key={metric.id}
+            type="button"
             className={`metric-card metric-card--clickable ${statusFilter === metric.id ? 'is-active' : ''}`}
             onClick={() => setStatusFilter(metric.id)}
             style={{ textAlign: 'left', cursor: 'pointer', border: statusFilter === metric.id ? '2px solid var(--jade)' : '' }}

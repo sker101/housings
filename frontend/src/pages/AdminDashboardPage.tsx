@@ -9,7 +9,9 @@ export default function AdminDashboardPage() {
     totalListings: 0,
     pendingListings: 0,
     flaggedListings: 0,
-    signupsToday: 0
+    signupsToday: 0,
+    pendingReports: 0,
+    pendingClaims: 0
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -31,7 +33,7 @@ export default function AdminDashboardPage() {
         todayIso.setHours(0, 0, 0, 0);
         const startOfDay = todayIso.toISOString();
 
-        const [totalListings, pendingListings, flaggedListings, signupsToday] = await Promise.all([
+        const [totalListings, pendingListings, flaggedListings, signupsToday, pendingReports, pendingClaims] = await Promise.all([
           countRows('listings', { accessToken: token }),
           countRows('listings', {
             filters: [{ column: 'status', op: 'eq', value: 'pending' }],
@@ -44,6 +46,14 @@ export default function AdminDashboardPage() {
           countRows('profiles', {
             filters: [{ column: 'created_at', op: 'gte', value: startOfDay }],
             accessToken: token
+          }),
+          countRows('listing_reports', {
+            filters: [{ column: 'status', op: 'eq', value: 'pending' }],
+            accessToken: token
+          }),
+          countRows('campuscover_claims', {
+            filters: [{ column: 'status', op: 'eq', value: 'pending' }],
+            accessToken: token
           })
         ]);
 
@@ -52,7 +62,9 @@ export default function AdminDashboardPage() {
             totalListings,
             pendingListings,
             flaggedListings,
-            signupsToday
+            signupsToday,
+            pendingReports,
+            pendingClaims
           });
         }
       } catch (err) {
@@ -124,6 +136,24 @@ export default function AdminDashboardPage() {
           <strong>Review admin action history</strong>
           <Link to="/admin/audit-log" className="btn btn--small">
             Open audit log
+          </Link>
+        </article>
+
+        <article className="metric-card">
+          <p>Listing Reports</p>
+          <strong>{metrics.pendingReports}</strong>
+          <span className="muted">Pending resolution</span>
+          <Link to="/admin/reports" className="btn btn--small">
+            Review reports
+          </Link>
+        </article>
+
+        <article className="metric-card">
+          <p>CampusCover Claims</p>
+          <strong>{metrics.pendingClaims}</strong>
+          <span className="muted">Pending decisions</span>
+          <Link to="/admin/claims" className="btn btn--small">
+            Review claims
           </Link>
         </article>
       </section>

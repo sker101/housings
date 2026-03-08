@@ -3,18 +3,22 @@ import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import { APP_ROLE } from './lib/roles';
 import AdminAuditLogPage from './pages/AdminAuditLogPage';
+import AdminClaimsPage from './pages/AdminClaimsPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import AdminLandlordsPage from './pages/AdminLandlordsPage';
 import AdminListingsPage from './pages/AdminListingsPage';
+import AdminReportsPage from './pages/AdminReportsPage';
 import HomePage from './pages/HomePage';
 import LandlordDashboardPage from './pages/LandlordDashboardPage';
 import ListPropertyPage from './pages/ListPropertyPage';
 import LoginPage from './pages/LoginPage';
 import MessagesPage from './pages/MessagesPage';
 import NotFoundPage from './pages/NotFoundPage';
+import PaymentsPage from './pages/PaymentsPage';
 import ProfilePage from './pages/ProfilePage';
 import RegisterLandlordPage from './pages/RegisterLandlordPage';
 import RegisterStudentPage from './pages/RegisterStudentPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import RoomDetailsPage from './pages/RoomDetailsPage';
 import SavedListingsPage from './pages/SavedListingsPage';
 import SearchPage from './pages/SearchPage';
@@ -115,6 +119,31 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/admin/reports"
+          element={
+            <ProtectedRoute roles={[APP_ROLE.ADMIN]}>
+              <AdminReportsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/claims"
+          element={
+            <ProtectedRoute roles={[APP_ROLE.ADMIN]}>
+              <AdminClaimsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/landlord/payments"
+          element={
+            <ProtectedRoute roles={[APP_ROLE.LISTER]}>
+              <PaymentsPage />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/login"
@@ -128,6 +157,7 @@ export default function App() {
           path="/register/landlord"
           element={isAuthenticated ? <Navigate to="/" replace /> : <RegisterLandlordPage />}
         />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
