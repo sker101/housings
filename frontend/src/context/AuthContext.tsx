@@ -59,7 +59,8 @@ function buildCurrentUser(session, profile) {
     roleRaw: profile?.role || (role === APP_ROLE.LISTER ? 'lister' : 'student'),
     listerType: profile?.lister_type || '',
     landlordVerificationStatus: normalizeVerificationStatus(profile?.verification_status),
-    university: profile?.university || ''
+    university: profile?.university || '',
+    preferredLanguage: profile?.preferred_language || 'en'
   };
 }
 
@@ -70,7 +71,7 @@ async function fetchProfile(userId, accessToken) {
 
   const rows = await selectRows('profiles', {
     select:
-      'id,role,lister_type,full_name,phone,phone_verified,university,profile_photo_url,id_doc_url,selfie_url,verification_status,subscription_plan,payout_provider,payout_reference,created_at',
+      'id,role,lister_type,full_name,phone,phone_verified,university,profile_photo_url,id_doc_url,selfie_url,verification_status,subscription_plan,payout_provider,payout_reference,created_at,preferred_language',
     filters: [{ column: 'id', op: 'eq', value: userId }],
     limit: 1,
     accessToken
@@ -207,7 +208,8 @@ export function AuthProvider({ children }) {
                 phone: payload.phone.trim(),
                 university: payload.university?.trim() || null,
                 phone_verified: false,
-                verification_status: 'unverified'
+                verification_status: 'unverified',
+                preferred_language: payload.preferredLanguage || 'en'
               },
               { onConflict: 'id', accessToken }
             );
@@ -263,7 +265,8 @@ export function AuthProvider({ children }) {
                 full_name: payload.fullName.trim(),
                 phone: payload.phone.trim(),
                 phone_verified: false,
-                verification_status: 'pending'
+                verification_status: 'pending',
+                preferred_language: payload.preferredLanguage || 'en'
               },
               { onConflict: 'id', accessToken }
             );

@@ -12,7 +12,7 @@ const useListerTypes = (t) => [
 export default function RegisterLandlordPage() {
   const { registerLandlord, loading } = useAuth();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const LISTER_TYPES = useListerTypes(t);
 
   const [formData, setFormData] = useState({
@@ -29,7 +29,7 @@ export default function RegisterLandlordPage() {
     setError('');
 
     try {
-      await registerLandlord(formData);
+      await registerLandlord({ ...formData, preferredLanguage: i18n.language });
       navigate('/landlord', { replace: true });
     } catch (err) {
       setError(err.message);

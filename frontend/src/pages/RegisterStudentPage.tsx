@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 export default function RegisterStudentPage() {
   const { registerStudent, loading } = useAuth();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -22,7 +22,7 @@ export default function RegisterStudentPage() {
     setError('');
 
     try {
-      await registerStudent(formData);
+      await registerStudent({ ...formData, preferredLanguage: i18n.language });
       navigate('/', { replace: true });
     } catch (err) {
       setError(err.message);

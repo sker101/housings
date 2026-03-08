@@ -3,17 +3,40 @@ import { Link, NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { APP_ROLE } from '../lib/roles';
-import { selectRows } from '../lib/supabase';
+import { selectRows, updateRows } from '../lib/supabase';
 
 export default function Layout({ children }) {
   const { user, token, isAuthenticated, logout } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
   const { t, i18n } = useTranslation();
 
-  const toggleLanguage = () => {
+  const toggleLanguage = async () => {
     const nextLang = i18n.language === 'en' ? 'sw' : 'en';
-    i18n.changeLanguage(nextLang);
+    await i18n.changeLanguage(nextLang);
+
+    // If logged in, save the preference to Supabase
+    if (isAuthenticated && user?.userId && token) {
+      try {
+        await updateRows(
+          'profiles',
+          { preferred_language: nextLang },
+          {
+            filters: [{ column: 'id', op: 'eq', value: user.userId }],
+            accessToken: token
+          }
+        );
+      } catch (err) {
+        console.error('Failed to save language preference:', err);
+      }
+    }
   };
+
+  // Sync language on initial auth load
+  useEffect(() => {
+    if (isAuthenticated && user?.preferredLanguage && user.preferredLanguage !== i18n.language) {
+      i18n.changeLanguage(user.preferredLanguage);
+    }
+  }, [isAuthenticated, user?.preferredLanguage, i18n]);
 
   useEffect(() => {
     let mounted = true;
