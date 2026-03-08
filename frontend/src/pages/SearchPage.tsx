@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import ListingMap from '../components/ListingMap';
 import ListingCard from '../components/ListingCard';
 import { useAuth } from '../context/AuthContext';
@@ -17,6 +18,7 @@ export default function SearchPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, token } = useAuth();
+  const { t } = useTranslation();
 
   const [filters, setFilters] = useState({
     query: searchParams.get('q') || '',
@@ -159,11 +161,13 @@ export default function SearchPage() {
 
   const resultCountLabel = useMemo(() => {
     if (loading) {
-      return 'Searching...';
+      return t('search.searching');
     }
 
-    return `Showing ${listings.length} result${listings.length === 1 ? '' : 's'}`;
-  }, [loading, listings.length]);
+    return listings.length === 1
+      ? t('search.showingResults', { count: listings.length })
+      : t('search.showingResultsPlural', { count: listings.length });
+  }, [loading, listings.length, t]);
 
   const mapListings = useMemo(() => listings, [listings]);
 
@@ -173,7 +177,7 @@ export default function SearchPage() {
 
   const handleToggleSave = async (listingId) => {
     if (!user?.userId || !token) {
-      setError('Login to save listings.');
+      setError(t('search.loginToSave'));
       return;
     }
 
@@ -202,7 +206,7 @@ export default function SearchPage() {
     <div className="container section">
       <div className="section__header">
         <div>
-          <h1>Search Listings</h1>
+          <h1>{t('search.title')}</h1>
           <p>{resultCountLabel}</p>
         </div>
 
@@ -229,14 +233,14 @@ export default function SearchPage() {
           type="search"
           value={filters.query}
           onChange={(event) => updateFilter('query', event.target.value)}
-          placeholder="Search title, district, ward"
+          placeholder={t('search.placeholder')}
         />
 
         <select
           value={filters.roomType}
           onChange={(event) => updateFilter('roomType', event.target.value)}
         >
-          <option value="all">Any room type</option>
+          <option value="all">{t('search.anyRoomType')}</option>
           {ROOM_TYPES.map(op => (
             <option key={op.value} value={op.value}>{op.label}</option>
           ))}
@@ -246,23 +250,23 @@ export default function SearchPage() {
           value={filters.genderPreference}
           onChange={(event) => updateFilter('genderPreference', event.target.value)}
         >
-          <option value="any">Any gender</option>
-          <option value="male">Male</option>
-          <option value="female">Female</option>
+          <option value="any">{t('search.anyGender')}</option>
+          <option value="male">{t('search.male')}</option>
+          <option value="female">{t('search.female')}</option>
         </select>
 
         <input
           type="number"
           value={filters.minPrice}
           onChange={(event) => updateFilter('minPrice', event.target.value)}
-          placeholder="Min monthly price"
+          placeholder={t('search.minPrice')}
         />
 
         <input
           type="number"
           value={filters.maxPrice}
           onChange={(event) => updateFilter('maxPrice', event.target.value)}
-          placeholder="Max monthly price"
+          placeholder={t('search.maxPrice')}
         />
 
         <select
@@ -288,7 +292,7 @@ export default function SearchPage() {
           />
           {hasMore ? (
             <button type="button" className="btn btn--ghost btn--small" onClick={loadMore} disabled={loadingMore}>
-              {loadingMore ? 'Loading...' : 'Load more map results'}
+              {loadingMore ? t('search.loadingMore') : t('search.loadMoreMap')}
             </button>
           ) : null}
         </section>
@@ -317,7 +321,7 @@ export default function SearchPage() {
                 onClick={loadMore}
                 disabled={loadingMore}
               >
-                {loadingMore ? 'Loading more...' : 'Load more'}
+                {loadingMore ? t('search.loadingMore') : t('search.loadMore')}
               </button>
               <div ref={loadMoreRef} aria-hidden="true" />
             </div>

@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 
 export default function RegisterStudentPage() {
   const { registerStudent, loading } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -30,14 +32,14 @@ export default function RegisterStudentPage() {
   return (
     <div className="container section auth-page">
       <section className="card auth-form-card">
-        <h1>Student Registration</h1>
-        <p>Create your account to save listings and message listers.</p>
+        <h1>{t('auth.studentRegTitle')}</h1>
+        <p>{t('auth.studentRegSubtitle')}</p>
 
         {error ? <p className="error-text">{error}</p> : null}
 
         <form onSubmit={onSubmit}>
           <label>
-            Full name
+            {t('auth.fullName')}
             <input
               required
               value={formData.fullName}
@@ -48,7 +50,7 @@ export default function RegisterStudentPage() {
           </label>
 
           <label>
-            Email
+            {t('auth.email')}
             <input
               type="email"
               required
@@ -60,7 +62,7 @@ export default function RegisterStudentPage() {
           </label>
 
           <label>
-            Phone number
+            {t('auth.phone')}
             <input
               required
               placeholder="+2557XXXXXXXX"
@@ -72,7 +74,7 @@ export default function RegisterStudentPage() {
           </label>
 
           <label>
-            University (optional)
+            {t('auth.universityOptional')}
             <input
               value={formData.university}
               onChange={(event) =>
@@ -83,7 +85,7 @@ export default function RegisterStudentPage() {
           </label>
 
           <label>
-            Password
+            {t('auth.password')}
             <input
               type="password"
               minLength={8}
@@ -96,12 +98,12 @@ export default function RegisterStudentPage() {
           </label>
 
           <button className="btn" type="submit" disabled={loading}>
-            {loading ? 'Creating account...' : 'Create student account'}
+            {loading ? t('auth.creatingAccount') : t('auth.createStudent')}
           </button>
         </form>
 
         <div className="auth-links">
-          <Link to="/login">I already have an account</Link>
+          <Link to="/login">{t('auth.alreadyHaveAccount')}</Link>
         </div>
       </section>
     </div>

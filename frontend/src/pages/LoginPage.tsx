@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { APP_ROLE } from '../lib/roles';
 
@@ -7,6 +8,7 @@ export default function LoginPage() {
   const { login, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
 
   const [formData, setFormData] = useState({
     email: '',
@@ -73,18 +75,18 @@ export default function LoginPage() {
     <div className="container section auth-page">
       <section className="auth-shell">
         <aside className="auth-shell__intro">
-          <p className="auth-shell__eyebrow">Welcome back</p>
-          <h1>Sign in to CampusStay TZ</h1>
-          <p>Access verified listings, saved homes, and conversations in one place.</p>
+          <p className="auth-shell__eyebrow">{t('auth.welcomeBack')}</p>
+          <h1>{t('auth.signInTitle')}</h1>
+          <p>{t('auth.signInSubtitle')}</p>
         </aside>
 
         <article className="auth-shell__form card">
-          <h2>Login</h2>
+          <h2>{t('auth.login')}</h2>
           {error ? <p className="error-text">{error}</p> : null}
 
           <form onSubmit={handleSubmit}>
             <label>
-              Email
+              {t('auth.email')}
               <input
                 type="email"
                 required
@@ -96,7 +98,7 @@ export default function LoginPage() {
             </label>
 
             <label>
-              Password
+              {t('auth.password')}
               <div className="password-field">
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -112,17 +114,17 @@ export default function LoginPage() {
                   className="password-toggle"
                   onClick={() => setShowPassword((prev) => !prev)}
                 >
-                  {showPassword ? 'Hide' : 'Show'}
+                  {showPassword ? t('auth.hide') : t('auth.show')}
                 </button>
               </div>
             </label>
 
             <div className="password-checklist">
               <span className={hasMinLength ? 'is-pass' : 'is-pending'}>
-                {hasMinLength ? 'OK' : '...'} At least 8 characters
+                {hasMinLength ? 'OK' : '...'} {t('auth.minPassword')}
               </span>
               <span className={hasNoLeadingTrailingSpace ? 'is-pass' : 'is-pending'}>
-                {hasNoLeadingTrailingSpace ? 'OK' : '...'} No leading/trailing spaces
+                {hasNoLeadingTrailingSpace ? 'OK' : '...'} {t('auth.noSpaces')}
               </span>
             </div>
 
@@ -134,17 +136,17 @@ export default function LoginPage() {
                   setFormData((prev) => ({ ...prev, rememberMe: event.target.checked }))
                 }
               />
-              <span>Remember password</span>
+              <span>{t('auth.rememberMe')}</span>
             </label>
 
             <button className="btn" type="submit" disabled={loading}>
-              {loading ? 'Signing in...' : 'Sign in'}
+              {loading ? t('auth.signingIn') : t('auth.signIn')}
             </button>
           </form>
 
           <div className="auth-links">
-            <Link to="/register/student">Create student account</Link>
-            <Link to="/register/landlord">Create lister account</Link>
+            <Link to="/register/student">{t('auth.createStudent')}</Link>
+            <Link to="/register/landlord">{t('auth.createLister')}</Link>
           </div>
         </article>
       </section>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import {
   deleteRows,
@@ -43,12 +44,13 @@ const formSchema = z.object({
   policyAccepted: z.boolean().refine(v => v === true, 'Policy must be accepted')
 });
 
-const STEPS = [
-  { key: 'identity', label: 'Identity' },
-  { key: 'basics', label: 'Basics' },
-  { key: 'location', label: 'Location & Price' },
-  { key: 'amenities', label: 'Amenities & Rules' },
-  { key: 'photos', label: 'Photos & Review' }
+// Translating these on the fly in the component
+const getSteps = (t) => [
+  { key: 'identity', label: t('hostFlow.stepIdentity') },
+  { key: 'basics', label: t('hostFlow.stepBasics') },
+  { key: 'location', label: t('hostFlow.stepLocation') },
+  { key: 'amenities', label: t('hostFlow.stepAmenities') },
+  { key: 'photos', label: t('hostFlow.stepPhotos') }
 ];
 
 const REQUIRED_PHOTOS = [
@@ -124,6 +126,9 @@ export default function ListPropertyPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, token, refreshMe } = useAuth();
+  const { t } = useTranslation();
+
+  const STEPS_LOCALIZED = useMemo(() => getSteps(t), [t]);
 
   const { register, handleSubmit, watch, setValue, formState: { errors }, reset } = useForm({
     resolver: zodResolver(formSchema) as any,
@@ -212,7 +217,7 @@ export default function ListPropertyPage() {
         if (drafts[0]?.data && typeof drafts[0].data === 'object') {
           reset({ ...DEFAULT_FORM, ...drafts[0].data });
           setStep(
-            Math.max(0, Math.min(Number(drafts[0].current_step || 1) - 1, STEPS.length - 1))
+            Math.max(0, Math.min(Number(drafts[0].current_step || 1) - 1, STEPS_LOCALIZED.length - 1))
           );
           setSuccess('Draft restored from cloud. Upload photos again if needed.');
         } else {
@@ -277,7 +282,7 @@ export default function ListPropertyPage() {
   }, [formValues, step, user?.userId, token, hasListerRole, loadingDraft, setSavingDraft]); // Added setSavingDraft
 
   const checklist = useMemo(() => {
-    return STEPS.map((stepMeta, index) => {
+    return STEPS_LOCALIZED.map((stepMeta, index) => {
       const issue = validateStep(index, formValues, files);
       return {
         ...stepMeta,
@@ -285,7 +290,7 @@ export default function ListPropertyPage() {
         issue
       };
     });
-  }, [formValues, files]);
+  }, [formValues, files, STEPS_LOCALIZED]);
 
   const updateAmenity = (key) => {
     setValue(`amenities.${key}` as any, !formValues.amenities[key], { shouldValidate: true });
@@ -303,7 +308,7 @@ export default function ListPropertyPage() {
     }
 
     setError('');
-    setStep((prev) => Math.min(prev + 1, STEPS.length - 1));
+    setStep((prev) => Math.min(prev + 1, STEPS_LOCALIZED.length - 1));
   };
 
   const goBack = () => {
@@ -315,7 +320,7 @@ export default function ListPropertyPage() {
     setError('');
     setSuccess('');
 
-    for (let index = 0; index < STEPS.length; index += 1) {
+    for (let index = 0; index < STEPS_LOCALIZED.length; index += 1) {
       const issue = validateStep(index, values, files);
       if (issue) {
         setStep(index);
@@ -532,10 +537,10 @@ export default function ListPropertyPage() {
     return (
       <div className="container section">
         <section className="card">
-          <h1>Lister role required</h1>
-          <p>You need a lister account to create listings.</p>
+          <h1>{t('hostFlow.listerRoleRequired')}</h1>
+          <p>{t('hostFlow.needListerAccount')}</p>
           <Link to="/register/landlord" className="btn">
-            Register as lister
+            {t('hostFlow.registerAsLister')}
           </Link>
         </section>
       </div>
@@ -571,22 +576,22 @@ export default function ListPropertyPage() {
     <div className="container section">
       <div className="section__header">
         <div>
-          <h1>List Property</h1>
-          <p>5-step listing flow with cloud draft autosave.</p>
+          <h1>{t('hostFlow.listPropertyTitle')}</h1>
+          <p>{t('hostFlow.listPropertySubtitle')}</p>
         </div>
-        <p className="muted">{savingDraft ? 'Saving draft...' : 'Draft autosave active'}</p>
+        <p className="muted">{savingDraft ? t('hostFlow.savingDraft') : t('hostFlow.draftAutosaveActive')}</p>
       </div>
 
       {/* Verification status banner */}
       {!isVerified ? (
         <div className={`verification-banner verification-banner--${verificationStatus}`}>
-          <strong>Verification: {verificationStatus.toUpperCase()}</strong>
+          <strong>{t('hostFlow.verification')}: {verificationStatus.toUpperCase()}</strong>
           <span>
             {verificationStatus === 'pending'
-              ? 'Your account is awaiting admin verification. You can prepare your listing draft but cannot submit until approved.'
+              ? t('hostFlow.verificationPending')
               : verificationStatus === 'rejected'
-                ? 'Your verification was rejected. Please contact support to resolve this before submitting.'
-                : 'Verification in progress.'}
+                ? t('hostFlow.verificationRejected')
+                : t('hostFlow.verificationInProgress')}
           </span>
         </div>
       ) : null}
@@ -600,10 +605,10 @@ export default function ListPropertyPage() {
             onClick={() => setStep(index)}
             disabled={submitting}
           >
-            <span className="list-flow-check__status">{item.done ? 'Done' : 'Pending'}</span>
+            <span className="list-flow-check__status">{item.done ? t('hostFlow.statusDone') : t('hostFlow.statusPending')}</span>
             <div>
               <h3>{item.label}</h3>
-              <p>{item.issue || 'Complete'}</p>
+              <p>{item.issue || t('hostFlow.statusComplete')}</p>
             </div>
           </button>
         ))}
@@ -613,23 +618,23 @@ export default function ListPropertyPage() {
         {step === 0 ? (
           <div className="form-grid">
             <label>
-              Full legal name
+              {t('hostFlow.fullLegalName')}
               <input {...register('fullName')} />
               {errors.fullName && <span className="error-text">{errors.fullName.message}</span>}
             </label>
 
             <label>
-              Phone number
+              {t('auth.phone')}
               <input {...register('phone')} />
               {errors.phone && <span className="error-text">{errors.phone.message}</span>}
             </label>
 
             <label>
-              Lister type
+              {t('auth.listerType')}
               <select {...register('listerType')}>
-                <option value="owner">Property owner</option>
-                <option value="manager">Property manager</option>
-                <option value="dalali">Dalali</option>
+                <option value="owner">{t('auth.owner')}</option>
+                <option value="manager">{t('auth.manager')}</option>
+                <option value="dalali">{t('auth.dalali')}</option>
               </select>
             </label>
           </div>
@@ -638,13 +643,13 @@ export default function ListPropertyPage() {
         {step === 1 ? (
           <div className="form-grid">
             <label className="form-grid__full">
-              Property title
+              {t('hostFlow.propertyTitle')}
               <input {...register('title')} />
               {errors.title && <span className="error-text">{errors.title.message}</span>}
             </label>
 
             <label>
-              Room type
+              {t('hostFlow.roomType')}
               <select {...register('roomType')}>
                 {ROOM_TYPES.map(op => (
                   <option key={op.value} value={op.value}>{op.label}</option>
@@ -654,7 +659,7 @@ export default function ListPropertyPage() {
             </label>
 
             <label>
-              Gender preference
+              {t('hostFlow.genderPreference')}
               <select {...register('genderPreference')}>
                 {GENDER_PREFERENCES.map(op => (
                   <option key={op.value} value={op.value}>{op.label}</option>
@@ -664,13 +669,13 @@ export default function ListPropertyPage() {
             </label>
 
             <label>
-              Available from
+              {t('hostFlow.availableFrom')}
               <input type="date" {...register('availableFrom')} />
               {errors.availableFrom && <span className="error-text">{errors.availableFrom.message}</span>}
             </label>
 
             <label className="form-grid__full">
-              Description
+              {t('hostFlow.description')}
               <textarea {...register('description')} />
               {errors.description && <span className="error-text">{errors.description.message}</span>}
             </label>
@@ -680,7 +685,7 @@ export default function ListPropertyPage() {
         {step === 2 ? (
           <div className="form-grid">
             <label>
-              Region
+              {t('hostFlow.region')}
               <select {...register('region')}>
                 <option value="Dar es Salaam">Dar es Salaam</option>
               </select>
@@ -688,7 +693,7 @@ export default function ListPropertyPage() {
             </label>
 
             <label>
-              District
+              {t('hostFlow.district')}
               <select
                 {...register('district')}
                 onChange={(event) => {
@@ -706,9 +711,9 @@ export default function ListPropertyPage() {
             </label>
 
             <label>
-              Ward
+              {t('hostFlow.ward')}
               <select {...register('ward')}>
-                <option value="">Select ward</option>
+                <option value="">{t('hostFlow.selectWard')}</option>
                 {(DAR_WARDS[formValues.district] || []).map((ward) => (
                   <option key={ward} value={ward}>
                     {ward}
@@ -719,8 +724,8 @@ export default function ListPropertyPage() {
             </label>
 
             <label>
-              Street
-              <input {...register('street')} placeholder="e.g. Mlimani Street" />
+              {t('hostFlow.street')}
+              <input {...register('street')} placeholder={t('hostFlow.streetPlaceholder')} />
               {errors.street && <span className="error-text">{errors.street.message}</span>}
             </label>
 
@@ -731,35 +736,35 @@ export default function ListPropertyPage() {
                 onClick={handleGetLocation}
                 disabled={gettingLocation}
               >
-                {gettingLocation ? 'Getting location...' : '📍 Use my current location'}
+                {gettingLocation ? t('hostFlow.gettingLocation') : t('hostFlow.useCurrentLocation')}
               </button>
               {formValues.lat && formValues.lng ? (
                 <p className="location-coords">
-                  Coordinates: {formValues.lat}, {formValues.lng}
+                  {t('hostFlow.coordinates')}: {formValues.lat}, {formValues.lng}
                 </p>
               ) : (
                 <p className="location-coords">
-                  No coordinates set. Use the button above or enter manually below.
+                  {t('hostFlow.noCoordinates')}
                 </p>
               )}
             </div>
 
             <details className="form-grid__full form-grid__collapsible">
-              <summary>Enter coordinates manually</summary>
+              <summary>{t('hostFlow.enterCoordinatesManually')}</summary>
               <div className="form-grid" style={{ marginTop: '0.5rem' }}>
                 <label>
-                  Latitude
+                  {t('hostFlow.latitude')}
                   <input {...register('lat')} placeholder="-6.7924" />
                 </label>
                 <label>
-                  Longitude
+                  {t('hostFlow.longitude')}
                   <input {...register('lng')} placeholder="39.2083" />
                 </label>
               </div>
             </details>
 
             <label>
-              Nearby university
+              {t('hostFlow.nearbyUniversity')}
               <select {...register('university')}>
                 {UNIVERSITIES.map(op => (
                   <option key={op.value} value={op.value}>{op.label}</option>
@@ -768,14 +773,14 @@ export default function ListPropertyPage() {
             </label>
 
             <label>
-              Monthly price (TZS)
+              {t('hostFlow.monthlyPrice')}
               <input type="number" min="50000" {...register('priceMonthly')} />
               {errors.priceMonthly && <span className="error-text">{errors.priceMonthly.message}</span>}
             </label>
 
             <label className="checkbox-field">
               <input type="checkbox" {...register('utilitiesIncluded')} />
-              Utilities included
+              {t('hostFlow.utilitiesIncluded')}
             </label>
           </div>
         ) : null}
@@ -796,8 +801,8 @@ export default function ListPropertyPage() {
             </div>
 
             <label className="form-grid__full">
-              House rules
-              <textarea {...register('houseRules')} placeholder="Visitors, quiet hours, utility rules..." />
+              {t('hostFlow.houseRules')}
+              <textarea {...register('houseRules')} placeholder={t('hostFlow.houseRulesPlaceholder')} />
               {errors.houseRules && <span className="error-text">{errors.houseRules.message}</span>}
             </label>
           </div>
@@ -807,19 +812,19 @@ export default function ListPropertyPage() {
           <div className="form-grid">
             {REQUIRED_PHOTOS.map((item) => (
               <label key={item.key}>
-                {item.label} photo
+                {item.label} {t('hostFlow.photo')}
                 <input
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
                   onChange={(event) => updatePhoto(item.key, event.target.files?.[0] || null)}
                 />
-                <span className="muted">{files[item.key]?.name || 'No file selected'}</span>
+                <span className="muted">{files[item.key]?.name || t('hostFlow.noFileSelected')}</span>
               </label>
             ))}
 
             <label className="checkbox-field form-grid__full">
               <input type="checkbox" {...register('policyAccepted')} />
-              I accept platform listing policies.
+              {t('hostFlow.acceptPolicies')}
               {errors.policyAccepted && <span className="error-text" style={{ display: 'block' }}>{errors.policyAccepted.message}</span>}
             </label>
           </div>
@@ -832,12 +837,12 @@ export default function ListPropertyPage() {
             onClick={goBack}
             disabled={step === 0 || submitting}
           >
-            Back
+            {t('hostFlow.btnBack')}
           </button>
 
-          {step < STEPS.length - 1 ? (
+          {step < STEPS_LOCALIZED.length - 1 ? (
             <button type="button" className="btn" onClick={goNext} disabled={submitting}>
-              Continue
+              {t('hostFlow.btnContinue')}
             </button>
           ) : (
             <button
@@ -847,7 +852,7 @@ export default function ListPropertyPage() {
               disabled={submitting || !isVerified}
               title={!isVerified ? 'Account verification required to submit' : ''}
             >
-              {submitting ? 'Submitting...' : !isVerified ? 'Verification required' : 'Submit listing'}
+              {submitting ? t('hostFlow.btnSubmitting') : !isVerified ? t('hostFlow.btnVerificationRequired') : t('hostFlow.btnSubmitListing')}
             </button>
           )}
         </div>
@@ -859,12 +864,12 @@ export default function ListPropertyPage() {
       {screeningResult ? (
         <section className="card" style={{ marginTop: '1rem', border: screeningResult.published ? '1px solid #B8DFC8' : '1px solid #F5C6C2', background: screeningResult.published ? '#EDF7F1' : '#FEF2F1' }}>
           <h2 style={{ marginBottom: '0.5rem' }}>
-            {screeningResult.published ? '🎉 Listing is Live!' : '⚠️ Listing Blocked by Automated Checks'}
+            {screeningResult.published ? t('hostFlow.listingLive') : t('hostFlow.listingBlocked')}
           </h2>
           <p style={{ marginBottom: '1rem', color: 'var(--mid)' }}>
             {screeningResult.published
-              ? 'Your listing passed all automated checks and is now publicly visible.'
-              : 'Address the issues below and resubmit. Your listing has been saved as a draft.'}
+              ? t('hostFlow.liveSubtitle')
+              : t('hostFlow.blockedSubtitle')}
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
             {screeningResult.checks?.map((check) => (
@@ -893,11 +898,11 @@ export default function ListPropertyPage() {
           </div>
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
             <Link to="/landlord" className="btn">
-              {screeningResult.published ? 'View Live Listing' : 'Go to Dashboard'}
+              {screeningResult.published ? t('hostFlow.viewLiveListing') : t('hostFlow.goToDashboard')}
             </Link>
             {!screeningResult.published ? (
               <button type="button" className="btn btn--ghost" onClick={() => { setScreeningResult(null); setError(''); setStep(1); }}>
-                Edit &amp; Resubmit
+                {t('hostFlow.editAndResubmit')}
               </button>
             ) : null}
           </div>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import ListingCard from '../components/ListingCard';
 import ListingMap from '../components/ListingMap';
 import { useAuth } from '../context/AuthContext';
@@ -150,6 +151,7 @@ export default function RoomDetailsPage() {
   const navigate = useNavigate();
   const { roomId } = useParams();
   const { user, token, isAuthenticated } = useAuth();
+  const { t } = useTranslation();
 
   const [listing, setListing] = useState(null);
   const [listerProfile, setListerProfile] = useState(null);
@@ -464,13 +466,13 @@ export default function RoomDetailsPage() {
 
   const facts = useMemo(
     () => [
-      { label: 'Room Type', value: humanize(listing?.roomType) },
-      { label: 'Gender Preference', value: humanize(listing?.genderPreference) },
-      { label: 'Utilities Included', value: listing?.utilitiesIncluded ? 'Yes' : 'No' },
-      { label: 'Vacancy', value: humanize(listing?.vacancyStatus) },
-      { label: 'Available From', value: formatDate(listing?.availableFrom) },
-      { label: 'Views', value: `${new Intl.NumberFormat('en-TZ').format(listing?.viewCount || 0)}` },
-      { label: 'Posted', value: formatShortDate(listing?.createdAt) }
+      { label: t('roomDetails.roomType'), value: humanize(listing?.roomType) },
+      { label: t('roomDetails.genderPreference'), value: humanize(listing?.genderPreference) },
+      { label: t('roomDetails.utilitiesIncluded'), value: listing?.utilitiesIncluded ? t('roomDetails.yes') : t('roomDetails.no') },
+      { label: t('roomDetails.vacancy'), value: humanize(listing?.vacancyStatus) },
+      { label: t('roomDetails.availableFrom', { date: formatDate(listing?.availableFrom) }), value: '' },
+      { label: t('roomDetails.views'), value: `${new Intl.NumberFormat('en-TZ').format(listing?.viewCount || 0)}` },
+      { label: t('roomDetails.posted'), value: formatShortDate(listing?.createdAt) }
     ],
     [
       listing?.availableFrom,
@@ -511,8 +513,6 @@ export default function RoomDetailsPage() {
         }
         return next;
       });
-
-      setNotice(nextSaved ? 'Listing saved.' : 'Listing removed from saved.');
     } catch (err) {
       setError(err.message);
     }
@@ -773,10 +773,10 @@ export default function RoomDetailsPage() {
     return (
       <div className="container section">
         <section className="card">
-          <h1>Listing unavailable</h1>
-          <p className="error-text">{error || 'This listing is not available.'}</p>
+          <h1>{t('roomDetails.notAvailable')}</h1>
+          <p className="error-text">{error || t('roomDetails.notAvailable')}</p>
           <Link className="btn" to="/search">
-            Back to search
+            {t('roomDetails.backToSearch')}
           </Link>
         </section>
       </div>
@@ -840,7 +840,7 @@ export default function RoomDetailsPage() {
         <div className="room-hero__content">
           <div className="room-hero__title-row">
             <h1>{listing.title}</h1>
-            {listing.featured ? <span className="room-featured-badge">Featured</span> : null}
+            {listing.featured ? <span className="room-featured-badge">{t('roomDetails.featured')}</span> : null}
           </div>
           <p className="room-hero__location">{listing.location}</p>
           <p className="room-price">{formatPrice(listing.priceMonthly)}</p>
@@ -849,7 +849,7 @@ export default function RoomDetailsPage() {
             <span className="room-chip">{humanize(listing.roomType)}</span>
             <span className="room-chip">{humanize(listing.genderPreference)}</span>
             <span className="room-chip">{humanize(listing.vacancyStatus)}</span>
-            <span className="room-chip">Available from {formatDate(listing.availableFrom)}</span>
+            <span className="room-chip">{t('roomDetails.availableFrom', { date: formatDate(listing.availableFrom) })}</span>
           </div>
 
           <p>{listing.description}</p>
@@ -871,16 +871,15 @@ export default function RoomDetailsPage() {
                 </div>
               )}
               <div>
-                <h2>{listerProfile?.full_name || 'Verified lister'}</h2>
+                <h2>{listerProfile?.full_name || t('roomDetails.verifiedLister')}</h2>
                 <p className="muted">
-                  {humanize(listerProfile?.verification_status || 'pending')} • Member since{' '}
-                  {formatShortDate(listerProfile?.created_at)}
+                  {humanize(listerProfile?.verification_status || 'pending')} • {t('roomDetails.memberSince', { date: formatShortDate(listerProfile?.created_at) })}
                 </p>
               </div>
             </div>
             <div className="room-lister-card__stats">
-              <span>{listerListingCount} approved listing(s)</span>
-              <span>Responds via in-app chat</span>
+              <span>{listerListingCount === 1 ? t('roomDetails.approvedListings', { count: listerListingCount }) : t('roomDetails.approvedListingsPlural', { count: listerListingCount })}</span>
+              <span>{t('roomDetails.respondsViaChat')}</span>
             </div>
           </section>
 
@@ -890,13 +889,13 @@ export default function RoomDetailsPage() {
               className={`btn btn--ghost ${saved ? 'is-saved' : ''}`}
               onClick={() => handleToggleSave(listing.id)}
             >
-              {saved ? 'Saved' : 'Save'}
+              {saved ? t('listingCard.saved') : t('listingCard.save')}
             </button>
             <button type="button" className="btn btn--large" style={{ flex: 2 }} onClick={() => setOpenInquiry(true)}>
-              💬 Start Chat
+              {t('roomDetails.startChat')}
             </button>
             <button type="button" className="btn btn--ghost" onClick={handleShare}>
-              Share
+              {t('roomDetails.share')}
             </button>
           </div>
 
@@ -907,14 +906,14 @@ export default function RoomDetailsPage() {
               style={{ color: 'var(--red, #C0392B)', fontSize: '0.8rem' }}
               onClick={() => { setOpenReport(true); setReportSuccess(false); }}
             >
-              🚩 Report this listing
+              {t('roomDetails.reportListing')}
             </button>
           </div>
         </div>
       </section>
 
       <section className="card room-facts">
-        <h2>Quick Facts</h2>
+        <h2>{t('roomDetails.quickFacts')}</h2>
         <div className="room-facts-grid">
           {facts.map((fact) => (
             <article className="room-fact" key={fact.label}>
@@ -927,7 +926,7 @@ export default function RoomDetailsPage() {
 
       <section className="room-sections">
         <article className="card room-section-card">
-          <h2>Amenities</h2>
+          <h2>{t('roomDetails.amenities')}</h2>
           {amenities.length > 0 ? (
             <div className="room-chip-row">
               {amenities.map((item) => (
@@ -940,12 +939,12 @@ export default function RoomDetailsPage() {
               ))}
             </div>
           ) : (
-            <p className="muted">No amenities listed.</p>
+            <p className="muted">{t('roomDetails.noAmenities')}</p>
           )}
         </article>
 
         <article className="card room-section-card">
-          <h2>House rules</h2>
+          <h2>{t('roomDetails.houseRules')}</h2>
           {houseRules.length > 0 ? (
             <ol className="room-rules-list">
               {houseRules.map((rule, index) => (
@@ -953,19 +952,19 @@ export default function RoomDetailsPage() {
               ))}
             </ol>
           ) : (
-            <p>No house rules provided.</p>
+            <p>{t('roomDetails.noHouseRules')}</p>
           )}
         </article>
 
         <article className="card room-section-card">
-          <h2>Location</h2>
+          <h2>{t('roomDetails.location')}</h2>
           <p>{listing.location}</p>
           <div className="room-location-map">
             <ListingMap listings={[listing]} onMarkerSelect={() => { }} />
           </div>
           {nearestUniversity ? (
             <p className="muted">
-              Nearest campus: {nearestUniversity.name} ({nearestUniversity.displayDistance} away)
+              {t('roomDetails.nearestCampus', { name: nearestUniversity.name, distance: nearestUniversity.displayDistance })}
             </p>
           ) : null}
           {listing.nearUniversities?.length ? (
@@ -1003,7 +1002,7 @@ export default function RoomDetailsPage() {
               rel="noreferrer"
               className="btn btn--ghost btn--small"
             >
-              Open map pin
+              {t('roomDetails.openMapPin')}
             </a>
           ) : null}
         </article>
@@ -1011,12 +1010,12 @@ export default function RoomDetailsPage() {
 
       <section className="card room-related">
         <div className="room-related__header">
-          <h2>Similar Rooms Nearby</h2>
+          <h2>{t('roomDetails.similarRooms')}</h2>
           <Link
             className="btn btn--ghost btn--small"
             to={`/search?q=${encodeURIComponent(listing.district || listing.region || '')}`}
           >
-            View more
+            {t('roomDetails.viewMore')}
           </Link>
         </div>
 
@@ -1042,14 +1041,14 @@ export default function RoomDetailsPage() {
         ) : null}
 
         {!relatedLoading && relatedListings.length === 0 ? (
-          <p className="muted">No similar rooms found yet.</p>
+          <p className="muted">{t('roomDetails.noSimilarRooms')}</p>
         ) : null}
       </section>
 
       {/* Reviews Section */}
       <section className="card room-reviews">
         <div className="room-reviews__header">
-          <h2>Reviews & Ratings</h2>
+          <h2>{t('roomDetails.reviewsAndRatings')}</h2>
           {reviews.length > 0 ? (
             <div className="room-reviews__summary">
               <span className="room-reviews__avg">
@@ -1097,7 +1096,7 @@ export default function RoomDetailsPage() {
         {/* Write a review form */}
         {isAuthenticated && user?.userId !== listing.listerId ? (
           <form className="room-review-form" onSubmit={handleSubmitReview}>
-            <h3>Write a Review</h3>
+            <h3>{t('roomDetails.writeReview')}</h3>
             <div className="room-review-form__stars">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
@@ -1117,18 +1116,18 @@ export default function RoomDetailsPage() {
             <textarea
               value={myComment}
               onChange={(event) => setMyComment(event.target.value)}
-              placeholder="Share your experience with this listing..."
+              placeholder="..."
               maxLength={500}
             />
             <button type="submit" className="btn" disabled={submittingReview || myRating === 0}>
-              {submittingReview ? 'Submitting...' : 'Submit Review'}
+              {submittingReview ? t('roomDetails.submitting') : t('roomDetails.submitReview')}
             </button>
           </form>
         ) : null}
 
         {!isAuthenticated ? (
           <p className="muted">
-            <Link to="/login">Log in</Link> to leave a review.
+            <Link to="/login">Log in</Link> {t('roomDetails.loginToReview')}
           </p>
         ) : null}
       </section>
@@ -1136,17 +1135,17 @@ export default function RoomDetailsPage() {
       {/* Booking Status */}
       {existingBooking ? (
         <section className="card room-booking-status">
-          <h2>Your Booking Request</h2>
+          <h2>{t('roomDetails.yourBookingRequest')}</h2>
           <div className="room-booking-status__info">
             <p>
-              <strong>Status:</strong>{' '}
+              <strong>{t('roomDetails.status')}:</strong>{' '}
               <span className={`room-booking-badge room-booking-badge--${existingBooking.status}`}>
                 {humanize(existingBooking.status)}
               </span>
             </p>
-            <p><strong>Move-in:</strong> {formatDate(existingBooking.moveInDate)}</p>
-            <p><strong>Duration:</strong> {existingBooking.durationMonths} month{existingBooking.durationMonths !== 1 ? 's' : ''}</p>
-            <p className="muted">Requested on {formatShortDate(existingBooking.createdAt)}</p>
+            <p><strong>{t('roomDetails.moveIn')}:</strong> {formatDate(existingBooking.moveInDate)}</p>
+            <p><strong>{t('roomDetails.duration')}:</strong> {existingBooking.durationMonths} month{existingBooking.durationMonths !== 1 ? 's' : ''}</p>
+            <p className="muted">{t('roomDetails.requestedOn', { date: formatShortDate(existingBooking.createdAt) })}</p>
           </div>
         </section>
       ) : null}
@@ -1167,21 +1166,21 @@ export default function RoomDetailsPage() {
             onClick={(event) => event.stopPropagation()}
             onKeyDown={(e) => e.stopPropagation()}
           >
-            <h2>Send Inquiry</h2>
+            <h2>{t('roomDetails.sendInquiry')}</h2>
             <p className="muted">
-              Your message opens a realtime thread with the lister.
+              {t('roomDetails.inquirySubtitle')}
             </p>
             <form onSubmit={submitInquiry}>
               <label>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                  <span>Your name</span>
+                  <span>{t('roomDetails.yourName')}</span>
                   {user?.fullName && !editingName ? (
                     <button
                       type="button"
                       className="btn btn--small btn--ghost"
                       onClick={() => setEditingName(true)}
                     >
-                      Edit
+                      {t('roomDetails.edit')}
                     </button>
                   ) : null}
                 </div>
@@ -1191,14 +1190,14 @@ export default function RoomDetailsPage() {
                   <input
                     value={inquiryName}
                     onChange={(event) => setInquiryName(event.target.value)}
-                    placeholder="Your full name"
+                    placeholder=""
                     required
                   />
                 )}
               </label>
 
               <label>
-                Move-in date
+                {t('roomDetails.moveInDate')}
                 <input
                   type="date"
                   value={moveInDate}
@@ -1207,7 +1206,7 @@ export default function RoomDetailsPage() {
               </label>
 
               <label>
-                Duration (months)
+                {t('roomDetails.duration')}
                 <select
                   value={durationMonths}
                   onChange={(event) => setDurationMonths(event.target.value)}
@@ -1221,19 +1220,19 @@ export default function RoomDetailsPage() {
               </label>
 
               <label>
-                Contact preference
+                {t('roomDetails.contactPreference')}
                 <select
                   value={contactPreference}
                   onChange={(event) => setContactPreference(event.target.value)}
                 >
-                  <option value="in_app_chat">In-app chat first</option>
-                  <option value="phone_call">Phone call</option>
-                  <option value="whatsapp">WhatsApp</option>
+                  <option value="in_app_chat">{t('roomDetails.inAppChatFirst')}</option>
+                  <option value="phone_call">{t('roomDetails.phoneCall')}</option>
+                  <option value="whatsapp">{t('roomDetails.whatsapp')}</option>
                 </select>
               </label>
 
               <label>
-                Message
+                {t('roomDetails.message')}
                 <textarea
                   value={message}
                   onChange={(event) => setMessage(event.target.value)}
@@ -1251,7 +1250,7 @@ export default function RoomDetailsPage() {
                     className="btn btn--ghost btn--small"
                     onClick={() => setMessage(template)}
                   >
-                    Use template
+                    {t('roomDetails.useTemplate')}
                   </button>
                 ))}
               </div>
@@ -1262,10 +1261,10 @@ export default function RoomDetailsPage() {
 
               <div className="sheet__actions">
                 <button type="button" className="btn btn--ghost" onClick={() => setOpenInquiry(false)}>
-                  Cancel
+                  {t('roomDetails.cancel')}
                 </button>
                 <button type="submit" className="btn" disabled={submittingInquiry}>
-                  {submittingInquiry ? 'Sending...' : 'Send'}
+                  {submittingInquiry ? t('search.searching') : t('roomDetails.send')}
                 </button>
               </div>
             </form>
@@ -1294,7 +1293,7 @@ export default function RoomDetailsPage() {
               className="btn btn--ghost btn--small room-lightbox__close"
               onClick={() => setLightboxOpen(false)}
             >
-              Close
+              {t('roomDetails.close')}
             </button>
             <img
               src={activePhoto?.public_url || listing.imageUrl}
@@ -1309,10 +1308,10 @@ export default function RoomDetailsPage() {
             {galleryPhotos.length > 1 ? (
               <div className="room-lightbox__actions">
                 <button type="button" className="btn btn--ghost" onClick={goToPrevPhoto}>
-                  Previous
+                  {t('roomDetails.previous')}
                 </button>
                 <button type="button" className="btn" onClick={goToNextPhoto}>
-                  Next
+                  {t('roomDetails.next')}
                 </button>
               </div>
             ) : null}

@@ -6,6 +6,8 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import { AuthProvider } from './context/AuthContext';
 import './styles/global.css';
+import './lib/i18n';
+
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { subscribeToTableChanges } from '../lib/realtime';
 import { insertRows, selectRows, updateRows } from '../lib/supabase';
@@ -33,6 +34,7 @@ export default function MessagesPage() {
   const navigate = useNavigate();
   const { threadId } = useParams();
   const { user, token } = useAuth();
+  const { t } = useTranslation();
 
   const [conversations, setConversations] = useState([]);
   const [messages, setMessages] = useState([]);
@@ -362,10 +364,10 @@ export default function MessagesPage() {
     <div className="container section messages-page">
       <div className="messages-layout">
         <aside className="card conversation-list">
-          <h2>Conversations</h2>
-          {loading ? <p className="muted">Loading...</p> : null}
+          <h2>{t('dashboard.conversations')}</h2>
+          {loading ? <p className="muted">{t('dashboard.loadingDashboard')}</p> : null}
           {conversations.length === 0 && !loading ? (
-            <p className="muted">No conversations yet.</p>
+            <p className="muted">{t('dashboard.noConversations')}</p>
           ) : null}
 
           {conversations.map((conversation) => (
@@ -376,7 +378,7 @@ export default function MessagesPage() {
               style={conversation.isAdmin ? { borderLeft: '4px solid #C0392B', backgroundColor: conversation.id === threadId ? '#FEF2F1' : '#FFF5F5' } : {}}
             >
               <strong style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: conversation.isAdmin ? '#C0392B' : 'inherit' }}>
-                {conversation.isAdmin ? '🛡️ Admin:' : ''} {conversation.listing?.title || 'Listing conversation'}
+                {conversation.isAdmin ? t('dashboard.adminLabel') : ''} {conversation.listing?.title || t('dashboard.listingConversation')}
               </strong>
               <span>{humanizeStatus(conversation.inquiry_status)} • {formatTimestamp(conversation.last_message_at)}</span>
             </Link>
@@ -387,10 +389,10 @@ export default function MessagesPage() {
           {activeConversation ? (
             <>
               <header className="message-thread__header">
-                <h2>{activeConversation.listing?.title || 'Conversation'}</h2>
+                <h2>{activeConversation.listing?.title || t('dashboard.listingConversation')}</h2>
                 <p className="muted">
-                  Status: {humanizeStatus(activeConversation.inquiry_status)} • Chat:{' '}
-                  {realtimeState === 'subscribed' ? 'Live' : 'Connecting...'}
+                  {t('dashboard.chatStatus')}: {humanizeStatus(activeConversation.inquiry_status)} • Chat:{' '}
+                  {realtimeState === 'subscribed' ? t('dashboard.chatLive') : t('dashboard.chatConnecting')}
                 </p>
                 {canManageInquiryStatus ? (
                   <div className="message-thread__status-row">
@@ -410,7 +412,7 @@ export default function MessagesPage() {
                       onClick={updateInquiryStatus}
                       disabled={updatingStatus}
                     >
-                      {updatingStatus ? 'Saving...' : 'Update inquiry'}
+                      {updatingStatus ? t('dashboard.updating') : t('dashboard.updateInquiry')}
                     </button>
                   </div>
                 ) : null}
@@ -425,7 +427,7 @@ export default function MessagesPage() {
                   >
                     {message.senderProfile?.role === 'admin' && message.sender_id !== user?.userId ? (
                       <strong style={{ display: 'block', fontSize: '0.75rem', color: '#C0392B', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        🛡️ CampusStay Admin
+                        {t('dashboard.campusStayAdmin')}
                       </strong>
                     ) : null}
                     <p>{message.body}</p>
@@ -433,8 +435,8 @@ export default function MessagesPage() {
                       {formatTimestamp(message.created_at)}
                       {message.sender_id === user?.userId
                         ? message.seen_at
-                          ? ' • Seen'
-                          : ' • Sent'
+                          ? ` • ${t('dashboard.seen')}`
+                          : ` • ${t('dashboard.sent')}`
                         : ''}
                     </span>
                   </article>
@@ -445,15 +447,15 @@ export default function MessagesPage() {
                 <textarea
                   value={messageBody}
                   onChange={(event) => setMessageBody(event.target.value)}
-                  placeholder="Write a message"
+                  placeholder={t('dashboard.writeMessage')}
                 />
                 <button className="btn" type="submit">
-                  Send
+                  {t('dashboard.sendBtn')}
                 </button>
               </form>
             </>
           ) : (
-            <p className="muted">Choose a conversation to start chatting.</p>
+            <p className="muted">{t('dashboard.chooseConversation')}</p>
           )}
         </section>
       </div>

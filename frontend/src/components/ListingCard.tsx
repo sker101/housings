@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import VerifiedBadge from './VerifiedBadge';
 
 function formatPrice(value) {
@@ -17,6 +18,8 @@ function humanize(value) {
 }
 
 export default function ListingCard({ listing, onToggleSave, isSaved = false }) {
+  const { t } = useTranslation();
+
   return (
     <article className="listing-card">
       <Link to={`/rooms/${listing.id}`} className="listing-card__image-wrap">
@@ -27,7 +30,7 @@ export default function ListingCard({ listing, onToggleSave, isSaved = false }) 
           loading="lazy"
         />
         <span className="listing-card__chip listing-card__chip--price">
-          {formatPrice(listing.priceMonthly)}/mo
+          {formatPrice(listing.priceMonthly)}{t('listingCard.perMonth')}
         </span>
         {listing.verified ? <VerifiedBadge /> : null}
         <span className={`listing-card__chip listing-card__chip--status status-${listing.vacancyStatus || 'available'}`}>
@@ -57,7 +60,7 @@ export default function ListingCard({ listing, onToggleSave, isSaved = false }) 
             to={`/rooms/${listing.id}`}
             className="listing-card__action listing-card__action-link"
           >
-            View Details
+            {t('listingCard.viewDetails')}
           </Link>
 
           {onToggleSave ? (
@@ -66,7 +69,7 @@ export default function ListingCard({ listing, onToggleSave, isSaved = false }) 
               className={`listing-card__save ${isSaved ? 'is-saved' : ''}`}
               onClick={() => onToggleSave(listing.id)}
             >
-              {isSaved ? 'Saved' : 'Save'}
+              {isSaved ? t('listingCard.saved') : t('listingCard.save')}
             </button>
           ) : null}
         </div>

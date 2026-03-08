@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import ListingCard from '../components/ListingCard';
 import { useAuth } from '../context/AuthContext';
 import { fetchSavedListings, toggleSavedListing } from '../lib/listings';
 
 export default function SavedListingsPage() {
   const { user, token } = useAuth();
+  const { t } = useTranslation();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -68,17 +70,17 @@ export default function SavedListingsPage() {
     <div className="container section">
       <div className="section__header">
         <div>
-          <h1>Saved Listings</h1>
-          <p>Homes you bookmarked for later.</p>
+          <h1>{t('dashboard.savedListings')}</h1>
+          <p>{t('dashboard.savedListingsSubtitle')}</p>
         </div>
       </div>
 
-      {loading ? <p className="muted">Loading saved listings...</p> : null}
+      {loading ? <p className="muted">{t('dashboard.loadingSaved')}</p> : null}
       {error ? <p className="error-text">{error}</p> : null}
 
       {items.length === 0 && !loading ? (
         <section className="card">
-          <p>You have no saved listings yet.</p>
+          <p>{t('dashboard.noSavedListings')}</p>
         </section>
       ) : null}
 

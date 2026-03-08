@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { invokeFunction, selectRows, updateRows } from '../lib/supabase';
 import { humanizeRole } from '../lib/roles';
@@ -16,6 +17,7 @@ function humanizeReason(value) {
 
 export default function ProfilePage() {
   const { user, token, refreshMe } = useAuth();
+  const { t } = useTranslation();
 
   const [form, setForm] = useState({
     fullName: user?.fullName || '',
@@ -213,29 +215,29 @@ export default function ProfilePage() {
     <div className="container section">
       <div className="section__header">
         <div>
-          <h1>Profile</h1>
-          <p>Manage your account and preferences.</p>
+          <h1>{t('dashboard.profile')}</h1>
+          <p>{t('dashboard.manageAccount')}</p>
         </div>
       </div>
 
       <section className="card profile-card">
         <div className="profile-card__meta">
           <p>
-            Role: <strong>{humanizeRole(user?.role)}</strong>
+            {t('dashboard.role')}: <strong>{humanizeRole(user?.role)}</strong>
           </p>
           <p>
-            Phone: <strong>{phoneVerified ? 'VERIFIED' : 'UNVERIFIED'}</strong>
+            {t('dashboard.phone')}: <strong>{phoneVerified ? t('dashboard.verified') : t('dashboard.unverified')}</strong>
           </p>
           {verificationStatus ? (
             <p>
-              Verification: <strong>{verificationStatus}</strong>
+              {t('dashboard.verification')}: <strong>{verificationStatus}</strong>
             </p>
           ) : null}
         </div>
 
         <form onSubmit={handleSubmit}>
           <label>
-            Full name
+            {t('auth.fullName')}
             <input
               value={form.fullName}
               onChange={(event) => updateField('fullName', event.target.value)}
@@ -244,7 +246,7 @@ export default function ProfilePage() {
           </label>
 
           <label>
-            Phone
+            {t('auth.phone')}
             <input
               value={form.phone}
               onChange={(event) => {
@@ -258,7 +260,7 @@ export default function ProfilePage() {
           </label>
 
           <label>
-            University (optional)
+            {t('auth.universityOptional')}
             <input
               value={form.university}
               onChange={(event) => updateField('university', event.target.value)}
@@ -266,22 +268,22 @@ export default function ProfilePage() {
           </label>
 
           <button className="btn" type="submit" disabled={saving}>
-            {saving ? 'Saving...' : 'Save profile'}
+            {saving ? t('dashboard.saving') : t('dashboard.saveProfile')}
           </button>
         </form>
 
         <div className="profile-otp">
           <p className="muted">
-            Phone OTP is required for listers and optional for tenants.
+            {t('dashboard.phoneOtpMsg')}
           </p>
           <div className="profile-otp__actions">
             <button type="button" className="btn btn--ghost" onClick={sendOtp} disabled={sendingOtp}>
-              {sendingOtp ? 'Sending...' : 'Send OTP'}
+              {sendingOtp ? t('dashboard.sending') : t('dashboard.sendOtp')}
             </button>
           </div>
           <div className="profile-otp__verify">
             <input
-              placeholder="Enter 6-digit code"
+              placeholder={t('dashboard.enterOtp')}
               value={otpCode}
               onChange={(event) => setOtpCode(event.target.value)}
               inputMode="numeric"
@@ -293,7 +295,7 @@ export default function ProfilePage() {
               onClick={verifyOtp}
               disabled={verifyingOtp}
             >
-              {verifyingOtp ? 'Verifying...' : 'Verify code'}
+              {verifyingOtp ? t('dashboard.verifying') : t('dashboard.verifyCode')}
             </button>
           </div>
           {otpHint ? <p className="muted">{otpHint}</p> : null}

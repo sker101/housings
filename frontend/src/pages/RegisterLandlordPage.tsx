@@ -1,16 +1,19 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 
-const LISTER_TYPES = [
-  { value: 'owner', label: 'Property Owner' },
-  { value: 'manager', label: 'Property Manager' },
-  { value: 'dalali', label: 'Dalali / Agent' }
+const useListerTypes = (t) => [
+  { value: 'owner', label: t('auth.owner') },
+  { value: 'manager', label: t('auth.manager') },
+  { value: 'dalali', label: t('auth.dalali') }
 ];
 
 export default function RegisterLandlordPage() {
   const { registerLandlord, loading } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  const LISTER_TYPES = useListerTypes(t);
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -36,14 +39,14 @@ export default function RegisterLandlordPage() {
   return (
     <div className="container section auth-page">
       <section className="card auth-form-card">
-        <h1>Lister Registration</h1>
-        <p>Register as an owner, manager, or dalali to submit verified listings.</p>
+        <h1>{t('auth.listerRegTitle')}</h1>
+        <p>{t('auth.listerRegSubtitle')}</p>
 
         {error ? <p className="error-text">{error}</p> : null}
 
         <form onSubmit={onSubmit}>
           <label>
-            Full name
+            {t('auth.fullName')}
             <input
               required
               value={formData.fullName}
@@ -54,7 +57,7 @@ export default function RegisterLandlordPage() {
           </label>
 
           <label>
-            Email
+            {t('auth.email')}
             <input
               type="email"
               required
@@ -66,7 +69,7 @@ export default function RegisterLandlordPage() {
           </label>
 
           <label>
-            Phone number
+            {t('auth.phone')}
             <input
               required
               placeholder="+2557XXXXXXXX"
@@ -78,7 +81,7 @@ export default function RegisterLandlordPage() {
           </label>
 
           <label>
-            Lister type
+            {t('auth.listerType')}
             <select
               value={formData.listerType}
               onChange={(event) =>
@@ -94,7 +97,7 @@ export default function RegisterLandlordPage() {
           </label>
 
           <label>
-            Password
+            {t('auth.password')}
             <input
               type="password"
               minLength={8}
@@ -107,12 +110,12 @@ export default function RegisterLandlordPage() {
           </label>
 
           <button className="btn" type="submit" disabled={loading}>
-            {loading ? 'Creating account...' : 'Create lister account'}
+            {loading ? t('auth.creatingAccount') : t('auth.createLister')}
           </button>
         </form>
 
         <div className="auth-links">
-          <Link to="/login">I already have an account</Link>
+          <Link to="/login">{t('auth.alreadyHaveAccount')}</Link>
         </div>
       </section>
     </div>

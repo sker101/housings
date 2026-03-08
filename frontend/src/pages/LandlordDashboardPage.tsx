@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { mapListingRow } from '../lib/listings';
 import { selectRows } from '../lib/supabase';
@@ -10,6 +11,7 @@ function countByStatus(listings, status) {
 
 export default function LandlordDashboardPage() {
   const { user, token } = useAuth();
+  const { t } = useTranslation();
 
   const [profile, setProfile] = useState(null);
   const [listings, setListings] = useState([]);
@@ -139,13 +141,13 @@ export default function LandlordDashboardPage() {
 
   const metrics = useMemo(
     () => [
-      { label: 'Total listings', value: listings.length, id: 'all' },
-      { label: 'Pending', value: countByStatus(listings, 'pending'), id: 'pending' },
-      { label: 'Approved', value: countByStatus(listings, 'approved'), id: 'approved' },
-      { label: 'Rejected', value: countByStatus(listings, 'rejected'), id: 'rejected' },
-      { label: 'Flagged', value: countByStatus(listings, 'flagged'), id: 'flagged' }
+      { label: t('dashboard.totalListings'), value: listings.length, id: 'all' },
+      { label: t('dashboard.pending'), value: countByStatus(listings, 'pending'), id: 'pending' },
+      { label: t('dashboard.approved'), value: countByStatus(listings, 'approved'), id: 'approved' },
+      { label: t('dashboard.rejected'), value: countByStatus(listings, 'rejected'), id: 'rejected' },
+      { label: t('dashboard.flagged'), value: countByStatus(listings, 'flagged'), id: 'flagged' }
     ],
-    [listings]
+    [listings, t]
   );
 
   const filteredListings = useMemo(() => {
@@ -157,43 +159,43 @@ export default function LandlordDashboardPage() {
     <div className="container section">
       <div className="section__header">
         <div>
-          <h1>Lister Dashboard</h1>
-          <p>Track listing performance and moderation status.</p>
+          <h1>{t('dashboard.listerDashboard')}</h1>
+          <p>{t('dashboard.listerDashboardSubtitle')}</p>
         </div>
         <Link className="btn" to="/list-property">
-          Add listing
+          {t('dashboard.addListing')}
         </Link>
       </div>
 
-      {loading ? <p className="muted">Loading dashboard...</p> : null}
+      {loading ? <p className="muted">{t('dashboard.loadingDashboard')}</p> : null}
       {error ? <p className="error-text">{error}</p> : null}
 
       {profile ? (
         <section className="card">
-          <h2>Verification Status</h2>
+          <h2>{t('dashboard.verificationStatus')}</h2>
           <p>
             <strong>{String(profile.verification_status || '').toUpperCase()}</strong>
           </p>
           <p className="muted">
-            Lister type: {profile.lister_type || 'owner'} | Plan:{' '}
+            {t('auth.listerType')}: {profile.lister_type || t('auth.owner')} | {t('dashboard.plan')}:{' '}
             {profile.subscription_plan || 'free'}
           </p>
           {profile.payout_provider ? (
             <p className="muted">
-              Payout: {profile.payout_provider} ({profile.payout_reference || 'not set'})
+              {t('dashboard.payout')}: {profile.payout_provider} ({profile.payout_reference || 'not set'})
             </p>
           ) : null}
         </section>
       ) : null}
 
       <section className="card">
-        <h2>Inquiries & Messages</h2>
+        <h2>{t('dashboard.inquiriesAndMessages')}</h2>
         <p className="muted">
-          Conversations: {conversationStats.total} | Open inquiries: {conversationStats.open} |
-          Unread messages: {conversationStats.unread}
+          {t('dashboard.conversations')}: {conversationStats.total} | {t('dashboard.openInquiries')}: {conversationStats.open} |
+          {t('dashboard.unreadMessages')}: {conversationStats.unread}
         </p>
         <Link to="/messages" className="btn btn--small">
-          Open messages
+          {t('dashboard.openMessages')}
         </Link>
       </section>
 
@@ -212,18 +214,18 @@ export default function LandlordDashboardPage() {
       </section>
 
       <section className="card">
-        <h2>Your Listings {statusFilter !== 'all' ? `(${statusFilter})` : ''}</h2>
-        {filteredListings.length === 0 ? <p className="muted">No listings found in this category.</p> : null}
+        <h2>{t('dashboard.yourListings')} {statusFilter !== 'all' ? `(${statusFilter})` : ''}</h2>
+        {filteredListings.length === 0 ? <p className="muted">{t('dashboard.noCategoryListings')}</p> : null}
 
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Title</th>
-                <th>Status</th>
-                <th>Rent</th>
-                <th>Views</th>
-                <th>Reason</th>
+                <th>{t('dashboard.titleColumn')}</th>
+                <th>{t('dashboard.statusColumn')}</th>
+                <th>{t('dashboard.rentColumn')}</th>
+                <th>{t('dashboard.viewsColumn')}</th>
+                <th>{t('dashboard.reasonColumn')}</th>
               </tr>
             </thead>
             <tbody>
@@ -248,19 +250,19 @@ export default function LandlordDashboardPage() {
                             className="btn btn--small"
                             style={{ marginTop: '0.35rem', fontSize: '0.75rem', display: 'inline-block' }}
                           >
-                            Fix &amp; Resubmit
+                            {t('dashboard.fixAndResubmit')}
                           </Link>
                         </div>
                       ) : null}
                     </td>
                     <td>
                       <span style={listing.status === 'flagged' ? { color: '#B45309', fontWeight: 600 } : listing.status === 'approved' ? { color: '#1A6B3A', fontWeight: 600 } : {}}>
-                        {listing.status}
+                        {String(t(`dashboard.${listing.status}`, listing.status))}
                       </span>
                     </td>
                     <td>{new Intl.NumberFormat('en-TZ').format(listing.priceMonthly)} TZS</td>
                     <td>{listing.viewCount}</td>
-                    <td>{listing.rejectionReason || (isBlocked ? '🔴 Auto-blocked' : '-')}</td>
+                    <td>{listing.rejectionReason || (isBlocked ? t('dashboard.autoBlocked') : '-')}</td>
                   </tr>
                 );
               })}

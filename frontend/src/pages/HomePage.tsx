@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import ListingCard from '../components/ListingCard';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -13,6 +14,7 @@ const UNIVERSITY_OPTIONS = ['UDSM', 'ARDHI', 'MUHAS', 'IFM'];
 export default function HomePage() {
   const navigate = useNavigate();
   const { user, token, isAuthenticated } = useAuth();
+  const { t } = useTranslation();
 
   const [query, setQuery] = useState('');
   const [university, setUniversity] = useState('UDSM');
@@ -147,10 +149,10 @@ export default function HomePage() {
     <div className="page">
       <section className="hero">
         <div className="hero__content container">
-          <p className="hero__eyebrow">Verified Student Housing</p>
-          <h1>Find trusted rooms near campus in minutes.</h1>
+          <p className="hero__eyebrow">{t('home.heroEyebrow')}</p>
+          <h1>{t('home.heroTitle')}</h1>
           <p className="hero__subtitle">
-            Search, compare, and message verified listers around Dar es Salaam.
+            {t('home.heroSubtitle')}
           </p>
 
           <form className="search-panel" onSubmit={handleSearchSubmit}>
@@ -158,14 +160,14 @@ export default function HomePage() {
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search by title, ward, district"
+              placeholder={t('home.searchPlaceholder')}
             />
 
             <select
               value={university}
               onChange={(event) => setUniversity(event.target.value)}
             >
-              <option value="ALL">All universities</option>
+              <option value="ALL">{t('home.allUniversities')}</option>
               {UNIVERSITY_OPTIONS.map((item) => (
                 <option key={item} value={item}>
                   {item}
@@ -174,7 +176,7 @@ export default function HomePage() {
             </select>
 
             <button type="submit" className="btn">
-              Search
+              {t('home.searchBtn')}
             </button>
           </form>
 
@@ -196,13 +198,13 @@ export default function HomePage() {
       <section className="section container">
         <div className="section__header">
           <div>
-            <h2>Featured Listings</h2>
-            <p>Approved and verified homes from trusted listers.</p>
+            <h2>{t('home.featuredTitle')}</h2>
+            <p>{t('home.featuredSubtitle')}</p>
           </div>
-          <Link to="/search">View all</Link>
+          <Link to="/search">{t('home.viewAll')}</Link>
         </div>
 
-        {loading ? <p className="muted">Loading listings...</p> : null}
+        {loading ? <p className="muted">{t('home.loading')}</p> : null}
         {error ? <p className="error-text">{error}</p> : null}
 
         <div className="listing-grid">
