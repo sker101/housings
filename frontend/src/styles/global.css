@@ -1969,3 +1969,36 @@ tbody td {
     padding-bottom: 1.4rem;
   }
 }
+/* Phase 4b: SOS Emergency Styles */
+.sos-banner {
+    background: #cf222e;
+    color: white;
+    padding: 0.75rem 1rem;
+    text-align: center;
+    font-size: 1.1rem;
+    font-weight: bold;
+    z-index: 10000;
+    position: sticky;
+    top: 0;
+    animation: sos-pulse 2s infinite;
+}
+
+.sos-banner__content {
+    display: inline-block;
+}
+
+@keyframes sos-pulse {
+    0% { background-color: #cf222e; }
+    50% { background-color: #a40e26; }
+    100% { background-color: #cf222e; }
+}
+
+/* Ensure announcement banner still works too */
+.announcement-banner {
+    background: var(--jade);
+    color: white;
+    padding: 0.5rem 1rem;
+    text-align: center;
+    font-size: 0.95rem;
+    font-weight: 500;
+}

@@ -44,7 +44,7 @@ CREATE POLICY "reviews_insert_verified_tenant"
   ON public.reviews FOR INSERT
   TO authenticated
   WITH CHECK (
-    reviewer_id = auth.uid()
+    tenant_id = auth.uid()
     AND EXISTS (
       SELECT 1 FROM public.bookings
       WHERE tenant_id = auth.uid()

@@ -23,6 +23,8 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 import RoomDetailsPage from './pages/RoomDetailsPage';
 import SavedListingsPage from './pages/SavedListingsPage';
 import SearchPage from './pages/SearchPage';
+import LandlordAnalyticsPage from './pages/LandlordAnalyticsPage';
+import ReviewsPage from './pages/ReviewsPage';
 import { useAuth } from './context/AuthContext';
 
 export default function App() {
@@ -150,6 +152,24 @@ export default function App() {
           element={
             <ProtectedRoute roles={[APP_ROLE.LISTER]}>
               <PaymentsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/landlord/analytics"
+          element={
+            <ProtectedRoute roles={[APP_ROLE.LISTER]}>
+              <LandlordAnalyticsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/reviews"
+          element={
+            <ProtectedRoute roles={[APP_ROLE.STUDENT, APP_ROLE.LISTER, APP_ROLE.ADMIN]}>
+              <ReviewsPage />
             </ProtectedRoute>
           }
         />

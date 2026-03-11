@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import {
   clearStoredSession,
   fetchAuthUser,
@@ -149,8 +149,14 @@ export function AuthProvider({ children }) {
     }
   }, [session, persistent, hydrateUser, applySession]);
 
+  // We only want to initialize auth ONCE when the provider mounts.
+  const hasInitialized = React.useRef(false);
+
   useEffect(() => {
-    initialize();
+    if (!hasInitialized.current) {
+      hasInitialized.current = true;
+      initialize();
+    }
   }, [initialize]);
 
   const login = useCallback(

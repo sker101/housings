@@ -30,7 +30,7 @@ export default function RegisterLandlordPage() {
 
     try {
       await registerLandlord({ ...formData, preferredLanguage: i18n.language });
-      navigate('/landlord', { replace: true });
+      navigate('/', { replace: true });
     } catch (err) {
       setError(err.message);
     }

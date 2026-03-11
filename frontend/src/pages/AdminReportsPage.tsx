@@ -97,7 +97,7 @@ export default function AdminReportsPage() {
             <div className="section__header">
                 <div>
                     <h1>Listing Reports</h1>
-                    <p>Review and resolve user-submitted reports on listings.</p>
+                    <p>Review and resolve user-submitted reports. Upholding a report will auto-flag the listing.</p>
                 </div>
                 <Link to="/admin" className="btn btn--ghost btn--small">← Admin</Link>
             </div>

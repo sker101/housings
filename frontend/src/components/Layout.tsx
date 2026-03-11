@@ -1,15 +1,34 @@
 import { useEffect, useState } from 'react';
-import { Link, NavLink } from 'react-router-dom';
+import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { APP_ROLE } from '../lib/roles';
 import { selectRows, updateRows } from '../lib/supabase';
+import LandlordSidebar from './LandlordSidebar';
+import StudentSidebar from './StudentSidebar';
+import AdminSidebar from './AdminSidebar';
+import { Menu } from 'lucide-react';
 
 export default function Layout({ children }) {
   const { user, token, isAuthenticated, logout, networkError, setNetworkError } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifCount, setNotifCount] = useState(0);
+  const [sosMode, setSosMode] = useState(false);
+  const [announcement, setAnnouncement] = useState('');
   const { t, i18n } = useTranslation();
+  const location = useLocation();
+
+  const [activeListings, setActiveListings] = useState(0);
+  const [tenantCount, setTenantCount] = useState(0);
+  const [savedCount, setSavedCount] = useState(0);
+  const [activeBookings, setActiveBookings] = useState(0);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 1024);
+
+  useEffect(() => {
+    const handleResize = () => setIsSidebarOpen(window.innerWidth > 1024);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const toggleLanguage = async () => {
     const nextLang = i18n.language === 'en' ? 'sw' : 'en';
@@ -39,17 +58,46 @@ export default function Layout({ children }) {
     }
   }, [isAuthenticated, user?.preferredLanguage, i18n]);
 
+  // Global Settings & Profile Status (SOS & Suspension)
   useEffect(() => {
     let mounted = true;
+    async function loadSettings() {
+      try {
+        const [settingsRows, profileRows] = await Promise.all([
+          selectRows('system_settings', {}),
+          isAuthenticated ? selectRows('profiles', {
+            select: 'is_suspended',
+            filters: [{ column: 'id', op: 'eq', value: user.userId }],
+            accessToken: token
+          }) : Promise.resolve([])
+        ]);
 
+        if (mounted) {
+          const settingsMap = {};
+          settingsRows.forEach(s => settingsMap[s.key] = s.value);
+          setSosMode(settingsMap['maintenance_mode'] === true);
+          setAnnouncement(settingsMap['global_announcement'] || '');
+
+          if (profileRows.length > 0 && profileRows[0].is_suspended) {
+            logout(); // Force logout if suspended
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load global settings:', err);
+      }
+    }
+    loadSettings();
+    const id = setInterval(loadSettings, 3000); // More aggressive polling for emergencies
+    return () => { mounted = false; clearInterval(id); };
+  }, [isAuthenticated, user?.userId, token, logout]);
+
+  useEffect(() => {
+    let mounted = true;
     async function loadUnreadCount() {
       if (!isAuthenticated || !user?.userId || !token) {
-        if (mounted) {
-          setUnreadCount(0);
-        }
+        if (mounted) { setUnreadCount(0); }
         return;
       }
-
       try {
         const conversations = await selectRows('conversations', {
           select: 'id',
@@ -57,15 +105,11 @@ export default function Layout({ children }) {
           limit: 500,
           accessToken: token
         });
-
         const conversationIds = conversations.map((item) => item.id).filter(Boolean);
         if (conversationIds.length === 0) {
-          if (mounted) {
-            setUnreadCount(0);
-          }
+          if (mounted) { setUnreadCount(0); }
           return;
         }
-
         const unreadRows = await selectRows('messages', {
           select: 'id',
           filters: [
@@ -75,24 +119,14 @@ export default function Layout({ children }) {
           ],
           accessToken: token
         });
-
-        if (mounted) {
-          setUnreadCount(unreadRows.length);
-        }
+        if (mounted) { setUnreadCount(unreadRows.length); }
       } catch {
-        if (mounted) {
-          setUnreadCount(0);
-        }
+        if (mounted) { setUnreadCount(0); }
       }
     }
-
     loadUnreadCount();
     const intervalId = setInterval(loadUnreadCount, 20000);
-
-    return () => {
-      mounted = false;
-      clearInterval(intervalId);
-    };
+    return () => { mounted = false; clearInterval(intervalId); };
   }, [isAuthenticated, token, user?.userId]);
 
   // Notification bell count
@@ -120,6 +154,47 @@ export default function Layout({ children }) {
     return () => { mounted = false; clearInterval(id); };
   }, [isAuthenticated, token, user?.userId]);
 
+  // Additional sidebar stats
+  useEffect(() => {
+    let mounted = true;
+    async function loadSidebarStats() {
+      if (!isAuthenticated || !user?.userId || !token) return;
+      try {
+        if (user.role === APP_ROLE.LISTER) {
+          const listingsRows = await selectRows('listings', {
+            select: 'id', filters: [{ column: 'lister_id', op: 'eq', value: user.userId }, { column: 'status', op: 'eq', value: 'approved' }],
+            limit: 1000, accessToken: token
+          });
+          const tenantRows = await selectRows('bookings', {
+            select: 'id', filters: [{ column: 'lister_id', op: 'eq', value: user.userId }, { column: 'status', op: 'eq', value: 'approved' }],
+            limit: 1000, accessToken: token
+          });
+          if (mounted) {
+            setActiveListings(listingsRows.length);
+            setTenantCount(tenantRows.length);
+          }
+        } else if (user.role === APP_ROLE.STUDENT) {
+          const savedRows = await selectRows('saved_listings', {
+            select: 'id', filters: [{ column: 'user_id', op: 'eq', value: user.userId }], limit: 1000, accessToken: token
+          });
+          const bookingsRows = await selectRows('bookings', {
+            select: 'id', filters: [{ column: 'tenant_id', op: 'eq', value: user.userId }, { column: 'status', op: 'eq', value: 'approved' }],
+            limit: 1000, accessToken: token
+          });
+          if (mounted) {
+            setSavedCount(savedRows.length);
+            setActiveBookings(bookingsRows.length);
+          }
+        }
+      } catch {
+        // Silently ignore errors for background stats fetching
+      }
+    }
+    loadSidebarStats();
+    const id = setInterval(loadSidebarStats, 60000);
+    return () => { mounted = false; clearInterval(id); };
+  }, [isAuthenticated, token, user?.userId, user?.role]);
+
   const topActionLink = (() => {
     if (!isAuthenticated) {
       return (
@@ -128,7 +203,6 @@ export default function Layout({ children }) {
         </NavLink>
       );
     }
-
     if (user?.role === APP_ROLE.ADMIN) {
       return (
         <NavLink to="/admin" className="btn btn--small">
@@ -136,7 +210,6 @@ export default function Layout({ children }) {
         </NavLink>
       );
     }
-
     if (user?.role === APP_ROLE.LISTER) {
       return (
         <NavLink to="/landlord" className="btn btn--small">
@@ -144,7 +217,6 @@ export default function Layout({ children }) {
         </NavLink>
       );
     }
-
     return (
       <NavLink to="/saved" className="btn btn--small">
         {t('nav.saved')}
@@ -154,14 +226,54 @@ export default function Layout({ children }) {
 
   return (
     <div className="app-shell">
-      <header className="topbar">
-        <div className="topbar__inner">
-          <Link to="/" className="brand-link">
-            <span className="brand-mark">C</span>
-            <span className="brand-text">
-              CampusStay <em>TZ</em>
-            </span>
-          </Link>
+      {sosMode ? (
+        <div className="sos-banner">
+          <span className="sos-banner__content">
+            🚨 <strong>SOS EMERGENCY:</strong> {announcement || "A system alert is active. Please check notifications."}
+          </span>
+        </div>
+      ) : (announcement && announcement.trim() !== '') ? (
+        <div className="announcement-banner">
+          <span>📢 {announcement}</span>
+        </div>
+      ) : null}
+
+      <header className="topbar" style={{ display: 'flex', alignItems: 'center' }}>
+        {isAuthenticated ? (
+          <button
+            type="button"
+            className="desktop-only"
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            style={{
+              padding: '0.5rem',
+              marginLeft: '1rem',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'inherit',
+              flexShrink: 0,
+              borderRadius: '8px',
+              transition: 'background 0.2s ease'
+            }}
+            onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
+            onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+          >
+            <Menu size={24} />
+          </button>
+        ) : null}
+
+        <div className="topbar__inner" style={{ flex: 1, width: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <Link to="/" className="brand-link">
+              <span className="brand-mark">C</span>
+              <span className="brand-text">
+                CampusStay <em>TZ</em>
+              </span>
+            </Link>
+          </div>
 
           <nav className="topbar__nav">
             <button
@@ -172,20 +284,13 @@ export default function Layout({ children }) {
             >
               {i18n.language === 'en' ? 'SW' : 'EN'}
             </button>
+            <NavLink to="/">{t('nav.home')}</NavLink>
             <NavLink to="/search">{t('nav.search')}</NavLink>
             {isAuthenticated ? (
               <NavLink to="/messages" className="nav-link-with-badge">
                 {t('nav.messages')}
                 {unreadCount > 0 ? (
                   <span className="nav-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
-                ) : null}
-              </NavLink>
-            ) : null}
-            {isAuthenticated ? (
-              <NavLink to="/notifications" className="nav-link-with-badge" title="Notifications">
-                🔔
-                {notifCount > 0 ? (
-                  <span className="nav-badge">{notifCount > 99 ? '99+' : notifCount}</span>
                 ) : null}
               </NavLink>
             ) : null}
@@ -223,25 +328,57 @@ export default function Layout({ children }) {
         </div>
       ) : null}
 
-      <main className="main-content">{children}</main>
+      <div style={{ display: 'flex', minHeight: 'calc(100vh - 64px)', position: 'relative', width: '100%', maxWidth: '100vw' }}>
+        {isAuthenticated && user?.role === APP_ROLE.LISTER && !location.pathname.startsWith('/admin') ? (
+          <LandlordSidebar
+            unreadMessages={unreadCount}
+            unreadNotifs={notifCount}
+            activeListings={activeListings}
+            tenantCount={tenantCount}
+            subscriptionTier="free" // TODO: Fetch tier dynamically later
+            isCollapsed={!isSidebarOpen}
+          />
+        ) : null}
+        {isAuthenticated && user?.role === APP_ROLE.STUDENT && !location.pathname.startsWith('/admin') ? (
+          <StudentSidebar
+            unreadMessages={unreadCount}
+            unreadNotifs={notifCount}
+            savedCount={savedCount}
+            activeBookings={activeBookings}
+            isCollapsed={!isSidebarOpen}
+          />
+        ) : null}
+        {isAuthenticated && user?.role === APP_ROLE.ADMIN ? (
+          <AdminSidebar
+            isCollapsed={!isSidebarOpen}
+            onLogout={logout}
+          />
+        ) : null}
 
-      <nav className="bottom-nav" aria-label="Primary">
-        <NavLink to="/" className={({ isActive }) => (isActive ? 'is-active' : '')} end>
-          {t('nav.home')}
-        </NavLink>
-        <NavLink to="/search" className={({ isActive }) => (isActive ? 'is-active' : '')}>
-          {t('nav.search')}
-        </NavLink>
-        <NavLink to="/messages" className={({ isActive }) => `nav-link-with-badge ${isActive ? 'is-active' : ''}`}>
-          {t('nav.messages')}
-          {unreadCount > 0 ? (
-            <span className="nav-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
-          ) : null}
-        </NavLink>
-        <NavLink to="/profile" className={({ isActive }) => (isActive ? 'is-active' : '')}>
-          {user?.fullName?.split(' ')[0] || t('dashboard.profile')}
-        </NavLink>
-      </nav>
+        <main className="main-content" style={{ flex: 1, minWidth: 0, transition: 'all 0.3s ease' }}>
+          {children}
+        </main>
+      </div>
+
+      {(!isAuthenticated || user?.role === APP_ROLE.ADMIN || location.pathname.startsWith('/admin')) ? (
+        <nav className="bottom-nav" aria-label="Primary">
+          <NavLink to="/" className={({ isActive }) => (isActive ? 'is-active' : '')} end>
+            {t('nav.home')}
+          </NavLink>
+          <NavLink to="/search" className={({ isActive }) => (isActive ? 'is-active' : '')}>
+            {t('nav.search')}
+          </NavLink>
+          <NavLink to="/messages" className={({ isActive }) => `nav-link-with-badge ${isActive ? 'is-active' : ''}`}>
+            {t('nav.messages')}
+            {unreadCount > 0 ? (
+              <span className="nav-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
+            ) : null}
+          </NavLink>
+          <NavLink to="/profile" className={({ isActive }) => (isActive ? 'is-active' : '')}>
+            {user?.fullName?.split(' ')[0] || t('dashboard.profile')}
+          </NavLink>
+        </nav>
+      ) : null}
     </div>
   );
 }

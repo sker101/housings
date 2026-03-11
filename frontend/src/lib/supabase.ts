@@ -413,6 +413,14 @@ export async function invokeFunction(name: string, body: unknown, accessToken?: 
   });
 }
 
+export async function rpc(name: string, body?: unknown, accessToken?: string) {
+  return request(`/rest/v1/rpc/${name}`, {
+    method: 'POST',
+    accessToken,
+    body
+  });
+}
+
 export async function uploadPublicObject({ bucket, path, file, accessToken }) {
   const encodedPath = path
     .split('/')

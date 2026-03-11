@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { invokeFunction, selectRows } from '../lib/supabase';
+import { invokeFunction, selectRows, updateRows } from '../lib/supabase';
 import ModerationModal from '../components/ModerationModal';
 
 const REASON_TEMPLATES = {
@@ -46,7 +46,7 @@ export default function AdminLandlordsPage() {
     try {
       const rows = await selectRows('profiles', {
         select:
-          'id,full_name,phone,verification_status,lister_type,profile_photo_url,id_doc_url,selfie_url,updated_at',
+          'id,full_name,phone,verification_status,lister_type,profile_photo_url,id_doc_url,selfie_url,updated_at,is_suspended,admin_notes',
         filters: [{ column: 'role', op: 'eq', value: 'lister' }],
         order: 'updated_at.desc',
         accessToken: token
@@ -120,13 +120,28 @@ export default function AdminLandlordsPage() {
             ? 'approve_landlord'
             : action === 'reject'
               ? 'reject_landlord'
-              : 'suspend',
+              : action === 'unsuspend'
+                ? 'unflag'
+                : 'suspend',
           targetType: 'landlord',
           targetId: targetId,
           reason: reason || null
         },
         token
       );
+      await loadLandlords();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const saveAdminNote = async (landlordId, note) => {
+    if (!token) return;
+    try {
+      await updateRows('profiles', { admin_notes: note }, {
+        filters: [{ column: 'id', op: 'eq', value: landlordId }],
+        accessToken: token
+      });
       await loadLandlords();
     } catch (err) {
       setError(err.message);
@@ -146,7 +161,9 @@ export default function AdminLandlordsPage() {
               ? 'approve_landlord'
               : action === 'reject'
                 ? 'reject_landlord'
-                : 'suspend',
+                : action === 'unsuspend'
+                  ? 'unflag'
+                  : 'suspend',
             targetType: 'landlord',
             targetId: landlordId,
             reason: reason || null
@@ -248,6 +265,23 @@ export default function AdminLandlordsPage() {
               <p>Status: {normalizeStatus(landlord.verification_status)}</p>
               <p>ID Doc: {landlord.id_doc_url ? 'Uploaded' : 'Missing'}</p>
               <p>Selfie: {landlord.selfie_url ? 'Uploaded' : 'Missing'}</p>
+              {landlord.is_suspended && (
+                <p style={{ color: 'var(--danger)', fontWeight: 'bold' }}>⚠️ ACCOUNT SUSPENDED</p>
+              )}
+              <div style={{ marginTop: '1rem' }}>
+                <label htmlFor={`admin_notes_${landlord.id}`} style={{ fontSize: '0.8rem', display: 'block', marginBottom: '0.25rem' }}>Internal Admin Notes:</label>
+                <textarea
+                  id={`admin_notes_${landlord.id}`}
+                  style={{ width: '100%', fontSize: '0.85rem', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ddd' }}
+                  defaultValue={landlord.admin_notes || ''}
+                  onBlur={(e) => {
+                    if (e.target.value !== (landlord.admin_notes || '')) {
+                      saveAdminNote(landlord.id, e.target.value);
+                    }
+                  }}
+                  placeholder="Private notes for team..."
+                />
+              </div>
             </div>
 
             <div className="moderation-card__actions">
@@ -257,9 +291,15 @@ export default function AdminLandlordsPage() {
               <button className="btn btn--secondary" onClick={() => openModal('reject', landlord.id, false)}>
                 Reject
               </button>
-              <button className="btn btn--danger" onClick={() => openModal('suspend', landlord.id, false)}>
-                Suspend
-              </button>
+              {landlord.is_suspended ? (
+                <button className="btn btn--primary" onClick={() => processAction(landlord.id, 'unsuspend')}>
+                  Revoke Suspension
+                </button>
+              ) : (
+                <button className="btn btn--danger" onClick={() => openModal('suspend', landlord.id, false)}>
+                  Suspend
+                </button>
+              )}
             </div>
           </article>
         ))}

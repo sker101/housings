@@ -29,8 +29,6 @@ export default function LoginPage() {
       navigate(pathFromState, { replace: true });
       return;
     }
-    if (role === APP_ROLE.ADMIN) { navigate('/admin', { replace: true }); return; }
-    if (role === APP_ROLE.LISTER) { navigate('/landlord', { replace: true }); return; }
     navigate('/', { replace: true });
   };
 
