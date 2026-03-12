@@ -20,6 +20,10 @@ CampusStay TZ is now running as a Supabase-first React app aligned to the redesi
 - Admin dashboard, landlord queue, listing queue, audit log
 - Warm redesign visual system (Syne + DM Sans, ink/paper/jade palette, mobile bottom nav)
 
+## Git Workflow
+**CRITICAL RULE:** All new work must branch from `staging`. **Never** branch directly from `main`. Features should be merged into `staging` for testing before a release is promoted to `main`.
+Example: `git checkout staging && git pull && git checkout -b feature/my-new-feature`
+
 ## Required Environment
 Create `frontend/.env` from `frontend/.env.example`:
 
