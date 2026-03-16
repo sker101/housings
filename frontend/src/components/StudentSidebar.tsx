@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
     Search, Heart, CalendarCheck, MessageSquare,
@@ -65,6 +66,7 @@ export default function StudentSidebar({
     isCollapsed = false,
 }: StudentSidebarProps) {
     const { user, logout } = useAuth();
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const [visible, setVisible] = useState(false);
 
@@ -84,13 +86,13 @@ export default function StudentSidebar({
     };
 
     const NAV: NavItem[] = [
-        { to: '/search', icon: <Search size={18} />, label: 'Browse Listings', highlight: true },
-        { to: '/saved', icon: <Heart size={18} />, label: 'Saved Listings', meta: savedCount > 0 ? `${savedCount} Saved` : undefined },
-        { to: '/profile', icon: <CalendarCheck size={18} />, label: 'My Bookings', badge: activeBookings },
-        { to: '/messages', icon: <MessageSquare size={18} />, label: 'Messages', badge: unreadMessages },
-        { to: '/profile', icon: <Star size={18} />, label: 'My Reviews' },
-        { to: '/notifications', icon: <Bell size={18} />, label: 'Notifications', badge: unreadNotifs },
-        { to: '/profile', icon: <Settings size={18} />, label: 'Account Settings' },
+        { to: '/search', icon: <Search size={18} />, label: t('sidebar.browseListings'), highlight: true },
+        { to: '/saved', icon: <Heart size={18} />, label: t('sidebar.savedListings'), meta: savedCount > 0 ? `${savedCount} ${t('sidebar.saved')}` : undefined },
+        { to: '/bookings', icon: <CalendarCheck size={18} />, label: t('sidebar.myBookings'), badge: activeBookings },
+        { to: '/messages', icon: <MessageSquare size={18} />, label: t('sidebar.messages'), badge: unreadMessages },
+        { to: '/reviews', icon: <Star size={18} />, label: t('sidebar.myReviews') },
+        { to: '/notifications', icon: <Bell size={18} />, label: t('sidebar.notifications'), badge: unreadNotifs },
+        { to: '/profile', icon: <Settings size={18} />, label: t('sidebar.accountSettings') },
     ];
 
     // ── Desktop sidebar ──────────────────────────────────────────────────────
@@ -297,11 +299,11 @@ export default function StudentSidebar({
 
     // ── Mobile bottom tab bar (4 key items) ─────────────────────────────────
     const MOBILE_TABS = [
-        { to: '/search', icon: <Search size={20} />, label: 'Browse', badge: 0 },
-        { to: '/saved', icon: <Heart size={20} />, label: 'Saved', badge: savedCount },
-        { to: '/messages', icon: <MessageSquare size={20} />, label: 'Chats', badge: unreadMessages },
-        { to: '/notifications', icon: <Bell size={20} />, label: 'Alerts', badge: unreadNotifs },
-        { to: '/profile', icon: <Settings size={20} />, label: 'Me', badge: 0 },
+        { to: '/search', icon: <Search size={20} />, label: t('sidebar.browse'), badge: 0 },
+        { to: '/saved', icon: <Heart size={20} />, label: t('sidebar.saved'), badge: savedCount },
+        { to: '/messages', icon: <MessageSquare size={20} />, label: t('sidebar.chats'), badge: unreadMessages },
+        { to: '/notifications', icon: <Bell size={20} />, label: t('sidebar.alerts'), badge: unreadNotifs },
+        { to: '/profile', icon: <Settings size={20} />, label: t('sidebar.me'), badge: 0 },
     ];
 
     const mobile = (

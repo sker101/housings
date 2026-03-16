@@ -258,5 +258,63 @@
         "viewLiveListing": "View Live Listing",
         "goToDashboard": "Go to Dashboard",
         "editAndResubmit": "Edit & Resubmit"
+    },
+    "common": {
+        "loading": "Loading...",
+        "unknownListing": "Unknown listing",
+        "unknownLocation": "Unknown location",
+        "unknownUser": "Unknown user",
+        "months": "months"
+    },
+    "sidebar": {
+        "browseListings": "Browse Listings",
+        "savedListings": "Saved Listings",
+        "saved": "Saved",
+        "myBookings": "My Bookings",
+        "messages": "Messages",
+        "myReviews": "My Reviews",
+        "notifications": "Notifications",
+        "accountSettings": "Account Settings",
+        "browse": "Browse",
+        "chats": "Chats",
+        "alerts": "Alerts",
+        "me": "Me"
+    },
+    "reviews": {
+        "tenantReviews": "Tenant Reviews",
+        "myReviews": "My Reviews",
+        "landlordSubtitle": "Read what tenants are saying about your properties.",
+        "studentSubtitle": "Reviews you have written for previous stays.",
+        "avgRating": "Average Rating",
+        "totalReviews": "Total Reviews",
+        "noReviews": "No reviews found.",
+        "anonymousTenant": "Anonymous Tenant",
+        "reviewFor": "Review for",
+        "unknownProperty": "Unknown Property",
+        "property": "Property",
+        "ratingOnly": "Rating only without text."
+    },
+    "bookings": {
+        "title": "My Bookings",
+        "subtitle": "Track your housing requests and approved stays.",
+        "noBookings": "You have no bookings yet.",
+        "browseNow": "Browse listings now",
+        "moveIn": "Move-in",
+        "tenant": "Tenant",
+        "landlord": "Landlord",
+        "message": "Message",
+        "status": {
+            "approved": "Approved",
+            "requested": "Requested",
+            "rejected": "Rejected",
+            "cancelled": "Cancelled"
+        }
+    },
+    "layout": {
+        "sosEmergency": "SOS EMERGENCY",
+        "defaultSosMsg": "A system alert is active. Please check notifications.",
+        "greeting": "Hi",
+        "networkError": "Unable to connect to the server. Please check your internet connection and try again.",
+        "retry": "Retry"
     }
 }

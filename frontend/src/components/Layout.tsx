@@ -22,10 +22,15 @@ export default function Layout({ children }) {
   const [tenantCount, setTenantCount] = useState(0);
   const [savedCount, setSavedCount] = useState(0);
   const [activeBookings, setActiveBookings] = useState(0);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 1024);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
-    const handleResize = () => setIsSidebarOpen(window.innerWidth > 1024);
+    const handleResize = () => {
+      // Only force collapse on small screens, never force expansion
+      if (window.innerWidth <= 1024) {
+        setIsSidebarOpen(false);
+      }
+    };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -229,7 +234,7 @@ export default function Layout({ children }) {
       {sosMode ? (
         <div className="sos-banner">
           <span className="sos-banner__content">
-            🚨 <strong>SOS EMERGENCY:</strong> {announcement || "A system alert is active. Please check notifications."}
+            🚨 <strong>{t('layout.sosEmergency')}:</strong> {announcement || t('layout.defaultSosMsg')}
           </span>
         </div>
       ) : (announcement && announcement.trim() !== '') ? (
@@ -301,7 +306,7 @@ export default function Layout({ children }) {
                   {(user?.fullName || 'U').charAt(0).toUpperCase()}
                 </span>
                 <span className="nav-greeting">
-                  Hi, {user?.fullName?.split(' ')[0] || 'User'}
+                  {t('layout.greeting')}, {user?.fullName?.split(' ')[0] || 'User'}
                 </span>
               </NavLink>
             ) : null}
@@ -317,13 +322,13 @@ export default function Layout({ children }) {
 
       {networkError ? (
         <div style={{ background: '#cf222e', color: 'white', padding: '0.75rem', textAlign: 'center', fontSize: '0.9rem', position: 'sticky', top: '60px', zIndex: 90 }}>
-          Unable to connect to the server. Please check your internet connection and try again.
+          {t('layout.networkError')}
           <button
             type="button"
             onClick={() => { setNetworkError(false); window.location.reload(); }}
             style={{ marginLeft: '1rem', background: 'transparent', border: '1px solid white', color: 'white', padding: '0.15rem 0.5rem', borderRadius: '4px', cursor: 'pointer' }}
           >
-            Retry
+            {t('layout.retry')}
           </button>
         </div>
       ) : null}
@@ -351,7 +356,6 @@ export default function Layout({ children }) {
         {isAuthenticated && user?.role === APP_ROLE.ADMIN ? (
           <AdminSidebar
             isCollapsed={!isSidebarOpen}
-            onLogout={logout}
           />
         ) : null}
 

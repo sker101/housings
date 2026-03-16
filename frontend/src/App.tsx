@@ -25,6 +25,7 @@ import SavedListingsPage from './pages/SavedListingsPage';
 import SearchPage from './pages/SearchPage';
 import LandlordAnalyticsPage from './pages/LandlordAnalyticsPage';
 import ReviewsPage from './pages/ReviewsPage';
+import BookingsPage from './pages/BookingsPage';
 import { useAuth } from './context/AuthContext';
 
 export default function App() {
@@ -170,6 +171,14 @@ export default function App() {
           element={
             <ProtectedRoute roles={[APP_ROLE.STUDENT, APP_ROLE.LISTER, APP_ROLE.ADMIN]}>
               <ReviewsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/bookings"
+          element={
+            <ProtectedRoute roles={[APP_ROLE.STUDENT, APP_ROLE.LISTER, APP_ROLE.ADMIN]}>
+              <BookingsPage />
             </ProtectedRoute>
           }
         />

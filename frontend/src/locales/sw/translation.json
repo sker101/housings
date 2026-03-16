@@ -234,7 +234,7 @@
         "gettingLocation": "Inatafuta eneo...",
         "coordinates": "Majiranukta",
         "noCoordinates": "Hakuna majiranukta. Tumia kitufe cha juu au ingiza chini.",
-        "enterCoordinatesManually": "Ingiza majiranukta mwenyewe",
+        "enterCoordinatesManually": "Ingiza majiranukta mwenewe",
         "latitude": "Latitudo (Latitude)",
         "longitude": "Longitudo (Longitude)",
         "nearbyUniversity": "Chuo kikuu cha jirani",
@@ -258,5 +258,63 @@
         "viewLiveListing": "Tazama Nyumba Hewani",
         "goToDashboard": "Rudi Kwenye Dashibodi",
         "editAndResubmit": "Hariri & Tuma Tena"
+    },
+    "common": {
+        "loading": "Pakua...",
+        "unknownListing": "Nyumba isiyojulikana",
+        "unknownLocation": "Mahali pasipojulikana",
+        "unknownUser": "Mtumiaji asiyejulikana",
+        "months": "miezi"
+    },
+    "sidebar": {
+        "browseListings": "Tafuta Nyumba",
+        "savedListings": "Zilizohifadhiwa",
+        "saved": "Imehifadhiwa",
+        "myBookings": "Nafasi Zangu",
+        "messages": "Ujumbe",
+        "myReviews": "Maoni Yangu",
+        "notifications": "Taarifa",
+        "accountSettings": "Mipangilio",
+        "browse": "Tafuta",
+        "chats": "Soga",
+        "alerts": "Taarifa",
+        "me": "Wasifu"
+    },
+    "reviews": {
+        "tenantReviews": "Maoni ya Wapangaji",
+        "myReviews": "Maoni Yangu",
+        "landlordSubtitle": "Soma maoni ya wapangaji kuhusu nyumba zako.",
+        "studentSubtitle": "Maoni uliyotoa kwa makazi yako ya awali.",
+        "avgRating": "Tathmini ya Wastani",
+        "totalReviews": "Jumla ya Maoni",
+        "noReviews": "Hakuna maoni yaliyopatikanika.",
+        "anonymousTenant": "Mpangaji asiyejulikana",
+        "reviewFor": "Maoni ya",
+        "unknownProperty": "Nyumba isiyojulikana",
+        "property": "Nyumba",
+        "ratingOnly": "Ameweka tathmini pekee bila ujumbe."
+    },
+    "bookings": {
+        "title": "Nafasi Zangu",
+        "subtitle": "Fuatilia maombi yako ya vyumba na makazi yaliyoidhinishwa.",
+        "noBookings": "Hujaweka nafasi yoyote bado.",
+        "browseNow": "Anza kutafuta sasa",
+        "moveIn": "Kuhamia",
+        "tenant": "Mpangaji",
+        "landlord": "Mpangishaji",
+        "message": "Tuma Ujumbe",
+        "status": {
+            "approved": "Imeidhinishwa",
+            "requested": "Inasubiri",
+            "rejected": "Ilikataliwa",
+            "cancelled": "Imeghairiwa"
+        }
+    },
+    "layout": {
+        "sosEmergency": "HALI YA DHARURA",
+        "defaultSosMsg": "Kuna taarifa ya dharura. Tafadhali kagua taarifa zako.",
+        "greeting": "Habari",
+        "networkError": "Imeshindikana kuunganishwa na seva. Tafadhali kagua intaneti yako.",
+        "retry": "Jaribu Tena"
     }
 }

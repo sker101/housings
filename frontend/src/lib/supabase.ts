@@ -462,5 +462,10 @@ export function publicObjectUrl(bucket, path) {
     .map((segment) => encodeURIComponent(segment))
     .join('/');
 
-  return `${SUPABASE_URL}/storage/v1/object/public/${encodeURIComponent(bucket)}/${encodedPath}`;
+  // If we are local, fall back to production URLs for storage parity
+  const baseUrl = SUPABASE_URL.includes('localhost')
+    ? `https://${DEFAULT_PROJECT_REF}.supabase.co`
+    : SUPABASE_URL;
+
+  return `${baseUrl}/storage/v1/object/public/${encodeURIComponent(bucket)}/${encodedPath}`;
 }

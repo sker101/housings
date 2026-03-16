@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-// removed useTranslation
+import { useTranslation } from 'react-i18next';
 import { Star } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { selectRows } from '../lib/supabase';
@@ -7,7 +7,7 @@ import { APP_ROLE } from '../lib/roles';
 
 export default function ReviewsPage() {
     const { user, token } = useAuth();
-    // removed t
+    const { t } = useTranslation();
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -37,7 +37,7 @@ export default function ReviewsPage() {
 
                     if (ids.length > 0) {
                         reviewRows = await selectRows('reviews', {
-                            select: 'id,reviewer_id,listing_id,rating,public_review,created_at',
+                            select: 'id,tenant_id,listing_id,rating,comment,created_at',
                             filters: [{ column: 'listing_id', op: 'in', value: `(${ids.join(',')})` }],
                             order: 'created_at.desc',
                             limit: 100, accessToken: token
@@ -46,8 +46,8 @@ export default function ReviewsPage() {
                 } else {
                     // Fetch reviews WRITTEN by this student
                     reviewRows = await selectRows('reviews', {
-                        select: 'id,reviewer_id,listing_id,rating,public_review,created_at',
-                        filters: [{ column: 'reviewer_id', op: 'eq', value: user.userId }],
+                        select: 'id,tenant_id,listing_id,rating,comment,created_at',
+                        filters: [{ column: 'tenant_id', op: 'eq', value: user.userId }],
                         order: 'created_at.desc',
                         limit: 50, accessToken: token
                     });
@@ -57,7 +57,7 @@ export default function ReviewsPage() {
 
                 // Fetch users who wrote the reviews (relevant for landlord)
                 if (reviewRows.length > 0 && user.role === APP_ROLE.LISTER) {
-                    const uIds = Array.from(new Set(reviewRows.map(r => r.reviewer_id)));
+                    const uIds = Array.from(new Set(reviewRows.map(r => r.tenant_id)));
                     const userRows = await selectRows('profiles', {
                         select: 'id,full_name', filters: [{ column: 'id', op: 'in', value: `(${uIds.join(',')})` }],
                         limit: 200, accessToken: token
@@ -101,11 +101,11 @@ export default function ReviewsPage() {
         <div className="container section">
             <div className="section__header">
                 <div>
-                    <h1>{user?.role === APP_ROLE.LISTER ? 'Tenant Reviews' : 'My Reviews'}</h1>
+                    <h1>{user?.role === APP_ROLE.LISTER ? t('reviews.tenantReviews') : t('reviews.myReviews')}</h1>
                     <p>
                         {user?.role === APP_ROLE.LISTER
-                            ? 'Read what tenants are saying about your properties.'
-                            : 'Reviews you have written for previous stays.'}
+                            ? t('reviews.landlordSubtitle')
+                            : t('reviews.studentSubtitle')}
                     </p>
                 </div>
             </div>
@@ -116,11 +116,11 @@ export default function ReviewsPage() {
                         <Star size={32} color="#4f46e5" fill="#4f46e5" />
                     </div>
                     <div>
-                        <p style={{ fontSize: '0.8rem', textTransform: 'uppercase', fontWeight: 600, color: 'var(--muted)' }}>Average Rating</p>
+                        <p style={{ fontSize: '0.8rem', textTransform: 'uppercase', fontWeight: 600, color: 'var(--muted)' }}>{t('reviews.avgRating')}</p>
                         <p style={{ fontSize: '1.8rem', fontWeight: 800 }}>{avgRating} <span style={{ fontSize: '1rem', color: 'var(--muted)', fontWeight: 500 }}>/ 5.0</span></p>
                     </div>
                     <div style={{ marginLeft: '1rem', borderLeft: '1px solid var(--border)', paddingLeft: '1.5rem' }}>
-                        <p style={{ fontSize: '0.8rem', textTransform: 'uppercase', fontWeight: 600, color: 'var(--muted)' }}>Total Reviews</p>
+                        <p style={{ fontSize: '0.8rem', textTransform: 'uppercase', fontWeight: 600, color: 'var(--muted)' }}>{t('reviews.totalReviews')}</p>
                         <p style={{ fontSize: '1.8rem', fontWeight: 800 }}>{totalReviews}</p>
                     </div>
                 </div>
@@ -128,23 +128,23 @@ export default function ReviewsPage() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {reviews.length === 0 ? (
-                    <p className="muted">No reviews found.</p>
+                    <p className="muted">{t('reviews.noReviews')}</p>
                 ) : (
                     reviews.map(r => {
-                        const reviewerName = profiles[r.reviewer_id]?.full_name || 'Anonymous Tenant';
-                        const listingTitle = listings[r.listing_id]?.title || 'Unknown Property';
+                        const reviewerName = profiles[r.tenant_id]?.full_name || t('reviews.anonymousTenant');
+                        const listingTitle = listings[r.listing_id]?.title || t('reviews.unknownProperty');
                         return (
                             <div key={r.id} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <p style={{ fontWeight: 700, fontSize: '1rem' }}>
-                                        {user?.role === APP_ROLE.LISTER ? reviewerName : `Review for: ${listingTitle}`}
+                                        {user?.role === APP_ROLE.LISTER ? reviewerName : `${t('reviews.reviewFor')}: ${listingTitle}`}
                                     </p>
                                     <p style={{ color: 'var(--muted)', fontSize: '0.8rem' }}>
                                         {new Date(r.created_at).toLocaleDateString()}
                                     </p>
                                 </div>
                                 {user?.role === APP_ROLE.LISTER ? (
-                                    <p style={{ fontSize: '0.85rem', color: 'var(--muted)' }}>Property: {listingTitle}</p>
+                                    <p style={{ fontSize: '0.85rem', color: 'var(--muted)' }}>{t('reviews.property')}: {listingTitle}</p>
                                 ) : null}
 
                                 <div style={{ display: 'flex', gap: '0.2rem', marginTop: '0.2rem' }}>
@@ -152,12 +152,12 @@ export default function ReviewsPage() {
                                         <Star key={s} size={16} fill={s <= r.rating ? "#f59e0b" : "transparent"} color={s <= r.rating ? "#f59e0b" : "#d1d5db"} />
                                     ))}
                                 </div>
-                                {r.public_review ? (
+                                {r.comment ? (
                                     <p style={{ marginTop: '0.5rem', lineHeight: 1.5, background: 'var(--surface)', padding: '0.75rem', borderRadius: 8, fontStyle: 'italic', border: '1px solid var(--border)' }}>
-                                        &ldquo;{r.public_review}&rdquo;
+                                        &ldquo;{r.comment}&rdquo;
                                     </p>
                                 ) : (
-                                    <p className="muted" style={{ fontStyle: 'italic', fontSize: '0.85rem' }}>Rating only without text.</p>
+                                    <p className="muted" style={{ fontStyle: 'italic', fontSize: '0.85rem' }}>{t('reviews.ratingOnly')}</p>
                                 )}
                             </div>
                         );
