@@ -10,16 +10,17 @@ i18n
     .use(initReactI18next)
     .init({
         resources: {
-            en: {
-                translation: enTranslations
-            },
-            sw: {
-                translation: swTranslations
-            }
+            en: { translation: enTranslations },
+            sw: { translation: swTranslations }
         },
         fallbackLng: 'en',
+        supportedLngs: ['en', 'sw'],
         interpolation: {
-            escapeValue: false // React already escapes values
+            escapeValue: false
+        },
+        detection: {
+            order: ['localStorage', 'navigator', 'htmlTag'],
+            caches: ['localStorage']
         }
     });
 

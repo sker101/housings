@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
@@ -23,6 +23,7 @@ export default function Layout({ children }) {
   const [savedCount, setSavedCount] = useState(0);
   const [activeBookings, setActiveBookings] = useState(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const hasSyncedLanguage = useRef(false);
 
   useEffect(() => {
     const handleResize = () => {
@@ -36,7 +37,7 @@ export default function Layout({ children }) {
   }, []);
 
   const toggleLanguage = async () => {
-    const nextLang = i18n.language === 'en' ? 'sw' : 'en';
+    const nextLang = i18n.language.startsWith('en') ? 'sw' : 'en';
     await i18n.changeLanguage(nextLang);
 
     // If logged in, save the preference to Supabase
@@ -58,8 +59,11 @@ export default function Layout({ children }) {
 
   // Sync language on initial auth load
   useEffect(() => {
-    if (isAuthenticated && user?.preferredLanguage && user.preferredLanguage !== i18n.language) {
-      i18n.changeLanguage(user.preferredLanguage);
+    if (isAuthenticated && user?.preferredLanguage && !hasSyncedLanguage.current) {
+      if (user.preferredLanguage !== i18n.language) {
+        i18n.changeLanguage(user.preferredLanguage);
+      }
+      hasSyncedLanguage.current = true;
     }
   }, [isAuthenticated, user?.preferredLanguage, i18n]);
 
@@ -70,7 +74,7 @@ export default function Layout({ children }) {
       try {
         const [settingsRows, profileRows] = await Promise.all([
           selectRows('system_settings', {}),
-          isAuthenticated ? selectRows('profiles', {
+          (isAuthenticated && user?.userId) ? selectRows('profiles', {
             select: 'is_suspended',
             filters: [{ column: 'id', op: 'eq', value: user.userId }],
             accessToken: token
@@ -287,7 +291,7 @@ export default function Layout({ children }) {
               onClick={toggleLanguage}
               title="Toggle Language"
             >
-              {i18n.language === 'en' ? 'SW' : 'EN'}
+              {i18n.language.startsWith('en') ? 'SW' : 'EN'}
             </button>
             <NavLink to="/">{t('nav.home')}</NavLink>
             <NavLink to="/search">{t('nav.search')}</NavLink>
