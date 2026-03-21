@@ -40,6 +40,8 @@ export default function PaymentsPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [markingId, setMarkingId] = useState<string | null>(null);
+    const [commissionPct, setCommissionPct] = useState(0);
+    const [approvedBookings, setApprovedBookings] = useState<any[]>([]);
 
     async function loadPayments() {
         if (!user?.userId || !token) { setLoading(false); return; }
@@ -72,7 +74,7 @@ export default function PaymentsPage() {
             // Fetch listing titles
             const listingIds = Array.from(new Set(bookings.map((b) => b.listing_id)));
             const listings = await selectRows('listings', {
-                select: 'id,title',
+                select: 'id,title,price_monthly',
                 filters: [{ column: 'id', op: 'in', value: `(${listingIds.join(',')})` }],
                 accessToken: token
             });
@@ -81,11 +83,19 @@ export default function PaymentsPage() {
             // Fetch tenant names
             const tenantIds = Array.from(new Set(bookings.map((b) => b.tenant_id)));
             const tenants = await selectRows('profiles', {
-                select: 'id,full_name',
+                select: 'id,full_name,commission_rate_pct',
                 filters: [{ column: 'id', op: 'in', value: `(${tenantIds.join(',')})` }],
                 accessToken: token
             });
             const tenantMap = new Map(tenants.map((t) => [t.id, t]));
+
+            const profileRows = await selectRows('profiles', {
+                select: 'commission_rate_pct',
+                filters: [{ column: 'id', op: 'eq', value: user.userId }],
+                accessToken: token
+            });
+            const rate = profileRows?.[0]?.commission_rate_pct || 0;
+            setCommissionPct(rate);
 
             const enriched = payments.map((p) => {
                 const booking = bookingMap.get((p as any).booking_id) as any;
@@ -97,7 +107,17 @@ export default function PaymentsPage() {
                 };
             });
 
+            const approved = bookings
+                .filter(b => b.status === 'approved')
+                .map(b => {
+                    const listing: any = listingMap.get(b.listing_id);
+                    const tenant = tenantMap.get(b.tenant_id);
+                    const commission = listing ? (Number(listing.price_monthly || 0) * rate) / 100 : 0;
+                    return { ...b, listing, tenant, commission };
+                });
+
             setRecords(enriched);
+            setApprovedBookings(approved);
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -213,6 +233,57 @@ export default function PaymentsPage() {
                     </div>
                 </section>
             ) : null}
+
+            <div className="section__header" style={{ marginTop: '3rem' }}>
+                <div>
+                    <h2>Commission Tracking</h2>
+                    <p>Calculated automatically from your approved bookings.</p>
+                </div>
+            </div>
+
+            <section className="metric-grid" style={{ marginBottom: '1.5rem' }}>
+                <article className="metric-card">
+                    <p>Commission Rate</p>
+                    <strong style={{ color: 'var(--jade)' }}>{commissionPct}%</strong>
+                    <span className="muted">Standard platform fee</span>
+                </article>
+                <article className="metric-card">
+                    <p>Total Monthly Commission Owed</p>
+                    <strong style={{ color: 'var(--jade)' }}>{formatMoney(approvedBookings.reduce((sum, b) => sum + (b.commission || 0), 0))}</strong>
+                    <span className="muted">For all active tenants</span>
+                </article>
+            </section>
+
+            {approvedBookings.length > 0 ? (
+                <section className="card">
+                    <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                            <thead>
+                                <tr style={{ borderBottom: '2px solid var(--border)', textAlign: 'left' }}>
+                                    <th style={{ padding: '0.6rem 0.75rem' }}>Tenant</th>
+                                    <th style={{ padding: '0.6rem 0.75rem' }}>Listing</th>
+                                    <th style={{ padding: '0.6rem 0.75rem' }}>Monthly Rent</th>
+                                    <th style={{ padding: '0.6rem 0.75rem' }}>Commission</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {approvedBookings.map((b) => (
+                                    <tr key={b.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                                        <td style={{ padding: '0.6rem 0.75rem' }}>{b.tenant?.full_name || '—'}</td>
+                                        <td style={{ padding: '0.6rem 0.75rem' }}>{b.listing?.title || '—'}</td>
+                                        <td style={{ padding: '0.6rem 0.75rem' }}>{formatMoney(b.listing?.price_monthly || 0)}</td>
+                                        <td style={{ padding: '0.6rem 0.75rem', fontWeight: 600 }}>{formatMoney(b.commission)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            ) : (
+                <section className="card">
+                    <p className="muted">No approved bookings yet to calculate commission.</p>
+                </section>
+            )}
         </div>
     );
 }

@@ -289,16 +289,11 @@ export default function LandlordDashboardPage() {
       ) : null}
 
       <section className="card">
-        <h2>{t('dashboard.inquiriesAndMessages')}</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2>{t('dashboard.inquiriesAndMessages')}</h2>
+          <Link to="/landlord/analytics" className="btn btn--ghost btn--small">View Full Analytics →</Link>
+        </div>
         <div className="admin-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
-          <div className="stat-card" style={{ background: 'var(--surface)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border)' }}>
-            <h3 style={{ fontSize: '0.9rem', color: 'var(--muted)', marginBottom: '0.5rem' }}>👀 {t('analytics.totalViews', 'Total Views')}</h3>
-            <p style={{ fontSize: '1.5rem', fontWeight: 700 }}>{analytics.totalViews}</p>
-          </div>
-          <div className="stat-card" style={{ background: 'var(--surface)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border)' }}>
-            <h3 style={{ fontSize: '0.9rem', color: 'var(--muted)', marginBottom: '0.5rem' }}>❤️ {t('analytics.totalSaves', 'Total Saves')}</h3>
-            <p style={{ fontSize: '1.5rem', fontWeight: 700 }}>{analytics.totalSaves}</p>
-          </div>
           <div className="stat-card" style={{ background: 'var(--surface)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border)' }}>
             <h3 style={{ fontSize: '0.9rem', color: 'var(--muted)', marginBottom: '0.5rem' }}>💬 {t('dashboard.unreadMessages')}</h3>
             <p style={{ fontSize: '1.5rem', fontWeight: 700 }}>{conversationStats.unread}</p>

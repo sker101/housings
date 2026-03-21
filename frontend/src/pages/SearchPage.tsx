@@ -12,6 +12,24 @@ import {
 } from '../lib/listings';
 import { SORT_OPTIONS, ROOM_TYPES } from '../lib/constants';
 
+const UNIVERSITIES = {
+  udsm: { label: 'UDSM', lat: -6.7798, lng: 39.2045 },
+  ardhi: { label: 'Ardhi', lat: -6.7720, lng: 39.2274 },
+  muhimbili: { label: 'Muhimbili', lat: -6.8041, lng: 39.2745 },
+  sua: { label: 'SUA', lat: -6.8480, lng: 37.6443 }
+};
+
+function getDistanceKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 const PAGE_SIZE = 24;
 
 export default function SearchPage() {
@@ -24,6 +42,8 @@ export default function SearchPage() {
     query: searchParams.get('q') || '',
     roomType: 'all',
     genderPreference: 'any',
+    utilitiesIncluded: 'any',
+    university: 'any',
     minPrice: '',
     maxPrice: '',
     sort: 'newest'
@@ -169,7 +189,28 @@ export default function SearchPage() {
       : t('search.showingResultsPlural', { count: listings.length });
   }, [loading, listings.length, t]);
 
-  const mapListings = useMemo(() => listings, [listings]);
+  const processedListings = useMemo(() => {
+    let result = [...listings];
+
+    if (filters.utilitiesIncluded === 'yes') {
+      result = result.filter(l => l.amenities && (l.amenities.includes('water') || l.amenities.includes('electricity') || l.amenities.includes('wifi')));
+    }
+
+    if (filters.university !== 'any' && UNIVERSITIES[filters.university as keyof typeof UNIVERSITIES]) {
+      const uni = UNIVERSITIES[filters.university as keyof typeof UNIVERSITIES];
+      result = result.map(l => {
+        if (!l.latitude || !l.longitude) return l;
+        const dist = getDistanceKm(uni.lat, uni.lng, Number(l.latitude), Number(l.longitude));
+        return { ...l, distanceKm: dist, distanceStr: `${dist.toFixed(1)} km from ${uni.label}` };
+      });
+      // Sort by distance automatically
+      result.sort((a, b) => (a.distanceKm || 999) - (b.distanceKm || 999));
+    }
+
+    return result;
+  }, [listings, filters.utilitiesIncluded, filters.university]);
+
+  const mapListings = useMemo(() => processedListings, [processedListings]);
 
   const updateFilter = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -237,6 +278,25 @@ export default function SearchPage() {
         />
 
         <select
+          value={filters.university}
+          onChange={(event) => updateFilter('university', event.target.value)}
+        >
+          <option value="any">Any University</option>
+          <option value="udsm">UDSM</option>
+          <option value="ardhi">Ardhi</option>
+          <option value="muhimbili">Muhimbili</option>
+          <option value="sua">SUA</option>
+        </select>
+
+        <select
+          value={filters.utilitiesIncluded}
+          onChange={(event) => updateFilter('utilitiesIncluded', event.target.value)}
+        >
+          <option value="any">Utilities (Any)</option>
+          <option value="yes">Included</option>
+        </select>
+
+        <select
           value={filters.roomType}
           onChange={(event) => updateFilter('roomType', event.target.value)}
         >
@@ -255,19 +315,20 @@ export default function SearchPage() {
           <option value="female">{t('search.female')}</option>
         </select>
 
-        <input
-          type="number"
-          value={filters.minPrice}
-          onChange={(event) => updateFilter('minPrice', event.target.value)}
-          placeholder={t('search.minPrice')}
-        />
-
-        <input
-          type="number"
-          value={filters.maxPrice}
-          onChange={(event) => updateFilter('maxPrice', event.target.value)}
-          placeholder={t('search.maxPrice')}
-        />
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <input
+            type="range"
+            min="0"
+            max="500000"
+            step="10000"
+            value={filters.maxPrice || 500000}
+            onChange={(event) => { updateFilter('maxPrice', event.target.value); updateFilter('minPrice', '0'); }}
+            style={{ flex: 1 }}
+          />
+          <span style={{ fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+            Max: {filters.maxPrice ? `${Number(filters.maxPrice).toLocaleString()} TZS` : '500k+'}
+          </span>
+        </div>
 
         <select
           value={filters.sort}
@@ -302,7 +363,7 @@ export default function SearchPage() {
             {loading ? (
               Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)
             ) : (
-              listings.map((listing) => (
+              processedListings.map((listing: any) => (
                 <ListingCard
                   key={listing.id}
                   listing={listing}

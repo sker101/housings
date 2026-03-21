@@ -841,7 +841,16 @@ export default function RoomDetailsPage() {
         <div className="room-hero__content">
           <div className="room-hero__title-row">
             <h1>{listing.title}</h1>
-            {listing.featured ? <span className="room-featured-badge">{t('roomDetails.featured')}</span> : null}
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              {listing.featured ? <span className="room-featured-badge">{t('roomDetails.featured')}</span> : null}
+              {Number(averageRating) > 0 && reviews.length > 0 ? (
+                <span className="room-review-stars" style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', background: '#eef2ff', padding: '0.2rem 0.6rem', borderRadius: 16 }}>
+                  <span style={{ color: '#f59e0b', fontSize: '1.2rem' }}>★</span>
+                  <strong style={{ color: '#3730A3' }}>{averageRating}</strong>
+                  <span style={{ color: '#4F46E5', fontSize: '0.85rem' }}>({reviews.length})</span>
+                </span>
+              ) : null}
+            </div>
           </div>
           <p className="room-hero__location">{listing.location}</p>
           <p className="room-price">{formatPrice(listing.priceMonthly)}</p>
@@ -1065,12 +1074,15 @@ export default function RoomDetailsPage() {
         {reviewsLoading ? <p className="muted">Loading reviews...</p> : null}
 
         {!reviewsLoading && reviews.length === 0 ? (
-          <p className="muted">No reviews yet. Be the first to review this listing.</p>
+          <div>
+            <p className="muted" style={{ marginBottom: '1rem' }}>No reviews yet. Be the first to review this listing.</p>
+            <Link to={`/reviews?listing=${listing.id}`} className="btn btn--ghost btn--small">Write a Review</Link>
+          </div>
         ) : null}
 
         {!reviewsLoading && reviews.length > 0 ? (
           <div className="room-reviews__list">
-            {reviews.map((review) => (
+            {reviews.slice(0, 3).map((review: any) => (
               <article key={review.id} className="room-review-card">
                 <div className="room-review-card__header">
                   {review.authorPhotoUrl ? (
@@ -1091,45 +1103,11 @@ export default function RoomDetailsPage() {
                 {review.comment ? <p>{review.comment}</p> : null}
               </article>
             ))}
+
+            <Link to={`/reviews?listing=${listing.id}`} className="btn btn--ghost" style={{ marginTop: '1rem', display: 'inline-block' }}>
+              See all {reviews.length} reviews
+            </Link>
           </div>
-        ) : null}
-
-        {/* Write a review form */}
-        {isAuthenticated && user?.userId !== listing.listerId ? (
-          <form className="room-review-form" onSubmit={handleSubmitReview}>
-            <h3>{t('roomDetails.writeReview')}</h3>
-            <div className="room-review-form__stars">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  type="button"
-                  className={`room-star-btn ${star <= (hoverRating || myRating) ? 'is-active' : ''}`}
-                  onClick={() => setMyRating(star)}
-                  onMouseEnter={() => setHoverRating(star)}
-                  onMouseLeave={() => setHoverRating(0)}
-                  aria-label={`Rate ${star} star${star !== 1 ? 's' : ''}`}
-                >
-                  {star <= (hoverRating || myRating) ? '★' : '☆'}
-                </button>
-              ))}
-              <span className="muted">{myRating > 0 ? `${myRating}/5` : 'Select rating'}</span>
-            </div>
-            <textarea
-              value={myComment}
-              onChange={(event) => setMyComment(event.target.value)}
-              placeholder="..."
-              maxLength={500}
-            />
-            <button type="submit" className="btn" disabled={submittingReview || myRating === 0}>
-              {submittingReview ? t('roomDetails.submitting') : t('roomDetails.submitReview')}
-            </button>
-          </form>
-        ) : null}
-
-        {!isAuthenticated ? (
-          <p className="muted">
-            <Link to="/login">Log in</Link> {t('roomDetails.loginToReview')}
-          </p>
         ) : null}
       </section>
 

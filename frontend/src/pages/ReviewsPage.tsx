@@ -3,17 +3,29 @@ import { useTranslation } from 'react-i18next';
 import { Star } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { selectRows } from '../lib/supabase';
+import { fetchListingBookingsForUser, upsertListingReview } from '../lib/listings';
 import { APP_ROLE } from '../lib/roles';
+import { useSearchParams, Link } from 'react-router-dom';
 
 export default function ReviewsPage() {
     const { user, token } = useAuth();
     const { t } = useTranslation();
+
+    const [searchParams] = useSearchParams();
+    const listingQuery = searchParams.get('listing');
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [reviews, setReviews] = useState<any[]>([]);
     const [profiles, setProfiles] = useState<Record<string, any>>({});
     const [listings, setListings] = useState<Record<string, any>>({});
+
+    const [canReview, setCanReview] = useState(false);
+    const [myRating, setMyRating] = useState(0);
+    const [hoverRating, setHoverRating] = useState(0);
+    const [myComment, setMyComment] = useState('');
+    const [submittingReview, setSubmittingReview] = useState(false);
+    const [notice, setNotice] = useState('');
 
     useEffect(() => {
         let mounted = true;
@@ -24,7 +36,30 @@ export default function ReviewsPage() {
 
                 let reviewRows: any[] = [];
 
-                if (user.role === APP_ROLE.LISTER) {
+                if (listingQuery) {
+                    // Fetch all reviews for this specific listing
+                    reviewRows = await selectRows('reviews', {
+                        select: 'id,tenant_id,listing_id,rating,comment,created_at',
+                        filters: [{ column: 'listing_id', op: 'eq', value: listingQuery }],
+                        order: 'created_at.desc',
+                        limit: 100, accessToken: token
+                    });
+
+                    if (user.role === APP_ROLE.STUDENT) {
+                        try {
+                            const bookings = await fetchListingBookingsForUser({
+                                listingId: listingQuery,
+                                userId: user.userId,
+                                accessToken: token
+                            });
+                            if (bookings.some(b => b.status === 'approved')) {
+                                setCanReview(true);
+                            }
+                        } catch {
+                            // Can't review
+                        }
+                    }
+                } else if (user.role === APP_ROLE.LISTER) {
                     // Fetch reviews ON properties owned by this landlord
                     const myListingRows = await selectRows('listings', {
                         select: 'id,title', filters: [{ column: 'lister_id', op: 'eq', value: user.userId }],
@@ -55,7 +90,7 @@ export default function ReviewsPage() {
 
                 if (!mounted) return;
 
-                // Fetch users who wrote the reviews (relevant for landlord)
+                // Fetch users who wrote the reviews (relevant for landlord or public view)
                 if (reviewRows.length > 0 && user.role === APP_ROLE.LISTER) {
                     const uIds = Array.from(new Set(reviewRows.map(r => r.tenant_id)));
                     const userRows = await selectRows('profiles', {
@@ -67,8 +102,8 @@ export default function ReviewsPage() {
                     setProfiles(cmap);
                 }
 
-                // Fetch listings if student (to know what property they reviewed)
-                if (reviewRows.length > 0 && user.role === APP_ROLE.STUDENT) {
+                // Fetch listings to know what property they reviewed
+                if (reviewRows.length > 0) {
                     const listIds = Array.from(new Set(reviewRows.map(r => r.listing_id)));
                     const rListings = await selectRows('listings', {
                         select: 'id,title', filters: [{ column: 'id', op: 'in', value: `(${listIds.join(',')})` }],
@@ -76,7 +111,7 @@ export default function ReviewsPage() {
                     });
                     const lmap: Record<string, any> = {};
                     rListings.forEach((l: any) => lmap[l.id] = l);
-                    setListings(lmap);
+                    setListings(prev => ({ ...prev, ...lmap }));
                 }
 
                 setReviews(reviewRows);
@@ -89,23 +124,64 @@ export default function ReviewsPage() {
         }
         loadData();
         return () => { mounted = false; };
-    }, [user?.userId, token, user?.role]);
+    }, [user?.userId, token, user?.role, listingQuery]);
+
+    const handleSubmitReview = async (event: React.FormEvent) => {
+        event.preventDefault();
+        if (!listingQuery || !user?.userId || !token) return;
+
+        if (myRating < 1 || myRating > 5) {
+            setError('Please select a rating between 1 and 5 stars.');
+            return;
+        }
+
+        setSubmittingReview(true);
+        setError('');
+
+        try {
+            await upsertListingReview({
+                listingId: listingQuery,
+                tenantId: user.userId,
+                rating: myRating,
+                comment: myComment,
+                accessToken: token
+            });
+
+            const newReviewRows = await selectRows('reviews', {
+                select: 'id,tenant_id,listing_id,rating,comment,created_at',
+                filters: [{ column: 'listing_id', op: 'eq', value: listingQuery }],
+                order: 'created_at.desc',
+                limit: 100, accessToken: token
+            });
+            setReviews(newReviewRows);
+
+            setMyRating(0);
+            setMyComment('');
+            setNotice('Review submitted successfully.');
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setSubmittingReview(false);
+        }
+    };
 
     if (loading) return <div className="container section"><p>Loading reviews...</p></div>;
-    if (error) return <div className="container section"><p className="error-text">{error}</p></div>;
 
     const totalReviews = reviews.length;
     const avgRating = totalReviews > 0 ? (reviews.reduce((acc, r) => acc + Number(r.rating), 0) / totalReviews).toFixed(1) : 0;
 
     return (
         <div className="container section">
+            {notice && <p className="success-text">{notice}</p>}
+            {error && <p className="error-text">{error}</p>}
+
             <div className="section__header">
                 <div>
-                    <h1>{user?.role === APP_ROLE.LISTER ? t('reviews.tenantReviews') : t('reviews.myReviews')}</h1>
+                    <h1>{listingQuery ? t('reviews.listingReviews', 'Listing Reviews') : (user?.role === APP_ROLE.LISTER ? t('reviews.tenantReviews') : t('reviews.myReviews'))}</h1>
                     <p>
-                        {user?.role === APP_ROLE.LISTER
+                        {listingQuery ? t('reviews.publicSubtitle', 'See what others have said about this property.') : (user?.role === APP_ROLE.LISTER
                             ? t('reviews.landlordSubtitle')
-                            : t('reviews.studentSubtitle')}
+                            : t('reviews.studentSubtitle'))}
                     </p>
                 </div>
             </div>
@@ -164,6 +240,45 @@ export default function ReviewsPage() {
                     })
                 )}
             </div>
+
+            {/* Write a review form */}
+            {canReview && listingQuery ? (
+                <section className="card room-reviews" style={{ marginTop: '2rem' }}>
+                    <form className="room-review-form" onSubmit={handleSubmitReview}>
+                        <h3>{t('roomDetails.writeReview')}</h3>
+                        <div className="room-review-form__stars">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                                <button
+                                    key={star}
+                                    type="button"
+                                    className={`room-star-btn ${star <= (hoverRating || myRating) ? 'is-active' : ''}`}
+                                    onClick={() => setMyRating(star)}
+                                    onMouseEnter={() => setHoverRating(star)}
+                                    onMouseLeave={() => setHoverRating(0)}
+                                    aria-label={`Rate ${star} star${star !== 1 ? 's' : ''}`}
+                                >
+                                    {star <= (hoverRating || myRating) ? '★' : '☆'}
+                                </button>
+                            ))}
+                            <span className="muted">{myRating > 0 ? `${myRating}/5` : 'Select rating'}</span>
+                        </div>
+                        <textarea
+                            value={myComment}
+                            onChange={(event) => setMyComment(event.target.value)}
+                            placeholder="..."
+                            maxLength={500}
+                        />
+                        <button type="submit" className="btn" disabled={submittingReview || myRating === 0}>
+                            {submittingReview ? t('roomDetails.submitting') : t('roomDetails.submitReview')}
+                        </button>
+                    </form>
+                </section>
+            ) : null}
+
+            {listingQuery && user && user.role === APP_ROLE.STUDENT && !canReview ? (
+                <p className="muted" style={{ marginTop: '2rem' }}>You can only review this listing if you have an approved booking.</p>
+            ) : null}
+
         </div>
     );
 }

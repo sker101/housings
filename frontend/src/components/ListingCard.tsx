@@ -47,6 +47,9 @@ export default function ListingCard({ listing, onToggleSave, isSaved = false }) 
         <div className="listing-card__meta">
           <span>{humanize(listing.roomType)}</span>
           <span>{humanize(listing.genderPreference)}</span>
+          {listing.distanceStr && (
+            <span style={{ color: 'var(--jade)', fontWeight: 'bold' }}>📍 {listing.distanceStr}</span>
+          )}
           {listing.avgRating ? (
             <span className="listing-card__rating" title={`${listing.avgRating}/5 stars`}>
               {'★'.repeat(Math.round(Number(listing.avgRating)))}{'☆'.repeat(5 - Math.round(Number(listing.avgRating)))}

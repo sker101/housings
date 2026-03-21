@@ -22,6 +22,11 @@ export default function Layout({ children }) {
   const [tenantCount, setTenantCount] = useState(0);
   const [savedCount, setSavedCount] = useState(0);
   const [activeBookings, setActiveBookings] = useState(0);
+  const [occupancyRate, setOccupancyRate] = useState(0);
+  const [pendingInquiries, setPendingInquiries] = useState(0);
+  const [mtdEarnings, setMtdEarnings] = useState(0);
+  const [subscriptionTier, setSubscriptionTier] = useState('free');
+
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const hasSyncedLanguage = useRef(false);
 
@@ -170,17 +175,35 @@ export default function Layout({ children }) {
       if (!isAuthenticated || !user?.userId || !token) return;
       try {
         if (user.role === APP_ROLE.LISTER) {
+          const profileRows = await selectRows('profiles', {
+            select: 'subscription_plan', filters: [{ column: 'id', op: 'eq', value: user.userId }],
+            accessToken: token
+          });
+          const tier = profileRows.length > 0 && profileRows[0].subscription_plan ? profileRows[0].subscription_plan : 'free';
+
           const listingsRows = await selectRows('listings', {
-            select: 'id', filters: [{ column: 'lister_id', op: 'eq', value: user.userId }, { column: 'status', op: 'eq', value: 'approved' }],
+            select: 'id,vacancy_status,price_monthly', filters: [{ column: 'lister_id', op: 'eq', value: user.userId }, { column: 'status', op: 'eq', value: 'approved' }],
             limit: 1000, accessToken: token
           });
           const tenantRows = await selectRows('bookings', {
             select: 'id', filters: [{ column: 'lister_id', op: 'eq', value: user.userId }, { column: 'status', op: 'eq', value: 'approved' }],
             limit: 1000, accessToken: token
           });
+          const pendingRows = await selectRows('bookings', {
+            select: 'id', filters: [{ column: 'lister_id', op: 'eq', value: user.userId }, { column: 'status', op: 'eq', value: 'requested' }],
+            limit: 1000, accessToken: token
+          });
           if (mounted) {
+            setSubscriptionTier(tier);
             setActiveListings(listingsRows.length);
             setTenantCount(tenantRows.length);
+            setPendingInquiries(pendingRows.length);
+
+            const occupied = listingsRows.filter((r: any) => r.vacancy_status === 'occupied').length;
+            setOccupancyRate(listingsRows.length > 0 ? Math.round((occupied / listingsRows.length) * 100) : 0);
+
+            const earnings = listingsRows.filter((r: any) => r.vacancy_status === 'occupied').reduce((sum: number, r: any) => sum + Number(r.price_monthly || 0), 0);
+            setMtdEarnings(earnings);
           }
         } else if (user.role === APP_ROLE.STUDENT) {
           const savedRows = await selectRows('saved_listings', {
@@ -344,7 +367,10 @@ export default function Layout({ children }) {
             unreadNotifs={notifCount}
             activeListings={activeListings}
             tenantCount={tenantCount}
-            subscriptionTier="free" // TODO: Fetch tier dynamically later
+            occupancyRate={occupancyRate}
+            pendingInquiries={pendingInquiries}
+            mtdEarnings={mtdEarnings}
+            subscriptionTier={subscriptionTier as 'free' | 'verified' | 'premium'}
             isCollapsed={!isSidebarOpen}
           />
         ) : null}

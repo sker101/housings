@@ -110,12 +110,12 @@ export default function LandlordSidebar({
 
     const NAV: NavItem[] = [
         { to: '/landlord', icon: <LayoutDashboard size={18} />, label: 'My Dashboard' },
-        { to: '/landlord', icon: <Building2 size={18} />, label: 'My Listings', meta: `${activeListings} Active` },
+        { to: '/landlord/listings', icon: <Building2 size={18} />, label: 'My Listings', meta: `${activeListings} Active` },
         { to: '/messages', icon: <Inbox size={18} />, label: 'Inquiries', badge: pendingInquiries, color: '#ef4444' },
-        { to: '/messages', icon: <Users size={18} />, label: 'My Tenants', meta: `${tenantCount} Total` },
+        { to: '/landlord/tenants', icon: <Users size={18} />, label: 'My Tenants', meta: `${tenantCount} Total` },
         { to: '/landlord/payments', icon: <Wallet size={18} />, label: 'Earnings', meta: mtdEarnings > 0 ? `TZS ${mtdEarnings.toLocaleString()}` : '—' },
         { to: '/profile', icon: <Star size={18} />, label: 'Reviews', meta: avgRating > 0 ? `${avgRating.toFixed(1)} ★` : '—' },
-        { to: '/landlord', icon: <BarChart2 size={18} />, label: 'Analytics' },
+        { to: '/landlord/analytics', icon: <BarChart2 size={18} />, label: 'Analytics' },
         { to: '/notifications', icon: <Bell size={18} />, label: 'Notifications', badge: unreadNotifs },
         { to: '/profile', icon: <Settings size={18} />, label: 'Account Settings' },
     ];
@@ -241,7 +241,7 @@ export default function LandlordSidebar({
                     </div>
                     <button
                         type="button"
-                        onClick={() => navigate('/profile')}
+                        onClick={() => navigate('/landlord/upgrade')}
                         style={{
                             width: '100%', padding: '0.45rem', background: GOLD, color: WHITE,
                             border: 'none', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700,

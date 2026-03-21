@@ -95,10 +95,18 @@ export default function LandlordAnalyticsPage() {
                 // D. Totals
                 const totalViews = listingRows.reduce((sum, r) => sum + (Number(r.view_count) || 0), 0);
                 const totalSaves = saveRows.length;
+                // E. Table Data
+                const tableData = listingRows.map(l => {
+                    const views = Number(l.view_count) || 0;
+                    const saves = savesMap[l.id] || 0;
+                    const bookings = bookingRows.filter(b => b.listing_id === l.id).length;
+                    const conversionRate = views > 0 ? ((bookings / views) * 100).toFixed(1) : '0.0';
+                    return { id: l.id, title: l.title, views, saves, bookings, conversionRate };
+                });
 
                 setStats({
                     totalViews, totalSaves,
-                    viewsData, savesData, bookingStatusData
+                    viewsData, savesData, bookingStatusData, tableData
                 });
 
             } catch (err: any) {
@@ -205,6 +213,46 @@ export default function LandlordAnalyticsPage() {
                 </section>
 
             </div>
+
+            <section className="card" style={{ marginTop: '2rem' }}>
+                <h2>Per-Listing Performance</h2>
+                {stats.tableData && stats.tableData.length > 0 ? (
+                    <div className="table-wrap">
+                        <table style={{ minWidth: '700px' }}>
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Views</th>
+                                    <th>Saves</th>
+                                    <th>Bookings</th>
+                                    <th>Conversion Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {stats.tableData.map((row: any) => (
+                                    <tr key={row.id}>
+                                        <td style={{ fontWeight: 600 }}>{row.title}</td>
+                                        <td>{row.views}</td>
+                                        <td>{row.saves}</td>
+                                        <td>{row.bookings}</td>
+                                        <td>
+                                            <span style={{
+                                                background: Number(row.conversionRate) > 0 ? '#ecfdf5' : '#f8faf9',
+                                                color: Number(row.conversionRate) > 0 ? '#059669' : '#6b7280',
+                                                padding: '2px 8px', borderRadius: '12px', fontWeight: 600, fontSize: '0.85rem'
+                                            }}>
+                                                {row.conversionRate}%
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                ) : (
+                    <p className="muted">No detailed performance data available yet.</p>
+                )}
+            </section>
         </div>
     );
 }

@@ -10,6 +10,9 @@ import AdminListingsPage from './pages/AdminListingsPage';
 import AdminReportsPage from './pages/AdminReportsPage';
 import HomePage from './pages/HomePage';
 import LandlordDashboardPage from './pages/LandlordDashboardPage';
+import LandlordListingsPage from './pages/LandlordListingsPage';
+import LandlordTenantsPage from './pages/LandlordTenantsPage';
+import LandlordUpgradePage from './pages/LandlordUpgradePage';
 import ListPropertyPage from './pages/ListPropertyPage';
 import LoginPage from './pages/LoginPage';
 import MessagesPage from './pages/MessagesPage';
@@ -95,6 +98,33 @@ export default function App() {
           element={
             <ProtectedRoute roles={[APP_ROLE.LISTER]}>
               <LandlordDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/landlord/listings"
+          element={
+            <ProtectedRoute roles={[APP_ROLE.LISTER]}>
+              <LandlordListingsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/landlord/tenants"
+          element={
+            <ProtectedRoute roles={[APP_ROLE.LISTER]}>
+              <LandlordTenantsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/landlord/upgrade"
+          element={
+            <ProtectedRoute roles={[APP_ROLE.LISTER]}>
+              <LandlordUpgradePage />
             </ProtectedRoute>
           }
         />
