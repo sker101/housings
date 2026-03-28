@@ -426,6 +426,7 @@ label {
 .listing-grid {
   display: grid;
   gap: 0.86rem;
+  grid-template-columns: 1fr;
 }
 
 .listing-card {
@@ -1634,6 +1635,50 @@ tbody td {
     max-width: 600px;
     border-radius: 18px;
     padding: 1.5rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero__content {
+    padding: 2rem 1rem 1.8rem;
+    text-align: center;
+  }
+
+  .search-panel {
+    grid-template-columns: 1fr;
+    padding: 0.55rem 0.7rem;
+    gap: 0.5rem;
+  }
+
+  .search-panel input,
+  .search-panel select,
+  .search-panel .btn {
+    width: 100%;
+  }
+
+  .hero__chips {
+    justify-content: center;
+  }
+
+  .listing-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .room-page {
+    padding: 0 0.4rem;
+  }
+
+  .room-hero__image {
+    min-height: 210px;
+    max-height: 260px;
+  }
+
+  .room-hero__thumbs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .room-thumb img {
+    height: 58px;
   }
 }
 
