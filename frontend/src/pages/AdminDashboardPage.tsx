@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { countRows, selectRows, upsertRows, invokeFunction } from '../lib/supabase';
@@ -696,13 +696,11 @@ export default function AdminDashboardPage() {
     if (!queueData[key]) { loadQueue(key, 'admin_audit_log', { select: 'id,admin_id,action,target_type,target_id,reason,created_at', order: 'created_at.desc', limit: 200 }); }
     const rows = queueData[key] || [];
 
-    const filteredRows = useMemo(() => {
-      return rows.filter(r => {
-        if (auditFilters.action !== 'ALL' && r.action !== auditFilters.action) return false;
-        if (auditFilters.search && !String(r.target_id).toLowerCase().includes(auditFilters.search.toLowerCase())) return false;
-        return true;
-      });
-    }, [rows, auditFilters]);
+    const filteredRows = rows.filter(r => {
+      if (auditFilters.action !== 'ALL' && r.action !== auditFilters.action) return false;
+      if (auditFilters.search && !String(r.target_id).toLowerCase().includes(auditFilters.search.toLowerCase())) return false;
+      return true;
+    });
 
     return (
       <>

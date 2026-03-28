@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
-import { APP_ROLE } from '../lib/roles';
 
 export default function LoginPage() {
   const { login, loading } = useAuth();
@@ -23,7 +22,7 @@ export default function LoginPage() {
   const hasNoLeadingTrailingSpace =
     formData.password.length > 0 && formData.password === formData.password.trim();
 
-  const redirectAfterLogin = (role) => {
+  const redirectAfterLogin = () => {
     const pathFromState = location.state?.from?.pathname;
     if (pathFromState) {
       navigate(pathFromState, { replace: true });
@@ -41,11 +40,11 @@ export default function LoginPage() {
     if (!hasNoLeadingTrailingSpace) { setError('Password cannot start or end with spaces.'); return; }
 
     try {
-      const response = await login(
+      await login(
         { email: formData.email.trim().toLowerCase(), password: formData.password },
         { rememberMe: formData.rememberMe }
       );
-      redirectAfterLogin(response.role);
+      redirectAfterLogin();
     } catch (err) {
       const msg: string = (err as any).message || '';
       if (msg.toLowerCase().includes('email not confirmed')) {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import {
     LayoutDashboard, Users, Home, ClipboardList, Flag, Star, BellRing, Settings,
     UserPlus, Building, ShieldAlert, BookOpen, LogOut, HelpCircle
@@ -25,7 +25,6 @@ export default function AdminSidebar({
     isCollapsed = false,
 }: AdminSidebarProps) {
     const { user, logout } = useAuth();
-    const navigate = useNavigate();
     const location = useLocation();
     const searchParams = new URLSearchParams(location.search);
     const currentTab = searchParams.get('tab') || 'overview';

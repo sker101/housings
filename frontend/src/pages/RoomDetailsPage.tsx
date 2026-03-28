@@ -11,8 +11,7 @@ import {
   fetchListingReviews,
   fetchRelatedListings,
   fetchSavedListingIds,
-  toggleSavedListing,
-  upsertListingReview
+  toggleSavedListing
 } from '../lib/listings';
 import { countRows, insertRows, invokeFunction, selectRows, updateRows } from '../lib/supabase';
 
@@ -177,10 +176,6 @@ export default function RoomDetailsPage() {
   // Reviews state
   const [reviews, setReviews] = useState([]);
   const [reviewsLoading, setReviewsLoading] = useState(true);
-  const [myRating, setMyRating] = useState(0);
-  const [myComment, setMyComment] = useState('');
-  const [submittingReview, setSubmittingReview] = useState(false);
-  const [hoverRating, setHoverRating] = useState(0);
 
   // Bookings state
   const [existingBooking, setExistingBooking] = useState(null);
@@ -603,43 +598,6 @@ export default function RoomDetailsPage() {
     const sum = reviews.reduce((acc, review) => acc + review.rating, 0);
     return (sum / reviews.length).toFixed(1);
   }, [reviews]);
-
-  const handleSubmitReview = async (event) => {
-    event.preventDefault();
-
-    if (!listing?.id || !user?.userId || !token) {
-      navigate('/login');
-      return;
-    }
-
-    if (myRating < 1 || myRating > 5) {
-      setError('Please select a rating between 1 and 5 stars.');
-      return;
-    }
-
-    setSubmittingReview(true);
-    setError('');
-
-    try {
-      await upsertListingReview({
-        listingId: listing.id,
-        tenantId: user.userId,
-        rating: myRating,
-        comment: myComment,
-        accessToken: token
-      });
-
-      const updatedReviews = await fetchListingReviews(listing.id, token);
-      setReviews(updatedReviews);
-      setMyRating(0);
-      setMyComment('');
-      setNotice('Review submitted.');
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setSubmittingReview(false);
-    }
-  };
 
   const submitInquiry = async (event) => {
     event.preventDefault();

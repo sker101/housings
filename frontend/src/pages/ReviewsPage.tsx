@@ -287,11 +287,7 @@ export default function ReviewsPage() {
                 <p className="sum-lbl">Avg. rating</p>
                 <p className="sum-val" style={{ margin: 0 }}>{avgRating}</p>
               </div>
-              <div className="rv-stars">
-                {[1, 2, 3, 4, 5].map((s) => (
-                  <span key={s} className={`star ${s <= Math.round(Number(avgRating)) ? 'on' : 'off'}`}>★</span>
-                ))}
-              </div>
+              <div className="rv-stars">{renderStars(Math.round(Number(avgRating)))}</div>
             </div>
             <div className="sum-card">
               <div>
@@ -344,11 +340,7 @@ export default function ReviewsPage() {
                     </p>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <div className="rv-stars">
-                      {[1, 2, 3, 4, 5].map((s) => (
-                        <span key={s} className={`star ${s <= r.rating ? 'on' : 'off'}`}>★</span>
-                      ))}
-                    </div>
+                    <div className="rv-stars">{renderStars(r.rating)}</div>
                   </div>
                 </div>
                 {r.comment ? (

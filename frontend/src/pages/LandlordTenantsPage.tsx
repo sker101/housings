@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { selectRows } from '../lib/supabase';
 
 export default function LandlordTenantsPage() {
   const { user, token } = useAuth();
-  const { t } = useTranslation();
 
   const [tenants, setTenants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

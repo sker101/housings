@@ -40,6 +40,7 @@ function statusChip(status: string) {
     </span>
   );
 }
+void statusChip;
 
 export default function PaymentsPage() {
   const { user, token } = useAuth();

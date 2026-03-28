@@ -259,7 +259,7 @@ export default function NotificationsPage() {
             ))}
           </div>
         ) : notifications.length === 0 ? (
-          <div className="nt-empty">You're all caught up — no notifications yet.</div>
+          <div className="nt-empty">You&apos;re all caught up — no notifications yet.</div>
         ) : (
           <div className="nt-list">
             {notifications.map((n) => {

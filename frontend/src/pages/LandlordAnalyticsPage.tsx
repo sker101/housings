@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import {
   BarChart,
   Bar,
@@ -34,7 +33,6 @@ void _rechartsKeepAlive;
 
 export default function LandlordAnalyticsPage() {
   const { user, token } = useAuth();
-  const { t } = useTranslation();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');

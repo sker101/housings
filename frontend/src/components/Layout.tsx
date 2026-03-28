@@ -292,6 +292,8 @@ export default function Layout({ children }) {
             }}
             onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
             onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+            onFocus={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
+            onBlur={(e) => e.currentTarget.style.background = 'transparent'}
           >
             <Menu size={24} />
           </button>

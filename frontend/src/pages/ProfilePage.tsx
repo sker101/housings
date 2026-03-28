@@ -271,7 +271,7 @@ export default function ProfilePage() {
 
   return (
     <>
-      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}} .prof-page{padding:2rem;max-width:640px} .prof-hdr{margin-bottom:1.5rem} .badge-row{display:flex;gap:8px;margin-bottom:1.5rem;flex-wrap:wrap} .prof-badge{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600} .pb-role{background:#E6F1FB;color:#0C447C} .pb-phone-ok{background:#EAF3DE;color:#27500A} .pb-phone-no{background:#FAEEDA;color:#633806} .pb-plan{background:#EEEDFE;color:#3C3489} .pb-ver-ok{background:#EAF3DE;color:#27500A} .pb-ver-pend{background:#FAEEDA;color:#633806} .pb-ver-rej{background:#FCEBEB;color:#791F1F} .prof-sec{background:#ffffff;border:0.5px solid var(--border);border-radius:16px;padding:18px 20px;margin-bottom:12px} .prof-sec-title{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:14px} .prof-field{display:flex;flex-direction:column;gap:5px;margin-bottom:14px} .prof-field label{font-size:11px;font-weight:600;color:var(--mid);text-transform:uppercase;letter-spacing:.04em} .prof-field input{padding:9px 12px;border-radius:9px;border:0.5px solid var(--border);background:#fff;font-size:13px;color:var(--ink);outline:none;width:100%} .prof-save-btn{padding:9px 20px;border-radius:9px;border:none;background:var(--jade);color:#fff;font-size:13px;font-weight:600;cursor:pointer;margin-top:2px} .otp-section{margin-top:14px;padding-top:14px;border-top:0.5px solid var(--border)} .otp-title{font-size:12px;font-weight:600;color:var(--ink);margin-bottom:5px} .otp-hint{font-size:11px;color:var(--mid);margin-bottom:10px;line-height:1.5} .otp-send-btn{padding:7px 14px;border-radius:9px;border:0.5px solid var(--border);background:var(--cream);font-size:12px;cursor:pointer;color:var(--ink);font-weight:500} .otp-verify-row{display:flex;gap:8px;margin-top:8px} .otp-verify-row input{flex:1;padding:8px 12px;border-radius:9px;border:0.5px solid var(--border);font-size:13px;outline:none} .otp-verify-btn{padding:8px 14px;border-radius:9px;border:0.5px solid var(--border);background:#fff;font-size:12px;cursor:pointer;color:var(--ink);white-space:nowrap;font-weight:500} .rejected-box{background:#FEF2F1;border:0.5px solid #F09595;border-radius:12px;padding:14px 16px;margin-bottom:14px} .rejected-title{font-size:13px;font-weight:600;color:#791F1F;margin-bottom:6px} .rejected-hint{font-size:12px;color:#791F1F;margin-bottom:10px;line-height:1.5;opacity:0.8} .danger-sec{background:#ffffff;border:0.5px solid #F09595;border-radius:16px;padding:18px 20px;margin-bottom:12px} .danger-title{font-size:13px;font-weight:600;color:#791F1F;margin-bottom:8px} .danger-hint{font-size:12px;color:var(--mid);margin-bottom:12px;line-height:1.5} .danger-toggle-btn{padding:7px 14px;border-radius:9px;border:0.5px solid #F09595;background:#fff;font-size:12px;color:#791F1F;cursor:pointer;font-weight:500} .danger-confirm-field{margin-bottom:12px} .danger-confirm-field label{font-size:11px;color:var(--mid);display:block;margin-bottom:6px} .danger-confirm-field input{padding:8px 12px;border-radius:9px;border:0.5px solid #F09595;font-size:13px;outline:none;width:100%} .danger-delete-btn{padding:8px 16px;border-radius:9px;border:none;background:#A32D2D;color:#fff;font-size:12px;font-weight:600;cursor:pointer} .danger-cancel-btn{padding:8px 14px;border-radius:9px;border:0.5px solid var(--border);background:#fff;font-size:12px;cursor:pointer;color:var(--ink)} .msg-success{font-size:13px;color:#27500A;background:#EAF3DE;padding:10px 14px;border-radius:9px;margin-bottom:12px} .msg-error{font-size:13px;color:#791F1F;background:#FCEBEB;padding:10px 14px;border-radius:9px;margin-bottom:12px} @media(max-width:768px){.prof-page{padding:1rem}}`}</style>
+      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}} .prof-page{padding:3rem 2rem;max-width:800px;margin:0 auto} .prof-hdr{margin-bottom:2.5rem;text-align:center} .badge-row{display:flex;gap:10px;margin-bottom:2rem;flex-wrap:wrap;justify-content:center} .prof-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:24px;font-size:12px;font-weight:600} .pb-role{background:#E6F1FB;color:#0C447C} .pb-phone-ok{background:#EAF3DE;color:#27500A} .pb-phone-no{background:#FAEEDA;color:#633806} .pb-plan{background:#EEEDFE;color:#3C3489} .pb-ver-ok{background:#EAF3DE;color:#27500A} .pb-ver-pend{background:#FAEEDA;color:#633806} .pb-ver-rej{background:#FCEBEB;color:#791F1F} .prof-sec{background:#ffffff;border:0.5px solid var(--border);border-radius:20px;padding:24px 28px;margin-bottom:20px;box-shadow:var(--shadow-soft)} .prof-sec-title{font-size:14px;font-weight:700;color:var(--ink);margin-bottom:18px;border-bottom:0.5px solid var(--border);padding-bottom:10px} .prof-field{display:flex;flex-direction:column;gap:6px;margin-bottom:18px} .prof-field label{font-size:12px;font-weight:600;color:var(--mid);text-transform:uppercase;letter-spacing:.05em} .prof-field input{padding:10px 14px;border-radius:10px;border:0.5px solid var(--border);background:#fff;font-size:14px;color:var(--ink);outline:none;width:100%;transition:border-color 0.2s} .prof-field input:focus{border-color:var(--jade)} .prof-save-btn{padding:10px 24px;border-radius:10px;border:none;background:var(--jade);color:#fff;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px;transition:opacity 0.2s} .prof-save-btn:hover{opacity:0.9} .otp-section{margin-top:20px;padding-top:20px;border-top:0.5px solid var(--border)} .otp-title{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:6px} .otp-hint{font-size:12px;color:var(--mid);margin-bottom:12px;line-height:1.6} .otp-send-btn{padding:8px 16px;border-radius:10px;border:0.5px solid var(--border);background:var(--cream);font-size:13px;cursor:pointer;color:var(--ink);font-weight:500} .otp-verify-row{display:flex;gap:10px;margin-top:10px} .otp-verify-row input{flex:1;padding:9px 14px;border-radius:10px;border:0.5px solid var(--border);font-size:14px;outline:none} .otp-verify-btn{padding:9px 16px;border-radius:10px;border:0.5px solid var(--border);background:#fff;font-size:13px;cursor:pointer;color:var(--ink);white-space:nowrap;font-weight:600} .rejected-box{background:#FEF2F1;border:0.5px solid #F09595;border-radius:14px;padding:16px 18px;margin-bottom:18px} .rejected-title{font-size:14px;font-weight:700;color:#791F1F;margin-bottom:8px} .rejected-hint{font-size:13px;color:#791F1F;margin-bottom:12px;line-height:1.6;opacity:0.9} .danger-sec{background:#ffffff;border:0.5px solid #F09595;border-radius:20px;padding:24px 28px;margin-bottom:20px;box-shadow:var(--shadow-soft)} .danger-title{font-size:14px;font-weight:700;color:#791F1F;margin-bottom:10px} .danger-hint{font-size:13px;color:var(--mid);margin-bottom:16px;line-height:1.6} .danger-toggle-btn{padding:8px 18px;border-radius:10px;border:0.5px solid #F09595;background:#fff;font-size:13px;color:#791F1F;cursor:pointer;font-weight:500} .danger-confirm-field{margin-bottom:16px} .danger-confirm-field label{font-size:12px;color:var(--mid);display:block;margin-bottom:8px} .danger-confirm-field input{padding:10px 14px;border-radius:10px;border:0.5px solid #F09595;font-size:14px;outline:none;width:100%} .danger-delete-btn{padding:10px 20px;border-radius:10px;border:none;background:#A32D2D;color:#fff;font-size:13px;font-weight:600;cursor:pointer} .danger-cancel-btn{padding:10px 16px;border-radius:10px;border:0.5px solid var(--border);background:#fff;font-size:13px;cursor:pointer;color:var(--ink)} .msg-success{font-size:14px;color:#27500A;background:#EAF3DE;padding:12px 16px;border-radius:10px;margin-bottom:16px;text-align:center} .msg-error{font-size:14px;color:#791F1F;background:#FCEBEB;padding:12px 16px;border-radius:10px;margin-bottom:16px;text-align:center} @media(max-width:768px){.prof-page{padding:1.5rem 1rem}}`}</style>
 
       <div className="prof-page">
         <div className="prof-hdr">
@@ -316,12 +316,20 @@ export default function ProfilePage() {
                 request verification again.
               </p>
               <div className="prof-field">
-                <label>New ID document URL</label>
-                <input value={idDocUrl} onChange={(e) => setIdDocUrl(e.target.value)} />
+                <label htmlFor="idDocUrl">New ID document URL</label>
+                <input
+                  id="idDocUrl"
+                  value={idDocUrl}
+                  onChange={(e) => setIdDocUrl(e.target.value)}
+                />
               </div>
               <div className="prof-field">
-                <label>New selfie URL</label>
-                <input value={selfieUrl} onChange={(e) => setSelfieUrl(e.target.value)} />
+                <label htmlFor="selfieUrl">New selfie URL</label>
+                <input
+                  id="selfieUrl"
+                  value={selfieUrl}
+                  onChange={(e) => setSelfieUrl(e.target.value)}
+                />
               </div>
               <button
                 type="button"
@@ -339,8 +347,9 @@ export default function ProfilePage() {
           <p className="prof-sec-title">Profile information</p>
           <form onSubmit={handleSubmit}>
             <div className="prof-field">
-              <label>{t('auth.fullName')}</label>
+              <label htmlFor="fullName">{t('auth.fullName')}</label>
               <input
+                id="fullName"
                 value={form.fullName}
                 onChange={(event) => updateField('fullName', event.target.value)}
                 required
@@ -348,8 +357,9 @@ export default function ProfilePage() {
             </div>
 
             <div className="prof-field">
-              <label>{t('auth.phone')}</label>
+              <label htmlFor="phone">{t('auth.phone')}</label>
               <input
+                id="phone"
                 value={form.phone}
                 onChange={(event) => {
                   updateField('phone', event.target.value);
@@ -362,8 +372,9 @@ export default function ProfilePage() {
             </div>
 
             <div className="prof-field">
-              <label>{t('auth.universityOptional')}</label>
+              <label htmlFor="university">{t('auth.universityOptional')}</label>
               <input
+                id="university"
                 value={form.university}
                 onChange={(event) => updateField('university', event.target.value)}
               />
@@ -424,8 +435,9 @@ export default function ProfilePage() {
                 This will permanently delete your account and all associated data. This action cannot be undone.
               </p>
               <div className="danger-confirm-field">
-                <label>Type DELETE to confirm</label>
+                <label htmlFor="deleteConfirm">Type DELETE to confirm</label>
                 <input
+                  id="deleteConfirm"
                   type="text"
                   value={deleteConfirmText}
                   onChange={(e) => setDeleteConfirmText(e.target.value)}
