@@ -114,7 +114,7 @@ export default function LandlordSidebar({
         { to: '/messages', icon: <Inbox size={18} />, label: 'Inquiries', badge: pendingInquiries, color: '#ef4444' },
         { to: '/landlord/tenants', icon: <Users size={18} />, label: 'My Tenants', meta: `${tenantCount} Total` },
         { to: '/landlord/payments', icon: <Wallet size={18} />, label: 'Earnings', meta: mtdEarnings > 0 ? `TZS ${mtdEarnings.toLocaleString()}` : '—' },
-        { to: '/profile', icon: <Star size={18} />, label: 'Reviews', meta: avgRating > 0 ? `${avgRating.toFixed(1)} ★` : '—' },
+        { to: '/reviews', icon: <Star size={18} />, label: 'Reviews', meta: avgRating > 0 ? `${avgRating.toFixed(1)} ★` : '—' },
         { to: '/landlord/analytics', icon: <BarChart2 size={18} />, label: 'Analytics' },
         { to: '/notifications', icon: <Bell size={18} />, label: 'Notifications', badge: unreadNotifs },
         { to: '/profile', icon: <Settings size={18} />, label: 'Account Settings' },
@@ -216,15 +216,30 @@ export default function LandlordSidebar({
             {/* Quick stats block */}
             {!isCollapsed && (
                 <div style={{ margin: '0 0.75rem', padding: '0.9rem 1rem', background: SURFACE, borderRadius: 12, border: `1px solid ${BORDER}`, opacity: isCollapsed ? 0 : 1, transition: 'opacity 0.2s' }}>
-                    <p style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: MUTED, marginBottom: '0.6rem' }}>Quick Stats</p>
+                    <p style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: MUTED, marginBottom: '0.75rem' }}>Performance</p>
                     {[
-                        { label: 'Occupancy', value: `${occupancyRate}%`, color: occupancyRate >= 80 ? GREEN : GOLD },
-                        { label: 'Active Listings', value: activeListings, color: GREEN },
-                        { label: 'Pending Inquiries', value: pendingInquiries, color: pendingInquiries > 0 ? '#ef4444' : MUTED },
+                        { label: 'Occupancy rate', value: `${occupancyRate}%`, color: occupancyRate >= 80 ? GREEN : occupancyRate >= 50 ? GOLD : '#ef4444', bar: occupancyRate },
+                        { label: 'Active listings', value: String(activeListings), color: GREEN, bar: null },
+                        { label: 'Pending requests', value: String(pendingInquiries), color: pendingInquiries > 0 ? '#ef4444' : MUTED, bar: null },
                     ].map((stat) => (
-                        <div key={stat.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-                            <span style={{ fontSize: '0.8rem', color: MUTED }}>{stat.label}</span>
-                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: stat.color }}>{stat.value}</span>
+                        <div key={stat.label} style={{ marginBottom: '0.6rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '0.78rem', color: MUTED }}>{stat.label}</span>
+                                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: stat.color }}>{stat.value}</span>
+                            </div>
+                            {stat.bar !== null ? (
+                                <div style={{ marginTop: '4px', height: '3px', borderRadius: '2px', background: BORDER, overflow: 'hidden' }}>
+                                    <div
+                                        style={{
+                                            height: '100%',
+                                            borderRadius: '2px',
+                                            background: stat.color,
+                                            width: `${Math.min(stat.bar, 100)}%`,
+                                            transition: 'width 0.3s ease'
+                                        }}
+                                    />
+                                </div>
+                            ) : null}
                         </div>
                     ))}
                 </div>

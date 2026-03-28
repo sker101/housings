@@ -103,7 +103,13 @@ export default function MessagesPage() {
           });
         }
 
-        const participantIds = Array.from(new Set(rows.map(r => r.tenant_id === user.userId ? r.lister_id : r.tenant_id).filter(Boolean)));
+        const participantIds = Array.from(
+          new Set(
+            rows
+              .map((r) => (r.tenant_id === user.userId ? r.lister_id : r.tenant_id))
+              .filter(Boolean)
+          )
+        );
         const participantProfileMap = new Map();
 
         if (participantIds.length > 0) {
@@ -112,7 +118,7 @@ export default function MessagesPage() {
             filters: [{ column: 'id', op: 'in', value: `(${participantIds.join(',')})` }],
             accessToken: token
           });
-          profiles.forEach(p => participantProfileMap.set(p.id, p));
+          profiles.forEach((p) => participantProfileMap.set(p.id, p));
         }
 
         const merged = rows.map((row) => {
@@ -126,7 +132,6 @@ export default function MessagesPage() {
           };
         });
 
-        // Always sort admin conversations to the absolute top, then by last message time
         merged.sort((a, b) => {
           if (a.isAdmin && !b.isAdmin) return -1;
           if (!a.isAdmin && b.isAdmin) return 1;
@@ -181,7 +186,7 @@ export default function MessagesPage() {
       filter: `lister_id=eq.${user.userId}`,
       accessToken: token,
       onEvent: handleConversationEvent,
-      onStatus: () => { }
+      onStatus: () => {}
     });
 
     return () => {
@@ -223,7 +228,9 @@ export default function MessagesPage() {
           accessToken: token
         });
 
-        const senderIds = Array.from(new Set(messageRows.map(m => m.sender_id).filter(id => id !== user.userId)));
+        const senderIds = Array.from(
+          new Set(messageRows.map((m) => m.sender_id).filter((id) => id !== user.userId))
+        );
         const profileMap = new Map();
 
         if (senderIds.length > 0) {
@@ -232,10 +239,10 @@ export default function MessagesPage() {
             filters: [{ column: 'id', op: 'in', value: `(${senderIds.join(',')})` }],
             accessToken: token
           });
-          profiles.forEach(p => profileMap.set(p.id, p));
+          profiles.forEach((p) => profileMap.set(p.id, p));
         }
 
-        const rows = messageRows.map(m => ({
+        const rows = messageRows.map((m) => ({
           ...m,
           senderProfile: m.sender_id === user.userId ? user : profileMap.get(m.sender_id)
         }));
@@ -303,7 +310,9 @@ export default function MessagesPage() {
         accessToken: token
       });
 
-      const senderIds = Array.from(new Set(messageRows.map(m => m.sender_id).filter(id => id !== user.userId)));
+      const senderIds = Array.from(
+        new Set(messageRows.map((m) => m.sender_id).filter((id) => id !== user.userId))
+      );
       const profileMap = new Map();
 
       if (senderIds.length > 0) {
@@ -312,10 +321,10 @@ export default function MessagesPage() {
           filters: [{ column: 'id', op: 'in', value: `(${senderIds.join(',')})` }],
           accessToken: token
         });
-        profiles.forEach(p => profileMap.set(p.id, p));
+        profiles.forEach((p) => profileMap.set(p.id, p));
       }
 
-      const rows = messageRows.map(m => ({
+      const rows = messageRows.map((m) => ({
         ...m,
         senderProfile: m.sender_id === user.userId ? user : profileMap.get(m.sender_id)
       }));
@@ -361,46 +370,116 @@ export default function MessagesPage() {
     }
   };
 
+  const formatListTime = (value: string | null | undefined) => {
+    if (!value) return '';
+    const d = new Date(value);
+    const now = new Date();
+    const sameDay =
+      d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    if (sameDay) {
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    return d.toLocaleDateString();
+  };
+
   return (
-    <div className="container section messages-page">
-      <div className="messages-layout">
-        <aside className="card conversation-list">
-          <h2>{t('dashboard.conversations')}</h2>
-          {loading ? <p className="muted">{t('dashboard.loadingDashboard')}</p> : null}
-          {conversations.length === 0 && !loading ? (
-            <p className="muted">{t('dashboard.noConversations')}</p>
-          ) : null}
+    <>
+      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}} .msg-shell{display:flex;height:calc(100vh - 130px);min-height:500px;border:0.5px solid var(--border);border-radius:16px;overflow:hidden;background:#ffffff;margin:1.5rem} .conv-sidebar{width:260px;flex-shrink:0;border-right:0.5px solid var(--border);display:flex;flex-direction:column} .conv-sidebar-hdr{padding:14px 16px;border-bottom:0.5px solid var(--border)} .conv-sidebar-title{font-size:13px;font-weight:600;color:var(--ink)} .conv-sidebar-sub{font-size:11px;color:var(--mid);margin-top:2px} .conv-list{flex:1;overflow-y:auto} .conv-item{padding:12px 16px;border-bottom:0.5px solid var(--border);cursor:pointer;display:flex;gap:10px;align-items:flex-start;text-decoration:none} .conv-item:hover{background:var(--cream)} .conv-item.is-active{background:#EAF3DE} .conv-item.is-admin{background:#FEF2F1} .conv-item.is-admin.is-active{background:#FCEBEB} .conv-av{width:34px;height:34px;border-radius:50%;background:#EEEDFE;color:#3C3489;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0} .conv-av.admin{background:#FCEBEB;color:#791F1F} .conv-info{flex:1;min-width:0} .conv-name{font-size:12px;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .conv-name.admin{color:#791F1F} .conv-preview{font-size:11px;color:var(--mid);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .conv-meta{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0} .conv-time{font-size:10px;color:var(--mid)} .unread-dot{width:7px;height:7px;border-radius:50%;background:var(--jade)} .unread-dot.admin{background:#A32D2D} .status-pill{display:inline-flex;padding:1px 7px;border-radius:20px;font-size:10px;font-weight:500} .sp-open{background:#EAF3DE;color:#27500A} .sp-interested{background:#E6F1FB;color:#0C447C} .sp-booked{background:#EEEDFE;color:#3C3489} .sp-unavailable{background:#F1EFE8;color:#444441} .thread{flex:1;display:flex;flex-direction:column;min-width:0} .thread-hdr{padding:13px 18px;border-bottom:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:12px} .thread-title{font-size:13px;font-weight:600;color:var(--ink)} .thread-sub{font-size:11px;color:var(--mid);margin-top:2px;display:flex;align-items:center;gap:6px} .live-dot{width:6px;height:6px;border-radius:50%;background:#3B6D11;flex-shrink:0} .status-row{display:flex;align-items:center;gap:6px;flex-shrink:0} .status-row select{padding:4px 8px;border-radius:7px;border:0.5px solid var(--border);background:#fff;font-size:11px;color:var(--ink);outline:none} .status-upd-btn{padding:5px 12px;border-radius:7px;border:none;background:var(--jade);color:#fff;font-size:11px;font-weight:600;cursor:pointer} .msg-list{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;background:var(--cream)} .bubble{max-width:68%;padding:10px 13px;border-radius:12px;font-size:12px;line-height:1.5;display:flex;flex-direction:column} .bubble.theirs{background:#ffffff;border:0.5px solid var(--border);align-self:flex-start;border-radius:4px 12px 12px 12px} .bubble.mine{background:var(--jade);color:#ffffff;align-self:flex-end;border-radius:12px 4px 12px 12px} .bubble.is-admin{background:#FCEBEB;border:0.5px solid #F09595;align-self:flex-start;border-radius:4px 12px 12px 12px} .bubble-sender{font-size:10px;font-weight:500;color:var(--mid);margin-bottom:3px} .bubble-sender.admin-lbl{color:#791F1F;text-transform:uppercase;letter-spacing:.04em} .bubble-time{font-size:10px;color:var(--mid);margin-top:4px;display:block} .bubble-time.mine{color:rgba(255,255,255,0.6)} .compose{padding:12px 16px;border-top:0.5px solid var(--border);display:flex;gap:8px;align-items:flex-end;background:#ffffff} .compose textarea{flex:1;padding:8px 12px;border-radius:10px;border:0.5px solid var(--border);background:#fff;font-size:12px;resize:none;outline:none;line-height:1.5;height:40px;font-family:inherit} .send-btn{padding:8px 18px;border-radius:10px;border:none;background:var(--jade);color:#fff;font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0} .send-btn:disabled{opacity:0.6;cursor:not-allowed} .empty-thread{flex:1;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--mid)} @media(max-width:768px){.msg-shell{flex-direction:column;margin:1rem;height:auto}.conv-sidebar{width:100%;height:220px;border-right:none;border-bottom:0.5px solid var(--border)}}`}</style>
 
-          {conversations.map((conversation) => (
-            <Link
-              key={conversation.id}
-              to={`/messages/${conversation.id}`}
-              className={`conversation-item ${conversation.id === threadId ? 'is-active' : ''}`}
-              style={conversation.isAdmin ? { borderLeft: '4px solid #C0392B', backgroundColor: conversation.id === threadId ? '#FEF2F1' : '#FFF5F5' } : {}}
-            >
-              <strong style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: conversation.isAdmin ? '#C0392B' : 'inherit' }}>
-                {conversation.isAdmin ? t('dashboard.adminLabel') : ''} {conversation.listing?.title || t('dashboard.listingConversation')}
-              </strong>
-              <span>{humanizeStatus(conversation.inquiry_status)} • {formatTimestamp(conversation.last_message_at)}</span>
-            </Link>
-          ))}
-        </aside>
+      <div className="msg-shell">
+        <div className="conv-sidebar">
+          <div className="conv-sidebar-hdr">
+            <p className="conv-sidebar-title">Inquiries</p>
+            <p className="conv-sidebar-sub">
+              {conversations.length} conversations
+            </p>
+          </div>
+          <div className="conv-list">
+            {loading ? (
+              Array.from({ length: 6 }).map((_, i) => (
+                <div
+                  key={`conv-skel-${i}`}
+                  style={{
+                    padding: '12px 16px',
+                    borderBottom: '0.5px solid var(--border)',
+                    background: 'var(--cream)',
+                    animation: 'pulse 1.5s ease-in-out infinite',
+                    height: 56
+                  }}
+                />
+              ))
+            ) : conversations.length === 0 ? (
+              <div style={{ padding: '14px 16px', fontSize: 12, color: 'var(--mid)' }}>
+                {t('dashboard.noConversations')}
+              </div>
+            ) : (
+              conversations.map((conv: any) => {
+                const isActive = conv.id === threadId;
+                const displayName = conv.isAdmin
+                  ? 'CampusStay Admin'
+                  : conv.otherProfile?.full_name || conv.listing?.title || 'Conversation';
+                const preview = conv.listing?.title || humanizeStatus(conv.inquiry_status);
+                const statusClass = conv.inquiry_status || 'open';
+                const convClasses = [
+                  'conv-item',
+                  isActive ? 'is-active' : '',
+                  conv.isAdmin ? 'is-admin' : ''
+                ]
+                  .filter(Boolean)
+                  .join(' ');
+                const initials = (conv.otherProfile?.full_name || (conv.isAdmin ? 'CS' : '?'))
+                  .split(/\s+/)
+                  .map((n: string) => n[0])
+                  .join('')
+                  .slice(0, 2)
+                  .toUpperCase();
+                const showUnread = false;
 
-        <section className="card message-thread">
-          {activeConversation ? (
+                return (
+                  <Link key={conv.id} to={`/messages/${conv.id}`} className={convClasses}>
+                    <div className={`conv-av${conv.isAdmin ? ' admin' : ''}`}>{initials}</div>
+                    <div className="conv-info">
+                      <p className={`conv-name${conv.isAdmin ? ' admin' : ''}`}>{displayName}</p>
+                      <p className="conv-preview">{preview}</p>
+                    </div>
+                    <div className="conv-meta">
+                      <span className="conv-time">{formatListTime(conv.last_message_at)}</span>
+                      <span className={`status-pill sp-${statusClass}`}>{humanizeStatus(conv.inquiry_status)}</span>
+                      {showUnread ? <div className={`unread-dot${conv.isAdmin ? ' admin' : ''}`} /> : null}
+                    </div>
+                  </Link>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        <div className="thread">
+          {!activeConversation ? (
+            <div className="empty-thread">Select a conversation to start messaging</div>
+          ) : (
             <>
-              <header className="message-thread__header">
-                <h2>{activeConversation.listing?.title || t('dashboard.listingConversation')}</h2>
-                <p className="muted">
-                  {t('dashboard.chatStatus')}: {humanizeStatus(activeConversation.inquiry_status)} • Chat:{' '}
-                  {realtimeState === 'subscribed' ? t('dashboard.chatLive') : t('dashboard.chatConnecting')}
-                </p>
+              <div className="thread-hdr">
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p className="thread-title" style={{ margin: 0 }}>
+                    {(activeConversation.listing?.title || 'Conversation') +
+                      ' — ' +
+                      (activeConversation.otherProfile?.full_name || '')}
+                  </p>
+                  <p className="thread-sub">
+                    <span
+                      className="live-dot"
+                      style={realtimeState === 'subscribed' ? {} : { background: '#888' }}
+                    />
+                    <span>{realtimeState === 'subscribed' ? 'Live' : 'Connecting...'}</span>
+                    <span className={`status-pill sp-${activeConversation.inquiry_status || 'open'}`}>
+                      {humanizeStatus(activeConversation.inquiry_status)}
+                    </span>
+                  </p>
+                </div>
                 {canManageInquiryStatus ? (
-                  <div className="message-thread__status-row">
-                    <select
-                      value={statusValue}
-                      onChange={(event) => setStatusValue(event.target.value)}
-                    >
+                  <div className="status-row">
+                    <select value={statusValue} onChange={(event) => setStatusValue(event.target.value)}>
                       {INQUIRY_STATUS_OPTIONS.map((option) => (
                         <option key={option} value={option}>
                           {humanizeStatus(option)}
@@ -409,59 +488,60 @@ export default function MessagesPage() {
                     </select>
                     <button
                       type="button"
-                      className="btn btn--small"
+                      className="status-upd-btn"
                       onClick={updateInquiryStatus}
                       disabled={updatingStatus}
                     >
-                      {updatingStatus ? t('dashboard.updating') : t('dashboard.updateInquiry')}
+                      {updatingStatus ? 'Saving...' : 'Update'}
                     </button>
                   </div>
                 ) : null}
-              </header>
-
-              <div className="message-list">
-                {messages.map((message) => (
-                  <article
-                    key={message.id}
-                    className={`message-bubble ${message.sender_id === user?.userId ? 'is-mine' : ''} ${message.senderProfile?.role === 'admin' ? 'is-admin' : ''}`}
-                    style={message.senderProfile?.role === 'admin' && message.sender_id !== user?.userId ? { background: '#FEF2F1', border: '1px solid #F5C6C2', alignSelf: 'flex-start' } : {}}
-                  >
-                    {message.senderProfile?.role === 'admin' && message.sender_id !== user?.userId ? (
-                      <strong style={{ display: 'block', fontSize: '0.75rem', color: '#C0392B', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        {t('dashboard.campusStayAdmin')}
-                      </strong>
-                    ) : null}
-                    <p>{message.body}</p>
-                    <span>
-                      {formatTimestamp(message.created_at)}
-                      {message.sender_id === user?.userId
-                        ? message.seen_at
-                          ? ` • ${t('dashboard.seen')}`
-                          : ` • ${t('dashboard.sent')}`
-                        : ''}
-                    </span>
-                  </article>
-                ))}
               </div>
 
-              <form className="message-form" onSubmit={submitMessage}>
+              <div className="msg-list">
+                {messages.map((m: any) => {
+                  const mine = m.sender_id === user?.userId;
+                  const adminMsg = m.senderProfile?.role === 'admin' && !mine;
+                  const bubbleClass = [
+                    'bubble',
+                    mine ? 'mine' : 'theirs',
+                    adminMsg ? 'is-admin' : ''
+                  ]
+                    .filter(Boolean)
+                    .join(' ');
+
+                  return (
+                    <div key={m.id} className={bubbleClass}>
+                      {adminMsg ? <p className="bubble-sender admin-lbl">CampusStay Admin</p> : null}
+                      {!mine && !adminMsg && m.senderProfile?.full_name ? (
+                        <p className="bubble-sender">{m.senderProfile.full_name}</p>
+                      ) : null}
+                      <p style={{ margin: 0 }}>{m.body}</p>
+                      <span className={`bubble-time${mine ? ' mine' : ''}`}>
+                        {formatTimestamp(m.created_at)}
+                        {mine ? (m.seen_at ? ' · Seen' : ' · Sent') : ''}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <form className="compose" onSubmit={submitMessage}>
                 <textarea
                   value={messageBody}
                   onChange={(event) => setMessageBody(event.target.value)}
                   placeholder={t('dashboard.writeMessage')}
                 />
-                <button className="btn" type="submit">
+                <button className="send-btn" type="submit" disabled={!messageBody.trim()}>
                   {t('dashboard.sendBtn')}
                 </button>
               </form>
             </>
-          ) : (
-            <p className="muted">{t('dashboard.chooseConversation')}</p>
           )}
-        </section>
+        </div>
       </div>
 
-      {error ? <p className="error-text">{error}</p> : null}
-    </div>
+      {error ? <p className="error-text" style={{ marginLeft: '1.5rem' }}>{error}</p> : null}
+    </>
   );
 }
