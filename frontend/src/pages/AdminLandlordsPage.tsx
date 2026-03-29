@@ -81,6 +81,7 @@ export default function AdminLandlordsPage() {
   const [rejectTarget, setRejectTarget] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
 
   // Load listings + posters
   const loadData = async () => {
