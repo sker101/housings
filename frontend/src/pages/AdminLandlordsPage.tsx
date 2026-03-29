@@ -89,6 +89,13 @@ export default function AdminLandlordsPage() {
   const [sessionExpired, setSessionExpired] = useState(false);
   const [previewId, setPreviewId] = useState<string | null>(null);
 
+  const normalizeStatus = (status: string | null | undefined) => {
+    const s = (status || '').toLowerCase();
+    if (s === 'approved') return 'approved';
+    if (s === 'rejected') return 'rejected';
+    return 'pending';
+  };
+
   // Load listings + posters
   const loadData = async (initial = false) => {
     if (!token || sessionExpired) return;
@@ -100,7 +107,7 @@ export default function AdminLandlordsPage() {
         order: 'created_at.desc',
         accessToken: token
       });
-      const normalized = rows.map((r: any) => ({ ...r, status: (r.status || 'pending').toLowerCase() }));
+      const normalized = rows.map((r: any) => ({ ...r, status: normalizeStatus(r.status) }));
       setListings(normalized);
       const listerIds = Array.from(new Set(rows.map((r: any) => r.lister_id).filter(Boolean)));
       if (listerIds.length) {
