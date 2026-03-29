@@ -1,0 +1,40 @@
+Date: 18 march
+
+refine the student page coz revies and bookings dont show up correct info
+
+Implement real payments flow
+- Add backend endpoint to create Selcom (later DPO) transactions and return redirect URL/USSD/MPESA instructions
+- Store Selcom API keys/merchant config in backend env
+- Replace frontend PayPage optimistic success with gateway response handling
+- Confirm reservation records are created upon successful payment
+
+Next session
+- Hide paid/occupied rooms from other users (decide rule: vacancy_status vs booking/payment status; allow owner/admin to see; apply to search/home/listing queries).
+
+You need to manually add your OPENAI_API_KEY to 
+supabase/functions/.env
+ for local AI features to work.
+
+in the mobile phone, the site keeps refreshing sometimes it becomes blank
+
+
+
+##
+edit the amenities to explain if a room has kitchen, single room etc
+
+
+if a room is paid for, it should not be seen anymore ny another person since it is already paid for. Once i login as another person or when another person logs in they should not see the rooms that have already been paid for.
+
+
+
+
+
+ NB:
+ starting tthe backend service(supabase)
+ supabase  start
+
+ starting the frontend
+ cd frontend &&npm run dev
+
+ reseting the supabase cleaning everything locally
+ supabase db reset
