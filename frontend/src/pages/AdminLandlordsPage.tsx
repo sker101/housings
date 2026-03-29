@@ -92,7 +92,7 @@ export default function AdminLandlordsPage() {
   const [previewId, setPreviewId] = useState<string | null>(null);
 
   const normalizeStatus = (status: string | null | undefined) => {
-    const s = (status || '').toLowerCase();
+    const s = (status || '').toString().trim().toLowerCase();
     if (s === 'approved') return 'approved';
     if (s === 'rejected') return 'rejected';
     return 'pending';
