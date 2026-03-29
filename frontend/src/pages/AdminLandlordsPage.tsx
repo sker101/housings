@@ -85,6 +85,8 @@ export default function AdminLandlordsPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
   const [photosMap, setPhotosMap] = useState<Record<string, string[]>>({});
+  const [pendingListers, setPendingListers] = useState<Profile[]>([]);
+  const [listerAction, setListerAction] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [sessionExpired, setSessionExpired] = useState(false);
   const [previewId, setPreviewId] = useState<string | null>(null);
@@ -178,14 +180,38 @@ export default function AdminLandlordsPage() {
     }
   };
 
+  const loadPendingListers = async () => {
+    if (!token || sessionExpired) return;
+    try {
+      const rows = await selectRows('profiles', {
+        select: 'id,full_name,role,verification_status,phone,created_at',
+        filters: [
+          { column: 'role', op: 'in', value: '(lister,landlord,dalali)' }
+        ],
+        order: 'created_at.desc',
+        accessToken: token
+      });
+      const pending = (rows || []).filter((p: any) => String(p.verification_status || '').toUpperCase() !== 'APPROVED');
+      setPendingListers(pending);
+    } catch (err: any) {
+      const msg = err?.message || '';
+      if (msg.toLowerCase().includes('jwt')) {
+        setSessionExpired(true);
+        setError('Session expired. Please log in again.');
+      }
+    }
+  };
+
   useEffect(() => {
     loadData(true);
     loadNotifications();
+    loadPendingListers();
     // Simple polling to emulate realtime
     const t = setInterval(() => {
       if (sessionExpired) return;
       loadNotifications();
       loadData(false);
+      loadPendingListers();
     }, 12000);
     return () => clearInterval(t);
   }, [token, sessionExpired]);
@@ -252,6 +278,38 @@ export default function AdminLandlordsPage() {
     if (!token) return;
     await updateRows('admin_notifications', { read_at: new Date().toISOString() }, { accessToken: token }).catch(() => undefined);
     setNotifications((prev) => prev.map((n) => ({ ...n, read_at: new Date().toISOString() })));
+  };
+
+  const handleApproveLister = async (id: string) => {
+    if (!token) return;
+    setListerAction(id);
+    try {
+      await updateRows('profiles', { verification_status: 'APPROVED' }, {
+        filters: [{ column: 'id', op: 'eq', value: id }],
+        accessToken: token
+      });
+      setPendingListers((prev) => prev.filter((p) => p.id !== id));
+    } catch (err: any) {
+      setError(err?.message || 'Failed to approve account');
+    } finally {
+      setListerAction(null);
+    }
+  };
+
+  const handleRejectLister = async (id: string) => {
+    if (!token) return;
+    setListerAction(id);
+    try {
+      await updateRows('profiles', { verification_status: 'REJECTED' }, {
+        filters: [{ column: 'id', op: 'eq', value: id }],
+        accessToken: token
+      });
+      setPendingListers((prev) => prev.filter((p) => p.id !== id));
+    } catch (err: any) {
+      setError(err?.message || 'Failed to reject account');
+    } finally {
+      setListerAction(null);
+    }
   };
 
   const previewListing = useMemo(() => listings.find((l) => l.id === previewId), [listings, previewId]);
@@ -331,6 +389,54 @@ export default function AdminLandlordsPage() {
         <StatCard label="Pending review" value={counts.pending} color={AMBER} />
         <StatCard label="Approved" value={counts.approved} color={PRIMARY} />
         <StatCard label="Rejected" value={counts.rejected} color={RED} />
+      </div>
+
+      {/* Pending listers */}
+      <div className="card" style={{ padding: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+          <strong>Pending dalali/landlord accounts</strong>
+          <span className="muted">{pendingListers.length} awaiting approval</span>
+        </div>
+        {pendingListers.length === 0 ? (
+          <p className="muted" style={{ margin: 0 }}>No pending accounts.</p>
+        ) : (
+          <div style={{ display: 'grid', gap: '0.5rem' }}>
+            {pendingListers.map((p) => {
+              const pendingCount = listings.filter((l) => l.lister_id === p.id && l.status === 'pending').length;
+              return (
+                <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem', border: '1px solid var(--border)', borderRadius: 10 }}>
+                  <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+                    <Avatar name={p.full_name || 'Lister'} />
+                    <div>
+                      <p style={{ margin: 0, fontWeight: 700 }}>{p.full_name || 'Lister'}</p>
+                      <p style={{ margin: 0, color: 'var(--mid)', fontSize: '0.9rem' }}>{p.phone || ''}</p>
+                      <p style={{ margin: 0, color: 'var(--mid)', fontSize: '0.85rem' }}>Pending listings: {pendingCount}</p>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                    <button
+                      type="button"
+                      className="btn btn--ghost btn--small"
+                      onClick={() => handleRejectLister(p.id)}
+                      disabled={listerAction === p.id}
+                    >
+                      Reject
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn--small"
+                      style={{ background: PRIMARY, color: '#fff' }}
+                      onClick={() => handleApproveLister(p.id)}
+                      disabled={listerAction === p.id}
+                    >
+                      {listerAction === p.id ? 'Saving...' : 'Approve'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
