@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
-import { selectRows } from '../lib/supabase';
+import { selectRows, SUPABASE_URL } from '../lib/supabase';
 
 export default function PayPage() {
   const location = useLocation();
@@ -70,7 +70,24 @@ export default function PayPage() {
     setNotice('');
     setLoading(true);
     try {
-      // For now, assume payment succeeds immediately and store reservation locally.
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/mock-payment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          listing_id: listing.id,
+          months,
+          amount: total
+        })
+      });
+      if (!resp.ok) {
+        const msg = await resp.text();
+        throw new Error(msg || 'Payment failed');
+      }
+      const data = await resp.json();
+
       const reservation = {
         listingId: listing.id,
         title: listing.title,
@@ -78,15 +95,16 @@ export default function PayPage() {
         months,
         total,
         reservedAt: new Date().toISOString(),
-        moveInDate: listing.available_from || state?.availableFrom || new Date().toISOString(),
+        moveInDate: data?.move_in_date || listing.available_from || state?.availableFrom || new Date().toISOString(),
         coverPhoto: state?.coverPhoto || null,
-        address: listing.address || listing.district || listing.ward || ''
+        address: listing.address || listing.district || listing.ward || '',
+        reference: data?.reference
       };
-      if (user?.userId) {
-        localStorage.setItem(`myRoomReservation:${user.userId}`, JSON.stringify(reservation));
-      } else {
-        localStorage.setItem('myRoomReservation', JSON.stringify(reservation));
-      }
+      localStorage.setItem(
+        user?.userId ? `myRoomReservation:${user.userId}` : 'myRoomReservation',
+        JSON.stringify(reservation)
+      );
+
       setNotice('Payment marked as successful. Your reservation has been recorded.');
       navigate('/my-room', { state: reservation });
     } catch (err: any) {
