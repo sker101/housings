@@ -19,6 +19,7 @@ import MessagesPage from './pages/MessagesPage';
 import NotFoundPage from './pages/NotFoundPage';
 import NotificationsPage from './pages/NotificationsPage';
 import PaymentsPage from './pages/PaymentsPage';
+import PayPage from './pages/PayPage';
 import ProfilePage from './pages/ProfilePage';
 import RegisterLandlordPage from './pages/RegisterLandlordPage';
 import RegisterStudentPage from './pages/RegisterStudentPage';
@@ -200,7 +201,7 @@ export default function App() {
           path="/pay"
           element={
             <ProtectedRoute roles={[APP_ROLE.STUDENT, APP_ROLE.LISTER]}>
-              <PaymentsPage />
+              <PayPage />
             </ProtectedRoute>
           }
         />
