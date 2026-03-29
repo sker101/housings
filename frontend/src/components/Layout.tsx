@@ -249,10 +249,11 @@ export default function Layout({ children }) {
         </NavLink>
       );
     }
+    // Students: show logout in the top-right action area
     return (
-      <NavLink to="/saved" className="btn btn--small">
-        {t('nav.saved')}
-      </NavLink>
+      <button type="button" className="btn btn--small" onClick={logout}>
+        {t('nav.logout')}
+      </button>
     );
   })();
 
@@ -409,6 +410,9 @@ export default function Layout({ children }) {
             {unreadCount > 0 ? (
               <span className="nav-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
             ) : null}
+          </NavLink>
+          <NavLink to="/saved" className={({ isActive }) => (isActive ? 'is-active' : '')}>
+            {t('nav.saved')}
           </NavLink>
           <NavLink to="/profile" className={({ isActive }) => (isActive ? 'is-active' : '')}>
             {user?.fullName?.split(' ')[0] || t('dashboard.profile')}
