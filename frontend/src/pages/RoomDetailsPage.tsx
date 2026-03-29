@@ -860,7 +860,7 @@ export default function RoomDetailsPage() {
               {saved ? t('listingCard.saved') : t('listingCard.save')}
             </button>
             <Link
-              to="/landlord/payments"
+              to="/payments"
               className="btn btn--large"
               style={{ flex: 2, textAlign: 'center' }}
               state={{ listingId: listing.id }}

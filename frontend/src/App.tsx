@@ -188,6 +188,15 @@ export default function App() {
         />
 
         <Route
+          path="/payments"
+          element={
+            <ProtectedRoute roles={[APP_ROLE.STUDENT, APP_ROLE.LISTER]}>
+              <PaymentsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
           path="/landlord/analytics"
           element={
             <ProtectedRoute roles={[APP_ROLE.LISTER]}>
