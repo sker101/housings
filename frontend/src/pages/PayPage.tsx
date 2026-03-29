@@ -70,31 +70,6 @@ export default function PayPage() {
     setNotice('');
     setLoading(true);
     try {
-      let data: any = null;
-      try {
-        const resp = await fetch(`${SUPABASE_URL}/functions/v1/mock-payment`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {})
-          },
-          body: JSON.stringify({
-            listing_id: listing.id,
-            months,
-            amount: total
-          })
-        });
-        if (resp.ok) {
-          data = await resp.json();
-        } else {
-          const msg = await resp.text();
-          throw new Error(msg || 'Payment failed');
-        }
-      } catch (err) {
-        // If backend is unreachable, fall back to optimistic success
-        data = null;
-      }
-
       const reservation = {
         listingId: listing.id,
         title: listing.title,
@@ -102,10 +77,10 @@ export default function PayPage() {
         months,
         total,
         reservedAt: new Date().toISOString(),
-        moveInDate: data?.move_in_date || listing.available_from || state?.availableFrom || new Date().toISOString(),
+        moveInDate: listing.available_from || state?.availableFrom || new Date().toISOString(),
         coverPhoto: state?.coverPhoto || null,
         address: listing.address || listing.district || listing.ward || '',
-        reference: data?.reference
+        reference: `LOCAL-${Date.now()}`
       };
       localStorage.setItem(
         user?.userId ? `myRoomReservation:${user.userId}` : 'myRoomReservation',
