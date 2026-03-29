@@ -140,13 +140,16 @@ export default function AdminLandlordsPage() {
       const rows = await selectRows('profiles', {
         select: 'id,full_name,role,verification_status,phone',
         filters: [
-          { column: 'role', op: 'eq', value: 'lister' },
-          { column: 'verification_status', op: 'eq', value: 'PENDING' }
+          { column: 'role', op: 'eq', value: 'lister' }
         ],
         order: 'created_at.desc',
         accessToken: token
       });
-      setPendingListers(rows);
+      const pending = rows.filter((p: any) => {
+        const status = String(p.verification_status || '').toUpperCase();
+        return status !== 'APPROVED';
+      });
+      setPendingListers(pending);
     } catch {
       // ignore
     }
