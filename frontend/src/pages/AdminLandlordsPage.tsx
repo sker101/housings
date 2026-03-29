@@ -89,7 +89,7 @@ export default function AdminLandlordsPage() {
     setError('');
     try {
       const rows = await selectRows('listings', {
-        select: 'id,title,status,price_monthly,room_type,district,ward,near_universities,created_at,lister_id,photos',
+        select: 'id,title,status,price_monthly,room_type,district,ward,near_universities,created_at,lister_id',
         order: 'created_at.desc',
         accessToken: token
       });
@@ -104,6 +104,22 @@ export default function AdminLandlordsPage() {
         const map: Record<string, Profile> = {};
         profRows.forEach((p: any) => { map[p.id] = p; });
         setProfiles(map);
+      }
+      const listingIds = rows.map((r: any) => r.id);
+      if (listingIds.length) {
+        const photoRows = await selectRows('listing_photos', {
+          select: 'listing_id,url,position',
+          filters: [{ column: 'listing_id', op: 'in', value: `(${listingIds.join(',')})` }],
+          order: 'position.asc',
+          accessToken: token
+        }).catch(() => []);
+        const thumbMap: Record<string, string> = {};
+        (photoRows || []).forEach((p: any) => {
+          if (!thumbMap[p.listing_id]) thumbMap[p.listing_id] = p.url;
+        });
+        setThumbnails(thumbMap);
+      } else {
+        setThumbnails({});
       }
     } catch (err: any) {
       setError(err.message);
