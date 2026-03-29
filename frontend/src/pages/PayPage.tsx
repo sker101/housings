@@ -25,6 +25,7 @@ export default function PayPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [gateway, setGateway] = useState<'selcom' | 'dpo'>('selcom');
 
   const total = useMemo(() => {
     const price = Number(listing?.price_monthly || 0);
@@ -51,13 +52,47 @@ export default function PayPage() {
     load();
   }, [state?.listingId, listing?.title, token]);
 
-  const handlePay = () => {
+  const handlePay = async () => {
     if (!listing?.id) {
       setError('Select a listing before paying.');
       return;
     }
-    // Placeholder: integrate payment gateway here
-    setNotice('Your reservation request has been recorded. Payment processing will be added soon.');
+    setError('');
+    setNotice('');
+    setLoading(true);
+    try {
+      const apiBase = (import.meta.env.VITE_API_BASE_URL as string) || '/api/v1';
+      const res = await fetch(`${apiBase}/payments/${gateway}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          listingId: listing.id,
+          months,
+          amount: total,
+          title: listing.title,
+          gateway
+        })
+      });
+
+      if (!res.ok) {
+        const msg = await res.text();
+        throw new Error(msg || 'Payment request failed');
+      }
+
+      const data = await res.json();
+      if (data.redirectUrl) {
+        window.location.href = data.redirectUrl;
+      } else {
+        setNotice('Payment initiated. Follow the next steps in the opened page.');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Unable to start payment. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -93,6 +128,28 @@ export default function PayPage() {
             </p>
           </div>
 
+          <div className="card" style={{ padding: '1rem', border: '1px solid var(--border)', background: '#fff' }}>
+            <p style={{ margin: 0, color: 'var(--mid)', fontWeight: 600 }}>Payment method</p>
+            <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className={`btn btn--ghost ${gateway === 'selcom' ? 'is-active' : ''}`}
+                onClick={() => setGateway('selcom')}
+                style={{ minWidth: 120 }}
+              >
+                Selcom
+              </button>
+              <button
+                type="button"
+                className="btn btn--ghost"
+                disabled
+                style={{ minWidth: 120, opacity: 0.6 }}
+              >
+                DPO (coming soon)
+              </button>
+            </div>
+          </div>
+
           <label style={{ display: 'grid', gap: '0.35rem' }}>
             <span style={{ fontWeight: 600 }}>Months to reserve</span>
             <input
@@ -104,27 +161,27 @@ export default function PayPage() {
             />
           </label>
 
-          <div
-            className="card"
-            style={{
-              padding: '1rem',
-              border: '1px solid var(--border)',
-              background: '#fff',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}
-          >
-            <div>
-              <p style={{ margin: 0, color: 'var(--mid)' }}>Total to pay</p>
-              <strong style={{ fontSize: '1.3rem', color: '#27500A' }}>
-                TZS {new Intl.NumberFormat('sw-TZ').format(total)}
-              </strong>
+            <div
+              className="card"
+              style={{
+                padding: '1rem',
+                border: '1px solid var(--border)',
+                background: '#fff',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}
+            >
+              <div>
+                <p style={{ margin: 0, color: 'var(--mid)' }}>Total to pay</p>
+                <strong style={{ fontSize: '1.3rem', color: '#27500A' }}>
+                  TZS {new Intl.NumberFormat('sw-TZ').format(total)}
+                </strong>
+              </div>
+              <button className="btn" type="button" onClick={handlePay} disabled={loading}>
+                {loading ? 'Processing...' : 'Pay now'}
+              </button>
             </div>
-            <button className="btn" type="button" onClick={handlePay} disabled={loading}>
-              {loading ? 'Processing...' : 'Pay now'}
-            </button>
-          </div>
 
           <button
             type="button"
