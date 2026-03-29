@@ -85,7 +85,6 @@ export default function AdminLandlordsPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
   const [photosMap, setPhotosMap] = useState<Record<string, string[]>>({});
-  const [refreshing, setRefreshing] = useState(false);
   const [sessionExpired, setSessionExpired] = useState(false);
   const [previewId, setPreviewId] = useState<string | null>(null);
 
@@ -99,7 +98,7 @@ export default function AdminLandlordsPage() {
   // Load listings + posters
   const loadData = async (initial = false) => {
     if (!token || sessionExpired) return;
-    if (initial) setLoading(true); else setRefreshing(true);
+    if (initial) setLoading(true);
     setError('');
     try {
       const rows = await selectRows('listings', {
@@ -151,7 +150,6 @@ export default function AdminLandlordsPage() {
       }
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   };
 
@@ -265,7 +263,6 @@ export default function AdminLandlordsPage() {
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 800 }}>Listings approval</h1>
-          {refreshing ? <p style={{ margin: 0, color: 'var(--mid)', fontSize: '0.85rem' }}>Refreshing…</p> : null}
         </div>
         <div style={{ position: 'relative' }}>
           <button
