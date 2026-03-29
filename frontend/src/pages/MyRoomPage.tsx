@@ -144,7 +144,7 @@ export default function MyRoomPage() {
         }
 
         const listingRows = await selectRows('listings', {
-          select: 'id,title,address,district,ward,room_type,floor,near_universities,lat,lng,price_monthly,security_deposit,house_rules,amenities,lister_id',
+          select: 'id,title,address,district,ward,room_type,floor,near_universities,lat,lng,price_monthly,security_deposit,house_rules,amenities,lister_id,cover_photo',
           filters: [{ column: 'id', op: 'eq', value: active.listing_id }],
           accessToken: token
         });
@@ -171,8 +171,13 @@ export default function MyRoomPage() {
 
         if (!mounted) return;
         setBooking(active);
-        setListing(listingRows?.[0] || null);
-        setPhotos((photoRows || []).map((p: any) => p.url));
+        const listingRecord = listingRows?.[0] || null;
+        setListing(listingRecord);
+        const photoUrls = (photoRows || []).map((p: any) => p.url);
+        if (photoUrls.length === 0 && listingRecord?.cover_photo) {
+          photoUrls.push(listingRecord.cover_photo);
+        }
+        setPhotos(photoUrls);
         setLandlord(landlordRows?.[0] || null);
         setPayments(paymentRows || []);
         setLocalReservation(null);
@@ -207,7 +212,7 @@ export default function MyRoomPage() {
       try {
         const [listingRows, photoRows] = await Promise.all([
           selectRows('listings', {
-            select: 'id,title,address,district,ward,room_type,floor,near_universities,lat,lng,price_monthly,security_deposit,house_rules,amenities,lister_id',
+            select: 'id,title,address,district,ward,room_type,floor,near_universities,lat,lng,price_monthly,security_deposit,house_rules,amenities,lister_id,cover_photo',
             filters: [{ column: 'id', op: 'eq', value: localReservation.listingId }],
             accessToken: token
           }).catch(() => []),
@@ -231,8 +236,13 @@ export default function MyRoomPage() {
         }
 
         if (!mounted) return;
-        setListing(listingRows?.[0] || null);
-        setPhotos((photoRows || []).map((p: any) => p.url));
+        const listingRecord = listingRows?.[0] || null;
+        setListing(listingRecord);
+        const photoUrls = (photoRows || []).map((p: any) => p.url);
+        if (photoUrls.length === 0 && listingRecord?.cover_photo) {
+          photoUrls.push(listingRecord.cover_photo);
+        }
+        setPhotos(photoUrls);
         setLandlord(landlordRow);
       } catch {
         // ignore
