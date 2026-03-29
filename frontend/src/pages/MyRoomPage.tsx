@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ShieldCheck, PhoneCall, MessageCircle, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { selectRows } from '../lib/supabase';
@@ -79,6 +79,7 @@ function distanceLabel(listing?: Listing) {
 export default function MyRoomPage() {
   const { user, token } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -89,6 +90,22 @@ export default function MyRoomPage() {
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
   const [activeTab, setActiveTab] = useState<'overview' | 'payment' | 'rules'>('overview');
   const [localReservation, setLocalReservation] = useState<any>(null);
+
+  useEffect(() => {
+    // Load any reservation passed via navigation state or stored locally up front
+    if ((location.state as any)?.listingId) {
+      setLocalReservation(location.state);
+    } else {
+      const stored = localStorage.getItem(user?.userId ? `myRoomReservation:${user.userId}` : 'myRoomReservation');
+      if (stored) {
+        try {
+          setLocalReservation(JSON.parse(stored));
+        } catch {
+          setLocalReservation(null);
+        }
+      }
+    }
+  }, [location.state, user?.userId]);
 
   useEffect(() => {
     let mounted = true;
@@ -114,15 +131,6 @@ export default function MyRoomPage() {
 
         const active = bookingRows?.[0];
         if (!active) {
-          const stored = localStorage.getItem(user?.userId ? `myRoomReservation:${user.userId}` : 'myRoomReservation');
-          if (stored && mounted) {
-            try {
-              const parsed = JSON.parse(stored);
-              setLocalReservation(parsed);
-            } catch {
-              setLocalReservation(null);
-            }
-          }
           if (mounted) {
             setBooking(null);
             setListing(null);
@@ -165,7 +173,18 @@ export default function MyRoomPage() {
         setPayments(paymentRows || []);
         setLocalReservation(null);
       } catch (err: any) {
-        if (mounted) setError(err.message || 'Failed to load your room');
+        if (mounted) {
+          setError(err.message || 'Failed to load your room');
+          // fallback to local reservation if available
+          const stored = localStorage.getItem(user?.userId ? `myRoomReservation:${user.userId}` : 'myRoomReservation');
+          if (stored) {
+            try {
+              setLocalReservation(JSON.parse(stored));
+            } catch {
+              setLocalReservation(null);
+            }
+          }
+        }
       } finally {
         if (mounted) setLoading(false);
       }
