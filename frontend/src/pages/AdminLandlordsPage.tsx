@@ -15,6 +15,7 @@ type Listing = {
   created_at?: string;
   lister_id?: string;
   photos?: string[];
+  admin_notes?: string;
 };
 
 type Profile = {
@@ -70,7 +71,7 @@ function statusPill(status: string) {
 }
 
 export default function AdminLandlordsPage() {
-  const { token, user } = useAuth();
+  const { token } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [listings, setListings] = useState<Listing[]>([]);
@@ -83,13 +84,14 @@ export default function AdminLandlordsPage() {
   const [rejectReason, setRejectReason] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
-  const [pendingListers, setPendingListers] = useState<Profile[]>([]);
-  const [listerAction, setListerAction] = useState<string | null>(null);
+  const [photosMap, setPhotosMap] = useState<Record<string, string[]>>({});
   const [refreshing, setRefreshing] = useState(false);
+  const [sessionExpired, setSessionExpired] = useState(false);
+  const [previewId, setPreviewId] = useState<string | null>(null);
 
   // Load listings + posters
   const loadData = async (initial = false) => {
-    if (!token) return;
+    if (!token || sessionExpired) return;
     if (initial) setLoading(true); else setRefreshing(true);
     setError('');
     try {
@@ -98,7 +100,8 @@ export default function AdminLandlordsPage() {
         order: 'created_at.desc',
         accessToken: token
       });
-      setListings(rows);
+      const normalized = rows.map((r: any) => ({ ...r, status: (r.status || 'pending').toLowerCase() }));
+      setListings(normalized);
       const listerIds = Array.from(new Set(rows.map((r: any) => r.lister_id).filter(Boolean)));
       if (listerIds.length) {
         const profRows = await selectRows('profiles', {
@@ -119,45 +122,35 @@ export default function AdminLandlordsPage() {
           accessToken: token
         }).catch(() => []);
         const thumbMap: Record<string, string> = {};
+        const listPhotos: Record<string, string[]> = {};
         (photoRows || []).forEach((p: any) => {
           if (!thumbMap[p.listing_id]) thumbMap[p.listing_id] = p.url;
+          if (!listPhotos[p.listing_id]) listPhotos[p.listing_id] = [];
+          listPhotos[p.listing_id].push(p.url);
         });
         setThumbnails(thumbMap);
+        setPhotosMap(listPhotos);
       } else {
         setThumbnails({});
+        setPhotosMap({});
       }
     } catch (err: any) {
-      setError(err.message);
+      const msg = err?.message || 'Failed to load data';
+      if (msg.toLowerCase().includes('jwt')) {
+        setSessionExpired(true);
+        setError('Session expired. Please log in again.');
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
-  const loadPendingListers = async () => {
-    if (!token) return;
-    try {
-      const rows = await selectRows('profiles', {
-        select: 'id,full_name,role,verification_status,phone',
-        filters: [
-          { column: 'role', op: 'eq', value: 'lister' }
-        ],
-        order: 'created_at.desc',
-        accessToken: token
-      });
-      const pending = rows.filter((p: any) => {
-        const status = String(p.verification_status || '').toUpperCase();
-        return status !== 'APPROVED';
-      });
-      setPendingListers(pending);
-    } catch {
-      // ignore
-    }
-  };
-
   // Load notifications
   const loadNotifications = async () => {
-    if (!token) return;
+    if (!token || sessionExpired) return;
     setNotifLoading(true);
     try {
       const rows = await selectRows('admin_notifications', {
@@ -167,6 +160,12 @@ export default function AdminLandlordsPage() {
         accessToken: token
       }).catch(() => []);
       setNotifications(rows);
+    } catch (err: any) {
+      const msg = err?.message || '';
+      if (msg.toLowerCase().includes('jwt')) {
+        setSessionExpired(true);
+        setError('Session expired. Please log in again.');
+      }
     } finally {
       setNotifLoading(false);
     }
@@ -174,15 +173,15 @@ export default function AdminLandlordsPage() {
 
   useEffect(() => {
     loadData(true);
-    loadPendingListers();
     loadNotifications();
     // Simple polling to emulate realtime
     const t = setInterval(() => {
+      if (sessionExpired) return;
       loadNotifications();
       loadData(false);
     }, 12000);
     return () => clearInterval(t);
-  }, [token]);
+  }, [token, sessionExpired]);
 
   const filteredListings = useMemo(() => {
     if (activeTab === 'all') return listings;
@@ -192,7 +191,10 @@ export default function AdminLandlordsPage() {
   const counts = useMemo(() => {
     const base = { total: listings.length, pending: 0, approved: 0, rejected: 0 };
     listings.forEach((l) => {
-      base[l.status as 'pending' | 'approved' | 'rejected'] = (base as any)[l.status] + 1;
+      const key = (l.status || 'pending').toLowerCase();
+      if (key === 'pending' || key === 'approved' || key === 'rejected') {
+        (base as any)[key] += 1;
+      }
     });
     return base;
   }, [listings]);
@@ -239,43 +241,14 @@ export default function AdminLandlordsPage() {
     }
   };
 
-  const handleApproveLister = async (id: string) => {
-    if (!token) return;
-    setListerAction(id);
-    try {
-      await updateRows('profiles', { verification_status: 'APPROVED' }, {
-        filters: [{ column: 'id', op: 'eq', value: id }],
-        accessToken: token
-      });
-      setPendingListers((prev) => prev.filter((p) => p.id !== id));
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setListerAction(null);
-    }
-  };
-
-  const handleRejectLister = async (id: string) => {
-    if (!token) return;
-    setListerAction(id);
-    try {
-      await updateRows('profiles', { verification_status: 'REJECTED' }, {
-        filters: [{ column: 'id', op: 'eq', value: id }],
-        accessToken: token
-      });
-      setPendingListers((prev) => prev.filter((p) => p.id !== id));
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setListerAction(null);
-    }
-  };
-
   const markAllRead = async () => {
     if (!token) return;
     await updateRows('admin_notifications', { read_at: new Date().toISOString() }, { accessToken: token }).catch(() => undefined);
     setNotifications((prev) => prev.map((n) => ({ ...n, read_at: new Date().toISOString() })));
   };
+
+  const previewListing = useMemo(() => listings.find((l) => l.id === previewId), [listings, previewId]);
+  const previewPhotos = previewId ? photosMap[previewId] || (thumbnails[previewId] ? [thumbnails[previewId]] : []) : [];
 
   return (
     <div className="container section" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -353,37 +326,6 @@ export default function AdminLandlordsPage() {
         <StatCard label="Rejected" value={counts.rejected} color={RED} />
       </div>
 
-      {/* Pending listers */}
-      <div className="card" style={{ padding: '1rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
-          <strong>Pending dalali accounts</strong>
-          <span className="muted">{pendingListers.length} awaiting approval</span>
-        </div>
-        {pendingListers.length === 0 ? (
-          <p className="muted" style={{ margin: 0 }}>No pending accounts.</p>
-        ) : (
-          <div style={{ display: 'grid', gap: '0.5rem' }}>
-            {pendingListers.map((p) => (
-              <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem', border: '1px solid var(--border)', borderRadius: 10 }}>
-                <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
-                  <Avatar name={p.full_name || 'Dalali'} />
-                  <div>
-                    <p style={{ margin: 0, fontWeight: 700 }}>{p.full_name || 'Dalali'}</p>
-                    <p style={{ margin: 0, color: 'var(--mid)', fontSize: '0.9rem' }}>{p.phone || ''}</p>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '0.4rem' }}>
-                  <button type="button" className="btn btn--ghost btn--small" onClick={() => handleRejectLister(p.id)} disabled={listerAction === p.id}>Reject</button>
-                  <button type="button" className="btn btn--small" style={{ background: PRIMARY, color: '#fff' }} onClick={() => handleApproveLister(p.id)} disabled={listerAction === p.id}>
-                    {listerAction === p.id ? 'Saving...' : 'Approve'}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto' }}>
         {(['pending', 'approved', 'rejected', 'all'] as const).map((tab) => (
@@ -421,7 +363,7 @@ export default function AdminLandlordsPage() {
         <div style={{ display: 'grid', gap: '0.75rem' }}>
           {filteredListings.map((l) => {
             const poster = profiles[l.lister_id || ''] || {};
-            const thumb = Array.isArray(l.photos) && l.photos.length ? l.photos[0] : 'https://placehold.co/160x120/1D9E75/ffffff?text=Room';
+            const thumb = thumbnails[l.id] || 'https://placehold.co/160x120/1D9E75/ffffff?text=Room';
             return (
               <div key={l.id} className="card" style={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: '0.8rem', padding: '0.9rem', alignItems: 'center' }}>
                 <div style={{ width: '100%', height: 120, overflow: 'hidden', borderRadius: 10, background: '#f4f6f5' }}>
@@ -451,6 +393,13 @@ export default function AdminLandlordsPage() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
                     <p style={{ margin: 0, color: 'var(--mid)' }}>{timeAgo(l.created_at)}</p>
                     <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        className="btn btn--ghost btn--small"
+                        onClick={() => setPreviewId(l.id)}
+                      >
+                        Inspect
+                      </button>
                       <Link to={`/rooms/${l.id}`} className="btn btn--ghost btn--small">View</Link>
                       {l.status === 'pending' ? (
                         <>
@@ -520,6 +469,79 @@ export default function AdminLandlordsPage() {
           </article>
         </div>
       ) : null}
+
+      {previewListing ? (
+        <div className="sheet-backdrop" role="presentation" onClick={() => setPreviewId(null)} style={{ alignItems: 'center' }}>
+          <article
+            className="sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Inspect listing"
+            tabIndex={-1}
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: 640 }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.6rem' }}>
+              <div>
+                <h3 style={{ margin: 0 }}>{previewListing.title}</h3>
+                <p style={{ margin: '0.25rem 0', color: 'var(--mid)' }}>{previewListing.ward || previewListing.district || 'Location'} {previewListing.near_universities?.length ? `• ${previewListing.near_universities[0]} nearby` : ''}</p>
+                <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <span style={{ fontWeight: 800, color: PRIMARY }}>{fmtTZS(previewListing.price_monthly)}/mo</span>
+                  <span style={{ padding: '0.2rem 0.6rem', borderRadius: 999, background: '#eef6f3', color: '#1f5a45', fontWeight: 700 }}>{previewListing.room_type || 'Room'}</span>
+                  {statusPill(previewListing.status)}
+                </div>
+              </div>
+              <button type="button" className="btn btn--ghost" onClick={() => setPreviewId(null)}>✕</button>
+            </div>
+
+            <div style={{ display: 'grid', gap: '0.5rem', margin: '0.8rem 0' }}>
+              {previewPhotos.length === 0 ? (
+                <div style={{ width: '100%', height: 220, borderRadius: 12, background: 'var(--cream)' }} />
+              ) : (
+                <div style={{ display: 'grid', gap: '0.4rem', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))' }}>
+                  {previewPhotos.slice(0, 6).map((url) => (
+                    <div key={url} style={{ borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border)', height: 140 }}>
+                      <img src={url} alt="Listing" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'grid', gap: '0.6rem', marginBottom: '0.8rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: '0.6rem' }}>
+                <InfoRow label="Room type" value={previewListing.room_type || '—'} />
+                <InfoRow label="District/Ward" value={`${previewListing.district || ''} ${previewListing.ward || ''}`.trim() || '—'} />
+                <InfoRow label="Near universities" value={previewListing.near_universities?.join(', ') || '—'} />
+                <InfoRow label="Posted" value={timeAgo(previewListing.created_at)} />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.75rem', border: '1px solid var(--border)', borderRadius: 10 }}>
+                <Avatar name={(profiles[previewListing.lister_id || '']?.full_name) || 'Lister'} />
+                <div style={{ flex: 1 }}>
+                  <p style={{ margin: 0, fontWeight: 700 }}>{profiles[previewListing.lister_id || '']?.full_name || 'Lister'}</p>
+                  <p style={{ margin: 0, color: 'var(--mid)' }}>{profiles[previewListing.lister_id || '']?.phone || 'No phone provided'}</p>
+                </div>
+                <span style={{ padding: '0.25rem 0.6rem', borderRadius: 999, background: profiles[previewListing.lister_id || '']?.verification_status === 'APPROVED' ? '#EAF3DE' : '#FAEEDA', color: profiles[previewListing.lister_id || '']?.verification_status === 'APPROVED' ? '#27500A' : '#633806', fontWeight: 700 }}>
+                  {profiles[previewListing.lister_id || '']?.verification_status === 'APPROVED' ? 'Verified' : 'Unverified'}
+                </span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'flex-end' }}>
+              <button type="button" className="btn btn--ghost" onClick={() => { setRejectTarget(previewListing.id); setRejectReason(''); setPreviewId(null); }}>Reject</button>
+              <button
+                type="button"
+                className="btn"
+                style={{ background: PRIMARY, color: '#fff' }}
+                onClick={() => { setPreviewId(null); handleApprove(previewListing.id); }}
+                disabled={actionLoading === previewListing.id}
+              >
+                {actionLoading === previewListing.id ? 'Saving...' : 'Approve'}
+              </button>
+            </div>
+          </article>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -529,6 +551,15 @@ function StatCard({ label, value, color }: { label: string; value: any; color: s
     <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 12, padding: '0.9rem' }}>
       <p style={{ margin: 0, color: 'var(--mid)', fontSize: '0.9rem' }}>{label}</p>
       <p style={{ margin: '0.1rem 0 0', fontSize: '1.4rem', fontWeight: 800, color }}>{value}</p>
+    </div>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value: any }) {
+  return (
+    <div style={{ padding: '0.55rem 0.65rem', border: '1px solid var(--border)', borderRadius: 10 }}>
+      <p style={{ margin: 0, color: 'var(--mid)', fontSize: '0.85rem' }}>{label}</p>
+      <p style={{ margin: '0.15rem 0 0', fontWeight: 700 }}>{value || '—'}</p>
     </div>
   );
 }

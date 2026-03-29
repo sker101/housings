@@ -26,7 +26,8 @@ edit the amenities to explain if a room has kitchen, single room etc
 if a room is paid for, it should not be seen anymore ny another person since it is already paid for. Once i login as another person or when another person logs in they should not see the rooms that have already been paid for.
 
 
-
+##admins page
+admin should log in and the directly be taken to the landlords page
 
 
  NB:
@@ -38,3 +39,5 @@ if a room is paid for, it should not be seen anymore ny another person since it 
 
  reseting the supabase cleaning everything locally
  supabase db reset
+
+
