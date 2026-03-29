@@ -10,14 +10,23 @@ export default function PayPage() {
   const { t } = useTranslation();
   const { token, user } = useAuth();
 
-  const state = location.state as { listingId?: string; price?: number; title?: string } | undefined;
+  const state = location.state as {
+    listingId?: string;
+    price?: number;
+    title?: string;
+    availableFrom?: string;
+    coverPhoto?: string | null;
+    address?: string;
+  } | undefined;
 
   const [listing, setListing] = useState<any>(
     state?.listingId
       ? {
           id: state.listingId,
           title: state.title,
-          price_monthly: state.price
+          price_monthly: state.price,
+          available_from: state.availableFrom,
+          address: state.address
         }
       : null
   );
@@ -38,7 +47,7 @@ export default function PayPage() {
       try {
         setLoading(true);
         const rows = await selectRows('listings', {
-          select: 'id,title,price_monthly,photos',
+          select: 'id,title,price_monthly,available_from,address,district,ward',
           filters: [{ column: 'id', op: 'eq', value: state.listingId }],
           accessToken: token
         });
@@ -69,6 +78,9 @@ export default function PayPage() {
         months,
         total,
         reservedAt: new Date().toISOString(),
+        moveInDate: listing.available_from || state?.availableFrom || new Date().toISOString(),
+        coverPhoto: state?.coverPhoto || null,
+        address: listing.address || listing.district || listing.ward || ''
       };
       if (user?.userId) {
         localStorage.setItem(`myRoomReservation:${user.userId}`, JSON.stringify(reservation));

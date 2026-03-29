@@ -88,6 +88,7 @@ export default function MyRoomPage() {
   const [landlord, setLandlord] = useState<Profile | null>(null);
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
   const [activeTab, setActiveTab] = useState<'overview' | 'payment' | 'rules'>('overview');
+  const [localReservation, setLocalReservation] = useState<any>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -113,6 +114,15 @@ export default function MyRoomPage() {
 
         const active = bookingRows?.[0];
         if (!active) {
+          const stored = localStorage.getItem(user?.userId ? `myRoomReservation:${user.userId}` : 'myRoomReservation');
+          if (stored && mounted) {
+            try {
+              const parsed = JSON.parse(stored);
+              setLocalReservation(parsed);
+            } catch {
+              setLocalReservation(null);
+            }
+          }
           if (mounted) {
             setBooking(null);
             setListing(null);
@@ -153,6 +163,7 @@ export default function MyRoomPage() {
         setPhotos((photoRows || []).map((p: any) => p.url));
         setLandlord(landlordRows?.[0] || null);
         setPayments(paymentRows || []);
+        setLocalReservation(null);
       } catch (err: any) {
         if (mounted) setError(err.message || 'Failed to load your room');
       } finally {
@@ -177,7 +188,7 @@ export default function MyRoomPage() {
     );
   }
 
-  if (!loading && !booking) {
+  if (!loading && !booking && !localReservation) {
     return (
       <div className="container section" style={{ textAlign: 'center', padding: '3rem 1rem' }}>
         <h1 style={{ marginBottom: '0.6rem' }}>My room</h1>
@@ -220,7 +231,7 @@ export default function MyRoomPage() {
               <div>
                 <strong>Payment confirmed</strong>
                 <p style={{ margin: 0, color: '#245b46' }}>
-                  Move-in: {formatDate(booking?.move_in_date)}
+                  Move-in: {formatDate(booking?.move_in_date || localReservation?.moveInDate)}
                 </p>
               </div>
             </div>
@@ -250,8 +261,8 @@ export default function MyRoomPage() {
               <div className="card" style={{ padding: '1rem', borderRadius: 14 }}>
                 <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', marginBottom: '0.9rem' }}>
                   <img
-                    src={photos?.[0] || 'https://placehold.co/800x450/1D9E75/ffffff?text=CampusStay+TZ'}
-                    alt={listing?.title || 'Room photo'}
+                    src={photos?.[0] || localReservation?.coverPhoto || 'https://placehold.co/800x450/1D9E75/ffffff?text=CampusStay+TZ'}
+                    alt={listing?.title || localReservation?.title || 'Room photo'}
                     style={{ width: '100%', height: 220, objectFit: 'cover' }}
                   />
                   <span
@@ -267,13 +278,13 @@ export default function MyRoomPage() {
                       fontSize: '0.8rem'
                     }}
                   >
-                    {listing?.room_type || 'Room'}
+                    {listing?.room_type || localReservation?.roomType || 'Room'}
                   </span>
                 </div>
 
-                <h2 style={{ margin: '0 0 0.2rem' }}>{listing?.title || 'Reserved room'}</h2>
+                <h2 style={{ margin: '0 0 0.2rem' }}>{listing?.title || localReservation?.title || 'Reserved room'}</h2>
                 <p style={{ margin: 0, color: 'var(--mid)' }}>
-                  {listing?.address || listing?.ward || listing?.district || 'Address pending'}
+                  {listing?.address || localReservation?.address || listing?.ward || listing?.district || 'Address pending'}
                   {distanceLabel(listing) ? ` • ${distanceLabel(listing)}` : ''}
                 </p>
 
@@ -285,10 +296,10 @@ export default function MyRoomPage() {
                     marginTop: '0.8rem'
                   }}
                 >
-                  <InfoRow label="Room type" value={listing?.room_type || '—'} />
+                  <InfoRow label="Room type" value={listing?.room_type || localReservation?.roomType || '—'} />
                   <InfoRow label="Floor" value={listing?.floor || '—'} />
-                  <InfoRow label="Move-in" value={formatDate(booking?.move_in_date)} />
-                  <InfoRow label="Lease" value={`${booking?.duration_months || 0} months`} />
+                  <InfoRow label="Move-in" value={formatDate(booking?.move_in_date || localReservation?.moveInDate)} />
+                  <InfoRow label="Lease" value={`${booking?.duration_months || localReservation?.months || 0} months`} />
                 </div>
 
                 <div style={{ marginTop: '1rem' }}>
@@ -348,10 +359,10 @@ export default function MyRoomPage() {
               <div className="card" style={{ padding: '1rem', borderRadius: 14, display: 'grid', gap: '0.9rem' }}>
                 <div className="card" style={{ padding: '0.9rem', borderRadius: 12 }}>
                   <p style={{ margin: 0, color: 'var(--mid)' }}>Payment summary</p>
-                  <Row label="Monthly rent" value={formatTZS(listing?.price_monthly)} />
+                  <Row label="Monthly rent" value={formatTZS(listing?.price_monthly || localReservation?.priceMonthly)} />
                   <Row label="Security deposit" value={formatTZS(listing?.security_deposit)} />
                   <Row label="Platform fee" value={formatTZS(5000)} />
-                  <Row label="Total paid" value={formatTZS(mainPayment?.amount || listing?.price_monthly)} bold />
+                  <Row label="Total paid" value={formatTZS(mainPayment?.amount || localReservation?.total || listing?.price_monthly)} bold />
                 </div>
 
                 <div className="card" style={{ padding: '0.9rem', borderRadius: 12 }}>

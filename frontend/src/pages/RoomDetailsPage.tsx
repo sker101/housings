@@ -863,7 +863,14 @@ export default function RoomDetailsPage() {
               to="/pay"
               className="btn btn--large"
               style={{ flex: 2, textAlign: 'center' }}
-              state={{ listingId: listing.id, price: listing.priceMonthly, title: listing.title }}
+              state={{
+                listingId: listing.id,
+                price: listing.priceMonthly,
+                title: listing.title,
+                availableFrom: listing.availableFrom,
+                coverPhoto: photos?.[0] || null,
+                address: listing.location || listing.district || listing.ward || ''
+              }}
             >
               Reserve / Pay
             </Link>
