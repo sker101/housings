@@ -218,16 +218,19 @@ export default function AdminLandlordsPage() {
 
   const filteredListings = useMemo(() => {
     if (activeTab === 'all') return listings;
-    return listings.filter((l) => l.status === activeTab);
+    if (activeTab === 'approved') return listings.filter((l) => l.status === 'approved');
+    if (activeTab === 'rejected') return listings.filter((l) => l.status === 'rejected');
+    // pending: anything not approved or rejected
+    return listings.filter((l) => l.status !== 'approved' && l.status !== 'rejected');
   }, [listings, activeTab]);
 
   const counts = useMemo(() => {
     const base = { total: listings.length, pending: 0, approved: 0, rejected: 0 };
     listings.forEach((l) => {
-      const key = (l.status || 'pending').toLowerCase();
-      if (key === 'pending' || key === 'approved' || key === 'rejected') {
-        (base as any)[key] += 1;
-      }
+      const key = (l.status || '').toLowerCase();
+      if (key === 'approved') base.approved += 1;
+      else if (key === 'rejected') base.rejected += 1;
+      else base.pending += 1;
     });
     return base;
   }, [listings]);
