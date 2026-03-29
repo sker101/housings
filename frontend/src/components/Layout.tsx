@@ -398,23 +398,27 @@ export default function Layout({ children }) {
       </div>
 
       {(!isAuthenticated || user?.role === APP_ROLE.ADMIN || location.pathname.startsWith('/admin')) ? (
-        <nav className="bottom-nav" aria-label="Primary">
-          <NavLink to="/" className={({ isActive }) => (isActive ? 'is-active' : '')} end>
+        <nav
+          className="bottom-nav"
+          aria-label="Primary"
+          style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', gap: '0.25rem' }}
+        >
+          <NavLink to="/" className={({ isActive }) => (isActive ? 'is-active' : '')} end style={{ flex: 1, textAlign: 'center' }}>
             {t('nav.home')}
           </NavLink>
-          <NavLink to="/search" className={({ isActive }) => (isActive ? 'is-active' : '')}>
+          <NavLink to="/search" className={({ isActive }) => (isActive ? 'is-active' : '')} style={{ flex: 1, textAlign: 'center' }}>
             {t('nav.search')}
           </NavLink>
-          <NavLink to="/messages" className={({ isActive }) => `nav-link-with-badge ${isActive ? 'is-active' : ''}`}>
+          <NavLink to="/messages" className={({ isActive }) => `nav-link-with-badge ${isActive ? 'is-active' : ''}`} style={{ flex: 1, textAlign: 'center' }}>
             {t('nav.messages')}
             {unreadCount > 0 ? (
               <span className="nav-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
             ) : null}
           </NavLink>
-          <NavLink to="/saved" className={({ isActive }) => (isActive ? 'is-active' : '')}>
+          <NavLink to="/saved" className={({ isActive }) => (isActive ? 'is-active' : '')} style={{ flex: 1, textAlign: 'center' }}>
             {t('nav.saved')}
           </NavLink>
-          <NavLink to="/profile" className={({ isActive }) => (isActive ? 'is-active' : '')}>
+          <NavLink to="/profile" className={({ isActive }) => (isActive ? 'is-active' : '')} style={{ flex: 1, textAlign: 'center' }}>
             {user?.fullName?.split(' ')[0] || t('dashboard.profile')}
           </NavLink>
           {isAuthenticated ? (
@@ -422,7 +426,7 @@ export default function Layout({ children }) {
               type="button"
               onClick={logout}
               className="nav-link-button"
-              style={{ background: 'none', border: 'none', padding: 0, color: 'inherit' }}
+              style={{ flex: 1, textAlign: 'center', background: 'none', border: 'none', padding: '0.4rem 0', color: 'inherit' }}
             >
               {t('nav.logout')}
             </button>
