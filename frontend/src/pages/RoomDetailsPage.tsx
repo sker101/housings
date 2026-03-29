@@ -860,10 +860,10 @@ export default function RoomDetailsPage() {
               {saved ? t('listingCard.saved') : t('listingCard.save')}
             </button>
             <Link
-              to="/payments"
+              to="/pay"
               className="btn btn--large"
               style={{ flex: 2, textAlign: 'center' }}
-              state={{ listingId: listing.id }}
+              state={{ listingId: listing.id, price: listing.priceMonthly, title: listing.title }}
             >
               Reserve / Pay
             </Link>
