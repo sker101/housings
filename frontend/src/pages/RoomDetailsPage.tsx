@@ -868,7 +868,7 @@ export default function RoomDetailsPage() {
                 price: listing.priceMonthly,
                 title: listing.title,
                 availableFrom: listing.availableFrom,
-                coverPhoto: photos?.[0] || null,
+                coverPhoto: Array.isArray(listing?.photos) ? listing.photos[0] : null,
                 address: listing.location || listing.district || listing.ward || ''
               }}
             >
