@@ -22,6 +22,7 @@ type Profile = {
   full_name?: string;
   role?: string;
   verification_status?: string;
+  phone?: string;
 };
 
 type Notification = {
@@ -82,11 +83,14 @@ export default function AdminLandlordsPage() {
   const [rejectReason, setRejectReason] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
+  const [pendingListers, setPendingListers] = useState<Profile[]>([]);
+  const [listerAction, setListerAction] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Load listings + posters
-  const loadData = async () => {
+  const loadData = async (initial = false) => {
     if (!token) return;
-    setLoading(true);
+    if (initial) setLoading(true); else setRefreshing(true);
     setError('');
     try {
       const rows = await selectRows('listings', {
@@ -98,7 +102,7 @@ export default function AdminLandlordsPage() {
       const listerIds = Array.from(new Set(rows.map((r: any) => r.lister_id).filter(Boolean)));
       if (listerIds.length) {
         const profRows = await selectRows('profiles', {
-          select: 'id,full_name,role,verification_status',
+          select: 'id,full_name,role,verification_status,phone',
           filters: [{ column: 'id', op: 'in', value: `(${listerIds.join(',')})` }],
           accessToken: token
         });
@@ -126,6 +130,25 @@ export default function AdminLandlordsPage() {
       setError(err.message);
     } finally {
       setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const loadPendingListers = async () => {
+    if (!token) return;
+    try {
+      const rows = await selectRows('profiles', {
+        select: 'id,full_name,role,verification_status,phone',
+        filters: [
+          { column: 'role', op: 'eq', value: 'lister' },
+          { column: 'verification_status', op: 'eq', value: 'PENDING' }
+        ],
+        order: 'created_at.desc',
+        accessToken: token
+      });
+      setPendingListers(rows);
+    } catch {
+      // ignore
     }
   };
 
@@ -147,12 +170,13 @@ export default function AdminLandlordsPage() {
   };
 
   useEffect(() => {
-    loadData();
+    loadData(true);
+    loadPendingListers();
     loadNotifications();
     // Simple polling to emulate realtime
     const t = setInterval(() => {
       loadNotifications();
-      loadData();
+      loadData(false);
     }, 12000);
     return () => clearInterval(t);
   }, [token]);
@@ -212,6 +236,38 @@ export default function AdminLandlordsPage() {
     }
   };
 
+  const handleApproveLister = async (id: string) => {
+    if (!token) return;
+    setListerAction(id);
+    try {
+      await updateRows('profiles', { verification_status: 'APPROVED' }, {
+        filters: [{ column: 'id', op: 'eq', value: id }],
+        accessToken: token
+      });
+      setPendingListers((prev) => prev.filter((p) => p.id !== id));
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setListerAction(null);
+    }
+  };
+
+  const handleRejectLister = async (id: string) => {
+    if (!token) return;
+    setListerAction(id);
+    try {
+      await updateRows('profiles', { verification_status: 'REJECTED' }, {
+        filters: [{ column: 'id', op: 'eq', value: id }],
+        accessToken: token
+      });
+      setPendingListers((prev) => prev.filter((p) => p.id !== id));
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setListerAction(null);
+    }
+  };
+
   const markAllRead = async () => {
     if (!token) return;
     await updateRows('admin_notifications', { read_at: new Date().toISOString() }, { accessToken: token }).catch(() => undefined);
@@ -223,6 +279,7 @@ export default function AdminLandlordsPage() {
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 800 }}>Listings approval</h1>
+          {refreshing ? <p style={{ margin: 0, color: 'var(--mid)', fontSize: '0.85rem' }}>Refreshing…</p> : null}
         </div>
         <div style={{ position: 'relative' }}>
           <button
@@ -291,6 +348,37 @@ export default function AdminLandlordsPage() {
         <StatCard label="Pending review" value={counts.pending} color={AMBER} />
         <StatCard label="Approved" value={counts.approved} color={PRIMARY} />
         <StatCard label="Rejected" value={counts.rejected} color={RED} />
+      </div>
+
+      {/* Pending listers */}
+      <div className="card" style={{ padding: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+          <strong>Pending dalali accounts</strong>
+          <span className="muted">{pendingListers.length} awaiting approval</span>
+        </div>
+        {pendingListers.length === 0 ? (
+          <p className="muted" style={{ margin: 0 }}>No pending accounts.</p>
+        ) : (
+          <div style={{ display: 'grid', gap: '0.5rem' }}>
+            {pendingListers.map((p) => (
+              <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem', border: '1px solid var(--border)', borderRadius: 10 }}>
+                <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+                  <Avatar name={p.full_name || 'Dalali'} />
+                  <div>
+                    <p style={{ margin: 0, fontWeight: 700 }}>{p.full_name || 'Dalali'}</p>
+                    <p style={{ margin: 0, color: 'var(--mid)', fontSize: '0.9rem' }}>{p.phone || ''}</p>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '0.4rem' }}>
+                  <button type="button" className="btn btn--ghost btn--small" onClick={() => handleRejectLister(p.id)} disabled={listerAction === p.id}>Reject</button>
+                  <button type="button" className="btn btn--small" style={{ background: PRIMARY, color: '#fff' }} onClick={() => handleApproveLister(p.id)} disabled={listerAction === p.id}>
+                    {listerAction === p.id ? 'Saving...' : 'Approve'}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
