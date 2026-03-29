@@ -859,7 +859,15 @@ export default function RoomDetailsPage() {
             >
               {saved ? t('listingCard.saved') : t('listingCard.save')}
             </button>
-            <button type="button" className="btn btn--large" style={{ flex: 2 }} onClick={() => setOpenInquiry(true)}>
+            <Link
+              to="/landlord/payments"
+              className="btn btn--large"
+              style={{ flex: 2, textAlign: 'center' }}
+              state={{ listingId: listing.id }}
+            >
+              Reserve / Pay
+            </Link>
+            <button type="button" className="btn btn--ghost" onClick={() => setOpenInquiry(true)}>
               {t('roomDetails.startChat')}
             </button>
             <button type="button" className="btn btn--ghost" onClick={handleShare}>
