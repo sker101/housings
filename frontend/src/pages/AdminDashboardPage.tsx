@@ -255,15 +255,23 @@ export default function AdminDashboardPage() {
 
   // ─── Section renderers ────────────────────────────────────────────
 
-  function renderOverview() {
-    return (
-      <>
-        <SectionHeader title="📊 Platform Overview" sub="Live snapshot of all key platform metrics." />
-        <div style={gridStyle}>
-          <StatCard label="Total Users" value={stats.totalUsers} color="#3b82f6" />
-          <StatCard label="Total Listings" value={stats.totalListings} color="#22c55e" />
-          <StatCard label="Total Bookings" value={stats.totalBookings} color="#f59e0b" />
-          <StatCard label="Reports" value={stats.totalReports} color="#ef4444" />
+    function renderOverview() {
+      return (
+        <>
+          <SectionHeader title="📊 Platform Overview" sub="Live snapshot of all key platform metrics." />
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+            <Link to="/admin/landlords" className="btn btn--ghost btn--small" style={{ border: '1px solid var(--border)' }}>
+              Verify dalali accounts
+            </Link>
+            <Link to="/admin/listings" className="btn btn--ghost btn--small" style={{ border: '1px solid var(--border)' }}>
+              Moderate listings
+            </Link>
+          </div>
+          <div style={gridStyle}>
+            <StatCard label="Total Users" value={stats.totalUsers} color="#3b82f6" />
+            <StatCard label="Total Listings" value={stats.totalListings} color="#22c55e" />
+            <StatCard label="Total Bookings" value={stats.totalBookings} color="#f59e0b" />
+            <StatCard label="Reports" value={stats.totalReports} color="#ef4444" />
           <StatCard label="Reviews" value={stats.totalReviews} color="#8b5cf6" sub={`Avg rating: ${stats.avgRating}`} />
           <StatCard label="Payments" value={stats.totalPaymentsCount} color="#06b6d4" />
           <StatCard label="Revenue" value={`${Number(stats.totalRevenue || 0).toLocaleString()} TZS`} color="#10b981" />
