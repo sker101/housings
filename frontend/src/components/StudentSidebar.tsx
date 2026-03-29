@@ -89,6 +89,7 @@ export default function StudentSidebar({
         { to: '/search', icon: <Search size={18} />, label: t('sidebar.browseListings'), highlight: true },
         { to: '/saved', icon: <Heart size={18} />, label: t('sidebar.savedListings'), meta: savedCount > 0 ? `${savedCount} ${t('sidebar.saved')}` : undefined },
         { to: '/bookings', icon: <CalendarCheck size={18} />, label: t('sidebar.myBookings'), badge: activeBookings },
+        { to: '/my-room', icon: <MapPin size={18} />, label: 'My room', highlight: false },
         { to: '/messages', icon: <MessageSquare size={18} />, label: t('sidebar.messages'), badge: unreadMessages },
         { to: '/reviews', icon: <Star size={18} />, label: t('sidebar.myReviews') },
         { to: '/notifications', icon: <Bell size={18} />, label: t('sidebar.notifications'), badge: unreadNotifs },

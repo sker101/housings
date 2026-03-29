@@ -20,6 +20,7 @@ import NotFoundPage from './pages/NotFoundPage';
 import NotificationsPage from './pages/NotificationsPage';
 import PaymentsPage from './pages/PaymentsPage';
 import PayPage from './pages/PayPage';
+import MyRoomPage from './pages/MyRoomPage';
 import ProfilePage from './pages/ProfilePage';
 import RegisterLandlordPage from './pages/RegisterLandlordPage';
 import RegisterStudentPage from './pages/RegisterStudentPage';
@@ -202,6 +203,14 @@ export default function App() {
           element={
             <ProtectedRoute roles={[APP_ROLE.STUDENT, APP_ROLE.LISTER]}>
               <PayPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/my-room"
+          element={
+            <ProtectedRoute roles={[APP_ROLE.STUDENT]}>
+              <MyRoomPage />
             </ProtectedRoute>
           }
         />

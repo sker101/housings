@@ -8,7 +8,7 @@ export default function PayPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
 
   const state = location.state as { listingId?: string; price?: number; title?: string } | undefined;
 
@@ -61,8 +61,22 @@ export default function PayPage() {
     setNotice('');
     setLoading(true);
     try {
-      // For now, assume payment succeeds immediately.
+      // For now, assume payment succeeds immediately and store reservation locally.
+      const reservation = {
+        listingId: listing.id,
+        title: listing.title,
+        priceMonthly: listing.price_monthly,
+        months,
+        total,
+        reservedAt: new Date().toISOString(),
+      };
+      if (user?.userId) {
+        localStorage.setItem(`myRoomReservation:${user.userId}`, JSON.stringify(reservation));
+      } else {
+        localStorage.setItem('myRoomReservation', JSON.stringify(reservation));
+      }
       setNotice('Payment marked as successful. Your reservation has been recorded.');
+      navigate('/my-room', { state: reservation });
     } catch (err: any) {
       setError(err.message || 'Unable to start payment. Please try again.');
     } finally {
