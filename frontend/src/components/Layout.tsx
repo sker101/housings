@@ -413,6 +413,16 @@ export default function Layout({ children }) {
           <NavLink to="/profile" className={({ isActive }) => (isActive ? 'is-active' : '')}>
             {user?.fullName?.split(' ')[0] || t('dashboard.profile')}
           </NavLink>
+          {isAuthenticated ? (
+            <button
+              type="button"
+              onClick={logout}
+              className="nav-link-button"
+              style={{ background: 'none', border: 'none', padding: 0, color: 'inherit' }}
+            >
+              {t('nav.logout')}
+            </button>
+          ) : null}
         </nav>
       ) : null}
     </div>
