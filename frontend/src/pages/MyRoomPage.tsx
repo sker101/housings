@@ -90,13 +90,17 @@ export default function MyRoomPage() {
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
   const [activeTab, setActiveTab] = useState<'overview' | 'payment' | 'rules'>('overview');
   const [localReservation, setLocalReservation] = useState<any>(null);
+  const storageKey = useMemo(
+    () => (user?.userId ? `myRoomReservation:${user.userId}` : 'myRoomReservation'),
+    [user?.userId]
+  );
 
   useEffect(() => {
     // Load any reservation passed via navigation state or stored locally up front
     if ((location.state as any)?.listingId) {
       setLocalReservation(location.state);
     } else {
-      const stored = localStorage.getItem(user?.userId ? `myRoomReservation:${user.userId}` : 'myRoomReservation');
+      const stored = localStorage.getItem(storageKey);
       if (stored) {
         try {
           setLocalReservation(JSON.parse(stored));
@@ -105,7 +109,7 @@ export default function MyRoomPage() {
         }
       }
     }
-  }, [location.state, user?.userId]);
+  }, [location.state, storageKey]);
 
   useEffect(() => {
     let mounted = true;
@@ -140,7 +144,7 @@ export default function MyRoomPage() {
         }
 
         const listingRows = await selectRows('listings', {
-          select: 'id,title,address,district,ward,room_type,floor,near_universities,lat,lng,price_monthly,security_deposit,house_rules,amenities',
+          select: 'id,title,address,district,ward,room_type,floor,near_universities,lat,lng,price_monthly,security_deposit,house_rules,amenities,lister_id',
           filters: [{ column: 'id', op: 'eq', value: active.listing_id }],
           accessToken: token
         });
@@ -176,7 +180,7 @@ export default function MyRoomPage() {
         if (mounted) {
           setError(err.message || 'Failed to load your room');
           // fallback to local reservation if available
-          const stored = localStorage.getItem(user?.userId ? `myRoomReservation:${user.userId}` : 'myRoomReservation');
+          const stored = localStorage.getItem(storageKey);
           if (stored) {
             try {
               setLocalReservation(JSON.parse(stored));
@@ -193,7 +197,52 @@ export default function MyRoomPage() {
     return () => {
       mounted = false;
     };
-  }, [user?.userId, token]);
+  }, [user?.userId, token, storageKey]);
+
+  // If we only have a local reservation, fetch listing + landlord for richer display
+  useEffect(() => {
+    let mounted = true;
+    async function loadFromLocal() {
+      if (booking || listing || !localReservation?.listingId || !token) return;
+      try {
+        const [listingRows, photoRows] = await Promise.all([
+          selectRows('listings', {
+            select: 'id,title,address,district,ward,room_type,floor,near_universities,lat,lng,price_monthly,security_deposit,house_rules,amenities,lister_id',
+            filters: [{ column: 'id', op: 'eq', value: localReservation.listingId }],
+            accessToken: token
+          }).catch(() => []),
+          selectRows('listing_photos', {
+            select: 'url',
+            filters: [{ column: 'listing_id', op: 'eq', value: localReservation.listingId }],
+            order: 'position.asc',
+            accessToken: token
+          }).catch(() => [])
+        ]);
+
+        let landlordRow: any = null;
+        const listerId = listingRows?.[0]?.lister_id || localReservation?.listerId;
+        if (listerId) {
+          const rows = await selectRows('profiles', {
+            select: 'id,full_name,phone,verification_status,role',
+            filters: [{ column: 'id', op: 'eq', value: listerId }],
+            accessToken: token
+          }).catch(() => []);
+          landlordRow = rows?.[0] || null;
+        }
+
+        if (!mounted) return;
+        setListing(listingRows?.[0] || null);
+        setPhotos((photoRows || []).map((p: any) => p.url));
+        setLandlord(landlordRow);
+      } catch {
+        // ignore
+      }
+    }
+    loadFromLocal();
+    return () => {
+      mounted = false;
+    };
+  }, [booking, listing, localReservation, token]);
 
   const mainPayment = useMemo(() => payments[0], [payments]);
   const nextPayment = useMemo(() => payments.find((p) => p.status !== 'paid'), [payments]);
