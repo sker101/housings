@@ -92,7 +92,7 @@ export default function MyRoomPage() {
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
   const [landlord, setLandlord] = useState<Profile | null>(null);
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
-  const [activeTab, setActiveTab] = useState<'overview' | 'contacts' | 'payment' | 'contract'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'photos' | 'contacts' | 'payment' | 'contract'>('overview');
   const [localReservation, setLocalReservation] = useState<any>(null);
   const storageKey = useMemo(
     () => (user?.userId ? `myRoomReservation:${user.userId}` : 'myRoomReservation'),
@@ -342,11 +342,11 @@ export default function MyRoomPage() {
           </div>
         ) : (
           <>
-            {/* ── 4-tab bar ── */}
+            {/* ── 5-tab bar ── */}
             <div style={{ display: 'flex', gap: 0, marginBottom: '1rem', borderBottom: '1px solid var(--border)', overflowX: 'auto' }}>
-              {(['overview', 'contacts', 'payment', 'contract'] as const).map((tab) => {
+              {(['overview', 'photos', 'contacts', 'payment', 'contract'] as const).map((tab) => {
                 const labels: Record<string, string> = {
-                  overview: 'Overview', contacts: 'Contacts', payment: 'Payment', contract: 'Contract & Rules'
+                  overview: 'Overview', photos: 'Photos', contacts: 'Contacts', payment: 'Payment', contract: 'Contract & Rules'
                 };
                 return (
                   <button
@@ -375,58 +375,6 @@ export default function MyRoomPage() {
             {/* ── OVERVIEW TAB ── */}
             {activeTab === 'overview' && (
               <div style={{ display: 'grid', gap: '0.75rem' }}>
-                {/* Photo gallery */}
-                <div style={{ display: 'grid', gap: '0.5rem', borderRadius: 14, overflow: 'hidden' }}>
-                  {/* Hero image */}
-                  <div style={{ borderRadius: 12, overflow: 'hidden', position: 'relative' }}>
-                    <img
-                      src={photos?.[activePhotoIndex] || localReservation?.coverPhoto || 'https://placehold.co/800x400/1D9E75/ffffff?text=CampusStay+TZ'}
-                      alt={listing?.title || 'Room'}
-                      style={{ width: '100%', height: 280, objectFit: 'cover', display: 'block' }}
-                    />
-                    {/* Photo counter badge */}
-                    {photos && photos.length > 0 && (
-                      <span style={{
-                        position: 'absolute', bottom: 10, right: 10,
-                        background: 'rgba(0, 0, 0, 0.7)', color: '#fff',
-                        padding: '0.35rem 0.75rem', borderRadius: 999, fontSize: '0.78rem', fontWeight: 700
-                      }}>
-                        {activePhotoIndex + 1} / {photos.length}
-                      </span>
-                    )}
-                    {/* Room type badge */}
-                    <span style={{
-                      position: 'absolute', top: 10, left: 10,
-                      background: '#1D9E75', color: '#fff',
-                      padding: '0.2rem 0.6rem', borderRadius: 999, fontSize: '0.78rem', fontWeight: 700
-                    }}>
-                      {listing?.room_type || localReservation?.roomType || 'Room'}
-                    </span>
-                  </div>
-
-                  {/* Thumbnail strip */}
-                  {photos && photos.length > 1 && (
-                    <div style={{
-                      display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.25rem'
-                    }}>
-                      {photos.map((photo, idx) => (
-                        <img
-                          key={idx}
-                          src={photo}
-                          alt={`Photo ${idx + 1}`}
-                          onClick={() => setActivePhotoIndex(idx)}
-                          style={{
-                            width: '80px', height: '60px',
-                            objectFit: 'cover', borderRadius: 8, cursor: 'pointer',
-                            border: activePhotoIndex === idx ? '3px solid #1D9E75' : '3px solid transparent',
-                            flexShrink: 0
-                          }}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                   <div style={{ background: '#E8F6EF', borderRadius: 12, padding: '1rem', textAlign: 'center' }}>
                     <p style={{ margin: 0, fontSize: '1.8rem', fontWeight: 700, color: '#085041' }}>{daysRemaining ?? '—'}</p>
@@ -603,6 +551,75 @@ export default function MyRoomPage() {
                     <button type="button" className="btn btn--ghost btn--small" onClick={() => window.print()}>
                       Download receipt
                     </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── PHOTOS TAB ── */}
+            {activeTab === 'photos' && (
+              <div style={{ display: 'grid', gap: '0.75rem' }}>
+                {/* Hero image - Full width */}
+                <div style={{ borderRadius: 14, overflow: 'hidden', position: 'relative' }}>
+                  <img
+                    src={photos?.[activePhotoIndex] || localReservation?.coverPhoto || 'https://placehold.co/800x500/1D9E75/ffffff?text=CampusStay+TZ'}
+                    alt={listing?.title || 'Room'}
+                    style={{ width: '100%', height: 350, objectFit: 'cover', display: 'block' }}
+                  />
+                  {/* Photo counter badge */}
+                  {photos && photos.length > 0 && (
+                    <span style={{
+                      position: 'absolute', bottom: 12, right: 12,
+                      background: 'rgba(0, 0, 0, 0.8)', color: '#fff',
+                      padding: '0.5rem 1rem', borderRadius: 999, fontSize: '0.85rem', fontWeight: 700
+                    }}>
+                      {activePhotoIndex + 1} / {photos.length}
+                    </span>
+                  )}
+                  {/* Room type badge */}
+                  <span style={{
+                    position: 'absolute', top: 12, left: 12,
+                    background: '#1D9E75', color: '#fff',
+                    padding: '0.35rem 0.75rem', borderRadius: 999, fontSize: '0.82rem', fontWeight: 700
+                  }}>
+                    {listing?.room_type || localReservation?.roomType || 'Room'}
+                  </span>
+                </div>
+
+                {/* Thumbnail gallery - Grid */}
+                {photos && photos.length > 1 && (
+                  <div style={{
+                    display: 'grid', gap: '0.5rem',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))'
+                  }}>
+                    {photos.map((photo, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => setActivePhotoIndex(idx)}
+                        style={{
+                          borderRadius: 10, overflow: 'hidden', cursor: 'pointer',
+                          border: activePhotoIndex === idx ? '3px solid #1D9E75' : '3px solid transparent',
+                          transition: 'transform 0.2s',
+                          transform: activePhotoIndex === idx ? 'scale(0.95)' : 'scale(1)'
+                        }}
+                      >
+                        <img
+                          src={photo}
+                          alt={`Photo ${idx + 1}`}
+                          style={{
+                            width: '100%', height: '100px',
+                            objectFit: 'cover', display: 'block'
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Photo info */}
+                {photos && photos.length === 0 && (
+                  <div className="card" style={{ padding: '1.5rem', textAlign: 'center', borderRadius: 12 }}>
+                    <p style={{ margin: 0, color: 'var(--mid)' }}>No photos uploaded for this room yet.</p>
                   </div>
                 )}
               </div>
