@@ -190,6 +190,11 @@ export default function RoomDetailsPage() {
   const [reportSuccess, setReportSuccess] = useState(false);
   const [reportError, setReportError] = useState('');
 
+  const monthlyRent = useMemo(() => Number((listing as any)?.priceMonthly ?? (listing as any)?.price_monthly ?? 0), [listing]);
+  const securityDeposit = monthlyRent;
+  const platformFee = 5000;
+  const totalDueToday = monthlyRent + securityDeposit + platformFee;
+
   const REPORT_REASONS = [
     { value: 'fraud', label: '⚠️ Fraudulent / Scam Listing' },
     { value: 'photos_mismatch', label: '📷 Photos Don\'t Match Property' },
@@ -1123,6 +1128,31 @@ export default function RoomDetailsPage() {
             <p className="muted">
               {t('roomDetails.inquirySubtitle')}
             </p>
+            <div style={{
+              background: 'var(--cream)',
+              border: '1px solid var(--border)',
+              borderRadius: 12,
+              padding: '1rem',
+              marginBottom: '1rem'
+            }}>
+              <p style={{ margin: '0 0 0.6rem', fontWeight: 700, fontSize: '0.9rem' }}>Cost breakdown</p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem', fontSize: '0.88rem' }}>
+                <span style={{ color: 'var(--mid)' }}>Monthly rent</span>
+                <span>TZS {new Intl.NumberFormat('sw-TZ').format(monthlyRent)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem', fontSize: '0.88rem' }}>
+                <span style={{ color: 'var(--mid)' }}>Security deposit</span>
+                <span>TZS {new Intl.NumberFormat('sw-TZ').format(securityDeposit)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem', fontSize: '0.88rem' }}>
+                <span style={{ color: 'var(--mid)' }}>Platform fee</span>
+                <span>TZS {new Intl.NumberFormat('sw-TZ').format(platformFee)}</span>
+              </div>
+              <div style={{ borderTop: '1px solid var(--border)', marginTop: '0.6rem', paddingTop: '0.6rem', display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ fontWeight: 700 }}>Total due today</span>
+                <span style={{ fontWeight: 700, color: '#1D9E75' }}>TZS {new Intl.NumberFormat('sw-TZ').format(totalDueToday)}</span>
+              </div>
+            </div>
             <form onSubmit={submitInquiry}>
               <label>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>

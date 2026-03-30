@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ShieldCheck, PhoneCall, MessageCircle, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, PhoneCall, MessageCircle, CheckCircle2, MapPin, Share2, FileText } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { selectRows } from '../lib/supabase';
 
@@ -88,7 +88,7 @@ export default function MyRoomPage() {
   const [photos, setPhotos] = useState<string[]>([]);
   const [landlord, setLandlord] = useState<Profile | null>(null);
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
-  const [activeTab, setActiveTab] = useState<'overview' | 'payment' | 'rules'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'contacts' | 'payment' | 'contract'>('overview');
   const [localReservation, setLocalReservation] = useState<any>(null);
   const storageKey = useMemo(
     () => (user?.userId ? `myRoomReservation:${user.userId}` : 'myRoomReservation'),
@@ -256,6 +256,31 @@ export default function MyRoomPage() {
 
   const mainPayment = useMemo(() => payments[0], [payments]);
   const nextPayment = useMemo(() => payments.find((p) => p.status !== 'paid'), [payments]);
+
+  const leaseEndDate = useMemo(() => {
+    const moveIn = booking?.move_in_date || localReservation?.moveInDate;
+    const months = booking?.duration_months || localReservation?.months || 0;
+    if (!moveIn || !months) return null;
+    const d = new Date(moveIn);
+    d.setMonth(d.getMonth() + Number(months));
+    return d;
+  }, [booking, localReservation]);
+
+  const daysRemaining = useMemo(() => {
+    if (!leaseEndDate) return null;
+    const diff = leaseEndDate.getTime() - Date.now();
+    return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+  }, [leaseEndDate]);
+
+  const leaseProgressPct = useMemo(() => {
+    const moveIn = booking?.move_in_date || localReservation?.moveInDate;
+    const months = booking?.duration_months || localReservation?.months || 0;
+    if (!moveIn || !months || !leaseEndDate) return 0;
+    const start = new Date(moveIn).getTime();
+    const end = leaseEndDate.getTime();
+    const now = Date.now();
+    return Math.min(100, Math.max(0, Math.round(((now - start) / (end - start)) * 100)));
+  }, [booking, localReservation, leaseEndDate]);
 
   if (!user?.userId) {
     return (

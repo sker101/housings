@@ -18,6 +18,11 @@ supabase/functions/.env
 in the mobile phone, the site keeps refreshing sometimes it becomes blank
 
 
+##
+After i pay, in phone it should show my room and a section dedicated to it. 
+It should have info containinh the room etc payment records, due date rent, giving stars etc
+
+
 
 ##
 edit the amenities to explain if a room has kitchen, single room etc
