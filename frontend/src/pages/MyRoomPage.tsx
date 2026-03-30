@@ -304,10 +304,26 @@ export default function MyRoomPage() {
   return (
     <div className="container section" style={{ display: 'flex', justifyContent: 'center' }}>
       <div style={{ width: '100%', maxWidth: 900 }}>
-        <header style={{ marginBottom: '0.75rem' }}>
-          <p style={{ margin: 0, color: 'var(--mid)' }}>Hi {user?.fullName?.split(' ')[0] || 'there'},</p>
-          <h1 style={{ margin: '0.2rem 0', fontSize: '1.6rem', fontWeight: 800 }}>My room</h1>
-        </header>
+
+        {/* ── Green header banner ── */}
+        <div style={{
+          background: '#1D9E75', borderRadius: 16, padding: '1.25rem 1.5rem',
+          marginBottom: '1rem', color: '#fff'
+        }}>
+          <p style={{ margin: 0, fontSize: '0.85rem', color: '#9FE1CB' }}>
+            Hi {user?.fullName?.split(' ')[0] || 'there'} — your room is confirmed
+          </p>
+          <h1 style={{ margin: '0.25rem 0 0', fontSize: '1.5rem', fontWeight: 800, color: '#fff' }}>
+            {listing?.title || localReservation?.title || 'Your reserved room'}
+          </h1>
+          <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', color: '#9FE1CB' }}>
+            {[
+              listing?.address || localReservation?.address || listing?.ward || listing?.district,
+              distanceLabel(listing) || null,
+              `Move-in: ${formatDate(booking?.move_in_date || localReservation?.moveInDate)}`
+            ].filter(Boolean).join(' · ')}
+          </p>
+        </div>
 
         {loading ? (
           <div style={{ display: 'grid', gap: '0.75rem' }}>
@@ -317,147 +333,202 @@ export default function MyRoomPage() {
           </div>
         ) : (
           <>
-            <div
-              style={{
-                background: '#E8F6EF',
-                border: `1px solid ${PRIMARY}33`,
-                color: PRIMARY,
-                padding: '0.9rem 1rem',
-                borderRadius: 12,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.6rem',
-                marginBottom: '0.9rem'
-              }}
-            >
-              <CheckCircle2 size={22} />
-              <div>
-                <strong>Payment confirmed</strong>
-                <p style={{ margin: 0, color: '#245b46' }}>
-                  Move-in: {formatDate(booking?.move_in_date || localReservation?.moveInDate)}
-                </p>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', overflowX: 'auto' }}>
-              {(['overview', 'payment', 'rules'] as const).map((tab) => (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => setActiveTab(tab)}
-                  style={{
-                    padding: '0.55rem 0.9rem',
-                    borderRadius: 10,
-                    border: `1px solid ${activeTab === tab ? PRIMARY : 'var(--border)'}`,
-                    background: activeTab === tab ? PRIMARY : '#fff',
-                    color: activeTab === tab ? '#fff' : 'var(--ink)',
-                    fontWeight: 700,
-                    minWidth: 110
-                  }}
-                >
-                  {tab === 'overview' ? 'Overview' : tab === 'payment' ? 'Payment' : 'House rules'}
-                </button>
-              ))}
-            </div>
-
-            {activeTab === 'overview' && (
-              <div className="card" style={{ padding: '1rem', borderRadius: 14 }}>
-                <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', marginBottom: '0.9rem' }}>
-                  <img
-                    src={photos?.[0] || localReservation?.coverPhoto || 'https://placehold.co/800x450/1D9E75/ffffff?text=CampusStay+TZ'}
-                    alt={listing?.title || localReservation?.title || 'Room photo'}
-                    style={{ width: '100%', height: 220, objectFit: 'cover' }}
-                  />
-                  <span
+            {/* ── 4-tab bar ── */}
+            <div style={{ display: 'flex', gap: 0, marginBottom: '1rem', borderBottom: '1px solid var(--border)', overflowX: 'auto' }}>
+              {(['overview', 'contacts', 'payment', 'contract'] as const).map((tab) => {
+                const labels: Record<string, string> = {
+                  overview: 'Overview', contacts: 'Contacts', payment: 'Payment', contract: 'Contract & Rules'
+                };
+                return (
+                  <button
+                    key={tab}
+                    type="button"
+                    onClick={() => setActiveTab(tab)}
                     style={{
-                      position: 'absolute',
-                      top: 12,
-                      left: 12,
-                      background: PRIMARY,
-                      color: '#fff',
-                      padding: '0.25rem 0.65rem',
-                      borderRadius: 999,
-                      fontWeight: 700,
-                      fontSize: '0.8rem'
+                      padding: '0.6rem 1rem',
+                      border: 'none',
+                      background: 'transparent',
+                      fontWeight: activeTab === tab ? 700 : 400,
+                      color: activeTab === tab ? '#1D9E75' : 'var(--mid)',
+                      borderBottom: activeTab === tab ? '2px solid #1D9E75' : '2px solid transparent',
+                      cursor: 'pointer',
+                      fontSize: '0.88rem',
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0
                     }}
                   >
+                    {labels[tab]}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* ── OVERVIEW TAB ── */}
+            {activeTab === 'overview' && (
+              <div style={{ display: 'grid', gap: '0.75rem' }}>
+                <div style={{ borderRadius: 14, overflow: 'hidden', position: 'relative' }}>
+                  <img
+                    src={photos?.[0] || localReservation?.coverPhoto || 'https://placehold.co/800x400/1D9E75/ffffff?text=CampusStay+TZ'}
+                    alt={listing?.title || 'Room'}
+                    style={{ width: '100%', height: 200, objectFit: 'cover', display: 'block' }}
+                  />
+                  <span style={{
+                    position: 'absolute', top: 10, left: 10,
+                    background: '#1D9E75', color: '#fff',
+                    padding: '0.2rem 0.6rem', borderRadius: 999, fontSize: '0.78rem', fontWeight: 700
+                  }}>
                     {listing?.room_type || localReservation?.roomType || 'Room'}
                   </span>
                 </div>
 
-                <h2 style={{ margin: '0 0 0.2rem' }}>{listing?.title || localReservation?.title || 'Reserved room'}</h2>
-                <p style={{ margin: 0, color: 'var(--mid)' }}>
-                  {listing?.address || localReservation?.address || listing?.ward || listing?.district || 'Address pending'}
-                  {distanceLabel(listing) ? ` • ${distanceLabel(listing)}` : ''}
-                </p>
-
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(2, minmax(0,1fr))',
-                    gap: '0.6rem',
-                    marginTop: '0.8rem'
-                  }}
-                >
-                  <InfoRow label="Room type" value={listing?.room_type || localReservation?.roomType || '—'} />
-                  <InfoRow label="Floor" value={listing?.floor || '—'} />
-                  <InfoRow label="Move-in" value={formatDate(booking?.move_in_date || localReservation?.moveInDate)} />
-                  <InfoRow label="Lease" value={`${booking?.duration_months || localReservation?.months || 0} months`} />
-                </div>
-
-                <div style={{ marginTop: '1rem' }}>
-                  <p style={{ margin: '0 0 0.4rem', fontWeight: 700 }}>Amenities</p>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                    {(listing?.amenities || []).map((a) => (
-                      <span
-                        key={a}
-                        style={{
-                          padding: '0.3rem 0.65rem',
-                          borderRadius: 999,
-                          background: '#eef6f3',
-                          color: '#1d4d39',
-                          fontWeight: 600,
-                          fontSize: '0.88rem'
-                        }}
-                      >
-                        {a}
-                      </span>
-                    ))}
-                    {(listing?.amenities || []).length === 0 ? (
-                      <span className="muted">No amenities listed.</span>
-                    ) : null}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <div style={{ background: '#E8F6EF', borderRadius: 12, padding: '1rem', textAlign: 'center' }}>
+                    <p style={{ margin: 0, fontSize: '1.8rem', fontWeight: 700, color: '#085041' }}>{daysRemaining ?? '—'}</p>
+                    <p style={{ margin: '0.2rem 0 0', fontSize: '0.78rem', color: '#0F6E56' }}>days remaining</p>
+                  </div>
+                  <div style={{ background: '#E8F6EF', borderRadius: 12, padding: '1rem', textAlign: 'center' }}>
+                    <p style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#085041' }}>
+                      {leaseEndDate
+                        ? leaseEndDate.toLocaleDateString('en-TZ', { day: 'numeric', month: 'short', year: 'numeric' })
+                        : '—'}
+                    </p>
+                    <p style={{ margin: '0.2rem 0 0', fontSize: '0.78rem', color: '#0F6E56' }}>lease ends</p>
                   </div>
                 </div>
 
-                <div className="card" style={{ marginTop: '1rem', padding: '0.9rem', borderRadius: 12 }}>
-                  <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center' }}>
-                    <Avatar name={landlord?.full_name || 'Landlord'} />
+                <div className="card" style={{ padding: '0.9rem', borderRadius: 12 }}>
+                  <p style={{ margin: '0 0 0.5rem', fontSize: '0.85rem', color: 'var(--mid)' }}>Lease progress</p>
+                  <div style={{ background: 'var(--cream)', borderRadius: 999, height: 8, overflow: 'hidden' }}>
+                    <div style={{ background: '#1D9E75', width: `${leaseProgressPct}%`, height: '100%', borderRadius: 999 }} />
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.35rem' }}>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--mid)' }}>{formatDate(booking?.move_in_date || localReservation?.moveInDate)}</span>
+                    <span style={{ fontSize: '0.78rem', color: '#1D9E75', fontWeight: 600 }}>
+                      {booking?.duration_months || localReservation?.months || 0} month lease
+                    </span>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--mid)' }}>
+                      {leaseEndDate ? formatDate(leaseEndDate.toISOString()) : '—'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="card" style={{ padding: '0.9rem', borderRadius: 12 }}>
+                  <p style={{ margin: '0 0 0.6rem', fontWeight: 700 }}>Room details</p>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: '0.5rem' }}>
+                    <InfoRow label="Type" value={listing?.room_type || localReservation?.roomType || '—'} />
+                    <InfoRow label="Floor" value={listing?.floor || '—'} />
+                    <InfoRow label="Move-in" value={formatDate(booking?.move_in_date || localReservation?.moveInDate)} />
+                    <InfoRow label="Duration" value={`${booking?.duration_months || localReservation?.months || 0} months`} />
+                    <InfoRow label="Monthly rent" value={formatTZS(listing?.price_monthly || localReservation?.priceMonthly)} />
+                    <InfoRow label="Near" value={listing?.near_universities?.[0] || '—'} />
+                  </div>
+                </div>
+
+                {(listing?.amenities || []).length > 0 && (
+                  <div className="card" style={{ padding: '0.9rem', borderRadius: 12 }}>
+                    <p style={{ margin: '0 0 0.6rem', fontWeight: 700 }}>Amenities</p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                      {(listing!.amenities || []).map((a) => (
+                        <span key={a} style={{
+                          padding: '0.3rem 0.65rem', borderRadius: 999,
+                          background: '#eef6f3', color: '#1d4d39', fontWeight: 600, fontSize: '0.85rem'
+                        }}>{a}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="card" style={{ padding: '0.9rem', borderRadius: 12 }}>
+                  <p style={{ margin: '0 0 0.6rem', fontWeight: 700 }}>Location</p>
+                  <div style={{
+                    background: '#E8F6EF', borderRadius: 10, padding: '0.75rem',
+                    marginBottom: '0.6rem', display: 'flex', alignItems: 'center', gap: '0.5rem'
+                  }}>
+                    <MapPin size={16} style={{ color: '#1D9E75', flexShrink: 0 }} />
+                    <span style={{ fontSize: '0.88rem', color: '#085041' }}>
+                      {[listing?.address || listing?.ward, listing?.district].filter(Boolean).join(', ') || localReservation?.address || 'Dar es Salaam'}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const label = encodeURIComponent(listing?.address || listing?.ward || 'Dar es Salaam');
+                      const url = `https://maps.google.com/?q=${listing?.lat ?? ''},${listing?.lng ?? ''}&query=${label}`;
+                      if (navigator.share) {
+                        navigator.share({ title: listing?.title || 'My room location', url }).catch(() => {});
+                      } else {
+                        window.open(url, '_blank');
+                      }
+                    }}
+                    style={{
+                      width: '100%', background: 'transparent', border: '1px solid var(--border)',
+                      borderRadius: 10, padding: '0.6rem', fontSize: '0.88rem', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                      color: 'var(--ink)'
+                    }}
+                  >
+                    <Share2 size={14} /> Share location with friends
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ── CONTACTS TAB ── */}
+            {activeTab === 'contacts' && (
+              <div style={{ display: 'grid', gap: '0.75rem' }}>
+                <div className="card" style={{ padding: '1rem', borderRadius: 14 }}>
+                  <p style={{ margin: '0 0 0.75rem', fontSize: '0.78rem', color: 'var(--mid)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    {landlord?.role === 'dalali' ? 'Dalali (Broker)' : 'Landlord / Owner'}
+                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.9rem' }}>
+                    <Avatar name={landlord?.full_name || 'L'} />
                     <div style={{ flex: 1 }}>
-                      <p style={{ margin: 0, fontWeight: 700 }}>
-                        {landlord?.full_name || 'Dalali / Landlord'}{' '}
-                        {landlord?.verification_status === 'APPROVED' ? (
-                          <span style={{ color: PRIMARY, fontSize: '0.85rem' }}>• Verified</span>
-                        ) : null}
+                      <p style={{ margin: 0, fontWeight: 700 }}>{landlord?.full_name || '—'}</p>
+                      <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--mid)' }}>
+                        {landlord?.role === 'dalali' ? 'Verified Dalali' : 'Property Owner'}
+                        {landlord?.verification_status === 'APPROVED' && (
+                          <span style={{ color: '#1D9E75', marginLeft: '0.4rem' }}>· Verified</span>
+                        )}
                       </p>
-                      <p style={{ margin: 0, color: 'var(--mid)' }}>{landlord?.role || 'Dalali'}</p>
                     </div>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      {landlord?.phone ? (
-                        <a className="btn btn--ghost btn--small" href={`tel:${landlord.phone}`}>Call</a>
-                      ) : null}
-                      <button
-                        type="button"
-                        className="btn btn--ghost btn--small"
-                        onClick={() => navigate('/messages')}
-                      >
-                        Message
-                      </button>
+                  </div>
+                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: '0.75rem', display: 'grid', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--mid)' }}>Phone</span>
+                      {landlord?.phone
+                        ? <a href={`tel:${landlord.phone}`} style={{ color: '#1D9E75', fontWeight: 600, textDecoration: 'none' }}>{landlord.phone}</a>
+                        : <span style={{ color: 'var(--mid)' }}>—</span>}
                     </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--mid)' }}>WhatsApp</span>
+                      {landlord?.phone
+                        ? <a href={`https://wa.me/${landlord.phone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#1D9E75', fontWeight: 600, textDecoration: 'none' }}>Open WhatsApp</a>
+                        : <span style={{ color: 'var(--mid)' }}>—</span>}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
+                    {landlord?.phone && (
+                      <a href={`tel:${landlord.phone}`} className="btn btn--ghost btn--small" style={{ flex: 1, textAlign: 'center', textDecoration: 'none' }}>
+                        Call
+                      </a>
+                    )}
+                    <button type="button" className="btn btn--ghost btn--small" style={{ flex: 1 }} onClick={() => navigate('/messages')}>
+                      Message
+                    </button>
+                  </div>
+                </div>
+
+                <div className="card" style={{ padding: '1rem', borderRadius: 14 }}>
+                  <p style={{ margin: '0 0 0.75rem', fontSize: '0.78rem', color: 'var(--mid)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>CampusStay Support</p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--mid)' }}>Helpline</span>
+                    <a href="tel:+255800000000" style={{ color: '#1D9E75', fontWeight: 600, textDecoration: 'none' }}>+255 800 000 000</a>
                   </div>
                 </div>
               </div>
             )}
 
+            {/* ── PAYMENT TAB ── */}
             {activeTab === 'payment' && (
               <div className="card" style={{ padding: '1rem', borderRadius: 14, display: 'grid', gap: '0.9rem' }}>
                 <div className="card" style={{ padding: '0.9rem', borderRadius: 12 }}>
@@ -466,57 +537,67 @@ export default function MyRoomPage() {
                   <Row label="Security deposit" value={formatTZS(listing?.security_deposit)} />
                   <Row label="Platform fee" value={formatTZS(5000)} />
                   <Row label="Total paid" value={formatTZS(mainPayment?.amount || localReservation?.total || listing?.price_monthly)} bold />
+                  <Row label="Booking reference" value={booking?.reference || mainPayment?.reference || '—'} />
                 </div>
-
                 <div className="card" style={{ padding: '0.9rem', borderRadius: 12 }}>
                   <p style={{ margin: 0, color: 'var(--mid)' }}>Next payment</p>
                   <Row label="Due date" value={formatDate(nextPayment?.due_date)} />
                   <Row label="Amount" value={formatTZS(nextPayment?.amount)} />
                   <Row label="Status" value={nextPayment?.status || 'Paid'} />
                 </div>
-
-                {mainPayment?.reference ? (
+                {(mainPayment?.reference) && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-                    <span
-                      style={{
-                        padding: '0.3rem 0.65rem',
-                        borderRadius: 999,
-                        background: '#eef2f7',
-                        color: '#4b5563',
-                        fontWeight: 700,
-                        fontSize: '0.85rem'
-                      }}
-                    >
+                    <span style={{ padding: '0.3rem 0.65rem', borderRadius: 999, background: '#eef2f7', color: '#4b5563', fontWeight: 700, fontSize: '0.85rem' }}>
                       Ref: {mainPayment.reference}
                     </span>
-                    <button
-                      type="button"
-                      className="btn btn--ghost btn--small"
-                      onClick={() => window.print()}
-                    >
+                    <button type="button" className="btn btn--ghost btn--small" onClick={() => window.print()}>
                       Download receipt
                     </button>
                   </div>
-                ) : null}
+                )}
               </div>
             )}
 
-            {activeTab === 'rules' && (
-              <div className="card" style={{ padding: '1rem', borderRadius: 14, display: 'grid', gap: '0.9rem' }}>
-                <div>
-                  <p style={{ margin: 0, fontWeight: 700 }}>House rules</p>
-                  <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.2rem', color: 'var(--mid)' }}>
-                    {(listing?.house_rules && listing.house_rules.length > 0 ? listing.house_rules : DEFAULT_RULES).map((rule) => (
-                      <li key={rule} style={{ marginBottom: '0.35rem' }}>{rule}</li>
+            {/* ── CONTRACT TAB ── */}
+            {activeTab === 'contract' && (
+              <div style={{ display: 'grid', gap: '0.75rem' }}>
+                <div className="card" style={{ padding: '1rem', borderRadius: 14 }}>
+                  <p style={{ margin: '0 0 0.75rem', fontWeight: 700 }}>Tenancy Agreement</p>
+                  <div style={{ background: 'var(--cream)', borderRadius: 10, padding: '0.9rem', marginBottom: '0.9rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                      <FileText size={16} style={{ color: '#1D9E75' }} />
+                      <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>Rental Agreement</span>
+                    </div>
+                    <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--mid)', lineHeight: 1.6 }}>
+                      Tenant: {user?.fullName || '—'}<br />
+                      Landlord/Dalali: {landlord?.full_name || '—'}<br />
+                      Period: {formatDate(booking?.move_in_date || localReservation?.moveInDate)} – {leaseEndDate ? formatDate(leaseEndDate.toISOString()) : '—'}
+                    </p>
+                  </div>
+                  <p style={{ margin: '0 0 0.75rem', fontSize: '0.82rem', color: 'var(--mid)', lineHeight: 1.5 }}>
+                    Your rental agreement is managed between you and your landlord/dalali. Contact CampusStay support if you need a certified copy.
+                  </p>
+                  <button type="button" className="btn btn--ghost btn--small" style={{ width: '100%' }} onClick={() => window.print()}>
+                    Print / Save as PDF
+                  </button>
+                </div>
+
+                <div className="card" style={{ padding: '1rem', borderRadius: 14 }}>
+                  <p style={{ margin: '0 0 0.75rem', fontWeight: 700 }}>House rules</p>
+                  <ul style={{ margin: 0, paddingLeft: '1.2rem', color: 'var(--mid)', display: 'grid', gap: '0.35rem' }}>
+                    {(listing?.house_rules && (Array.isArray(listing.house_rules) ? listing.house_rules.length > 0 : listing.house_rules)
+                      ? (Array.isArray(listing.house_rules) ? listing.house_rules : [listing.house_rules])
+                      : DEFAULT_RULES
+                    ).map((rule) => (
+                      <li key={rule} style={{ fontSize: '0.9rem', lineHeight: 1.5 }}>{rule}</li>
                     ))}
                   </ul>
                 </div>
 
-                <div className="card" style={{ padding: '0.9rem', borderRadius: 12, background: '#f8faf9' }}>
-                  <p style={{ margin: 0, fontWeight: 700 }}>Emergency contacts</p>
-                  <Row label="Caretaker" value={landlord?.phone || '—'} />
+                <div className="card" style={{ padding: '1rem', borderRadius: 14 }}>
+                  <p style={{ margin: '0 0 0.75rem', fontWeight: 700 }}>Emergency contacts</p>
                   <Row label="Landlord/Dalali" value={landlord?.phone || '—'} />
-                  <Row label="CampusStay support" value="+255 700 000 000" />
+                  <Row label="CampusStay support" value="+255 800 000 000" />
                 </div>
               </div>
             )}
