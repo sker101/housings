@@ -369,7 +369,7 @@ export default function AdminLandlordsPage() {
       ) : (
         <div style={{ display: 'grid', gap: '0.75rem' }}>
           {filteredListings.map((l) => {
-            const poster = profiles[l.lister_id || ''] || {};
+            const poster: Profile = profiles[l.lister_id || ''] || { id: '', full_name: 'Lister', role: 'Landlord', verification_status: 'UNVERIFIED', phone: undefined };
             const thumb = thumbnails[l.id] || 'https://placehold.co/160x120/1D9E75/ffffff?text=Room';
             return (
               <div key={l.id} className="card" style={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: '0.8rem', padding: '0.9rem', alignItems: 'center' }}>
