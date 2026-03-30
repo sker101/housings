@@ -29,8 +29,11 @@ type Listing = {
   lng?: number;
   price_monthly?: number;
   security_deposit?: number;
+  utilities_included?: boolean;
   house_rules?: string[];
   amenities?: string[];
+  lister_id?: string;
+  cover_photo?: string;
 };
 
 type Profile = {
@@ -86,6 +89,7 @@ export default function MyRoomPage() {
   const [booking, setBooking] = useState<Booking | null>(null);
   const [listing, setListing] = useState<Listing | null>(null);
   const [photos, setPhotos] = useState<string[]>([]);
+  const [activePhotoIndex, setActivePhotoIndex] = useState(0);
   const [landlord, setLandlord] = useState<Profile | null>(null);
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
   const [activeTab, setActiveTab] = useState<'overview' | 'contacts' | 'payment' | 'contract'>('overview');
@@ -94,6 +98,11 @@ export default function MyRoomPage() {
     () => (user?.userId ? `myRoomReservation:${user.userId}` : 'myRoomReservation'),
     [user?.userId]
   );
+
+  // Reset photo index when photos change
+  useEffect(() => {
+    setActivePhotoIndex(0);
+  }, [photos]);
 
   useEffect(() => {
     // Load any reservation passed via navigation state or stored locally up front
@@ -366,19 +375,56 @@ export default function MyRoomPage() {
             {/* ── OVERVIEW TAB ── */}
             {activeTab === 'overview' && (
               <div style={{ display: 'grid', gap: '0.75rem' }}>
-                <div style={{ borderRadius: 14, overflow: 'hidden', position: 'relative' }}>
-                  <img
-                    src={photos?.[0] || localReservation?.coverPhoto || 'https://placehold.co/800x400/1D9E75/ffffff?text=CampusStay+TZ'}
-                    alt={listing?.title || 'Room'}
-                    style={{ width: '100%', height: 200, objectFit: 'cover', display: 'block' }}
-                  />
-                  <span style={{
-                    position: 'absolute', top: 10, left: 10,
-                    background: '#1D9E75', color: '#fff',
-                    padding: '0.2rem 0.6rem', borderRadius: 999, fontSize: '0.78rem', fontWeight: 700
-                  }}>
-                    {listing?.room_type || localReservation?.roomType || 'Room'}
-                  </span>
+                {/* Photo gallery */}
+                <div style={{ display: 'grid', gap: '0.5rem', borderRadius: 14, overflow: 'hidden' }}>
+                  {/* Hero image */}
+                  <div style={{ borderRadius: 12, overflow: 'hidden', position: 'relative' }}>
+                    <img
+                      src={photos?.[activePhotoIndex] || localReservation?.coverPhoto || 'https://placehold.co/800x400/1D9E75/ffffff?text=CampusStay+TZ'}
+                      alt={listing?.title || 'Room'}
+                      style={{ width: '100%', height: 280, objectFit: 'cover', display: 'block' }}
+                    />
+                    {/* Photo counter badge */}
+                    {photos && photos.length > 0 && (
+                      <span style={{
+                        position: 'absolute', bottom: 10, right: 10,
+                        background: 'rgba(0, 0, 0, 0.7)', color: '#fff',
+                        padding: '0.35rem 0.75rem', borderRadius: 999, fontSize: '0.78rem', fontWeight: 700
+                      }}>
+                        {activePhotoIndex + 1} / {photos.length}
+                      </span>
+                    )}
+                    {/* Room type badge */}
+                    <span style={{
+                      position: 'absolute', top: 10, left: 10,
+                      background: '#1D9E75', color: '#fff',
+                      padding: '0.2rem 0.6rem', borderRadius: 999, fontSize: '0.78rem', fontWeight: 700
+                    }}>
+                      {listing?.room_type || localReservation?.roomType || 'Room'}
+                    </span>
+                  </div>
+
+                  {/* Thumbnail strip */}
+                  {photos && photos.length > 1 && (
+                    <div style={{
+                      display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.25rem'
+                    }}>
+                      {photos.map((photo, idx) => (
+                        <img
+                          key={idx}
+                          src={photo}
+                          alt={`Photo ${idx + 1}`}
+                          onClick={() => setActivePhotoIndex(idx)}
+                          style={{
+                            width: '80px', height: '60px',
+                            objectFit: 'cover', borderRadius: 8, cursor: 'pointer',
+                            border: activePhotoIndex === idx ? '3px solid #1D9E75' : '3px solid transparent',
+                            flexShrink: 0
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
@@ -420,7 +466,11 @@ export default function MyRoomPage() {
                     <InfoRow label="Move-in" value={formatDate(booking?.move_in_date || localReservation?.moveInDate)} />
                     <InfoRow label="Duration" value={`${booking?.duration_months || localReservation?.months || 0} months`} />
                     <InfoRow label="Monthly rent" value={formatTZS(listing?.price_monthly || localReservation?.priceMonthly)} />
-                    <InfoRow label="Near" value={listing?.near_universities?.[0] || '—'} />
+                    <InfoRow label="Security deposit" value={formatTZS(listing?.security_deposit)} />
+                    <InfoRow label="Utilities included" value={listing?.utilities_included ? 'Yes' : 'No'} />
+                    <InfoRow label="Near" value={listing?.near_universities?.[0] || localReservation?.nearUniversities?.[0] || '—'} />
+                    <InfoRow label="District / Ward" value={[listing?.district, listing?.ward].filter(Boolean).join(' / ') || '—'} />
+                    <InfoRow label="Full address" value={listing?.address || localReservation?.address || '—'} />
                   </div>
                 </div>
 

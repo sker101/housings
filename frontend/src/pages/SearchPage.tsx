@@ -362,6 +362,15 @@ export default function SearchPage() {
           <div className="listing-grid">
             {loading ? (
               Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)
+            ) : processedListings.length === 0 ? (
+              <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '2rem 1rem' }}>
+                <p style={{ color: 'var(--mid)', fontSize: '1.1rem', marginBottom: '0.5rem' }}>
+                  {t('search.noResults')}
+                </p>
+                <p style={{ color: 'var(--mid)', fontSize: '0.95rem' }}>
+                  No available rooms match your filters. Rooms that have already been rented are hidden automatically.
+                </p>
+              </div>
             ) : (
               processedListings.map((listing: any) => (
                 <ListingCard

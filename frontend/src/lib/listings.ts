@@ -96,6 +96,9 @@ async function fetchPhotosForListings(listingIds, accessToken) {
 export async function fetchApprovedListings(filters: Record<string, any> = {}, accessToken?: string) {
   const queryFilters = [{ column: 'status', op: 'eq', value: 'approved' }];
 
+  // Hide occupied listings from search results
+  queryFilters.push({ column: 'vacancy_status', op: 'neq', value: 'occupied' });
+
   if (filters.genderPreference && filters.genderPreference !== 'any') {
     queryFilters.push({
       column: 'gender_preference',

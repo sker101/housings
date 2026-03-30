@@ -22,10 +22,48 @@ serve(async (req) => {
             if (payment_status === 'COMPLETED' || payment_status === 'SUCCESS') newStatus = 'paid';
             else if (payment_status === 'FAILED') newStatus = 'failed';
 
-            await supabase
+            // Get the payment record to find the booking_id and listing_id
+            const paymentResult = await supabase
                 .from('payment_records')
-                .update({ status: newStatus, paid_at: new Date().toISOString() })
-                .eq('id', order_id);
+                .select('id, booking_id')
+                .eq('id', order_id)
+                .single();
+
+            if (paymentResult.data) {
+                const booking_id = paymentResult.data.booking_id;
+
+                // Update payment record status
+                await supabase
+                    .from('payment_records')
+                    .update({ status: newStatus, paid_at: new Date().toISOString() })
+                    .eq('id', order_id);
+
+                // If payment is successful, update booking status and mark listing as occupied
+                if (newStatus === 'paid') {
+                    // Get the listing_id from the booking
+                    const bookingResult = await supabase
+                        .from('bookings')
+                        .select('listing_id')
+                        .eq('id', booking_id)
+                        .single();
+
+                    if (bookingResult.data) {
+                        const listing_id = bookingResult.data.listing_id;
+
+                        // Update booking status to approved
+                        await supabase
+                            .from('bookings')
+                            .update({ status: 'approved' })
+                            .eq('id', booking_id);
+
+                        // Mark the listing as occupied so it won't appear in search results
+                        await supabase
+                            .from('listings')
+                            .update({ vacancy_status: 'occupied' })
+                            .eq('id', listing_id);
+                    }
+                }
+            }
         }
 
         return new Response(JSON.stringify({ success: true }), {
