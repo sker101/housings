@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { selectRows, updateRows, insertRows } from '../lib/supabase';
+import { selectRows, updateRows, insertRows, invokeFunction } from '../lib/supabase';
 
 type Listing = {
   id: string;
@@ -11,11 +10,8 @@ type Listing = {
   room_type?: string;
   district?: string;
   ward?: string;
-  near_universities?: string[];
   created_at?: string;
   lister_id?: string;
-  photos?: string[];
-  admin_notes?: string;
 };
 
 type Profile = {
@@ -24,6 +20,9 @@ type Profile = {
   role?: string;
   verification_status?: string;
   phone?: string;
+  lister_type?: string;
+  created_at?: string;
+  avatar_url?: string;
 };
 
 type Notification = {
@@ -55,16 +54,17 @@ function timeAgo(dateStr?: string) {
   return `${days} day${days > 1 ? 's' : ''} ago`;
 }
 
-function statusPill(status: string) {
-  const st = status?.toLowerCase() || 'pending';
+function verificationPill(status: string) {
+  const st = (status || 'pending').toLowerCase();
   const styles: Record<string, { bg: string; color: string; label: string }> = {
-    pending: { bg: '#FEF3C7', color: '#92400E', label: 'Pending' },
-    approved: { bg: '#DCFCE7', color: '#166534', label: 'Approved' },
-    rejected: { bg: '#FEE2E2', color: '#991B1B', label: 'Rejected' }
+    pending: { bg: '#FEF3C7', color: '#92400E', label: 'Pending Verification' },
+    verified: { bg: '#DCFCE7', color: '#166534', label: 'Verified' },
+    rejected: { bg: '#FEE2E2', color: '#991B1B', label: 'Rejected' },
+    unverified: { bg: '#F1F5F9', color: '#475569', label: 'Unverified' }
   };
   const s = styles[st] || styles.pending;
   return (
-    <span style={{ padding: '0.2rem 0.55rem', borderRadius: 999, background: s.bg, color: s.color, fontWeight: 700, fontSize: '0.82rem' }}>
+    <span style={{ padding: '0.2rem 0.65rem', borderRadius: 999, background: s.bg, color: s.color, fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase' }}>
       {s.label}
     </span>
   );
@@ -74,150 +74,141 @@ export default function AdminLandlordsPage() {
   const { token } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [listings, setListings] = useState<Listing[]>([]);
-  const [profiles, setProfiles] = useState<Record<string, Profile>>({});
-  const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'rejected' | 'all'>('pending');
+  const [allProfiles, setAllProfiles] = useState<Profile[]>([]);
+  const [listingsByLister, setListingsByLister] = useState<Record<string, Listing[]>>({});
+  const [photosByListing, setPhotosByListing] = useState<Record<string, string[]>>({});
+  
+  const [activeTab, setActiveTab] = useState<'pending' | 'verified' | 'rejected' | 'all'>('pending');
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [notifLoading, setNotifLoading] = useState(false);
+  
   const [rejectTarget, setRejectTarget] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
-  const [photosMap, setPhotosMap] = useState<Record<string, string[]>>({});
   const [sessionExpired, setSessionExpired] = useState(false);
-  const [previewId, setPreviewId] = useState<string | null>(null);
+  const [previewProfileId, setPreviewProfileId] = useState<string | null>(null);
 
-  const normalizeStatus = (status: string | null | undefined) => {
-    const s = (status || '').toString().trim().toLowerCase();
-    if (s === 'approved') return 'approved';
-    if (s === 'rejected') return 'rejected';
-    return 'pending';
-  };
-
-  // Load listings + posters
   const loadData = async (initial = false) => {
     if (!token || sessionExpired) return;
     if (initial) setLoading(true);
     setError('');
     try {
-      const rows = await selectRows('listings', {
-        select: 'id,title,status,price_monthly,room_type,district,ward,near_universities,created_at,lister_id',
+      const listers = await selectRows('profiles', {
+        select: 'id,full_name,role,verification_status,phone,lister_type,created_at,avatar_url',
+        filters: [{ column: 'role', op: 'eq', value: 'lister' }],
         order: 'created_at.desc',
         accessToken: token
       });
-      const normalized = rows.map((r: any) => ({ ...r, status: normalizeStatus(r.status) }));
-      setListings(normalized);
-      const listerIds = Array.from(new Set(rows.map((r: any) => r.lister_id).filter(Boolean)));
-      if (listerIds.length) {
-        const profRows = await selectRows('profiles', {
-          select: 'id,full_name,role,verification_status,phone',
-          filters: [{ column: 'id', op: 'in', value: `(${listerIds.join(',')})` }],
-          accessToken: token
-        });
-        const map: Record<string, Profile> = {};
-        profRows.forEach((p: any) => { map[p.id] = p; });
-        setProfiles(map);
-      }
-      const listingIds = rows.map((r: any) => r.id);
-      if (listingIds.length) {
-        const photoRows = await selectRows('listing_photos', {
-          select: 'listing_id,url,position',
-          filters: [{ column: 'listing_id', op: 'in', value: `(${listingIds.join(',')})` }],
-          order: 'position.asc',
+      setAllProfiles(listers);
+
+      if (listers.length > 0) {
+        const ids = listers.map(l => l.id);
+        const listings = await selectRows('listings', {
+          select: 'id,title,status,price_monthly,room_type,district,ward,created_at,lister_id',
+          filters: [{ column: 'lister_id', op: 'in', value: `(${ids.join(',')})` }],
           accessToken: token
         }).catch(() => []);
-        const thumbMap: Record<string, string> = {};
-        const listPhotos: Record<string, string[]> = {};
-        (photoRows || []).forEach((p: any) => {
-          if (!thumbMap[p.listing_id]) thumbMap[p.listing_id] = p.url;
-          if (!listPhotos[p.listing_id]) listPhotos[p.listing_id] = [];
-          listPhotos[p.listing_id].push(p.url);
+
+        const lMap: Record<string, Listing[]> = {};
+        listings.forEach((l: any) => {
+          if (!lMap[l.lister_id]) lMap[l.lister_id] = [];
+          lMap[l.lister_id].push(l);
         });
-        setThumbnails(thumbMap);
-        setPhotosMap(listPhotos);
-      } else {
-        setThumbnails({});
-        setPhotosMap({});
+        setListingsByLister(lMap);
+
+        const listingIds = listings.map((l: any) => l.id);
+        if (listingIds.length > 0) {
+          const photos = await selectRows('listing_photos', {
+            select: 'listing_id,url,position',
+            filters: [{ column: 'listing_id', op: 'in', value: `(${listingIds.join(',')})` }],
+            order: 'position.asc',
+            accessToken: token
+          }).catch(() => []);
+
+          const pMap: Record<string, string[]> = {};
+          photos.forEach((ph: any) => {
+            if (!pMap[ph.listing_id]) pMap[ph.listing_id] = [];
+            if (pMap[ph.listing_id].length < 4) pMap[ph.listing_id].push(ph.url);
+          });
+          setPhotosByListing(pMap);
+        }
       }
     } catch (err: any) {
-      const msg = err?.message || 'Failed to load data';
-      if (msg.toLowerCase().includes('jwt')) {
-        setSessionExpired(true);
-        setError('Session expired. Please log in again.');
-      } else {
-        setError(msg);
-      }
+      if (err?.message?.toLowerCase().includes('jwt')) setSessionExpired(true);
+      else setError(err.message || 'Failed to load data');
     } finally {
       setLoading(false);
     }
   };
 
-  // Load notifications
   const loadNotifications = async () => {
     if (!token || sessionExpired) return;
-    setNotifLoading(true);
     try {
       const rows = await selectRows('admin_notifications', {
         select: 'id,listing_id,poster_name,room_type,location,created_at,read_at',
         order: 'created_at.desc',
-        limit: 20,
+        limit: 10,
         accessToken: token
       }).catch(() => []);
       setNotifications(rows);
     } catch (err: any) {
-      const msg = err?.message || '';
-      if (msg.toLowerCase().includes('jwt')) {
-        setSessionExpired(true);
-        setError('Session expired. Please log in again.');
-      }
-    } finally {
-      setNotifLoading(false);
+      if (err?.message?.toLowerCase().includes('jwt')) setSessionExpired(true);
     }
   };
 
   useEffect(() => {
     loadData(true);
     loadNotifications();
-    // Simple polling to emulate realtime
     const t = setInterval(() => {
-      if (sessionExpired) return;
-      loadNotifications();
-      loadData(false);
-    }, 12000);
+      if (!sessionExpired) {
+        loadData(false);
+        loadNotifications();
+      }
+    }, 30000);
     return () => clearInterval(t);
   }, [token, sessionExpired]);
 
-  const filteredListings = useMemo(() => {
-    if (activeTab === 'all') return listings;
-    if (activeTab === 'approved') return listings.filter((l) => l.status === 'approved');
-    if (activeTab === 'rejected') return listings.filter((l) => l.status === 'rejected');
-    // pending: anything not approved or rejected
-    return listings.filter((l) => l.status !== 'approved' && l.status !== 'rejected');
-  }, [listings, activeTab]);
+  const filteredProfiles = useMemo(() => {
+    if (activeTab === 'all') return allProfiles;
+    return allProfiles.filter(p => (p.verification_status || 'pending').toLowerCase() === activeTab);
+  }, [allProfiles, activeTab]);
 
   const counts = useMemo(() => {
-    const base = { total: listings.length, pending: 0, approved: 0, rejected: 0 };
-    listings.forEach((l) => {
-      const key = (l.status || '').toLowerCase();
-      if (key === 'approved') base.approved += 1;
-      else if (key === 'rejected') base.rejected += 1;
-      else base.pending += 1;
+    const base = { total: allProfiles.length, pending: 0, verified: 0, rejected: 0 };
+    allProfiles.forEach(p => {
+      const s = (p.verification_status || 'pending').toLowerCase();
+      if (s === 'verified') base.verified++;
+      else if (s === 'rejected') base.rejected++;
+      else base.pending++;
     });
     return base;
-  }, [listings]);
-
-  const unreadCount = notifications.filter((n) => !n.read_at).length;
+  }, [allProfiles]);
 
   const handleApprove = async (id: string) => {
     if (!token) return;
     setActionLoading(id);
     try {
-      await updateRows('listings', { status: 'approved' }, {
+      const profile = allProfiles.find(p => p.id === id);
+      await updateRows('profiles', { verification_status: 'verified' }, {
         filters: [{ column: 'id', op: 'eq', value: id }],
         accessToken: token
       });
-      setListings((prev) => prev.map((l) => l.id === id ? { ...l, status: 'approved' } : l));
+      
+      await insertRows('notifications', {
+        user_id: id,
+        type: 'system',
+        title: 'Account Verified! ✅',
+        body: 'Congratulations! Your dalali account has been verified.',
+      }, { accessToken: token }).catch(() => null);
+
+      if (profile?.phone) {
+        await invokeFunction('send-sms', {
+          to: profile.phone,
+          message: `CampusStay TZ: Hello ${profile.full_name}, your dalali account has been officially verified!`
+        }, token).catch(() => null);
+      }
+
+      setAllProfiles(prev => prev.map(p => p.id === id ? { ...p, verification_status: 'verified' } : p));
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -227,21 +218,32 @@ export default function AdminLandlordsPage() {
 
   const handleReject = async () => {
     if (!rejectTarget || !token) return;
-    setActionLoading(rejectTarget);
+    const id = rejectTarget;
+    setActionLoading(id);
     try {
-      await updateRows('listings', { status: 'rejected', admin_notes: rejectReason }, {
-        filters: [{ column: 'id', op: 'eq', value: rejectTarget }],
+      const profile = allProfiles.find(p => p.id === id);
+      await updateRows('profiles', { verification_status: 'rejected' }, {
+        filters: [{ column: 'id', op: 'eq', value: id }],
         accessToken: token
       });
+
       await insertRows('notifications', {
-        user_id: profiles[listings.find((l) => l.id === rejectTarget)?.lister_id || '']?.id,
-        title: 'Listing rejected',
-        body: rejectReason || 'Your listing was rejected by admin.',
-        type: 'system'
-      }, { accessToken: token }).catch(() => undefined);
-      setListings((prev) => prev.map((l) => l.id === rejectTarget ? { ...l, status: 'rejected' } : l));
-      setRejectReason('');
+        user_id: id,
+        type: 'system',
+        title: 'Account Verification Declined',
+        body: `Your account verification was declined. Reason: ${rejectReason}`,
+      }, { accessToken: token }).catch(() => null);
+
+      if (profile?.phone) {
+        await invokeFunction('send-sms', {
+          to: profile.phone,
+          message: `CampusStay TZ: Sorry ${profile.full_name}, your account verification was declined. Reason: ${rejectReason}`
+        }, token).catch(() => null);
+      }
+
+      setAllProfiles(prev => prev.map(p => p.id === id ? { ...p, verification_status: 'rejected' } : p));
       setRejectTarget(null);
+      setRejectReason('');
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -249,337 +251,149 @@ export default function AdminLandlordsPage() {
     }
   };
 
-  const markAllRead = async () => {
-    if (!token) return;
-    await updateRows('admin_notifications', { read_at: new Date().toISOString() }, { accessToken: token }).catch(() => undefined);
-    setNotifications((prev) => prev.map((n) => ({ ...n, read_at: new Date().toISOString() })));
-  };
-
-  const previewListing = useMemo(() => listings.find((l) => l.id === previewId), [listings, previewId]);
-  const previewPhotos = previewId ? photosMap[previewId] || (thumbnails[previewId] ? [thumbnails[previewId]] : []) : [];
+  const previewProfile = useMemo(() => allProfiles.find(p => p.id === previewProfileId), [allProfiles, previewProfileId]);
+  const previewListings = previewProfileId ? listingsByLister[previewProfileId] || [] : [];
 
   return (
     <div className="container section" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 800 }}>Listings approval</h1>
+          <h1 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 800 }}>Vetting Dalalis</h1>
+          <p className="muted" style={{ margin: 0 }}>Review and approve landlord/dalali accounts.</p>
         </div>
         <div style={{ position: 'relative' }}>
-          <button
-            type="button"
-            className="btn btn--ghost"
-            style={{ position: 'relative' }}
-            onClick={() => setNotifOpen((p) => !p)}
-          >
-            🔔
-            {unreadCount > 0 ? (
-              <span style={{
-                position: 'absolute', top: -4, right: -6, background: RED, color: '#fff',
-                borderRadius: 999, padding: '0 6px', fontSize: '0.7rem', fontWeight: 700
-              }}>
-                {unreadCount}
-              </span>
-            ) : null}
-          </button>
-          {notifOpen ? (
-            <div
-              style={{
-                position: 'absolute', right: 0, top: '110%',
-                width: '320px', maxHeight: '360px', overflowY: 'auto',
-                background: '#fff', border: '1px solid var(--border)', borderRadius: 12, boxShadow: '0 12px 30px rgba(0,0,0,0.1)', zIndex: 10, padding: '0.6rem'
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <strong>Recent activity</strong>
-                <button type="button" className="btn btn--ghost btn--small" onClick={markAllRead}>Mark all read</button>
-              </div>
-              {notifLoading ? (
-                <div style={{ height: 80, background: 'var(--cream)', borderRadius: 10, animation: 'pulse 1.5s infinite' }} />
-              ) : notifications.length === 0 ? (
-                <p className="muted" style={{ margin: 0 }}>No notifications yet.</p>
-              ) : (
-                notifications.map((n) => (
-                  <div key={n.id} style={{ display: 'flex', gap: '0.6rem', padding: '0.45rem 0', borderBottom: '1px solid var(--border)' }}>
-                    <span style={{
-                      width: 10, height: 10, borderRadius: '50%',
-                      background: n.read_at ? 'var(--border)' : PRIMARY, flexShrink: 0, marginTop: 6
-                    }} />
-                    <div style={{ flex: 1 }}>
-                      <p style={{ margin: 0, fontWeight: 700 }}>{n.poster_name || 'Lister'} • {n.room_type || 'Room'}</p>
-                      <p style={{ margin: 0, color: 'var(--mid)', fontSize: '0.9rem' }}>{n.location || ''}</p>
-                      <p style={{ margin: 0, color: 'var(--mid)', fontSize: '0.85rem' }}>{timeAgo(n.created_at)}</p>
-                    </div>
-                  </div>
-                ))
-              )}
+          <button type="button" className="btn btn--ghost" onClick={() => setNotifOpen(!notifOpen)}>🔔</button>
+          {notifOpen && (
+            <div className="card" style={{ position: 'absolute', right: 0, top: '100%', width: 280, zIndex: 100, padding: '0.5rem', maxHeight: 300, overflowY: 'auto' }}>
+              <strong>Recent Activity</strong>
+              {notifications.map(n => <div key={n.id} style={{ fontSize: '0.8rem', padding: '0.3rem 0' }}>{n.poster_name}: {n.room_type}</div>)}
             </div>
-          ) : null}
+          )}
         </div>
       </header>
 
-      {error ? <p className="error-text">{error}</p> : null}
+      {error && <p className="error-text">{error}</p>}
 
-      {/* Stats */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))',
-          gap: '0.75rem'
-        }}
-      >
-        <StatCard label="Total listings" value={counts.total} color="var(--ink)" />
-        <StatCard label="Pending review" value={counts.pending} color={AMBER} />
-        <StatCard label="Approved" value={counts.approved} color={PRIMARY} />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.6rem' }}>
+        <StatCard label="Total" value={counts.total} color="var(--ink)" />
+        <StatCard label="Pending" value={counts.pending} color={AMBER} />
+        <StatCard label="Verified" value={counts.verified} color={PRIMARY} />
         <StatCard label="Rejected" value={counts.rejected} color={RED} />
       </div>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto' }}>
-        {(['pending', 'approved', 'rejected', 'all'] as const).map((tab) => (
-          <button
-            key={tab}
-            type="button"
-            onClick={() => setActiveTab(tab)}
-            style={{
-              padding: '0.55rem 0.9rem',
-              borderRadius: 10,
-              border: `1px solid ${activeTab === tab ? PRIMARY : 'var(--border)'}`,
-              background: activeTab === tab ? PRIMARY : '#fff',
-              color: activeTab === tab ? '#fff' : 'var(--ink)',
-              fontWeight: 700,
-              minWidth: 120
-            }}
+      <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
+        {(['pending', 'verified', 'rejected', 'all'] as const).map(tab => (
+          <button 
+            key={tab} 
+            onClick={() => setActiveTab(tab)} 
+            className={`btn ${activeTab === tab ? '' : 'btn--ghost'}`}
+            style={{ borderRadius: 12, padding: '0.4rem 0.8rem', minWidth: 90, background: activeTab === tab ? PRIMARY : undefined, color: activeTab === tab ? '#fff' : undefined }}
           >
-            {tab === 'pending' ? 'Pending' : tab === 'approved' ? 'Approved' : tab === 'rejected' ? 'Rejected' : 'All listings'} ({tab === 'pending' ? counts.pending : tab === 'approved' ? counts.approved : tab === 'rejected' ? counts.rejected : counts.total})
+            {tab.charAt(0).toUpperCase() + tab.slice(1)} ({tab === 'pending' ? counts.pending : tab === 'verified' ? counts.verified : tab === 'rejected' ? counts.rejected : counts.total})
           </button>
         ))}
       </div>
 
-      {/* Listings */}
-      {loading ? (
-        <div style={{ display: 'grid', gap: '0.75rem' }}>
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} style={{ height: 140, borderRadius: 12, background: 'var(--cream)', animation: 'pulse 1.5s ease-in-out infinite' }} />
-          ))}
-        </div>
-      ) : filteredListings.length === 0 ? (
-        <div className="card" style={{ padding: '1.2rem', textAlign: 'center' }}>
-          <p style={{ margin: 0, color: 'var(--mid)' }}>No listings here.</p>
-        </div>
-      ) : (
-        <div style={{ display: 'grid', gap: '0.75rem' }}>
-          {filteredListings.map((l) => {
-            const poster: Profile = profiles[l.lister_id || ''] || { id: '', full_name: 'Lister', role: 'Landlord', verification_status: 'UNVERIFIED', phone: undefined };
-            const thumb = thumbnails[l.id] || 'https://placehold.co/160x120/1D9E75/ffffff?text=Room';
-            return (
-              <div key={l.id} className="card" style={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: '0.8rem', padding: '0.9rem', alignItems: 'center' }}>
-                <div style={{ width: '100%', height: 120, overflow: 'hidden', borderRadius: 10, background: '#f4f6f5' }}>
-                  <img src={thumb} alt={l.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                </div>
-                <div style={{ display: 'grid', gap: '0.35rem' }}>
-                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                    <h3 style={{ margin: 0, fontSize: '1.05rem' }}>{l.title}</h3>
-                    {statusPill(l.status)}
-                  </div>
-                  <p style={{ margin: 0, color: 'var(--mid)' }}>
-                    {l.ward || l.district || 'Location'} {l.near_universities?.length ? `• ${l.near_universities[0]} nearby` : ''}
-                  </p>
-                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                    <span style={{ fontWeight: 800, color: PRIMARY }}>{fmtTZS(l.price_monthly)}/mo</span>
-                    <span style={{ padding: '0.2rem 0.6rem', borderRadius: 999, background: '#eef6f3', color: '#1f5a45', fontWeight: 700 }}>{l.room_type || 'Room'}</span>
-                    <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                      <Avatar name={poster.full_name || 'Lister'} />
-                      <div>
-                        <p style={{ margin: 0, fontWeight: 700 }}>{poster.full_name || 'Lister'}</p>
-                        <p style={{ margin: 0, color: 'var(--mid)', fontSize: '0.9rem' }}>
-                          {poster.verification_status === 'APPROVED' ? 'Verified dalali' : (poster.role || 'Landlord')}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    <p style={{ margin: 0, color: 'var(--mid)' }}>{timeAgo(l.created_at)}</p>
-                    <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-                      <button
-                        type="button"
-                        className="btn btn--ghost btn--small"
-                        onClick={() => setPreviewId(l.id)}
-                      >
-                        Inspect
-                      </button>
-                      <Link to={`/rooms/${l.id}`} className="btn btn--ghost btn--small">View</Link>
-                      {l.status === 'pending' ? (
-                        <>
-                          <button
-                            type="button"
-                            className="btn btn--ghost btn--small"
-                            onClick={() => { setRejectTarget(l.id); setRejectReason(''); }}
-                          >
-                            Reject
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn--small"
-                            style={{ background: PRIMARY, color: '#fff' }}
-                            onClick={() => handleApprove(l.id)}
-                            disabled={actionLoading === l.id}
-                          >
-                            {actionLoading === l.id ? 'Saving...' : 'Approve'}
-                          </button>
-                        </>
-                      ) : l.status === 'approved' ? (
-                        <button
-                          type="button"
-                          className="btn btn--ghost btn--small"
-                          onClick={() => { setRejectTarget(l.id); setRejectReason('Policy violation'); }}
-                        >
-                          Revoke
-                        </button>
-                      ) : (
-                        <span style={{ color: 'var(--mid)', fontSize: '0.9rem' }}>{l.admin_notes || 'Rejected'}</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
+      {loading ? <p className="muted">Loading dalalis...</p> : (
+        <div style={{ display: 'grid', gap: '0.6rem' }}>
+          {filteredProfiles.map(p => (
+            <div key={p.id} className="card" style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', padding: '0.8rem' }}>
+              <div style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--cream)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: PRIMARY }}>
+                {(p.full_name || 'D')[0].toUpperCase()}
               </div>
-            );
-          })}
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  <h3 style={{ margin: 0, fontSize: '0.95rem' }}>{p.full_name}</h3>
+                  {verificationPill(p.verification_status || 'pending')}
+                </div>
+                <p style={{ margin: 0, color: 'var(--mid)', fontSize: '0.8rem' }}>{p.phone} • Joined {timeAgo(p.created_at)}</p>
+              </div>
+              <div style={{ display: 'flex', gap: '0.4rem' }}>
+                <button className="btn btn--ghost btn--small" onClick={() => setPreviewProfileId(p.id)}>Inspect</button>
+                {(p.verification_status || 'pending').toLowerCase() === 'pending' && (
+                  <>
+                    <button className="btn btn--ghost btn--small" style={{ color: RED }} onClick={() => setRejectTarget(p.id)}>Reject</button>
+                    <button className="btn btn--small" style={{ background: PRIMARY, color: '#fff' }} onClick={() => handleApprove(p.id)} disabled={actionLoading === p.id}>
+                      {actionLoading === p.id ? '...' : 'Approve'}
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
-      {rejectTarget ? (
-        <div className="sheet-backdrop" role="presentation" onClick={() => setRejectTarget(null)} style={{ alignItems: 'center' }}>
-          <article
-            className="sheet"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Reject listing"
-            tabIndex={-1}
-            onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: 420 }}
-          >
-            <h3>Reject listing</h3>
-            <p className="muted">Add a short reason. The lister will be notified.</p>
-            <textarea
+      {previewProfile && (
+        <div className="sheet-backdrop" style={{ alignItems: 'center' }} onClick={() => setPreviewProfileId(null)}>
+          <article className="sheet" style={{ maxWidth: 600, maxHeight: '85vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+              <h2 style={{ margin: 0 }}>Dalali Inspection</h2>
+              <button className="btn btn--ghost" onClick={() => setPreviewProfileId(null)}>✕</button>
+            </div>
+            
+            <div style={{ padding: '1rem', background: '#f9fafb', borderRadius: 12, marginBottom: '1rem' }}>
+              <h3 style={{ margin: 0 }}>{previewProfile.full_name}</h3>
+              <p style={{ margin: '0.4rem 0' }}><strong>Phone:</strong> {previewProfile.phone}</p>
+              <p style={{ margin: 0 }}><strong>Type:</strong> {previewProfile.lister_type || 'Landlord'}</p>
+              <div style={{ marginTop: '0.5rem' }}>{verificationPill(previewProfile.verification_status || 'pending')}</div>
+            </div>
+
+            <h4>Listings for Verification ({previewListings.length})</h4>
+            <div style={{ display: 'grid', gap: '0.6rem' }}>
+              {previewListings.map(l => (
+                <div key={l.id} className="card" style={{ padding: '0.6rem', display: 'flex', gap: '0.8rem', border: '1px solid var(--border)' }}>
+                   <div style={{ width: 60, height: 60, borderRadius: 6, background: 'var(--cream)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🏡</div>
+                   <div>
+                     <p style={{ margin: 0, fontWeight: 700, fontSize: '0.9rem' }}>{l.title}</p>
+                     <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--mid)' }}>{l.district}, {l.ward}</p>
+                     <p style={{ margin: '0.2rem 0 0', fontWeight: 800, color: PRIMARY, fontSize: '0.85rem' }}>{fmtTZS(l.price_monthly)}</p>
+                   </div>
+                </div>
+              ))}
+              {previewListings.length === 0 && <p className="muted">No listings posted yet.</p>}
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'flex-end', marginTop: '1.5rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
+               <button className="btn btn--ghost" onClick={() => setPreviewProfileId(null)}>Close</button>
+               {(previewProfile.verification_status || 'pending').toLowerCase() === 'pending' && (
+                 <>
+                   <button className="btn btn--ghost" style={{ color: RED }} onClick={() => { setRejectTarget(previewProfile.id); setPreviewProfileId(null); }}>Reject Account</button>
+                   <button className="btn" style={{ background: PRIMARY, color: '#fff' }} onClick={() => { handleApprove(previewProfile.id); setPreviewProfileId(null); }}>Verify & Approve</button>
+                 </>
+               )}
+            </div>
+          </article>
+        </div>
+      )}
+
+      {rejectTarget && (
+        <div className="sheet-backdrop" style={{ alignItems: 'center' }} onClick={() => setRejectTarget(null)}>
+          <article className="sheet" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
+            <h3>Reject Dalali</h3>
+            <p className="muted" style={{ fontSize: '0.9rem' }}>Reason for rejection (sent via SMS):</p>
+            <textarea 
+              style={{ width: '100%', minHeight: 80, padding: '0.5rem', borderRadius: 8, border: '1px solid var(--border)', marginTop: '0.5rem' }}
               value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-              rows={3}
-              style={{ width: '100%', border: '1px solid var(--border)', borderRadius: 8, padding: '0.6rem' }}
-              placeholder="Reason for rejection"
+              onChange={e => setRejectReason(e.target.value)}
+              placeholder="e.g. Invalid documents, unreachable phone..."
             />
-            <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.8rem' }}>
-              <button type="button" className="btn btn--ghost" onClick={() => setRejectTarget(null)}>Cancel</button>
-              <button type="button" className="btn" style={{ background: RED, color: '#fff' }} onClick={handleReject} disabled={actionLoading === rejectTarget || !rejectReason.trim()}>
-                {actionLoading === rejectTarget ? 'Saving...' : 'Reject'}
-              </button>
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+              <button className="btn btn--ghost" onClick={() => setRejectTarget(null)}>Cancel</button>
+              <button className="btn" style={{ background: RED, color: '#fff' }} onClick={handleReject} disabled={!rejectReason.trim()}>Confirm Reject</button>
             </div>
           </article>
         </div>
-      ) : null}
-
-      {previewListing ? (
-        <div className="sheet-backdrop" role="presentation" onClick={() => setPreviewId(null)} style={{ alignItems: 'center' }}>
-          <article
-            className="sheet"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Inspect listing"
-            tabIndex={-1}
-            onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: 640 }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.6rem' }}>
-              <div>
-                <h3 style={{ margin: 0 }}>{previewListing.title}</h3>
-                <p style={{ margin: '0.25rem 0', color: 'var(--mid)' }}>{previewListing.ward || previewListing.district || 'Location'} {previewListing.near_universities?.length ? `• ${previewListing.near_universities[0]} nearby` : ''}</p>
-                <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                  <span style={{ fontWeight: 800, color: PRIMARY }}>{fmtTZS(previewListing.price_monthly)}/mo</span>
-                  <span style={{ padding: '0.2rem 0.6rem', borderRadius: 999, background: '#eef6f3', color: '#1f5a45', fontWeight: 700 }}>{previewListing.room_type || 'Room'}</span>
-                  {statusPill(previewListing.status)}
-                </div>
-              </div>
-              <button type="button" className="btn btn--ghost" onClick={() => setPreviewId(null)}>✕</button>
-            </div>
-
-            <div style={{ display: 'grid', gap: '0.5rem', margin: '0.8rem 0' }}>
-              {previewPhotos.length === 0 ? (
-                <div style={{ width: '100%', height: 220, borderRadius: 12, background: 'var(--cream)' }} />
-              ) : (
-                <div style={{ display: 'grid', gap: '0.4rem', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))' }}>
-                  {previewPhotos.slice(0, 6).map((url) => (
-                    <div key={url} style={{ borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border)', height: 140 }}>
-                      <img src={url} alt="Listing" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div style={{ display: 'grid', gap: '0.6rem', marginBottom: '0.8rem' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: '0.6rem' }}>
-                <InfoRow label="Room type" value={previewListing.room_type || '—'} />
-                <InfoRow label="District/Ward" value={`${previewListing.district || ''} ${previewListing.ward || ''}`.trim() || '—'} />
-                <InfoRow label="Near universities" value={previewListing.near_universities?.join(', ') || '—'} />
-                <InfoRow label="Posted" value={timeAgo(previewListing.created_at)} />
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.75rem', border: '1px solid var(--border)', borderRadius: 10 }}>
-                <Avatar name={(profiles[previewListing.lister_id || '']?.full_name) || 'Lister'} />
-                <div style={{ flex: 1 }}>
-                  <p style={{ margin: 0, fontWeight: 700 }}>{profiles[previewListing.lister_id || '']?.full_name || 'Lister'}</p>
-                  <p style={{ margin: 0, color: 'var(--mid)' }}>{profiles[previewListing.lister_id || '']?.phone || 'No phone provided'}</p>
-                </div>
-                <span style={{ padding: '0.25rem 0.6rem', borderRadius: 999, background: profiles[previewListing.lister_id || '']?.verification_status === 'APPROVED' ? '#EAF3DE' : '#FAEEDA', color: profiles[previewListing.lister_id || '']?.verification_status === 'APPROVED' ? '#27500A' : '#633806', fontWeight: 700 }}>
-                  {profiles[previewListing.lister_id || '']?.verification_status === 'APPROVED' ? 'Verified' : 'Unverified'}
-                </span>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'flex-end' }}>
-              <button type="button" className="btn btn--ghost" onClick={() => { setRejectTarget(previewListing.id); setRejectReason(''); setPreviewId(null); }}>Reject</button>
-              <button
-                type="button"
-                className="btn"
-                style={{ background: PRIMARY, color: '#fff' }}
-                onClick={() => { setPreviewId(null); handleApprove(previewListing.id); }}
-                disabled={actionLoading === previewListing.id}
-              >
-                {actionLoading === previewListing.id ? 'Saving...' : 'Approve'}
-              </button>
-            </div>
-          </article>
-        </div>
-      ) : null}
+      )}
     </div>
   );
 }
 
 function StatCard({ label, value, color }: { label: string; value: any; color: string }) {
   return (
-    <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 12, padding: '0.9rem' }}>
-      <p style={{ margin: 0, color: 'var(--mid)', fontSize: '0.9rem' }}>{label}</p>
-      <p style={{ margin: '0.1rem 0 0', fontSize: '1.4rem', fontWeight: 800, color }}>{value}</p>
-    </div>
-  );
-}
-
-function InfoRow({ label, value }: { label: string; value: any }) {
-  return (
-    <div style={{ padding: '0.55rem 0.65rem', border: '1px solid var(--border)', borderRadius: 10 }}>
-      <p style={{ margin: 0, color: 'var(--mid)', fontSize: '0.85rem' }}>{label}</p>
-      <p style={{ margin: '0.15rem 0 0', fontWeight: 700 }}>{value || '—'}</p>
-    </div>
-  );
-}
-
-function Avatar({ name }: { name: string }) {
-  const initials = name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2) || 'L';
-  return (
-    <div style={{
-      width: 36, height: 36, borderRadius: '50%',
-      background: '#eef6f3', color: PRIMARY,
-      fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center'
-    }}>
-      {initials}
+    <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 10, padding: '0.8rem' }}>
+      <p style={{ margin: 0, color: 'var(--mid)', fontSize: '0.75rem', fontWeight: 600 }}>{label}</p>
+      <p style={{ margin: '0.1rem 0 0', fontSize: '1.2rem', fontWeight: 800, color }}>{value}</p>
     </div>
   );
 }

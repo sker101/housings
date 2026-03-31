@@ -48,7 +48,7 @@ export default function AdminSidebar({
     ];
 
     const MODERATION = [
-        { id: 'queue_listers', label: 'Listers Queue', icon: <UserPlus size={18} />, path: '/admin/landlords' },
+        { id: 'queue_listers', label: 'Dalali Verification', icon: <UserPlus size={18} />, path: '/admin/landlords' },
         { id: 'queue_listings', label: 'Listings Queue', icon: <Building size={18} />, path: '/admin/listings' },
         { id: 'queue_reports', label: 'Reports Queue', icon: <Flag size={18} />, path: '/admin/reports' },
         { id: 'queue_claims', label: 'Claims Queue', icon: <ShieldAlert size={18} />, path: '/admin/claims' },

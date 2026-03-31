@@ -428,10 +428,11 @@ export default function Layout({ children }) {
         </main>
       </div>
 
-      {(!isAuthenticated || user?.role === APP_ROLE.ADMIN || user?.role === APP_ROLE.LISTER || location.pathname.startsWith('/admin')) ? null : (
+      {/* Standard Student Bottom Nav */}
+      {isAuthenticated && user?.role === APP_ROLE.STUDENT && !location.pathname.startsWith('/admin') ? (
         <nav
-          className="bottom-nav"
-          aria-label="Primary"
+          className="bottom-nav mobile-only"
+          aria-label="Student Navigation"
           style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', gap: '0.25rem' }}
         >
           <NavLink to="/" className={({ isActive }) => (isActive ? 'is-active' : '')} end style={{ flex: 1, textAlign: 'center' }}>
@@ -452,18 +453,84 @@ export default function Layout({ children }) {
           <NavLink to="/profile" className={({ isActive }) => (isActive ? 'is-active' : '')} style={{ flex: 1, textAlign: 'center' }}>
             {user?.fullName?.split(' ')[0] || t('dashboard.profile')}
           </NavLink>
-          {isAuthenticated ? (
-            <button
-              type="button"
-              onClick={logout}
-              className="nav-link-button"
-              style={{ flex: 1, textAlign: 'center', background: 'none', border: 'none', padding: '0.4rem 0', color: 'inherit' }}
-            >
-              {t('nav.logout')}
-            </button>
-          ) : null}
+          <button
+            type="button"
+            onClick={logout}
+            className="nav-link-button"
+            style={{ flex: 1, textAlign: 'center', background: 'none', border: 'none', padding: '0.4rem 0', color: 'inherit' }}
+          >
+            {t('nav.logout')}
+          </button>
         </nav>
-      )}
+      ) : null}
+
+      {/* Admin Mobile Bottom Nav */}
+      {isAuthenticated && user?.role === APP_ROLE.ADMIN ? (
+        <nav
+          className="bottom-nav mobile-only"
+          aria-label="Admin Navigation"
+          style={{ 
+            display: 'flex', justifyContent: 'space-around', alignItems: 'center', 
+            gap: '0.25rem', background: 'rgba(255, 255, 255, 0.95)', 
+            backdropFilter: 'blur(10px)',
+            borderTop: '1px solid rgba(0,0,0,0.05)',
+            boxShadow: '0 -4px 20px rgba(0,0,0,0.04)',
+            padding: '0.6rem 0.25rem',
+            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100
+          }}
+        >
+          <NavLink 
+            to="/messages" 
+            className={({ isActive }) => (isActive ? 'is-active' : '')} 
+            style={({ isActive }) => ({ 
+              flex: 1, textAlign: 'center', fontSize: '0.72rem', fontWeight: 800,
+              color: isActive ? '#1D9E75' : '#64748b',
+              textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px'
+            })}
+          >
+             <span style={{ fontSize: '1.2rem' }}>💬</span>
+             <span>Messages</span>
+             {unreadCount > 0 && <span className="nav-badge" style={{ position: 'absolute', top: 5, right: '15%' }}>{unreadCount}</span>}
+          </NavLink>
+          <NavLink 
+            to="/admin/landlords" 
+            className={({ isActive }) => (isActive ? 'is-active' : '')} 
+            style={({ isActive }) => ({ 
+              flex: 1, textAlign: 'center', fontSize: '0.72rem', fontWeight: 800,
+              color: isActive ? '#1D9E75' : '#64748b',
+              textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px'
+            })}
+          >
+            <span style={{ fontSize: '1.2rem' }}>🤝</span>
+            <span>Vetting</span>
+          </NavLink>
+          <NavLink 
+            to="/admin/listings" 
+            className={({ isActive }) => (isActive ? 'is-active' : '')} 
+            style={({ isActive }) => ({ 
+              flex: 1, textAlign: 'center', fontSize: '0.72rem', fontWeight: 800,
+              color: isActive ? '#1D9E75' : '#64748b',
+              textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px'
+            })}
+          >
+            <span style={{ fontSize: '1.2rem' }}>🏠</span>
+            <span>Listings</span>
+          </NavLink>
+          <button
+            type="button"
+            onClick={logout}
+            style={{ 
+              flex: 1, textAlign: 'center', background: 'none', border: 'none', 
+              color: '#b91c1c', fontSize: '0.72rem', fontWeight: 800,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px'
+            }}
+          >
+            <span style={{ fontSize: '1.2rem' }}>🚪</span>
+            <span>Logout</span>
+          </button>
+        </nav>
+      ) : null}
+
     </div>
   );
 }
