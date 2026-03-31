@@ -2003,6 +2003,10 @@ tbody td {
   .topbar__nav button.btn--ghost {
     display: none;
   }
+
+  .desktop-only {
+    display: none !important;
+  }
 }
 
 @media (min-width: 920px) {
@@ -2012,6 +2016,10 @@ tbody td {
 
   .main-content {
     padding-bottom: 1.4rem;
+  }
+
+  .mobile-only {
+    display: none !important;
   }
 }
 /* Phase 4b: SOS Emergency Styles */

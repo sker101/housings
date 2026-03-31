@@ -275,11 +275,12 @@ export default function Layout({ children }) {
         {isAuthenticated ? (
           <button
             type="button"
-            className="desktop-only"
+            className="mobile-only"
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
             style={{
               padding: '0.5rem',
-              marginLeft: '1rem',
+              marginLeft: '0.5rem',
+              marginRight: '0.5rem',
               background: 'transparent',
               border: 'none',
               cursor: 'pointer',

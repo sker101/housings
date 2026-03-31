@@ -468,24 +468,6 @@ export default function LandlordSidebar({
                     fontFamily: FONT,
                 }}
             >
-                {/* Hamburger trigger */}
-                <button
-                    type="button"
-                    onClick={() => setDrawerOpen(!drawerOpen)}
-                    style={{
-                        position: 'fixed', top: '14px', right: '16px',
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        padding: '0.5rem', zIndex: 250, color: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'center'
-                    }}
-                    title="Open menu"
-                >
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <line x1="3" y1="6" x2="21" y2="6" />
-                        <line x1="3" y1="12" x2="21" y2="12" />
-                        <line x1="3" y1="18" x2="21" y2="18" />
-                    </svg>
-                </button>
-
                 {MOBILE_TABS.map((tab) => (
                     <NavLink
                         key={tab.to + tab.label}

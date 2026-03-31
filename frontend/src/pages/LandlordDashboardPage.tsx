@@ -178,7 +178,7 @@ export default function LandlordDashboardPage() {
   useEffect(() => {
     isAlive.current = true;
     loadData();
-    const id = setInterval(loadData, 30000);
+    const id = setInterval(loadData, 120000); // Poll every 2 minutes (less visual flicker)
     return () => {
       isAlive.current = false;
       clearInterval(id);
