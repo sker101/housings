@@ -380,11 +380,17 @@ export default function RoomDetailsPage() {
     }
 
     return Object.entries(listing.amenities)
-      .filter(([, enabled]) => Boolean(enabled))
-      .map(([key]) => ({
+      .map(([key, enabled]) => ({
+        key,
         label: humanize(key),
-        emoji: amenityEmoji(key)
-      }));
+        emoji: amenityEmoji(key),
+        enabled: Boolean(enabled)
+      }))
+      .sort((a, b) => {
+        // Enabled items first
+        if (a.enabled !== b.enabled) return b.enabled ? 1 : -1;
+        return a.label.localeCompare(b.label);
+      });
   }, [listing?.amenities]);
 
   const houseRules = useMemo(
@@ -467,6 +473,10 @@ export default function RoomDetailsPage() {
   const facts = useMemo(
     () => [
       { label: t('roomDetails.roomType'), value: humanize(listing?.roomType) },
+      { label: 'Property Type', value: humanize(listing?.propertyType) || 'N/A' },
+      { label: 'Floor', value: humanize(listing?.floor) || 'N/A' },
+      { label: 'Total Rooms', value: listing?.totalRooms ? String(listing.totalRooms) : 'N/A' },
+      { label: 'Furnished', value: listing?.furnished ? 'Yes' : 'No' },
       { label: t('roomDetails.genderPreference'), value: humanize(listing?.genderPreference) },
       { label: t('roomDetails.utilitiesIncluded'), value: listing?.utilitiesIncluded ? t('roomDetails.yes') : t('roomDetails.no') },
       { label: t('roomDetails.vacancy'), value: humanize(listing?.vacancyStatus) },
@@ -477,8 +487,12 @@ export default function RoomDetailsPage() {
     [
       listing?.availableFrom,
       listing?.createdAt,
+      listing?.floor,
+      listing?.furnished,
       listing?.genderPreference,
+      listing?.propertyType,
       listing?.roomType,
+      listing?.totalRooms,
       listing?.utilitiesIncluded,
       listing?.vacancyStatus,
       listing?.viewCount,
@@ -784,6 +798,27 @@ export default function RoomDetailsPage() {
                 </button>
               </div>
             ) : null}
+            {listing?.videoTourUrl && (
+              <a
+                href={listing.videoTourUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="btn btn--small"
+                style={{
+                  position: 'absolute',
+                  bottom: '1rem',
+                  right: '1rem',
+                  background: 'rgba(29, 158, 117, 0.9)',
+                  color: 'white',
+                  fontSize: '0.85rem',
+                  padding: '0.5rem 0.75rem',
+                  borderRadius: '6px',
+                  textDecoration: 'none'
+                }}
+              >
+                🎥 Video Tour
+              </a>
+            )}
           </div>
 
           <div className="room-hero__thumbs">
@@ -846,7 +881,7 @@ export default function RoomDetailsPage() {
               <div>
                 <h2>{listerProfile?.full_name || t('roomDetails.verifiedLister')}</h2>
                 <p className="muted">
-                  {humanize(listerProfile?.verification_status || 'pending')} • {t('roomDetails.memberSince', { date: formatShortDate(listerProfile?.created_at) })}
+                  {listerProfile?.lister_type ? humanize(listerProfile.lister_type) : 'Lister'} • {humanize(listerProfile?.verification_status || 'pending')} • {t('roomDetails.memberSince', { date: formatShortDate(listerProfile?.created_at) })}
                 </p>
               </div>
             </div>
@@ -854,7 +889,36 @@ export default function RoomDetailsPage() {
               <span>{listerListingCount === 1 ? t('roomDetails.approvedListings', { count: listerListingCount }) : t('roomDetails.approvedListingsPlural', { count: listerListingCount })}</span>
               <span>{t('roomDetails.respondsViaChat')}</span>
             </div>
+            {listerProfile?.phone && (
+              <p style={{ margin: '0.5rem 0 0', fontSize: '0.9rem' }}>
+                <strong>Phone:</strong> {listerProfile.phone}
+              </p>
+            )}
+            {listing?.whatsappNumber && (
+              <p style={{ margin: '0.3rem 0 0', fontSize: '0.9rem' }}>
+                <strong>WhatsApp:</strong> {listing.whatsappNumber}
+              </p>
+            )}
           </section>
+
+          {listing?.listerType === 'dalali' && (listing?.ownerName || listing?.ownerPhone) ? (
+            <section className="card" style={{ marginTop: '1rem', padding: '1.5rem', border: '1px solid #E5E5E0' }}>
+              <h3 style={{ margin: '0 0 1rem' }}>Property Owner</h3>
+              {listing?.ownerName && (
+                <p style={{ margin: '0 0 0.5rem' }}>
+                  <strong>{listing.ownerName}</strong>
+                </p>
+              )}
+              {listing?.ownerPhone && (
+                <p style={{ margin: '0', fontSize: '0.9rem' }}>
+                  <strong>Phone:</strong> {listing.ownerPhone}
+                </p>
+              )}
+              <p style={{ margin: '0.5rem 0 0', fontSize: '0.85rem', color: '#6B6B5A' }}>
+                (Listed by {listerProfile?.full_name || 'agent'})
+              </p>
+            </section>
+          ) : null}
 
           <div className="room-actions">
             <button
@@ -916,9 +980,17 @@ export default function RoomDetailsPage() {
         <article className="card room-section-card">
           <h2>{t('roomDetails.amenities')}</h2>
           {amenities.length > 0 ? (
-            <div className="room-chip-row">
+            <div className="room-chip-row" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
               {amenities.map((item) => (
-                <span key={item.label} className="room-chip room-chip--amenity">
+                <span
+                  key={item.label}
+                  className="room-chip room-chip--amenity"
+                  style={{
+                    background: item.enabled ? '#EDF7F1' : '#F5F5F0',
+                    border: `1px solid ${item.enabled ? '#1D9E75' : '#E5E5E0'}`,
+                    color: item.enabled ? '#1A1A2E' : '#9999 99'
+                  }}
+                >
                   <span className="room-chip__emoji" aria-hidden="true">
                     {item.emoji}
                   </span>
@@ -942,6 +1014,44 @@ export default function RoomDetailsPage() {
           ) : (
             <p>{t('roomDetails.noHouseRules')}</p>
           )}
+        </article>
+
+        <article className="card room-section-card">
+          <h2>Lease Terms & Payment</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', fontSize: '0.9rem' }}>
+            <div>
+              <p style={{ margin: '0 0 0.3rem', color: '#6B6B5A' }}>Monthly Rent</p>
+              <p style={{ margin: '0', fontWeight: '700', fontSize: '1rem', color: '#1D9E75' }}>
+                TZS {new Intl.NumberFormat('en-TZ').format(listing?.priceMonthly || 0)}
+              </p>
+            </div>
+            {listing?.securityDeposit ? (
+              <div>
+                <p style={{ margin: '0 0 0.3rem', color: '#6B6B5A' }}>Security Deposit</p>
+                <p style={{ margin: '0', fontWeight: '700', fontSize: '1rem' }}>
+                  TZS {new Intl.NumberFormat('en-TZ').format(listing.securityDeposit)}
+                </p>
+              </div>
+            ) : null}
+            {listing?.minLeaseMonths ? (
+              <div>
+                <p style={{ margin: '0 0 0.3rem', color: '#6B6B5A' }}>Minimum Lease</p>
+                <p style={{ margin: '0', fontWeight: '700' }}>{listing.minLeaseMonths} month{listing.minLeaseMonths !== 1 ? 's' : ''}</p>
+              </div>
+            ) : null}
+            {listing?.paymentSchedule ? (
+              <div>
+                <p style={{ margin: '0 0 0.3rem', color: '#6B6B5A' }}>Payment Schedule</p>
+                <p style={{ margin: '0', fontWeight: '700' }}>{humanize(listing.paymentSchedule)}</p>
+              </div>
+            ) : null}
+            {listing?.lateFeePolicy ? (
+              <div style={{ gridColumn: '1 / -1' }}>
+                <p style={{ margin: '0 0 0.3rem', color: '#6B6B5A' }}>Late Fee Policy</p>
+                <p style={{ margin: '0' }}>{listing.lateFeePolicy}</p>
+              </div>
+            ) : null}
+          </div>
         </article>
 
         <article className="card room-section-card">

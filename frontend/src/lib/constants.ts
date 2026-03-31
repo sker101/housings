@@ -65,3 +65,47 @@ export const UNIVERSITIES = [
     { value: 'MUHAS', label: 'MUHAS' },
     { value: 'IFM', label: 'IFM' }
 ];
+
+export const AMENITIES_LIST = [
+    { key: 'wifi',            label: 'WiFi / Internet',        emoji: '📶' },
+    { key: 'water',           label: 'Running Water',           emoji: '💧' },
+    { key: 'electricity',     label: 'Electricity (TANESCO)',   emoji: '⚡' },
+    { key: 'generator',       label: 'Backup Generator',        emoji: '🔋' },
+    { key: 'security',        label: 'Security Guard',          emoji: '🛡️' },
+    { key: 'parking',         label: 'Parking Space',           emoji: '🚗' },
+    { key: 'furnished',       label: 'Furnished Room',          emoji: '🛋️' },
+    { key: 'kitchen',         label: 'Shared Kitchen',          emoji: '🍳' },
+    { key: 'privateBathroom', label: 'Private Bathroom',        emoji: '🚿' },
+    { key: 'sharedBathroom',  label: 'Shared Bathroom',         emoji: '🛁' },
+    { key: 'laundry',         label: 'Laundry Area',            emoji: '🧺' },
+    { key: 'tv',              label: 'TV / Cable',              emoji: '📺' },
+    { key: 'ac',              label: 'Air Conditioning',        emoji: '❄️' },
+    { key: 'fan',             label: 'Ceiling Fan',             emoji: '🌀' },
+    { key: 'balcony',         label: 'Balcony / Veranda',       emoji: '🌤️' },
+    { key: 'cctv',            label: 'CCTV Cameras',            emoji: '📷' },
+    { key: 'cleaningService', label: 'Cleaning Service',        emoji: '🧹' },
+    { key: 'rooftopAccess',   label: 'Rooftop Access',          emoji: '🏙️' }
+];
+
+export const PROPERTY_TYPES = [
+    { value: 'apartment_building', label: 'Apartment Building' },
+    { value: 'standalone_house',   label: 'Standalone House' },
+    { value: 'hostel',             label: 'Hostel / Boarding' },
+    { value: 'compound',           label: 'Compound / Nyumba ya Pango' },
+    { value: 'other',              label: 'Other' }
+];
+
+export const FLOOR_OPTIONS = [
+    { value: 'ground', label: 'Ground Floor' },
+    { value: '1st',    label: '1st Floor' },
+    { value: '2nd',    label: '2nd Floor' },
+    { value: '3rd',    label: '3rd Floor' },
+    { value: '4th+',   label: '4th Floor or Higher' },
+    { value: 'na',     label: 'N/A (No Floors)' }
+];
+
+export const PAYMENT_SCHEDULES = [
+    { value: 'monthly',    label: 'Monthly' },
+    { value: 'quarterly',  label: 'Quarterly (Every 3 months)' },
+    { value: 'annually',   label: 'Annually (Once a year)' }
+];

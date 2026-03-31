@@ -41,7 +41,20 @@ export function mapListingRow(row, photos = []) {
     ward: row.ward,
     street: row.street,
     priceMonthly: price,
+    securityDeposit: Number(row.security_deposit || 0),
     utilitiesIncluded: Boolean(row.utilities_included),
+    floor: row.floor || null,
+    totalRooms: row.total_rooms || null,
+    furnished: Boolean(row.furnished),
+    propertyType: row.property_type || null,
+    ownerName: row.owner_name || null,
+    ownerPhone: row.owner_phone || null,
+    whatsappNumber: row.whatsapp_number || null,
+    minLeaseMonths: Number(row.min_lease_months || 1),
+    paymentSchedule: row.payment_schedule || 'monthly',
+    lateFeePolicy: row.late_fee_policy || null,
+    videoTourUrl: row.video_tour_url || null,
+    accessibilityNotes: row.accessibility_notes || null,
     amenities: normalizeAmenities(row.amenities),
     houseRules: row.house_rules,
     availableFrom: row.available_from,
@@ -71,7 +84,7 @@ async function fetchPhotosForListings(listingIds, accessToken) {
   }
 
   const photos = await selectRows('listing_photos', {
-    select: 'id,listing_id,angle,public_url,ai_verified,ai_confidence',
+    select: 'id,listing_id,angle,public_url,ai_verified,ai_confidence,position,caption,is_cover',
     filters: [
       {
         column: 'listing_id',
@@ -79,7 +92,7 @@ async function fetchPhotosForListings(listingIds, accessToken) {
         value: `(${listingIds.join(',')})`
       }
     ],
-    order: 'created_at.asc',
+    order: 'position.asc,created_at.asc',
     accessToken
   });
 
@@ -143,7 +156,7 @@ export async function fetchApprovedListings(filters: Record<string, any> = {}, a
 
   const rows = await selectRows('listings', {
     select:
-      'id,lister_id,title,description,room_type,gender_preference,price_monthly,utilities_included,region,district,ward,street,lat,lng,amenities,house_rules,available_from,vacancy_status,status,rejection_reason,featured,near_universities,view_count,created_at',
+      'id,lister_id,title,description,room_type,gender_preference,price_monthly,security_deposit,utilities_included,floor,total_rooms,furnished,property_type,owner_name,owner_phone,whatsapp_number,min_lease_months,payment_schedule,late_fee_policy,video_tour_url,accessibility_notes,region,district,ward,street,lat,lng,amenities,house_rules,available_from,vacancy_status,status,rejection_reason,featured,near_universities,view_count,created_at',
     filters: queryFilters,
     or: filters.query
       ? `title.ilike.*${filters.query}*,district.ilike.*${filters.query}*,ward.ilike.*${filters.query}*`
@@ -165,7 +178,7 @@ export async function fetchApprovedListings(filters: Record<string, any> = {}, a
 export async function fetchListingById(listingId, accessToken) {
   const rows = await selectRows('listings', {
     select:
-      'id,lister_id,title,description,room_type,gender_preference,price_monthly,utilities_included,region,district,ward,street,lat,lng,amenities,house_rules,available_from,vacancy_status,status,rejection_reason,featured,near_universities,view_count,created_at',
+      'id,lister_id,title,description,room_type,gender_preference,price_monthly,security_deposit,utilities_included,floor,total_rooms,furnished,property_type,owner_name,owner_phone,whatsapp_number,min_lease_months,payment_schedule,late_fee_policy,video_tour_url,accessibility_notes,region,district,ward,street,lat,lng,amenities,house_rules,available_from,vacancy_status,status,rejection_reason,featured,near_universities,view_count,created_at',
     filters: [{ column: 'id', op: 'eq', value: listingId }],
     limit: 1,
     accessToken
@@ -202,7 +215,7 @@ export async function fetchRelatedListings(baseListing, accessToken, limit = 6) 
   }
 
   const selectColumns =
-    'id,lister_id,title,description,room_type,gender_preference,price_monthly,utilities_included,region,district,ward,street,lat,lng,amenities,house_rules,available_from,vacancy_status,status,rejection_reason,featured,near_universities,view_count,created_at';
+    'id,lister_id,title,description,room_type,gender_preference,price_monthly,security_deposit,utilities_included,floor,total_rooms,furnished,property_type,owner_name,owner_phone,whatsapp_number,min_lease_months,payment_schedule,late_fee_policy,video_tour_url,accessibility_notes,region,district,ward,street,lat,lng,amenities,house_rules,available_from,vacancy_status,status,rejection_reason,featured,near_universities,view_count,created_at';
 
   const basePrice = Number(baseListing.priceMonthly || 0);
   const minPrice = Math.max(0, Math.round(basePrice * 0.7));
@@ -316,7 +329,7 @@ export async function fetchSavedListings(tenantId, accessToken) {
 
   const listings = await selectRows('listings', {
     select:
-      'id,lister_id,title,description,room_type,gender_preference,price_monthly,utilities_included,region,district,ward,street,lat,lng,amenities,house_rules,available_from,vacancy_status,status,rejection_reason,featured,near_universities,view_count,created_at',
+      'id,lister_id,title,description,room_type,gender_preference,price_monthly,security_deposit,utilities_included,floor,total_rooms,furnished,property_type,owner_name,owner_phone,whatsapp_number,min_lease_months,payment_schedule,late_fee_policy,video_tour_url,accessibility_notes,region,district,ward,street,lat,lng,amenities,house_rules,available_from,vacancy_status,status,rejection_reason,featured,near_universities,view_count,created_at',
     filters: [
       {
         column: 'id',
