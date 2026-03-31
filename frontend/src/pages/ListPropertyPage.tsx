@@ -219,7 +219,7 @@ export default function ListPropertyPage() {
 
   const hasListerRole = user?.role === 'LISTER';
   const verificationStatus = user?.verificationStatus || 'pending';
-  const isVerified = verificationStatus === 'approved';
+  const isVerified = verificationStatus === 'verified' || verificationStatus === 'approved';
 
   // Load draft on mount
   useEffect(() => {

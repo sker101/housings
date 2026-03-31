@@ -256,9 +256,11 @@ export default function AdminLandlordsPage() {
   return (
     <div className="container section" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 800 }}>Dalali Trust Verification</h1>
-          <p className="muted" style={{ margin: 0 }}>Optional landlord verification to build tenant trust. Listing approval is handled separately.</p>
+        <div style={{ marginBottom: '2rem' }}>
+          <h1 style={{ margin: 0, fontSize: '2rem', color: '#1A1A2E' }}>Dalali Verification</h1>
+          <p style={{ margin: '0.5rem 0 0', color: '#6B6B5A' }}>
+            Verify dalali profiles to enable their listing submission privileges. Verification is now mandatory for all listers.
+          </p>
         </div>
         <div style={{ position: 'relative' }}>
           <button type="button" className="btn btn--ghost" onClick={() => setNotifOpen(!notifOpen)}>🔔</button>
