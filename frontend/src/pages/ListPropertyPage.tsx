@@ -463,7 +463,7 @@ export default function ListPropertyPage() {
           house_rules: values.houseRules.trim(),
           available_from: values.availableFrom || null,
           vacancy_status: 'available',
-          status: 'pending',
+          status: 'approved',
           featured: false,
           view_count: 0,
           near_universities: values.university ? [values.university] : []
