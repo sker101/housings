@@ -218,8 +218,8 @@ export default function ListPropertyPage() {
   const [gettingLocation, setGettingLocation] = useState(false);
 
   const hasListerRole = user?.role === 'LISTER';
-  const verificationStatus = user?.verificationStatus || 'pending';
-  const isVerified = verificationStatus === 'verified' || verificationStatus === 'approved';
+  const vStatus = (user?.landlordVerificationStatus || '').toLowerCase();
+  const isVerified = vStatus === 'verified' || vStatus === 'approved';
 
   // Load draft on mount
   useEffect(() => {
@@ -655,7 +655,7 @@ export default function ListPropertyPage() {
       {/* Verification banner */}
       {!isVerified && (
         <div style={{ background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: '12px', padding: '1rem', marginBottom: '1.5rem', color: '#92400E' }}>
-          <strong>Account Status: {verificationStatus === 'approved' ? 'VERIFIED' : verificationStatus.toUpperCase()}</strong>
+          <strong>Account Status: {(user?.landlordVerificationStatus || 'PENDING').toUpperCase()}</strong>
           <p style={{ margin: '0.5rem 0 0' }}>Your account must be verified by an administrator before you can submit listings. Please ensure your profile is complete.</p>
         </div>
       )}
