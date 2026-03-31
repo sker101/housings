@@ -111,8 +111,8 @@ const DEFAULT_FORM: Partial<FormValues> = {
   furnished: false,
   genderPreference: 'any',
   availableFrom: '',
-  priceMonthly: '',
-  securityDeposit: '',
+  priceMonthly: 0,
+  securityDeposit: 0,
   minLeaseMonths: 1,
   paymentSchedule: 'monthly',
   lateFeePolicy: '',
@@ -258,8 +258,8 @@ export default function ListPropertyPage() {
               totalRooms: row.total_rooms || undefined,
               furnished: row.furnished || false,
               genderPreference: row.gender_preference || 'any',
-              priceMonthly: String(row.price_monthly || ''),
-              securityDeposit: String(row.security_deposit || ''),
+              priceMonthly: row.price_monthly || 0,
+              securityDeposit: row.security_deposit || 0,
               minLeaseMonths: row.min_lease_months || 1,
               paymentSchedule: row.payment_schedule || 'monthly',
               lateFeePolicy: row.late_fee_policy || '',
@@ -1018,13 +1018,32 @@ export default function ListPropertyPage() {
               </div>
             </div>
 
-            <label>
-              <input type="checkbox" {...register('policyAccepted')} style={{ marginRight: '0.5rem' }} />
-              <span style={{ fontSize: '0.9rem' }}>
-                I accept the policies and confirm all information is accurate
-              </span>
-              {errors.policyAccepted && <span style={{ color: '#C0392B', fontSize: '0.85rem', display: 'block' }}>{errors.policyAccepted.message}</span>}
-            </label>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'flex-start', 
+              gap: '0.75rem', 
+              padding: '1rem', 
+              background: '#F9FAFB', 
+              border: `1px solid ${errors.policyAccepted ? '#C0392B' : '#E5E5E0'}`, 
+              borderRadius: '10px' 
+            }}>
+              <input 
+                type="checkbox" 
+                id="policyAccepted"
+                {...register('policyAccepted')} 
+                style={{ width: '18px', height: '18px', marginTop: '3px', cursor: 'pointer' }} 
+              />
+              <label htmlFor="policyAccepted" style={{ cursor: 'pointer', flex: 1 }}>
+                <span style={{ fontSize: '0.95rem', fontWeight: 500, color: '#1A1A2E' }}>
+                  I accept the policies and confirm all information is accurate
+                </span>
+                {errors.policyAccepted && (
+                  <span style={{ color: '#C0392B', fontSize: '0.85rem', display: 'block', marginTop: '0.25rem' }}>
+                    {errors.policyAccepted.message}
+                  </span>
+                )}
+              </label>
+            </div>
           </div>
         )}
 
