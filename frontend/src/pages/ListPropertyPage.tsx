@@ -655,8 +655,8 @@ export default function ListPropertyPage() {
       {/* Verification banner */}
       {!isVerified && (
         <div style={{ background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: '12px', padding: '1rem', marginBottom: '1.5rem', color: '#92400E' }}>
-          <strong>Account Status: {verificationStatus.toUpperCase()}</strong>
-          <p style={{ margin: '0.5rem 0 0' }}>Optional: Get verified to build trust with tenants and improve visibility.</p>
+          <strong>Account Status: {verificationStatus === 'approved' ? 'VERIFIED' : verificationStatus.toUpperCase()}</strong>
+          <p style={{ margin: '0.5rem 0 0' }}>Your account must be verified by an administrator before you can submit listings. Please ensure your profile is complete.</p>
         </div>
       )}
 
@@ -1085,14 +1085,14 @@ export default function ListPropertyPage() {
             <button
               type="button"
               onClick={handleSubmit(submitListing)}
-              disabled={submitting || !isVerified}
+              disabled={submitting || !isVerified || !formValues.policyAccepted}
               style={{
                 padding: '0.75rem 1.5rem',
-                background: isVerified ? '#1D9E75' : '#CCCCCC',
+                background: (isVerified && formValues.policyAccepted) ? '#1D9E75' : '#CCCCCC',
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px',
-                cursor: isVerified ? 'pointer' : 'not-allowed',
+                cursor: (isVerified && formValues.policyAccepted) ? 'pointer' : 'not-allowed',
                 fontWeight: '600'
               }}
             >
