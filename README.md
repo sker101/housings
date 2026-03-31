@@ -20,9 +20,20 @@ CampusStay TZ is now running as a Supabase-first React app aligned to the redesi
 - Admin dashboard, landlord queue, listing queue, audit log
 - Warm redesign visual system (Syne + DM Sans, ink/paper/jade palette, mobile bottom nav)
 
-## Git Workflow
-**CRITICAL RULE:** All new work must branch from `staging`. **Never** branch directly from `main`. Features should be merged into `staging` for testing before a release is promoted to `main`.
-Example: `git checkout staging && git pull && git checkout -b feature/my-new-feature`
+## Git Workflow & Auto-Deployment
+
+**Production Deployment (Vercel Auto-Deploy)**
+- All work is committed directly to `main` branch ↓
+- GitHub webhook triggers Vercel build automatically
+- Vercel compiles frontend and deploys to production
+- Live in ~3-5 minutes after push
+
+**Process for Every Code Change:**
+1. Make changes locally
+2. `git add -A && git commit -m "..."` 
+3. `git push origin main`
+4. Wait 3-5 minutes for Vercel build
+5. Check deployment at https://campusstay-deploy.vercel.app (or your Vercel URL)
 
 ## Required Environment
 Create `frontend/.env` from `frontend/.env.example`:
