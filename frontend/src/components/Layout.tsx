@@ -311,41 +311,64 @@ export default function Layout({ children }) {
           </div>
 
           <nav className="topbar__nav">
-            <button
-              type="button"
-              className="btn btn--ghost btn--small"
-              onClick={toggleLanguage}
-              title="Toggle Language"
-            >
-              {i18n.language.startsWith('en') ? 'SW' : 'EN'}
-            </button>
-            <NavLink to="/">{t('nav.home')}</NavLink>
-            <NavLink to="/search">{t('nav.search')}</NavLink>
-            {isAuthenticated ? (
-              <NavLink to="/messages" className="nav-link-with-badge">
-                {t('nav.messages')}
-                {unreadCount > 0 ? (
-                  <span className="nav-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
+            {user?.role === APP_ROLE.LISTER ? (
+              <>
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--small"
+                  onClick={toggleLanguage}
+                  title="Toggle Language"
+                >
+                  {i18n.language.startsWith('en') ? 'SW' : 'EN'}
+                </button>
+                <NavLink to="/landlord" className={({ isActive }) => isActive ? 'is-active' : ''}>
+                  {t('nav.dashboard')}
+                </NavLink>
+                <NavLink to="/list-property" className="btn btn--small">
+                  {t('nav.listProperty')}
+                </NavLink>
+                <button type="button" className="btn btn--ghost btn--small" onClick={logout}>
+                  {t('nav.logout')}
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--small"
+                  onClick={toggleLanguage}
+                  title="Toggle Language"
+                >
+                  {i18n.language.startsWith('en') ? 'SW' : 'EN'}
+                </button>
+                <NavLink to="/">{t('nav.home')}</NavLink>
+                <NavLink to="/search">{t('nav.search')}</NavLink>
+                {isAuthenticated ? (
+                  <NavLink to="/messages" className="nav-link-with-badge">
+                    {t('nav.messages')}
+                    {unreadCount > 0 ? (
+                      <span className="nav-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
+                    ) : null}
+                  </NavLink>
                 ) : null}
-              </NavLink>
-            ) : null}
-            {user?.role === APP_ROLE.LISTER ? <NavLink to="/list-property">{t('nav.listProperty')}</NavLink> : null}
-            {isAuthenticated ? (
-              <NavLink to="/profile" className="nav-profile-link">
-                <span className="nav-avatar">
-                  {(user?.fullName || 'U').charAt(0).toUpperCase()}
-                </span>
-                <span className="nav-greeting">
-                  {t('layout.greeting')}, {user?.fullName?.split(' ')[0] || 'User'}
-                </span>
-              </NavLink>
-            ) : null}
-            {topActionLink}
-            {isAuthenticated ? (
-              <button type="button" className="btn btn--ghost btn--small" onClick={logout}>
-                {t('nav.logout')}
-              </button>
-            ) : null}
+                {isAuthenticated ? (
+                  <NavLink to="/profile" className="nav-profile-link">
+                    <span className="nav-avatar">
+                      {(user?.fullName || 'U').charAt(0).toUpperCase()}
+                    </span>
+                    <span className="nav-greeting">
+                      {t('layout.greeting')}, {user?.fullName?.split(' ')[0] || 'User'}
+                    </span>
+                  </NavLink>
+                ) : null}
+                {topActionLink}
+                {isAuthenticated ? (
+                  <button type="button" className="btn btn--ghost btn--small" onClick={logout}>
+                    {t('nav.logout')}
+                  </button>
+                ) : null}
+              </>
+            )}
           </nav>
         </div>
       </header>
@@ -397,7 +420,7 @@ export default function Layout({ children }) {
         </main>
       </div>
 
-      {(!isAuthenticated || user?.role === APP_ROLE.ADMIN || location.pathname.startsWith('/admin')) ? (
+      {(!isAuthenticated || user?.role === APP_ROLE.ADMIN || user?.role === APP_ROLE.LISTER || location.pathname.startsWith('/admin')) ? null : (
         <nav
           className="bottom-nav"
           aria-label="Primary"
@@ -432,7 +455,7 @@ export default function Layout({ children }) {
             </button>
           ) : null}
         </nav>
-      ) : null}
+      )}
     </div>
   );
 }

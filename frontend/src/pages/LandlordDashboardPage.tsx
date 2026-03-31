@@ -447,6 +447,44 @@ export default function LandlordDashboardPage() {
 
         {error ? <p className="error-text">{error}</p> : null}
 
+        {/* ── Hero Stats ────────────────────────────────────────── */}
+        <div style={{ marginBottom: '1.5rem' }}>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '0.25rem' }}>
+            {t('layout.greeting')}, {user?.fullName?.split(' ')[0] || 'there'} 👋
+          </h1>
+          <p style={{ color: 'var(--mid)', marginBottom: '1.25rem', fontSize: '0.92rem' }}>
+            Here's your property overview
+          </p>
+
+          {/* Stats row */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem', marginBottom: '1.25rem' }}>
+            {[
+              { label: 'Active listings', value: listings.filter(l => l.status === 'approved').length },
+              { label: 'Pending review', value: listings.filter(l => l.status === 'pending').length },
+              { label: 'Active tenants', value: allApprovedBookings.length },
+              { label: 'Open inquiries', value: bookings.length, alert: bookings.length > 0 },
+            ].map((stat) => (
+              <div key={stat.label} className="card" style={{ padding: '0.9rem 1rem' }}>
+                <p style={{ fontSize: '0.78rem', color: 'var(--mid)', marginBottom: '0.25rem' }}>{stat.label}</p>
+                <p style={{ fontSize: '1.6rem', fontWeight: 800, color: stat.alert ? '#ef4444' : 'var(--ink)' }}>
+                  {stat.value}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* Post a room CTA */}
+          <div className="card" style={{ padding: '1rem 1.25rem', background: '#E8F6EF', border: '1px solid #B8DFC8', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
+            <div>
+              <p style={{ fontWeight: 700, color: '#1D9E75', marginBottom: '0.2rem' }}>Post a new room</p>
+              <p style={{ fontSize: '0.82rem', color: 'var(--mid)' }}>It takes about 5 minutes to go live</p>
+            </div>
+            <Link to="/list-property" className="btn" style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
+              + List Property
+            </Link>
+          </div>
+        </div>
+
         <div className="kpi-row">
           {loading
             ? Array.from({ length: 4 }).map((_, idx) => (

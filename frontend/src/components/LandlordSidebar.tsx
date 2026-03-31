@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
     LayoutDashboard, Building2, Inbox, Users, Wallet,
-    Star, BarChart2, Bell, Settings, LogOut, Zap
+    Star, BarChart2, Bell, Settings, LogOut, Zap, X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -91,11 +91,18 @@ export default function LandlordSidebar({
 }: LandlordSidebarProps) {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
     const [visible, setVisible] = useState(false);
+    const [drawerOpen, setDrawerOpen] = useState(false);
     const tier = TIER_STYLE[subscriptionTier] ?? TIER_STYLE.free;
 
     // Staggered fade-in on mount
     useEffect(() => { const t = setTimeout(() => setVisible(true), 60); return () => clearTimeout(t); }, []);
+
+    // Close drawer on route change
+    useEffect(() => {
+        setDrawerOpen(false);
+    }, [location.pathname]);
 
     const initials = (user?.fullName ?? 'L').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
 
@@ -108,17 +115,64 @@ export default function LandlordSidebar({
         color?: string;
     };
 
-    const NAV: NavItem[] = [
-        { to: '/landlord', icon: <LayoutDashboard size={18} />, label: 'My Dashboard' },
+    // Grouped navigation
+    const MANAGE_SECTION: NavItem[] = [
+        { to: '/landlord', icon: <LayoutDashboard size={18} />, label: 'Dashboard' },
         { to: '/landlord/listings', icon: <Building2 size={18} />, label: 'My Listings', meta: `${activeListings} Active` },
         { to: '/messages', icon: <Inbox size={18} />, label: 'Inquiries', badge: pendingInquiries, color: '#ef4444' },
         { to: '/landlord/tenants', icon: <Users size={18} />, label: 'My Tenants', meta: `${tenantCount} Total` },
-        { to: '/landlord/payments', icon: <Wallet size={18} />, label: 'Earnings', meta: mtdEarnings > 0 ? `TZS ${mtdEarnings.toLocaleString()}` : '—' },
+        { to: '/landlord/payments', icon: <Wallet size={18} />, label: 'Payments' },
+    ];
+
+    const ACCOUNT_SECTION: NavItem[] = [
         { to: '/reviews', icon: <Star size={18} />, label: 'Reviews', meta: avgRating > 0 ? `${avgRating.toFixed(1)} ★` : '—' },
         { to: '/landlord/analytics', icon: <BarChart2 size={18} />, label: 'Analytics' },
         { to: '/notifications', icon: <Bell size={18} />, label: 'Notifications', badge: unreadNotifs },
         { to: '/profile', icon: <Settings size={18} />, label: 'Account Settings' },
     ];
+
+    // Render nav items helper
+    const renderNavItems = (items: NavItem[], isCollapsedView: boolean = false) =>
+        items.map((item, i) => (
+            <NavLink
+                key={item.to + item.label}
+                to={item.to}
+                title={isCollapsedView ? item.label : undefined}
+                style={({ isActive }) => ({
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: isCollapsedView ? 'center' : 'flex-start',
+                    gap: '0.65rem',
+                    padding: isCollapsedView ? '0.62rem 0' : '0.62rem 1.25rem',
+                    color: isActive ? GREEN : '#374151',
+                    background: isActive ? GREEN_L : 'transparent',
+                    borderLeft: isActive ? `3px solid ${GREEN}` : '3px solid transparent',
+                    textDecoration: 'none',
+                    fontWeight: isActive ? 700 : 500,
+                    fontSize: '0.88rem',
+                    borderRadius: isCollapsedView ? '0' : '0 8px 8px 0',
+                    marginRight: isCollapsedView ? '0' : '0.5rem',
+                    transition: 'all 0.15s',
+                    opacity: visible ? 1 : 0,
+                    transform: visible ? 'translateX(0)' : 'translateX(-8px)',
+                    transitionDelay: `${0.04 * i}s`,
+                })}
+            >
+                <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isCollapsedView && item.badge ? '4px' : '0' }}>
+                    {item.icon}
+                    {isCollapsedView && item.badge ? <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#ef4444' }} /> : null}
+                </span>
+                {!isCollapsedView && (
+                    <>
+                        <span style={{ flex: 1, minWidth: 0, opacity: isCollapsedView ? 0 : 1 }}>{item.label}</span>
+                        {item.badge ? <Badge count={item.badge} color={item.color ?? GREEN} /> : null}
+                        {item.meta && !item.badge ? (
+                            <span style={{ fontSize: '0.72rem', color: GOLD, fontWeight: 700, flexShrink: 0 }}>{item.meta}</span>
+                        ) : null}
+                    </>
+                )}
+            </NavLink>
+        ));
 
     // ── Desktop sidebar ──────────────────────────────────────────────────────
     const desktop = (
@@ -169,48 +223,18 @@ export default function LandlordSidebar({
                 )}
             </div>
 
-            {/* Nav items */}
+            {/* Nav items - grouped sections */}
             <nav style={{ flex: 1, padding: '0.75rem 0' }}>
-                {NAV.map((item, i) => (
-                    <NavLink
-                        key={item.to + item.label}
-                        to={item.to}
-                        title={isCollapsed ? item.label : undefined}
-                        style={({ isActive }) => ({
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: isCollapsed ? 'center' : 'flex-start',
-                            gap: '0.65rem',
-                            padding: isCollapsed ? '0.62rem 0' : '0.62rem 1.25rem',
-                            color: isActive ? GREEN : '#374151',
-                            background: isActive ? GREEN_L : 'transparent',
-                            borderLeft: isActive ? `3px solid ${GREEN}` : '3px solid transparent',
-                            textDecoration: 'none',
-                            fontWeight: isActive ? 700 : 500,
-                            fontSize: '0.88rem',
-                            borderRadius: isCollapsed ? '0' : '0 8px 8px 0',
-                            marginRight: isCollapsed ? '0' : '0.5rem',
-                            transition: 'all 0.15s',
-                            opacity: visible ? 1 : 0,
-                            transform: visible ? 'translateX(0)' : 'translateX(-8px)',
-                            transitionDelay: `${0.04 * i}s`,
-                        })}
-                    >
-                        <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isCollapsed && item.badge ? '4px' : '0' }}>
-                            {item.icon}
-                            {isCollapsed && item.badge ? <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#ef4444' }} /> : null}
-                        </span>
-                        {!isCollapsed && (
-                            <>
-                                <span style={{ flex: 1, minWidth: 0, opacity: isCollapsed ? 0 : 1 }}>{item.label}</span>
-                                {item.badge ? <Badge count={item.badge} color={item.color ?? GREEN} /> : null}
-                                {item.meta && !item.badge ? (
-                                    <span style={{ fontSize: '0.72rem', color: GOLD, fontWeight: 700, flexShrink: 0 }}>{item.meta}</span>
-                                ) : null}
-                            </>
-                        )}
-                    </NavLink>
-                ))}
+                {/* Manage section */}
+                {!isCollapsed && <div style={{ padding: '0.5rem 1.25rem 0.25rem', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: MUTED, marginTop: '0.25rem' }}>Manage</div>}
+                {renderNavItems(MANAGE_SECTION, isCollapsed)}
+
+                {/* Divider */}
+                {!isCollapsed && <div style={{ height: '1px', background: BORDER, margin: '0.75rem 0.5rem', opacity: 0.5 }} />}
+
+                {/* Account section */}
+                {!isCollapsed && <div style={{ padding: '0.5rem 1.25rem 0.25rem', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: MUTED }}>Account</div>}
+                {renderNavItems(ACCOUNT_SECTION, isCollapsed)}
             </nav>
 
             {/* Quick stats block */}
@@ -300,50 +324,195 @@ export default function LandlordSidebar({
 
     // ── Mobile bottom tab bar ────────────────────────────────────────────────
     const MOBILE_TABS = [
-        { to: '/landlord', icon: <LayoutDashboard size={20} />, label: 'Home', badge: 0 },
-        { to: '/messages', icon: <Inbox size={20} />, label: 'Inbox', badge: unreadMessages },
-        { to: '/landlord/payments', icon: <Wallet size={20} />, label: 'Earnings', badge: 0 },
-        { to: '/notifications', icon: <Bell size={20} />, label: 'Alerts', badge: unreadNotifs },
+        { to: '/landlord', icon: <LayoutDashboard size={20} />, label: 'Dashboard', badge: 0 },
+        { to: '/landlord/listings', icon: <Building2 size={20} />, label: 'My Listings', badge: 0 },
+        { to: '/messages', icon: <Inbox size={20} />, label: 'Inquiries', badge: pendingInquiries },
+        { to: '/landlord/payments', icon: <Wallet size={20} />, label: 'Payments', badge: 0 },
         { to: '/profile', icon: <Settings size={20} />, label: 'Account', badge: 0 },
     ];
 
     const mobile = (
-        <nav
-            className="landlord-sidebar-mobile"
-            style={{
-                position: 'fixed', bottom: 0, left: 0, right: 0,
-                background: WHITE, borderTop: `1px solid ${BORDER}`,
-                display: 'flex', zIndex: 200,
-                paddingBottom: 'env(safe-area-inset-bottom)',
-                fontFamily: FONT,
-            }}
-        >
-            {MOBILE_TABS.map((tab) => (
-                <NavLink
-                    key={tab.to + tab.label}
-                    to={tab.to}
-                    style={({ isActive }) => ({
-                        flex: 1, display: 'flex', flexDirection: 'column',
-                        alignItems: 'center', justifyContent: 'center',
-                        padding: '0.55rem 0',
-                        color: isActive ? GREEN : MUTED,
-                        textDecoration: 'none', position: 'relative',
-                    })}
+        <>
+            {/* Mobile drawer backdrop & panel */}
+            {drawerOpen && (
+                <>
+                    <div
+                        onClick={() => setDrawerOpen(false)}
+                        style={{
+                            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)',
+                            zIndex: 300
+                        }}
+                    />
+                    <nav style={{
+                        position: 'fixed', top: 0, left: 0, bottom: 0,
+                        width: 260, background: WHITE,
+                        borderRight: `1px solid ${BORDER}`,
+                        zIndex: 301, display: 'flex', flexDirection: 'column',
+                        overflowY: 'auto',
+                        animation: 'slideInLeft 0.2s ease',
+                        fontFamily: FONT,
+                    }}>
+                        {/* Close button */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderBottom: `1px solid ${BORDER}` }}>
+                            <span style={{ fontSize: '0.9rem', fontWeight: 700 }}>Menu</span>
+                            <button
+                                type="button"
+                                onClick={() => setDrawerOpen(false)}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Profile header */}
+                        <div style={{ padding: '1.25rem', borderBottom: `1px solid ${BORDER}` }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{ width: 38, height: 38, borderRadius: 10, background: `linear-gradient(135deg, ${GREEN}, #2d8a5a)`, color: WHITE, fontWeight: 800, fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    {initials}
+                                </div>
+                                <div>
+                                    <p style={{ fontWeight: 700, fontSize: '0.88rem', marginBottom: '0.05rem' }}>{user?.fullName ?? 'Landlord'}</p>
+                                    <p style={{ fontSize: '0.72rem', color: MUTED }}>{user?.listerType ?? 'Lister'}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Nav items */}
+                        <nav style={{ flex: 1, padding: '0.5rem 0', overflowY: 'auto' }}>
+                            {/* Manage section */}
+                            <div style={{ padding: '0.5rem 1.25rem 0.25rem', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: MUTED, marginTop: '0.25rem' }}>Manage</div>
+                            {MANAGE_SECTION.map((item) => (
+                                <NavLink
+                                    key={item.to + item.label}
+                                    to={item.to}
+                                    style={({ isActive }) => ({
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.65rem',
+                                        padding: '0.62rem 1.25rem',
+                                        color: isActive ? GREEN : '#374151',
+                                        background: isActive ? GREEN_L : 'transparent',
+                                        borderLeft: isActive ? `3px solid ${GREEN}` : '3px solid transparent',
+                                        textDecoration: 'none',
+                                        fontWeight: isActive ? 700 : 500,
+                                        fontSize: '0.88rem',
+                                        borderRadius: '0 8px 8px 0',
+                                        marginRight: '0.5rem',
+                                        transition: 'all 0.15s',
+                                    })}
+                                >
+                                    <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: item.badge ? '4px' : '0' }}>
+                                        {item.icon}
+                                    </span>
+                                    <span style={{ flex: 1, minWidth: 0 }}>{item.label}</span>
+                                    {item.badge ? <Badge count={item.badge} color={item.color ?? GREEN} /> : null}
+                                    {item.meta && !item.badge ? (
+                                        <span style={{ fontSize: '0.72rem', color: GOLD, fontWeight: 700, flexShrink: 0 }}>{item.meta}</span>
+                                    ) : null}
+                                </NavLink>
+                            ))}
+
+                            {/* Divider */}
+                            <div style={{ height: '1px', background: BORDER, margin: '0.75rem 0.5rem', opacity: 0.5 }} />
+
+                            {/* Account section */}
+                            <div style={{ padding: '0.5rem 1.25rem 0.25rem', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: MUTED }}>Account</div>
+                            {ACCOUNT_SECTION.map((item) => (
+                                <NavLink
+                                    key={item.to + item.label}
+                                    to={item.to}
+                                    style={({ isActive }) => ({
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.65rem',
+                                        padding: '0.62rem 1.25rem',
+                                        color: isActive ? GREEN : '#374151',
+                                        background: isActive ? GREEN_L : 'transparent',
+                                        borderLeft: isActive ? `3px solid ${GREEN}` : '3px solid transparent',
+                                        textDecoration: 'none',
+                                        fontWeight: isActive ? 700 : 500,
+                                        fontSize: '0.88rem',
+                                        borderRadius: '0 8px 8px 0',
+                                        marginRight: '0.5rem',
+                                        transition: 'all 0.15s',
+                                    })}
+                                >
+                                    <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: item.badge ? '4px' : '0' }}>
+                                        {item.icon}
+                                    </span>
+                                    <span style={{ flex: 1, minWidth: 0 }}>{item.label}</span>
+                                    {item.badge ? <Badge count={item.badge} color={item.color ?? GREEN} /> : null}
+                                    {item.meta && !item.badge ? (
+                                        <span style={{ fontSize: '0.72rem', color: GOLD, fontWeight: 700, flexShrink: 0 }}>{item.meta}</span>
+                                    ) : null}
+                                </NavLink>
+                            ))}
+                        </nav>
+
+                        {/* Logout button */}
+                        <button type="button" onClick={logout} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', margin: '0.75rem', padding: '0.6rem 0.9rem', background: 'transparent', border: `1px solid ${BORDER}`, borderRadius: 10, cursor: 'pointer', color: '#ef4444', fontSize: '0.85rem', fontWeight: 600, fontFamily: FONT }}>
+                            <LogOut size={16} /> Sign Out
+                        </button>
+                    </nav>
+                </>
+            )}
+
+            {/* Mobile bottom tab bar */}
+            <nav
+                className="landlord-sidebar-mobile"
+                style={{
+                    position: 'fixed', bottom: 0, left: 0, right: 0,
+                    background: WHITE, borderTop: `1px solid ${BORDER}`,
+                    display: 'flex', zIndex: 200,
+                    paddingBottom: 'env(safe-area-inset-bottom)',
+                    fontFamily: FONT,
+                }}
+            >
+                {/* Hamburger trigger */}
+                <button
+                    type="button"
+                    onClick={() => setDrawerOpen(!drawerOpen)}
+                    style={{
+                        position: 'fixed', top: '14px', right: '16px',
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        padding: '0.5rem', zIndex: 250, color: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}
+                    title="Open menu"
                 >
-                    {tab.badge > 0 ? (
-                        <span style={{
-                            position: 'absolute', top: 4, right: '50%', transform: 'translateX(10px)',
-                            background: '#ef4444', color: WHITE, borderRadius: 999,
-                            fontSize: '0.6rem', fontWeight: 700, padding: '0.05rem 0.3rem', lineHeight: 1.5,
-                        }}>
-                            {tab.badge > 9 ? '9+' : tab.badge}
-                        </span>
-                    ) : null}
-                    {tab.icon}
-                    <span style={{ fontSize: '0.6rem', fontWeight: 600, marginTop: 2 }}>{tab.label}</span>
-                </NavLink>
-            ))}
-        </nav>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="3" y1="6" x2="21" y2="6" />
+                        <line x1="3" y1="12" x2="21" y2="12" />
+                        <line x1="3" y1="18" x2="21" y2="18" />
+                    </svg>
+                </button>
+
+                {MOBILE_TABS.map((tab) => (
+                    <NavLink
+                        key={tab.to + tab.label}
+                        to={tab.to}
+                        style={({ isActive }) => ({
+                            flex: 1, display: 'flex', flexDirection: 'column',
+                            alignItems: 'center', justifyContent: 'center',
+                            padding: '0.55rem 0',
+                            color: isActive ? GREEN : MUTED,
+                            textDecoration: 'none', position: 'relative',
+                        })}
+                    >
+                        {tab.badge > 0 ? (
+                            <span style={{
+                                position: 'absolute', top: 4, right: '50%', transform: 'translateX(10px)',
+                                background: '#ef4444', color: WHITE, borderRadius: 999,
+                                fontSize: '0.6rem', fontWeight: 700, padding: '0.05rem 0.3rem', lineHeight: 1.5,
+                            }}>
+                                {tab.badge > 9 ? '9+' : tab.badge}
+                            </span>
+                        ) : null}
+                        {tab.icon}
+                        <span style={{ fontSize: '0.6rem', fontWeight: 600, marginTop: 2 }}>{tab.label}</span>
+                    </NavLink>
+                ))}
+            </nav>
+        </>
     );
 
     return (
@@ -352,6 +521,7 @@ export default function LandlordSidebar({
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;700&display=swap');
         .landlord-sidebar-desktop { display: flex !important; }
         .landlord-sidebar-mobile  { display: none !important; }
+        @keyframes slideInLeft { from { transform: translateX(-100%); } to { transform: translateX(0); } }
         @media (max-width: 768px) {
           .landlord-sidebar-desktop { display: none !important; }
           .landlord-sidebar-mobile  { display: flex !important; }
