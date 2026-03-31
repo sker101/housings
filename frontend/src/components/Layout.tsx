@@ -280,7 +280,6 @@ export default function Layout({ children }) {
         {isAuthenticated ? (
           <button
             type="button"
-            className="mobile-only"
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
             style={{
               padding: '0.5rem',
