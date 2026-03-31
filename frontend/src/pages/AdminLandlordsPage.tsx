@@ -94,7 +94,7 @@ export default function AdminLandlordsPage() {
     try {
       const listers = await selectRows('profiles', {
         select: 'id,full_name,role,verification_status,phone,lister_type,created_at',
-        or: 'role.eq.lister,role.eq.landlord,role.eq.dalali',
+        filters: [{ column: 'role', op: 'eq', value: 'lister' }],
         order: 'created_at.desc',
         accessToken: token
       });
