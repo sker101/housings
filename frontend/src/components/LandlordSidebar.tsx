@@ -68,6 +68,8 @@ interface LandlordSidebarProps {
     occupancyRate?: number;
     subscriptionTier?: 'free' | 'verified' | 'premium';
     isCollapsed?: boolean;
+    mobileDrawerOpen?: boolean;
+    onMobileDrawerClose?: () => void;
 }
 
 const TIER_STYLE: Record<string, { label: string; color: string; bg: string }> = {
@@ -88,21 +90,20 @@ export default function LandlordSidebar({
     occupancyRate = 0,
     subscriptionTier = 'free',
     isCollapsed = false,
+    mobileDrawerOpen = false,
+    onMobileDrawerClose,
 }: LandlordSidebarProps) {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
     const [visible, setVisible] = useState(false);
-    const [drawerOpen, setDrawerOpen] = useState(false);
     const tier = TIER_STYLE[subscriptionTier] ?? TIER_STYLE.free;
+
+    // Use mobileDrawerOpen prop to control drawer visibility
+    const drawerOpen = mobileDrawerOpen;
 
     // Staggered fade-in on mount
     useEffect(() => { const t = setTimeout(() => setVisible(true), 60); return () => clearTimeout(t); }, []);
-
-    // Close drawer on route change
-    useEffect(() => {
-        setDrawerOpen(false);
-    }, [location.pathname]);
 
     const initials = (user?.fullName ?? 'L').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
 
@@ -337,7 +338,7 @@ export default function LandlordSidebar({
             {drawerOpen && (
                 <>
                     <div
-                        onClick={() => setDrawerOpen(false)}
+                        onClick={onMobileDrawerClose}
                         style={{
                             position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)',
                             zIndex: 300
@@ -357,7 +358,7 @@ export default function LandlordSidebar({
                             <span style={{ fontSize: '0.9rem', fontWeight: 700 }}>Menu</span>
                             <button
                                 type="button"
-                                onClick={() => setDrawerOpen(false)}
+                                onClick={onMobileDrawerClose}
                                 style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                             >
                                 <X size={20} />

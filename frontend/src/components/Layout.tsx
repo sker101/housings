@@ -41,6 +41,11 @@ export default function Layout({ children }) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Close mobile drawer on route change
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [location.pathname]);
+
   const toggleLanguage = async () => {
     const nextLang = i18n.language.startsWith('en') ? 'sw' : 'en';
     await i18n.changeLanguage(nextLang);
@@ -399,6 +404,8 @@ export default function Layout({ children }) {
             mtdEarnings={mtdEarnings}
             subscriptionTier={subscriptionTier as 'free' | 'verified' | 'premium'}
             isCollapsed={!isSidebarOpen}
+            mobileDrawerOpen={isSidebarOpen}
+            onMobileDrawerClose={() => setIsSidebarOpen(false)}
           />
         ) : null}
         {isAuthenticated && user?.role === APP_ROLE.STUDENT && !location.pathname.startsWith('/admin') ? (
