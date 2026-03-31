@@ -53,6 +53,8 @@ interface StudentSidebarProps {
     tenancy?: Tenancy | null;
     university?: string;
     isCollapsed?: boolean;
+    mobileDrawerOpen?: boolean;
+    onMobileDrawerClose?: () => void;
 }
 
 // ── Component ──────────────────────────────────────────────────────────────
@@ -64,6 +66,8 @@ export default function StudentSidebar({
     tenancy = null,
     university = '',
     isCollapsed = false,
+    mobileDrawerOpen = false,
+    onMobileDrawerClose = () => { },
 }: StudentSidebarProps) {
     const { user, logout } = useAuth();
     const { t } = useTranslation();
@@ -348,17 +352,89 @@ export default function StudentSidebar({
 
     return (
         <>
-            <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Poppins:wght@400;500;700&display=swap');
-        .student-sidebar-desktop { display: flex !important; }
-        .student-sidebar-mobile  { display: none  !important; }
-        @media (max-width: 768px) {
-          .student-sidebar-desktop { display: none  !important; }
-          .student-sidebar-mobile  { display: flex  !important; }
-        }
-      `}</style>
-            {desktop}
+                {desktop}
             {mobile}
+
+            {/* Mobile Drawer Overlay */}
+            {mobileDrawerOpen && (
+                <div
+                    onClick={onMobileDrawerClose}
+                    style={{
+                        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                        background: 'rgba(0,0,0,0.4)', zIndex: 999,
+                        backdropFilter: 'blur(4px)',
+                        animation: 'fadeIn 0.3s ease',
+                    }}
+                />
+            )}
+
+            {/* Mobile Drawer Panel */}
+            <div style={{
+                position: 'fixed', top: 0, left: 0, bottom: 0,
+                width: 280, maxWidth: '85vw',
+                background: WHITE, zIndex: 1000,
+                boxShadow: '4px 0 25px rgba(0,0,0,0.1)',
+                transform: mobileDrawerOpen ? 'translateX(0)' : 'translateX(-100%)',
+                transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                display: 'flex', flexDirection: 'column',
+                fontFamily: FONT,
+            }}>
+                <div style={{ padding: '2rem 1.5rem 1rem', borderBottom: `1px solid ${BORDER}` }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+                        <div style={{
+                            width: 50, height: 50, borderRadius: 12,
+                            background: `linear-gradient(135deg, ${TEAL}, #14b8a6)`,
+                            color: WHITE, fontWeight: 800, fontSize: '1.2rem',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center'
+                        }}>
+                            {initials}
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                            <p style={{ fontWeight: 800, fontSize: '1.05rem', color: '#111827', margin: 0 }}>{user?.fullName || 'Student'}</p>
+                            <p style={{ fontSize: '0.75rem', color: MUTED, margin: '2px 0 0' }}>{uniLabel}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div style={{ flex: 1, overflowY: 'auto', padding: '1rem 0.75rem' }}>
+                    {NAV.map((item) => (
+                        <NavLink
+                            key={'mobile-' + item.to + item.label}
+                            to={item.to}
+                            onClick={onMobileDrawerClose}
+                            style={({ isActive }) => ({
+                                display: 'flex', alignItems: 'center', gap: '0.85rem',
+                                padding: '0.85rem 1rem', borderRadius: 12,
+                                color: isActive ? TEAL : '#4B5563',
+                                background: isActive ? TEAL_L : 'transparent',
+                                textDecoration: 'none', fontWeight: isActive ? 700 : 500,
+                                fontSize: '0.92rem', marginBottom: '0.25rem', transition: 'all 0.2s'
+                            })}
+                        >
+                            {item.icon}
+                            <span style={{ flex: 1 }}>{item.label}</span>
+                            {item.badge ? <Badge count={item.badge} /> : null}
+                        </NavLink>
+                    ))}
+                </div>
+
+                <div style={{ padding: '1rem', borderTop: `1px solid ${BORDER}` }}>
+                    <button
+                        onClick={() => { logout(); onMobileDrawerClose(); }}
+                        style={{
+                            width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem',
+                            padding: '0.85rem', borderRadius: 12, background: CORAL_L,
+                            color: CORAL, border: 'none', fontWeight: 700, cursor: 'pointer'
+                        }}
+                    >
+                        <LogOut size={18} /> {t('nav.logout')}
+                    </button>
+                </div>
+            </div>
+
+            <style>{`
+                @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+            `}</style>
         </>
     );
 }

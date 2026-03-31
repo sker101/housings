@@ -254,12 +254,7 @@ export default function Layout({ children }) {
         </NavLink>
       );
     }
-    // Students: show logout in the top-right action area
-    return (
-      <button type="button" className="btn btn--small" onClick={logout}>
-        {t('nav.logout')}
-      </button>
-    );
+    return null;
   })();
 
   return (
@@ -414,6 +409,8 @@ export default function Layout({ children }) {
             savedCount={savedCount}
             activeBookings={activeBookings}
             isCollapsed={!isSidebarOpen}
+            mobileDrawerOpen={isSidebarOpen}
+            onMobileDrawerClose={() => setIsSidebarOpen(false)}
           />
         ) : null}
         {isAuthenticated && user?.role === APP_ROLE.ADMIN ? (

@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import {
-  deleteRows,
   insertRows,
-  invokeFunction,
-  publicObjectUrl,
   selectRows,
   upsertRows,
-  uploadPublicObject
+  uploadPublicObject,
+  deleteRows,
+  invokeFunction,
+  publicObjectUrl
 } from '../lib/supabase';
 import imageCompression from 'browser-image-compression';
 import {
@@ -196,7 +197,8 @@ function validateStep(step: number, values: any, files: any): string {
 export default function ListPropertyPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, token, refreshMe } = useAuth();
+  const { t } = useTranslation();
+  const { user, token } = useAuth();
 
   const { register, handleSubmit, watch, setValue, formState: { errors }, reset } = useForm({
     resolver: zodResolver(formSchema) as any,
@@ -218,8 +220,8 @@ export default function ListPropertyPage() {
   const [gettingLocation, setGettingLocation] = useState(false);
 
   const hasListerRole = user?.role === 'LISTER';
-  const vStatus = (user?.landlordVerificationStatus || '').toLowerCase();
-  const isVerified = vStatus === 'verified' || vStatus === 'approved';
+  const vStatus = String(user?.landlordVerificationStatus || '').trim().toLowerCase();
+  const isVerified = vStatus === 'approved' || vStatus === 'verified';
 
   // Load draft on mount
   useEffect(() => {
@@ -286,18 +288,13 @@ export default function ListPropertyPage() {
           }
         }
 
-        const drafts = await selectRows('listing_drafts', {
-          select: 'lister_id,current_step,data',
-          filters: [{ column: 'lister_id', op: 'eq', value: user.userId }],
-          limit: 1,
-          accessToken: token
-        });
+        const draftData = await invokeFunction('get_lister_draft', { accessToken: token });
 
         if (!mounted) return;
 
-        if (drafts[0]?.data && typeof drafts[0].data === 'object') {
-          reset({ ...DEFAULT_FORM, ...drafts[0].data });
-          setStep(Math.max(0, Math.min(Number(drafts[0].current_step || 1) - 1, STEPS.length - 1)));
+        if (draftData && typeof draftData === 'object') {
+          reset({ ...DEFAULT_FORM, ...draftData });
+          setStep(Math.max(0, Math.min(Number((draftData as any).current_step || 1) - 1, STEPS.length - 1)));
           setSuccess('Draft restored from cloud.');
         } else {
           reset({
@@ -555,42 +552,17 @@ export default function ListPropertyPage() {
         accessToken: token
       });
 
-      // Run screening
+      // Automated Screening
       try {
-        const screenResult = await invokeFunction(
-          'screen-listing',
-          {
-            listingId: createdListingId,
-            listerId: user.userId,
-            listing: {
-              title: values.title.trim(),
-              description: values.description.trim(),
-              price_monthly: Number(values.priceMonthly),
-              region: values.region,
-              district: values.district,
-              ward: values.ward,
-              street: values.street,
-              lat: values.lat ? Number(values.lat) : null,
-              lng: values.lng ? Number(values.lng) : null,
-              room_type: values.roomType,
-            },
-            photos: photoRows,
-          },
-          token
-        );
-
-        setScreeningResult(screenResult);
-        if (screenResult?.published) {
+        const screening = await invokeFunction('screen-listing', { listingId: createdListingId }, token);
+        setScreeningResult(screening);
+        if (screening.published) {
           setSuccess('🎉 Your listing is now live!');
         } else {
-          setError('Your listing was blocked during review. See details below.');
+          setError('Listing held for review');
         }
-        setSubmitting(false);
-        await refreshMe();
-        return;
       } catch {
         setSuccess('Listing saved. Screening is running in the background.');
-        await refreshMe();
         setTimeout(() => navigate('/landlord'), 800);
       }
     } catch (err: any) {
@@ -654,26 +626,20 @@ export default function ListPropertyPage() {
 
       {/* Verification banner */}
       {!isVerified && (
-        <div style={{ background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: '12px', padding: '1rem', marginBottom: '1.5rem', color: '#92400E' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <strong>Account Status: {(user?.landlordVerificationStatus || 'PENDING').toUpperCase()}</strong>
-            <button 
-              onClick={() => refreshMe()}
-              style={{
-                background: '#D97706',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                padding: '4px 12px',
-                fontSize: '0.8rem',
-                cursor: 'pointer',
-                fontWeight: '600'
-              }}
-            >
-              Check My Status
-            </button>
-          </div>
-          <p style={{ margin: '0.5rem 0 0' }}>Your account must be verified by an administrator before you can submit listings. Please ensure your profile is complete.</p>
+        <div style={{
+          background: '#FFFBEB',
+          border: '1px solid #FCD34D',
+          padding: '1rem',
+          borderRadius: '8px',
+          marginBottom: '1.5rem',
+          color: '#92400E',
+          fontSize: 'max(14px, 0.9rem)',
+          fontWeight: 500,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem'
+        }}>
+          <p>⚠️ {t('listProperty.verificationRequiredMsg')}</p>
         </div>
       )}
 
@@ -1099,34 +1065,22 @@ export default function ListPropertyPage() {
               Continue →
             </button>
           ) : (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem', maxWidth: '200px' }}>
-              <button
-                type="button"
-                onClick={handleSubmit(submitListing)}
-                disabled={submitting || !isVerified || !formValues.policyAccepted}
-                style={{
-                  padding: '0.75rem 1.5rem',
-                  background: (isVerified && formValues.policyAccepted) ? '#1D9E75' : '#CCCCCC',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: (isVerified && formValues.policyAccepted) ? 'pointer' : 'not-allowed',
-                  fontWeight: '600'
-                }}
-              >
-                {submitting ? 'Submitting...' : 'Submit Listing'}
-              </button>
-              {!isVerified && (
-                <p style={{ fontSize: '0.75rem', color: '#92400E', textAlign: 'center', margin: 0 }}>
-                  ⚠️ Account pending verification.
-                </p>
-              )}
-              {isVerified && !formValues.policyAccepted && (
-                <p style={{ fontSize: '0.75rem', color: '#C0392B', textAlign: 'center', margin: 0 }}>
-                  ⚠️ Please accept the policies.
-                </p>
-              )}
-            </div>
+            <button
+              type="button"
+              onClick={handleSubmit(submitListing)}
+              disabled={submitting || !isVerified || !formValues.policyAccepted}
+              style={{
+                padding: '0.75rem 1.5rem',
+                background: (isVerified && formValues.policyAccepted) ? '#1D9E75' : '#CCCCCC',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: (isVerified && formValues.policyAccepted) ? 'pointer' : 'not-allowed',
+                fontWeight: '600'
+              }}
+            >
+              {submitting ? 'Submitting...' : 'Submit Listing'}
+            </button>
           )}
         </div>
       </section>
