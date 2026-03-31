@@ -101,7 +101,7 @@ export default function Layout({ children }) {
       }
     }
     loadSettings();
-    const id = setInterval(loadSettings, 3000); // More aggressive polling for emergencies
+    const id = setInterval(loadSettings, 60000); // Poll every minute for system settings
     return () => { mounted = false; clearInterval(id); };
   }, [isAuthenticated, user?.userId, token, logout]);
 
@@ -324,7 +324,7 @@ export default function Layout({ children }) {
                 <NavLink to="/landlord" className={({ isActive }) => isActive ? 'is-active' : ''}>
                   {t('nav.dashboard')}
                 </NavLink>
-                <NavLink to="/list-property" className="btn btn--small">
+                <NavLink to="/list-property" className="btn btn--small desktop-only">
                   {t('nav.listProperty')}
                 </NavLink>
                 <button type="button" className="btn btn--ghost btn--small" onClick={logout}>
