@@ -257,8 +257,8 @@ export default function AdminLandlordsPage() {
     <div className="container section" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 800 }}>Vetting Dalalis</h1>
-          <p className="muted" style={{ margin: 0 }}>Review and approve landlord/dalali accounts.</p>
+          <h1 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 800 }}>Dalali Trust Verification</h1>
+          <p className="muted" style={{ margin: 0 }}>Optional landlord verification to build tenant trust. Listing approval is handled separately.</p>
         </div>
         <div style={{ position: 'relative' }}>
           <button type="button" className="btn btn--ghost" onClick={() => setNotifOpen(!notifOpen)}>🔔</button>

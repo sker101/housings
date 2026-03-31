@@ -412,11 +412,6 @@ export default function ListPropertyPage() {
       return;
     }
 
-    if (!isVerified) {
-      setError(`Account verification required. Current status: ${verificationStatus.toUpperCase()}`);
-      return;
-    }
-
     setSubmitting(true);
     let createdListingId = null;
 
@@ -660,8 +655,8 @@ export default function ListPropertyPage() {
       {/* Verification banner */}
       {!isVerified && (
         <div style={{ background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: '12px', padding: '1rem', marginBottom: '1.5rem', color: '#92400E' }}>
-          <strong>Verification: {verificationStatus.toUpperCase()}</strong>
-          <p style={{ margin: '0.5rem 0 0' }}>Complete verification before submitting listings.</p>
+          <strong>Account Status: {verificationStatus.toUpperCase()}</strong>
+          <p style={{ margin: '0.5rem 0 0' }}>Optional: Get verified to build trust with tenants and improve visibility.</p>
         </div>
       )}
 
