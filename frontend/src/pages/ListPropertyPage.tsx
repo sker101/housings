@@ -655,7 +655,24 @@ export default function ListPropertyPage() {
       {/* Verification banner */}
       {!isVerified && (
         <div style={{ background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: '12px', padding: '1rem', marginBottom: '1.5rem', color: '#92400E' }}>
-          <strong>Account Status: {(user?.landlordVerificationStatus || 'PENDING').toUpperCase()}</strong>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <strong>Account Status: {(user?.landlordVerificationStatus || 'PENDING').toUpperCase()}</strong>
+            <button 
+              onClick={() => refreshMe()}
+              style={{
+                background: '#D97706',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '4px 12px',
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              Check My Status
+            </button>
+          </div>
           <p style={{ margin: '0.5rem 0 0' }}>Your account must be verified by an administrator before you can submit listings. Please ensure your profile is complete.</p>
         </div>
       )}
@@ -1082,22 +1099,34 @@ export default function ListPropertyPage() {
               Continue →
             </button>
           ) : (
-            <button
-              type="button"
-              onClick={handleSubmit(submitListing)}
-              disabled={submitting || !isVerified || !formValues.policyAccepted}
-              style={{
-                padding: '0.75rem 1.5rem',
-                background: (isVerified && formValues.policyAccepted) ? '#1D9E75' : '#CCCCCC',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: (isVerified && formValues.policyAccepted) ? 'pointer' : 'not-allowed',
-                fontWeight: '600'
-              }}
-            >
-              {submitting ? 'Submitting...' : 'Submit Listing'}
-            </button>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem', maxWidth: '200px' }}>
+              <button
+                type="button"
+                onClick={handleSubmit(submitListing)}
+                disabled={submitting || !isVerified || !formValues.policyAccepted}
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  background: (isVerified && formValues.policyAccepted) ? '#1D9E75' : '#CCCCCC',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: (isVerified && formValues.policyAccepted) ? 'pointer' : 'not-allowed',
+                  fontWeight: '600'
+                }}
+              >
+                {submitting ? 'Submitting...' : 'Submit Listing'}
+              </button>
+              {!isVerified && (
+                <p style={{ fontSize: '0.75rem', color: '#92400E', textAlign: 'center', margin: 0 }}>
+                  ⚠️ Account pending verification.
+                </p>
+              )}
+              {isVerified && !formValues.policyAccepted && (
+                <p style={{ fontSize: '0.75rem', color: '#C0392B', textAlign: 'center', margin: 0 }}>
+                  ⚠️ Please accept the policies.
+                </p>
+              )}
+            </div>
           )}
         </div>
       </section>

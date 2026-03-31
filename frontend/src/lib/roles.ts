@@ -11,7 +11,7 @@ export function toAppRole(rawRole) {
     return APP_ROLE.ADMIN;
   }
 
-  if (normalized === 'lister' || normalized === 'landlord') {
+  if (normalized === 'lister' || normalized === 'landlord' || normalized === 'dalali') {
     return APP_ROLE.LISTER;
   }
 
