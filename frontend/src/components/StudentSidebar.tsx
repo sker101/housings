@@ -434,6 +434,12 @@ export default function StudentSidebar({
 
             <style>{`
                 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+                .student-sidebar-desktop { display: flex !important; }
+                .student-sidebar-mobile  { display: none !important; }
+                @media (max-width: 768px) {
+                    .student-sidebar-desktop { display: none !important; }
+                    .student-sidebar-mobile  { display: flex !important; }
+                }
             `}</style>
         </>
     );

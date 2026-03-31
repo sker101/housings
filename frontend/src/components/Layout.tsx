@@ -426,41 +426,6 @@ export default function Layout({ children }) {
         </main>
       </div>
 
-      {/* Standard Student Bottom Nav */}
-      {isAuthenticated && user?.role === APP_ROLE.STUDENT && !location.pathname.startsWith('/admin') ? (
-        <nav
-          className="bottom-nav mobile-only"
-          aria-label="Student Navigation"
-          style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', gap: '0.25rem' }}
-        >
-          <NavLink to="/" className={({ isActive }) => (isActive ? 'is-active' : '')} end style={{ flex: 1, textAlign: 'center' }}>
-            {t('nav.home')}
-          </NavLink>
-          <NavLink to="/search" className={({ isActive }) => (isActive ? 'is-active' : '')} style={{ flex: 1, textAlign: 'center' }}>
-            {t('nav.search')}
-          </NavLink>
-          <NavLink to="/messages" className={({ isActive }) => `nav-link-with-badge ${isActive ? 'is-active' : ''}`} style={{ flex: 1, textAlign: 'center' }}>
-            {t('nav.messages')}
-            {unreadCount > 0 ? (
-              <span className="nav-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
-            ) : null}
-          </NavLink>
-          <NavLink to="/saved" className={({ isActive }) => (isActive ? 'is-active' : '')} style={{ flex: 1, textAlign: 'center' }}>
-            {t('nav.saved')}
-          </NavLink>
-          <NavLink to="/profile" className={({ isActive }) => (isActive ? 'is-active' : '')} style={{ flex: 1, textAlign: 'center' }}>
-            {user?.fullName?.split(' ')[0] || t('dashboard.profile')}
-          </NavLink>
-          <button
-            type="button"
-            onClick={logout}
-            className="nav-link-button"
-            style={{ flex: 1, textAlign: 'center', background: 'none', border: 'none', padding: '0.4rem 0', color: 'inherit' }}
-          >
-            {t('nav.logout')}
-          </button>
-        </nav>
-      ) : null}
 
       {/* Admin Mobile Bottom Nav */}
       {isAuthenticated && user?.role === APP_ROLE.ADMIN ? (
