@@ -22,7 +22,6 @@ type Profile = {
   phone?: string;
   lister_type?: string;
   created_at?: string;
-  avatar_url?: string;
 };
 
 type Notification = {
@@ -94,7 +93,7 @@ export default function AdminLandlordsPage() {
     setError('');
     try {
       const listers = await selectRows('profiles', {
-        select: 'id,full_name,role,verification_status,phone,lister_type,created_at,avatar_url',
+        select: 'id,full_name,role,verification_status,phone,lister_type,created_at',
         filters: [{ column: 'role', op: 'eq', value: 'lister' }],
         order: 'created_at.desc',
         accessToken: token
