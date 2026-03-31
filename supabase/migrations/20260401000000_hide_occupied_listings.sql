@@ -18,7 +18,7 @@ CREATE POLICY "listings_select_tenant"
         SELECT 1 FROM public.bookings
         WHERE listing_id = listings.id
           AND tenant_id = auth.uid()
-          AND status IN ('approved', 'reserved', 'paid')
+          AND status IN ('approved', 'completed')
       )
     )
   );
