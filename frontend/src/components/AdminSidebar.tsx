@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
     LayoutDashboard, Users, Home, ClipboardList, Flag, Star, BellRing, Settings,
-    UserPlus, Building, ShieldAlert, BookOpen, LogOut, HelpCircle
+    UserPlus, Building, ShieldAlert, BookOpen, LogOut, HelpCircle, X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -19,10 +19,14 @@ const FONT = "'Nunito', 'Poppins', system-ui, sans-serif";
 
 interface AdminSidebarProps {
     isCollapsed?: boolean;
+    mobileDrawerOpen?: boolean;
+    onMobileDrawerClose?: () => void;
 }
 
 export default function AdminSidebar({
     isCollapsed = false,
+    mobileDrawerOpen = false,
+    onMobileDrawerClose,
 }: AdminSidebarProps) {
     const { user, logout } = useAuth();
     const location = useLocation();
@@ -253,8 +257,214 @@ export default function AdminSidebar({
             <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Poppins:wght@400;500;700&display=swap');
         .admin-sidebar-desktop { display: flex !important; }
+        @media (max-width: 919px) {
+          .admin-sidebar-desktop { display: none !important; }
+          .admin-sidebar-mobile { display: flex !important; }
+        }
+        @media (min-width: 920px) {
+          .admin-sidebar-mobile { display: none !important; }
+        }
       `}</style>
             {desktop}
+            
+            {/* Mobile Drawer Overlay */}
+            {mobileDrawerOpen && (
+              <div
+                className="mobile-drawer-backdrop"
+                onClick={onMobileDrawerClose}
+                style={{
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  background: 'rgba(0,0,0,0.25)',
+                  zIndex: 1000,
+                  transition: 'opacity 0.3s ease',
+                  opacity: mobileDrawerOpen ? 1 : 0,
+                  pointerEvents: mobileDrawerOpen ? 'auto' : 'none'
+                }}
+              />
+            )}
+
+            {/* Mobile Drawer */}
+            <aside
+              className="admin-sidebar-mobile"
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                bottom: 0,
+                width: 280,
+                background: WHITE,
+                boxShadow: '-2px 0 8px rgba(0,0,0,0.1)',
+                zIndex: 1001,
+                fontFamily: FONT,
+                transform: mobileDrawerOpen ? 'translateX(0)' : 'translateX(-100%)',
+                transition: 'transform 0.3s ease',
+                display: 'none',
+                flexDirection: 'column',
+                overflowY: 'auto',
+                overflowX: 'hidden',
+              }}
+            >
+              {/* Close Button */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', borderBottom: `1px solid ${BORDER}` }}>
+                <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700 }}>Admin Menu</h3>
+                <button
+                  onClick={onMobileDrawerClose}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Profile block */}
+              <div style={{ padding: '1rem', borderBottom: `1px solid ${BORDER}` }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                  <div style={{
+                    width: 40, height: 40, borderRadius: 50,
+                    background: `linear-gradient(135deg, ${TEAL}, #14b8a6)`,
+                    color: WHITE, fontWeight: 800, fontSize: '0.9rem',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                  }}>
+                    {initials}
+                  </div>
+                  <div>
+                    <p style={{ fontWeight: 700, fontSize: '0.92rem', marginBottom: 2, margin: 0 }}>
+                      {user?.fullName ?? 'Admin'}
+                    </p>
+                    <span style={{
+                      display: 'inline-block',
+                      background: TEAL_L, color: TEAL, alignSelf: 'flex-start',
+                      fontSize: '0.65rem', fontWeight: 700,
+                      borderRadius: 999, padding: '0.15rem 0.55rem',
+                      textTransform: 'uppercase', letterSpacing: '0.04em',
+                    }}>
+                      Superuser
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Dashboard Sections */}
+              <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
+                <p style={{
+                  fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.07em', color: MUTED,
+                  padding: '1rem 1rem 0.5rem',
+                  margin: 0,
+                }}>
+                  Dashboard
+                </p>
+
+                <nav>
+                  {SECTIONS.map((item) => {
+                    const isActive = isBaseAdminPath && currentTab === item.id;
+                    return (
+                      <div key={item.id} onClick={onMobileDrawerClose} style={{ display: 'contents' }}>
+                        <NavLink
+                          to={item.path}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: '0.65rem',
+                            padding: '0.58rem 1.25rem',
+                            color: isActive ? TEAL : '#374151',
+                            background: isActive ? TEAL_L : 'transparent',
+                            borderLeft: isActive ? `3px solid ${TEAL}` : '3px solid transparent',
+                            textDecoration: 'none',
+                            fontWeight: isActive ? 700 : 500,
+                            fontSize: '0.87rem',
+                            transition: 'all 0.15s',
+                          }}
+                        >
+                          <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {React.cloneElement(item.icon, { size: 18 })}
+                          </span>
+                          <span style={{ flex: 1 }}>{item.label}</span>
+                        </NavLink>
+                      </div>
+                    );
+                  })}
+                </nav>
+
+                {/* Moderation Sections */}
+                <p style={{
+                  fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.07em', color: MUTED,
+                  padding: '1rem 1rem 0.5rem',
+                  margin: 0,
+                  borderTop: `1px solid ${BORDER}`,
+                  marginTop: '0.5rem',
+                }}>
+                  Moderation
+                </p>
+
+                <nav>
+                  {MODERATION.map((item) => {
+                    const isActive = location.pathname.startsWith(item.path);
+                    return (
+                      <div key={item.id} onClick={onMobileDrawerClose} style={{ display: 'contents' }}>
+                        <NavLink
+                          to={item.path}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: '0.65rem',
+                            padding: '0.58rem 1.25rem',
+                            color: isActive ? TEAL : '#374151',
+                            background: isActive ? TEAL_L : 'transparent',
+                            borderLeft: isActive ? `3px solid ${TEAL}` : '3px solid transparent',
+                            textDecoration: 'none',
+                            fontWeight: isActive ? 700 : 500,
+                            fontSize: '0.87rem',
+                            transition: 'all 0.15s',
+                          }}
+                        >
+                          <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {React.cloneElement(item.icon, { size: 18 })}
+                          </span>
+                          <span style={{ flex: 1 }}>{item.label}</span>
+                        </NavLink>
+                      </div>
+                    );
+                  })}
+                </nav>
+              </div>
+
+              {/* Help & Logout */}
+              <div style={{ padding: '0.75rem', marginTop: 'auto', borderTop: `1px solid ${BORDER}`, paddingTop: '0.75rem' }}>
+                <button
+                  type="button"
+                  onClick={() => window.location.href = 'mailto:support@campusstay.co.tz'}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '0.5rem',
+                    width: '100%', padding: '0.5rem 0.75rem',
+                    background: 'transparent', border: 'none',
+                    cursor: 'pointer', color: MUTED,
+                    fontSize: '0.83rem', fontFamily: FONT, borderRadius: 8,
+                    transition: 'background 0.15s',
+                    marginBottom: '0.5rem'
+                  }}
+                  onMouseOver={(e) => (e.currentTarget.style.background = '#f1f5f9')}
+                  onMouseOut={(e) => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <HelpCircle size={15} /> Admin Help
+                </button>
+                <button
+                  type="button"
+                  onClick={logout}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '0.5rem',
+                    width: '100%', padding: '0.5rem 0.75rem',
+                    background: 'transparent', border: 'none',
+                    cursor: 'pointer', color: CORAL,
+                    fontSize: '0.83rem', fontFamily: FONT, borderRadius: 8,
+                    transition: 'background 0.15s',
+                  }}
+                  onMouseOver={(e) => (e.currentTarget.style.background = CORAL_L)}
+                  onMouseOut={(e) => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <LogOut size={15} /> Sign Out
+                </button>
+              </div>
+            </aside>
         </>
     );
 }

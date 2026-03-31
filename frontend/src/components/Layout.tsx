@@ -420,6 +420,8 @@ export default function Layout({ children }) {
         {isAuthenticated && user?.role === APP_ROLE.ADMIN ? (
           <AdminSidebar
             isCollapsed={!isSidebarOpen}
+            mobileDrawerOpen={isSidebarOpen}
+            onMobileDrawerClose={() => setIsSidebarOpen(false)}
           />
         ) : null}
 
