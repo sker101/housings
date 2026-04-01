@@ -223,8 +223,8 @@ export default function ListPropertyPage() {
   const [draftsDisabled, setDraftsDisabled] = useState(false);
 
   const hasListerRole = user?.role === 'LISTER';
-  const vStatus = String(user?.landlordVerificationStatus || '').trim().toLowerCase();
-  const isVerified = vStatus === 'approved' || vStatus === 'verified';
+  const rawStatus = String(user?.landlordVerificationStatus || '').trim().toLowerCase();
+  const isVerified = rawStatus === 'approved' || rawStatus === 'verified';
 
   // Load draft on mount
   useEffect(() => {
