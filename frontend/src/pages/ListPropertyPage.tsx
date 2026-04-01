@@ -411,11 +411,15 @@ export default function ListPropertyPage() {
       return;
     }
 
+    console.group('🚀 Listing Submission Started');
     setSubmitting(true);
-    let createdListingId = null;
+    setError('');
 
     try {
-      // Update profile
+      const accessToken = token;
+      const values = formValues;
+
+      console.log('📦 Step 1: Updating Profile...');
       await upsertRows(
         'profiles',
         {
@@ -425,83 +429,120 @@ export default function ListPropertyPage() {
           full_name: values.fullName.trim(),
           phone: values.phone.trim()
         },
-        { accessToken: token, onConflict: 'id' }
+        { accessToken, onConflict: 'id' }
       );
 
       // Create listing
-      const insertedListings = await insertRows(
-        'listings',
-        {
-          lister_id: user.userId,
-          title: values.title.trim(),
-          description: values.description.trim(),
-          room_type: values.roomType,
-          property_type: values.propertyType || null,
-          floor: values.floor || null,
-          total_rooms: values.totalRooms || null,
-          furnished: values.furnished,
-          gender_preference: values.genderPreference,
-          price_monthly: Number(values.priceMonthly),
-          security_deposit: values.securityDeposit ? Number(values.securityDeposit) : null,
-          utilities_included: values.utilitiesIncluded,
-          min_lease_months: Number(values.minLeaseMonths) || 1,
-          payment_schedule: values.paymentSchedule,
-          late_fee_policy: values.lateFeePolicy?.trim() || null,
-          owner_name: values.ownerName?.trim() || null,
-          owner_phone: values.ownerPhone?.trim() || null,
-          whatsapp_number: values.whatsappNumber?.trim() || null,
-          video_tour_url: values.videoTourUrl?.trim() || null,
-          accessibility_notes: values.accessibilityNotes?.trim() || null,
-          region: values.region.trim(),
-          district: values.district.trim(),
-          ward: values.ward.trim(),
-          street: values.street.trim(),
-          lat: values.lat ? Number(values.lat) : null,
-          lng: values.lng ? Number(values.lng) : null,
-          amenities: values.amenities,
-          house_rules: values.houseRules.trim(),
-          available_from: values.availableFrom || null,
-          vacancy_status: 'available',
-          status: 'approved',
-          featured: false,
-          view_count: 0,
-          near_universities: values.university ? [values.university] : []
-        },
-        { accessToken: token }
-      );
+      // Use lat/lng strings from form if available
+      const latNum = values.lat ? Number(values.lat) : null;
+      const lngNum = values.lng ? Number(values.lng) : null;
+      
+      // We try the full payload first. If it fails due to missing columns (common in local setups),
+      // we fall back to a minimal payload that we know exists in all versions.
+      const fullListingPayload = {
+        lister_id: user.userId,
+        title: values.title.trim(),
+        description: values.description.trim(),
+        room_type: values.roomType,
+        gender_preference: values.genderPreference,
+        price_monthly: Number(values.priceMonthly),
+        security_deposit: Number(values.securityDeposit || 0),
+        utilities_included: values.utilitiesIncluded,
+        floor: values.floor || null,
+        total_rooms: values.totalRooms ? Number(values.totalRooms) : null,
+        furnished: values.furnished,
+        property_type: values.propertyType,
+        owner_name: values.ownerName?.trim() || null,
+        owner_phone: values.ownerPhone?.trim() || null,
+        whatsapp_number: values.whatsappNumber?.trim() || null,
+        min_lease_months: Number(values.minLeaseMonths || 1),
+        payment_schedule: values.paymentSchedule,
+        late_fee_policy: values.lateFeePolicy?.trim() || null,
+        video_tour_url: values.videoTourUrl?.trim() || null,
+        accessibility_notes: values.accessibilityNotes?.trim() || null,
+        region: values.region,
+        district: values.district,
+        ward: values.ward,
+        street: values.street.trim(),
+        lat: latNum,
+        lng: lngNum,
+        amenities: JSON.stringify(values.amenities),
+        house_rules: values.houseRules.trim(),
+        available_from: values.availableFrom,
+        vacancy_status: 'available',
+        status: 'approved',
+        featured: false,
+        near_universities: values.university ? [values.university] : [],
+        screening_passed: false
+      };
 
-      createdListingId = insertedListings?.[0]?.id;
-      if (!createdListingId) throw new Error('Unable to create listing');
+      const minimalListingPayload = {
+        lister_id: user.userId,
+        title: values.title.trim(),
+        description: values.description.trim(),
+        room_type: values.roomType,
+        gender_preference: values.genderPreference,
+        price_monthly: Number(values.priceMonthly),
+        utilities_included: values.utilitiesIncluded,
+        region: values.region,
+        district: values.district,
+        ward: values.ward,
+        street: values.street.trim(),
+        lat: latNum,
+        lng: lngNum,
+        amenities: JSON.stringify(values.amenities),
+        house_rules: values.houseRules.trim(),
+        available_from: values.availableFrom,
+        vacancy_status: 'available',
+        status: 'approved',
+        featured: false,
+        near_universities: values.university ? [values.university] : []
+      };
 
-      // Upload photos
-      const photoRows = [];
-      let photoIndex = 0;
+      console.log('📦 Step 2: Creating Listing...');
+      let createdListingId: string;
+      try {
+        const inserted = await insertRows('listings', fullListingPayload, { accessToken });
+        createdListingId = inserted[0].id;
+        console.log('✅ Listing created (Full Mode)');
+      } catch (insertErr: any) {
+        console.warn('⚠️ Full listing insert failed, trying Safe Mode...', insertErr.message);
+        const inserted = await insertRows('listings', minimalListingPayload, { accessToken });
+        createdListingId = inserted[0].id;
+        console.log('✅ Listing created (Safe Mode)');
+      }
 
-      for (const slot of PHOTO_SLOTS) {
+      // Handle photos
+      console.log('📦 Step 3: Processing Photos...');
+      const photoRows: any[] = [];
+      const slots = PHOTO_SLOTS;
+
+      for (let index = 0; index < slots.length; index++) {
+        const slot = slots[index];
         const file = files[slot.key];
         if (!file) continue;
 
-        const extension = (file.name.split('.').pop() || 'jpg').toLowerCase();
-        const storagePath = `${user.userId}/${createdListingId}/${slot.key}-${Date.now()}.${extension}`;
-
+        console.log(`📸 Uploading ${slot.label}...`);
         const compressedFile = await imageCompression(file, {
-          maxSizeMB: 1,
-          maxWidthOrHeight: 1920,
-          useWebWorker: true,
-          initialQuality: 0.8
+          maxSizeMB: 0.8,
+          maxWidthOrHeight: 1600,
+          useWebWorker: true
         });
+
+        const ext = file.name.split('.').pop();
+        const storagePath = `${createdListingId}/${slot.key}_${Date.now()}.${ext}`;
 
         await uploadPublicObject({
-          bucket: 'listing-photos',
+          bucket: 'listings',
           path: storagePath,
           file: compressedFile,
-          accessToken: token
+          accessToken
         });
 
-        const publicUrl = publicObjectUrl('listing-photos', storagePath);
+        const publicUrl = publicObjectUrl('listings', storagePath);
 
-        let aiVerified = null;
-        let aiConfidence = null;
+        let aiVerified = false;
+        let aiConfidence = 0;
 
         try {
           const inspectResponse = await invokeFunction(
@@ -510,7 +551,7 @@ export default function ListPropertyPage() {
               imageUrl: publicUrl,
               expectedAngle: slot.label.toUpperCase()
             },
-            token
+            accessToken
           );
 
           if (typeof inspectResponse?.pass === 'boolean') {
@@ -520,7 +561,6 @@ export default function ListPropertyPage() {
             aiConfidence = inspectResponse.confidence;
           }
         } catch (inspectError: any) {
-          // Soft fail: Don't block the listing if AI fails
           console.warn(`AI inspection failed for ${slot.label}:`, inspectError.message);
           aiVerified = false;
           aiConfidence = 0;
@@ -531,47 +571,59 @@ export default function ListPropertyPage() {
           angle: slot.key,
           storage_path: storagePath,
           public_url: publicUrl,
-          position: photoIndex,
-          is_cover: photoIndex === 0,
           ai_verified: aiVerified,
-          ai_confidence: aiConfidence
+          ai_confidence: aiConfidence,
+          // New columns from overhaul migration
+          position: index,
+          caption: slot.label,
+          is_cover: index === 0
         });
-
-        photoIndex++;
       }
 
-      await insertRows('listing_photos', photoRows, { accessToken: token });
+      if (photoRows.length > 0) {
+        console.log('📦 Step 4: Saving Photo Records...');
+        try {
+          await insertRows('listing_photos', photoRows, { accessToken });
+          console.log('✅ Photos saved (Full Mode)');
+        } catch (photoErr: any) {
+          console.warn('⚠️ Full photo records failed, trying Safe Mode...', photoErr.message);
+          // Safe mode: remove columns not in initial seed
+          const safePhotoRows = photoRows.map(p => {
+            const { position, caption, is_cover, ...rest } = p;
+            return rest;
+          });
+          await insertRows('listing_photos', safePhotoRows, { accessToken });
+          console.log('✅ Photos saved (Safe Mode)');
+        }
+      }
 
-      // Clean up draft
+      console.log('📦 Step 5: Cleaning up Draft...');
       await deleteRows('listing_drafts', {
         filters: [{ column: 'lister_id', op: 'eq', value: user.userId }],
-        accessToken: token
+        accessToken
       });
 
-      // Automated Screening
+      console.log('📦 Step 6: Triggering Screening...');
       try {
-        const screening = await invokeFunction('screen-listing', { listingId: createdListingId }, token);
-        setScreeningResult(screening);
+        const screeningResponse = await invokeFunction('screen-listing', { listingId: createdListingId }, accessToken);
+        setScreeningResult(screeningResponse);
         setSuccess('🎉 Your listing is now live!');
         setIsSubmitted(true);
         setSubmittedListingId(createdListingId);
-      } catch {
+        console.log('✅ Screening triggered successfully');
+      } catch (screenErr) {
+        console.warn('⚠️ Screening delayed:', screenErr);
         setSuccess('Listing saved. Screening is running in the background.');
         setIsSubmitted(true);
         setSubmittedListingId(createdListingId);
       }
+      
+      console.groupEnd();
     } catch (err: any) {
-      if (createdListingId) {
-        try {
-          await deleteRows('listings', {
-            filters: [{ column: 'id', op: 'eq', value: createdListingId }],
-            accessToken: token
-          });
-        } catch {
-          // Best effort cleanup
-        }
-      }
-      setError(err.message || 'Submission failed');
+      console.groupEnd();
+      console.error('❌ Submission Failed:', err);
+      setError(err.message || 'An unexpected error occurred during submission.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setSubmitting(false);
     }
