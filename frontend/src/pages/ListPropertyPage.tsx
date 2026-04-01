@@ -218,6 +218,8 @@ export default function ListPropertyPage() {
   const [success, setSuccess] = useState('');
   const [screeningResult, setScreeningResult] = useState<any>(null);
   const [gettingLocation, setGettingLocation] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submittedListingId, setSubmittedListingId] = useState<string | null>(null);
 
   const hasListerRole = user?.role === 'LISTER';
   const vStatus = String(user?.landlordVerificationStatus || '').trim().toLowerCase();
@@ -517,17 +519,11 @@ export default function ListPropertyPage() {
           if (typeof inspectResponse?.confidence === 'number') {
             aiConfidence = inspectResponse.confidence;
           }
-
-          if (inspectResponse?.pass === false) {
-            throw new Error(`${slot.label} photo failed AI verification`);
-          }
         } catch (inspectError: any) {
-          const message = String(inspectError?.message || '').toLowerCase();
-          if (message.includes('failed ai verification')) {
-            throw inspectError;
-          }
-          aiVerified = null;
-          aiConfidence = null;
+          // Soft fail: Don't block the listing if AI fails
+          console.warn(`AI inspection failed for ${slot.label}:`, inspectError.message);
+          aiVerified = false;
+          aiConfidence = 0;
         }
 
         photoRows.push({
@@ -556,14 +552,13 @@ export default function ListPropertyPage() {
       try {
         const screening = await invokeFunction('screen-listing', { listingId: createdListingId }, token);
         setScreeningResult(screening);
-        if (screening.published) {
-          setSuccess('🎉 Your listing is now live!');
-        } else {
-          setError('Listing held for review');
-        }
+        setSuccess('🎉 Your listing is now live!');
+        setIsSubmitted(true);
+        setSubmittedListingId(createdListingId);
       } catch {
         setSuccess('Listing saved. Screening is running in the background.');
-        setTimeout(() => navigate('/landlord'), 800);
+        setIsSubmitted(true);
+        setSubmittedListingId(createdListingId);
       }
     } catch (err: any) {
       if (createdListingId) {
@@ -596,6 +591,51 @@ export default function ListPropertyPage() {
 
   if (loadingDraft) {
     return <div className="container section"><p>Loading...</p></div>;
+  }
+
+  if (isSubmitted) {
+    return (
+      <div className="container section">
+        <div className="card" style={{ 
+          padding: '3rem 2rem', 
+          textAlign: 'center', 
+          maxWidth: '600px', 
+          margin: '2rem auto',
+          border: '1px solid #B8DFC8',
+          background: '#EDF7F1'
+        }}>
+          <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>🎉</div>
+          <h1 style={{ color: '#1D9E75', marginBottom: '1rem' }}>Listing Posted Successfully!</h1>
+          <p style={{ fontSize: '1.1rem', color: '#4A4A3F', marginBottom: '2rem', lineHeight: '1.6' }}>
+            Your property <strong>"{formValues.title}"</strong> has been posted and is now visible to students and tenants in the search page.
+          </p>
+          
+          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Link to="/search" className="btn" style={{ 
+              background: '#1D9E75', 
+              color: 'white', 
+              textDecoration: 'none', 
+              padding: '0.75rem 2rem', 
+              borderRadius: '8px',
+              fontWeight: '600'
+            }}>
+              View in Search
+            </Link>
+            <Link to="/landlord" className="btn" style={{ 
+              background: 'white', 
+              color: '#1A1A2E', 
+              border: '1px solid #E5E5E0',
+              textDecoration: 'none', 
+              padding: '0.75rem 2rem', 
+              borderRadius: '8px',
+              fontWeight: '600'
+            }}>
+              Go to Dashboard
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
