@@ -2,6 +2,17 @@ SET session_replication_role = replica;
 
 BEGIN;
 
+-- Create the listing_drafts table to support autosave functionality
+CREATE TABLE IF NOT EXISTS "public"."listing_drafts" (
+    "lister_id" UUID PRIMARY KEY REFERENCES "auth"."users"("id") ON DELETE CASCADE,
+    "current_step" INTEGER NOT NULL DEFAULT 1,
+    "data" JSONB NOT NULL DEFAULT '{}'::JSONB,
+    "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Enable RLS
+ALTER TABLE "public"."listing_drafts" ENABLE ROW LEVEL SECURITY;
+
 INSERT INTO "auth"."users" ("instance_id", "id", "aud", "role", "email", "encrypted_password", "email_confirmed_at", "invited_at", "confirmation_token", "confirmation_sent_at", "recovery_token", "recovery_sent_at", "email_change_token_new", "email_change", "email_change_sent_at", "last_sign_in_at", "raw_app_meta_data", "raw_user_meta_data", "is_super_admin", "created_at", "updated_at", "phone", "phone_confirmed_at", "phone_change", "phone_change_token", "phone_change_sent_at", "email_change_token_current", "email_change_confirm_status", "banned_until", "reauthentication_token", "reauthentication_sent_at", "is_sso_user", "deleted_at", "is_anonymous") VALUES
 	('00000000-0000-0000-0000-000000000000', 'af97c808-a291-439c-8e72-81d427d55d2a', 'authenticated', 'authenticated', 'student.one@campusstay.co', '$2a$10$Ojykefu3B1lZ8RBslcZMU.SSO8M8Pk40DihmDntHyXwj6Q0gTKxqO', '2026-02-27 16:09:43.445583+00', NULL, '', NULL, '', NULL, '', '', NULL, '2026-03-01 21:33:07.657286+00', '{"provider": "email", "providers": ["email"]}', '{"role": "student", "phone": "+255700000201", "full_name": "Neema Student", "email_verified": true}', NULL, '2026-02-27 16:09:43.442403+00', '2026-03-01 21:33:07.693732+00', NULL, NULL, '', '', NULL, '', 0, NULL, '', NULL, false, NULL, false),
 	('00000000-0000-0000-0000-000000000000', 'e77965c7-7e4c-4ade-ba52-19472cd7d647', 'authenticated', 'authenticated', 'lister.manager@campusstay.co', '$2a$10$EnujVe1hGON3SdJWzjm7..KAh7S7cRs1/RKCX0pdLl.vowq8aiJKS', '2026-02-27 16:09:43.03855+00', NULL, '', NULL, '', NULL, '', '', NULL, '2026-03-11 18:52:53.026118+00', '{"provider": "email", "providers": ["email"]}', '{"role": "lister", "phone": "+255700000102", "full_name": "Baraka Manager", "lister_type": "manager", "email_verified": true}', NULL, '2026-02-27 16:09:43.035312+00', '2026-03-11 18:52:53.054507+00', NULL, NULL, '', '', NULL, '', 0, NULL, '', NULL, false, NULL, false),

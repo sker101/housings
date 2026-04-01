@@ -220,6 +220,7 @@ export default function ListPropertyPage() {
   const [gettingLocation, setGettingLocation] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submittedListingId, setSubmittedListingId] = useState<string | null>(null);
+  const [draftsDisabled, setDraftsDisabled] = useState(false);
 
   const hasListerRole = user?.role === 'LISTER';
   const vStatus = String(user?.landlordVerificationStatus || '').trim().toLowerCase();
@@ -321,8 +322,8 @@ export default function ListPropertyPage() {
     let cancelled = false;
 
     async function saveDraft() {
-      if (!user?.userId || !token || !hasListerRole || loadingDraft) return;
-
+      if (!user?.userId || !token || !hasListerRole || loadingDraft || draftsDisabled) return;
+ 
       setSavingDraft(true);
       try {
         await upsertRows(
@@ -334,8 +335,9 @@ export default function ListPropertyPage() {
           },
           { accessToken: token, onConflict: 'lister_id' }
         );
-      } catch {
-        // Silent fail for autosave
+      } catch (err: any) {
+        console.warn('Draft autosave failed. Disabling drafts for this session to prevent console spam.', err.message);
+        setDraftsDisabled(true);
       } finally {
         if (!cancelled) setSavingDraft(false);
       }
