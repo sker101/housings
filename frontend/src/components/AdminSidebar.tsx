@@ -17,6 +17,14 @@ const WHITE = '#ffffff';
 
 const FONT = "'Nunito', 'Poppins', system-ui, sans-serif";
 
+const mobileHideStyle = `
+  @media (max-width: 768px) {
+    .admin-sidebar-desktop {
+      display: none !important;
+    }
+  }
+`;
+
 interface AdminSidebarProps {
     isCollapsed?: boolean;
     mobileDrawerOpen?: boolean;
