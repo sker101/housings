@@ -895,9 +895,20 @@ export default function ListPropertyPage() {
               </select>
             </label>
 
-            <label style={{ gridColumn: '1 / -1' }}>
-              <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '0.4rem', color: '#1A1A2E' }}>
-                <input type="checkbox" {...register('utilitiesIncluded')} style={{ marginRight: '0.5rem' }} />
+            <label style={{ gridColumn: '1 / -1', cursor: 'pointer' }}>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'flex-start', 
+                gap: '0.75rem', 
+                fontSize: '0.85rem', 
+                fontWeight: '700', 
+                color: '#1A1A2E' 
+              }}>
+                <input 
+                  type="checkbox" 
+                  {...register('utilitiesIncluded')} 
+                  style={{ width: '18px', height: '18px', marginTop: '2px', cursor: 'pointer' }} 
+                />
                 Utilities Included in Rent
               </div>
             </label>
@@ -1102,15 +1113,17 @@ export default function ListPropertyPage() {
               padding: '1rem', 
               background: '#F9FAFB', 
               border: `1px solid ${errors.policyAccepted ? '#C0392B' : '#E5E5E0'}`, 
-              borderRadius: '10px' 
-            }}>
+              borderRadius: '10px',
+              cursor: 'pointer'
+            }} onClick={() => setValue('policyAccepted', !watch('policyAccepted'), { shouldValidate: true })}>
               <input 
                 type="checkbox" 
                 id="policyAccepted"
                 {...register('policyAccepted')} 
-                style={{ width: '18px', height: '18px', marginTop: '3px', cursor: 'pointer' }} 
+                style={{ width: '20px', height: '20px', marginTop: '3px', cursor: 'pointer' }} 
+                onClick={(e) => e.stopPropagation()}
               />
-              <label htmlFor="policyAccepted" style={{ cursor: 'pointer', flex: 1 }}>
+              <label htmlFor="policyAccepted" style={{ cursor: 'pointer', flex: 1, margin: 0 }}>
                 <span style={{ fontSize: '0.95rem', fontWeight: 500, color: '#1A1A2E' }}>
                   I accept the policies and confirm all information is accurate
                 </span>
