@@ -12,6 +12,7 @@ import {
   invokeFunction,
   publicObjectUrl
 } from '../lib/supabase';
+import ListingMap from '../components/ListingMap';
 import imageCompression from 'browser-image-compression';
 import {
   DAR_DISTRICTS,
@@ -1186,6 +1187,27 @@ export default function ListPropertyPage() {
                 </label>
               </div>
             </details>
+
+            <div style={{ gridColumn: '1 / -1' }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '0.6rem', color: '#1A1A2E' }}>Location Preview</div>
+              <div style={{ height: '260px', width: '100%', borderRadius: '12px', overflow: 'hidden', border: '1px solid #E5E5E0', background: '#f5f5f0' }}>
+                <ListingMap 
+                  listings={formValues.lat && formValues.lng ? [{ 
+                    id: 'preview', 
+                    lat: formValues.lat, 
+                    lng: formValues.lng, 
+                    title: formValues.title || 'Property Location',
+                    priceMonthly: formValues.priceMonthly || 0
+                  }] : []} 
+                  onMarkerSelect={() => {}} 
+                />
+              </div>
+              {!formValues.lat && (
+                <p style={{ fontSize: '0.8rem', color: '#6B6B5A', marginTop: '0.5rem' }}>
+                  💡 Use "Get Current Location" or enter coordinates below to see the map preview.
+                </p>
+              )}
+            </div>
 
             <label style={{ gridColumn: '1 / -1' }}>
               <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '0.4rem', color: '#1A1A2E' }}>Accessibility Notes (optional)</div>

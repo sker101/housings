@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
@@ -36,6 +36,8 @@ export default function MessagesPage() {
   const { user, token } = useAuth();
   const { t } = useTranslation();
 
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
   const [conversations, setConversations] = useState([]);
   const [messages, setMessages] = useState([]);
   const [messageBody, setMessageBody] = useState('');
@@ -59,6 +61,10 @@ export default function MessagesPage() {
   useEffect(() => {
     setStatusValue(activeConversation?.inquiry_status || 'open');
   }, [activeConversation?.id, activeConversation?.inquiry_status]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   useEffect(() => {
     let mounted = true;
@@ -146,7 +152,7 @@ export default function MessagesPage() {
 
         setConversations(merged);
 
-        if (!threadId && merged[0]?.id) {
+        if (!threadId && merged[0]?.id && window.innerWidth > 768) {
           navigate(`/messages/${merged[0].id}`, { replace: true });
         }
       } catch (err) {
@@ -384,9 +390,9 @@ export default function MessagesPage() {
 
   return (
     <>
-      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}} .msg-shell{display:flex;height:calc(100vh - 130px);min-height:500px;border:0.5px solid var(--border);border-radius:16px;overflow:hidden;background:#ffffff;margin:1.5rem} .conv-sidebar{width:260px;flex-shrink:0;border-right:0.5px solid var(--border);display:flex;flex-direction:column} .conv-sidebar-hdr{padding:14px 16px;border-bottom:0.5px solid var(--border)} .conv-sidebar-title{font-size:13px;font-weight:600;color:var(--ink)} .conv-sidebar-sub{font-size:11px;color:var(--mid);margin-top:2px} .conv-list{flex:1;overflow-y:auto} .conv-item{padding:12px 16px;border-bottom:0.5px solid var(--border);cursor:pointer;display:flex;gap:10px;align-items:flex-start;text-decoration:none} .conv-item:hover{background:var(--cream)} .conv-item.is-active{background:#EAF3DE} .conv-item.is-admin{background:#FEF2F1} .conv-item.is-admin.is-active{background:#FCEBEB} .conv-av{width:34px;height:34px;border-radius:50%;background:#EEEDFE;color:#3C3489;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0} .conv-av.admin{background:#FCEBEB;color:#791F1F} .conv-info{flex:1;min-width:0} .conv-name{font-size:12px;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .conv-name.admin{color:#791F1F} .conv-preview{font-size:11px;color:var(--mid);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .conv-meta{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0} .conv-time{font-size:10px;color:var(--mid)} .unread-dot{width:7px;height:7px;border-radius:50%;background:var(--jade)} .unread-dot.admin{background:#A32D2D} .status-pill{display:inline-flex;padding:1px 7px;border-radius:20px;font-size:10px;font-weight:500} .sp-open{background:#EAF3DE;color:#27500A} .sp-interested{background:#E6F1FB;color:#0C447C} .sp-booked{background:#EEEDFE;color:#3C3489} .sp-unavailable{background:#F1EFE8;color:#444441} .thread{flex:1;display:flex;flex-direction:column;min-width:0} .thread-hdr{padding:13px 18px;border-bottom:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:12px} .thread-title{font-size:13px;font-weight:600;color:var(--ink)} .thread-sub{font-size:11px;color:var(--mid);margin-top:2px;display:flex;align-items:center;gap:6px} .live-dot{width:6px;height:6px;border-radius:50%;background:#3B6D11;flex-shrink:0} .status-row{display:flex;align-items:center;gap:6px;flex-shrink:0} .status-row select{padding:4px 8px;border-radius:7px;border:0.5px solid var(--border);background:#fff;font-size:11px;color:var(--ink);outline:none} .status-upd-btn{padding:5px 12px;border-radius:7px;border:none;background:var(--jade);color:#fff;font-size:11px;font-weight:600;cursor:pointer} .msg-list{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;background:var(--cream)} .bubble{max-width:68%;padding:10px 13px;border-radius:12px;font-size:12px;line-height:1.5;display:flex;flex-direction:column} .bubble.theirs{background:#ffffff;border:0.5px solid var(--border);align-self:flex-start;border-radius:4px 12px 12px 12px} .bubble.mine{background:var(--jade);color:#ffffff;align-self:flex-end;border-radius:12px 4px 12px 12px} .bubble.is-admin{background:#FCEBEB;border:0.5px solid #F09595;align-self:flex-start;border-radius:4px 12px 12px 12px} .bubble-sender{font-size:10px;font-weight:500;color:var(--mid);margin-bottom:3px} .bubble-sender.admin-lbl{color:#791F1F;text-transform:uppercase;letter-spacing:.04em} .bubble-time{font-size:10px;color:var(--mid);margin-top:4px;display:block} .bubble-time.mine{color:rgba(255,255,255,0.6)} .compose{padding:12px 16px;border-top:0.5px solid var(--border);display:flex;gap:8px;align-items:flex-end;background:#ffffff} .compose textarea{flex:1;padding:8px 12px;border-radius:10px;border:0.5px solid var(--border);background:#fff;font-size:12px;resize:none;outline:none;line-height:1.5;height:40px;font-family:inherit} .send-btn{padding:8px 18px;border-radius:10px;border:none;background:var(--jade);color:#fff;font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0} .send-btn:disabled{opacity:0.6;cursor:not-allowed} .empty-thread{flex:1;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--mid)} @media(max-width:768px){.msg-shell{flex-direction:column;margin:1rem;height:auto}.conv-sidebar{width:100%;height:220px;border-right:none;border-bottom:0.5px solid var(--border)}}`}</style>
+      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}} .msg-shell{display:flex;height:calc(100vh - 130px);min-height:500px;border:0.5px solid var(--border);border-radius:16px;overflow:hidden;background:#ffffff;margin:1.5rem} .mobile-back-btn{display:none;padding:6px 12px;margin-right:12px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:12px;font-weight:600;color:var(--ink);cursor:pointer} .conv-sidebar{width:260px;flex-shrink:0;border-right:0.5px solid var(--border);display:flex;flex-direction:column} .conv-sidebar-hdr{padding:14px 16px;border-bottom:0.5px solid var(--border)} .conv-sidebar-title{font-size:13px;font-weight:600;color:var(--ink)} .conv-sidebar-sub{font-size:11px;color:var(--mid);margin-top:2px} .conv-list{flex:1;overflow-y:auto} .conv-item{padding:12px 16px;border-bottom:0.5px solid var(--border);cursor:pointer;display:flex;gap:10px;align-items:flex-start;text-decoration:none} .conv-item:hover{background:var(--cream)} .conv-item.is-active{background:#EAF3DE} .conv-item.is-admin{background:#FEF2F1} .conv-item.is-admin.is-active{background:#FCEBEB} .conv-av{width:34px;height:34px;border-radius:50%;background:#EEEDFE;color:#3C3489;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0} .conv-av.admin{background:#FCEBEB;color:#791F1F} .conv-info{flex:1;min-width:0} .conv-name{font-size:12px;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .conv-name.admin{color:#791F1F} .conv-preview{font-size:11px;color:var(--mid);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .conv-meta{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0} .conv-time{font-size:10px;color:var(--mid)} .unread-dot{width:7px;height:7px;border-radius:50%;background:var(--jade)} .unread-dot.admin{background:#A32D2D} .status-pill{display:inline-flex;padding:1px 7px;border-radius:20px;font-size:10px;font-weight:500} .sp-open{background:#EAF3DE;color:#27500A} .sp-interested{background:#E6F1FB;color:#0C447C} .sp-booked{background:#EEEDFE;color:#3C3489} .sp-unavailable{background:#F1EFE8;color:#444441} .thread{flex:1;display:flex;flex-direction:column;min-width:0} .thread-hdr{padding:13px 18px;border-bottom:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:12px} .thread-title{font-size:13px;font-weight:600;color:var(--ink)} .thread-sub{font-size:11px;color:var(--mid);margin-top:2px;display:flex;align-items:center;gap:6px} .live-dot{width:6px;height:6px;border-radius:50%;background:#3B6D11;flex-shrink:0} .status-row{display:flex;align-items:center;gap:6px;flex-shrink:0} .status-row select{padding:4px 8px;border-radius:7px;border:0.5px solid var(--border);background:#fff;font-size:11px;color:var(--ink);outline:none} .status-upd-btn{padding:5px 12px;border-radius:7px;border:none;background:var(--jade);color:#fff;font-size:11px;font-weight:600;cursor:pointer} .msg-list{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;background:var(--cream)} .bubble{max-width:68%;padding:10px 13px;border-radius:12px;font-size:12px;line-height:1.5;display:flex;flex-direction:column} .bubble.theirs{background:#ffffff;border:0.5px solid var(--border);align-self:flex-start;border-radius:4px 12px 12px 12px} .bubble.mine{background:var(--jade);color:#ffffff;align-self:flex-end;border-radius:12px 4px 12px 12px} .bubble.is-admin{background:#FCEBEB;border:0.5px solid #F09595;align-self:flex-start;border-radius:4px 12px 12px 12px} .bubble-sender{font-size:10px;font-weight:500;color:var(--mid);margin-bottom:3px} .bubble-sender.admin-lbl{color:#791F1F;text-transform:uppercase;letter-spacing:.04em} .bubble-time{font-size:10px;color:var(--mid);margin-top:4px;display:block} .bubble-time.mine{color:rgba(255,255,255,0.6)} .compose{padding:12px 16px;border-top:0.5px solid var(--border);display:flex;gap:8px;align-items:flex-end;background:#ffffff} .compose textarea{flex:1;padding:8px 12px;border-radius:10px;border:0.5px solid var(--border);background:#fff;font-size:12px;resize:none;outline:none;line-height:1.5;height:40px;font-family:inherit} .send-btn{padding:8px 18px;border-radius:10px;border:none;background:var(--jade);color:#fff;font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0} .send-btn:disabled{opacity:0.6;cursor:not-allowed} .empty-thread{flex:1;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--mid)} @media(max-width:768px){.msg-shell{flex-direction:column;margin:0;height:calc(100vh - 80px);border:none;border-top:1px solid var(--border);border-radius:0} .conv-sidebar{width:100%;height:100%;border-right:none;border-bottom:none} .thread{display:none} .msg-shell.has-thread .conv-sidebar{display:none} .msg-shell.has-thread .thread{display:flex;height:100%} .mobile-back-btn{display:inline-block}}`}</style>
 
-      <div className="msg-shell">
+      <div className={`msg-shell ${threadId ? 'has-thread' : ''}`}>
         <div className="conv-sidebar">
           <div className="conv-sidebar-hdr">
             <p className="conv-sidebar-title">Inquiries</p>
@@ -460,6 +466,9 @@ export default function MessagesPage() {
           ) : (
             <>
               <div className="thread-hdr">
+                <button type="button" className="mobile-back-btn" onClick={() => navigate('/messages')} aria-label="Back">
+                  ← Back
+                </button>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p className="thread-title" style={{ margin: 0 }}>
                     {(activeConversation.listing?.title || 'Conversation') +
@@ -524,12 +533,19 @@ export default function MessagesPage() {
                     </div>
                   );
                 })}
+                <div ref={messagesEndRef} />
               </div>
 
               <form className="compose" onSubmit={submitMessage}>
                 <textarea
                   value={messageBody}
                   onChange={(event) => setMessageBody(event.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      submitMessage(e);
+                    }
+                  }}
                   placeholder={t('dashboard.writeMessage')}
                 />
                 <button className="send-btn" type="submit" disabled={!messageBody.trim()}>

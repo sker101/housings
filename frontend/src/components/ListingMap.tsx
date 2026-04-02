@@ -102,7 +102,8 @@ export default function ListingMap({ listings, onMarkerSelect }) {
 
         if (!mapInstanceRef.current) {
           mapInstanceRef.current = L.map(mapElementRef.current, {
-            zoomControl: true
+            zoomControl: true,
+            scrollWheelZoom: false
           });
 
           L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -136,11 +137,11 @@ export default function ListingMap({ listings, onMarkerSelect }) {
         markerLayerRef.current.addTo(mapInstanceRef.current);
 
         if (bounds.length === 1) {
-          mapInstanceRef.current.setView(bounds[0], 15);
+          mapInstanceRef.current.setView(bounds[0], 18);
         } else {
           mapInstanceRef.current.fitBounds(bounds, {
             padding: [28, 28],
-            maxZoom: 15
+            maxZoom: 18
           });
         }
 

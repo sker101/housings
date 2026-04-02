@@ -199,8 +199,8 @@ export default function SearchPage() {
     if (filters.university !== 'any' && UNIVERSITIES[filters.university as keyof typeof UNIVERSITIES]) {
       const uni = UNIVERSITIES[filters.university as keyof typeof UNIVERSITIES];
       result = result.map(l => {
-        if (!l.latitude || !l.longitude) return l;
-        const dist = getDistanceKm(uni.lat, uni.lng, Number(l.latitude), Number(l.longitude));
+        if (!l.lat || !l.lng) return l;
+        const dist = getDistanceKm(uni.lat, uni.lng, Number(l.lat), Number(l.lng));
         return { ...l, distanceKm: dist, distanceStr: `${dist.toFixed(1)} km from ${uni.label}` };
       });
       // Sort by distance automatically
