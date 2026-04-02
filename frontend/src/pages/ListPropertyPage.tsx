@@ -23,7 +23,7 @@ import {
   FLOOR_OPTIONS,
   PAYMENT_SCHEDULES
 } from '../lib/constants';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 
@@ -200,7 +200,7 @@ export default function ListPropertyPage() {
   const { t } = useTranslation();
   const { user, token } = useAuth();
 
-  const { register, handleSubmit, watch, setValue, formState: { errors }, reset } = useForm({
+  const { register, control, handleSubmit, watch, setValue, formState: { errors }, reset } = useForm({
     resolver: zodResolver(formSchema) as any,
     defaultValues: DEFAULT_FORM,
     mode: 'onTouched'
@@ -225,6 +225,18 @@ export default function ListPropertyPage() {
   const hasListerRole = user?.role === 'LISTER';
   const rawStatus = String(user?.landlordVerificationStatus || '').trim().toLowerCase();
   const isVerified = rawStatus === 'approved' || rawStatus === 'verified';
+  const isRejected = rawStatus === 'rejected';
+  const verificationRequiredMessage = isRejected
+    ? t('hostFlow.verificationRejected')
+    : t('hostFlow.verificationPending');
+  const submitButtonLabel = submitting
+    ? t('hostFlow.btnSubmitting')
+    : !isVerified
+      ? isRejected
+        ? t('hostFlow.btnVerificationRequired')
+        : t('hostFlow.awaitingAdminApproval')
+      : t('hostFlow.btnSubmitListing');
+  const canSubmitListing = isVerified && Boolean(formValues.policyAccepted) && !submitting;
 
   // Load draft on mount
   useEffect(() => {
@@ -631,6 +643,16 @@ export default function ListPropertyPage() {
     }
   };
 
+  const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    if (step < STEPS.length - 1) {
+      event.preventDefault();
+      goNext();
+      return;
+    }
+
+    return handleSubmit(submitListing)(event);
+  };
+
   if (!hasListerRole) {
     return (
       <div className="container section">
@@ -733,7 +755,7 @@ export default function ListPropertyPage() {
           alignItems: 'center',
           gap: '0.75rem'
         }}>
-          <p>⚠️ {t('listProperty.verificationRequiredMsg')}</p>
+          <p style={{ margin: 0 }}>⚠️ {verificationRequiredMessage}</p>
         </div>
       )}
 
@@ -741,6 +763,7 @@ export default function ListPropertyPage() {
       {success && <p style={{ color: '#1D9E75', marginBottom: '1rem' }}>✓ {success}</p>}
 
       <section className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
+        <form onSubmit={handleFormSubmit}>
         <h2 style={{ margin: '0 0 0.5rem' }}>{STEPS[step].label}</h2>
         <p style={{ margin: '0 0 1.5rem', color: '#6B6B5A' }}>{STEPS[step].description}</p>
 
@@ -1106,49 +1129,64 @@ export default function ListPropertyPage() {
               </div>
             </div>
 
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'flex-start', 
-              gap: '0.75rem', 
-              padding: '1rem', 
-              background: '#F9FAFB', 
-              border: `1px solid ${errors.policyAccepted ? '#C0392B' : '#E5E5E0'}`, 
-              borderRadius: '10px',
-              cursor: 'pointer'
-            }} onClick={() => setValue('policyAccepted', !watch('policyAccepted'), { shouldValidate: true })}>
-              <input 
-                type="checkbox" 
-                id="policyAccepted"
-                {...register('policyAccepted')} 
-                style={{ width: '20px', height: '20px', marginTop: '3px', cursor: 'pointer' }} 
-                onClick={(e) => e.stopPropagation()}
-              />
-              <label htmlFor="policyAccepted" style={{ cursor: 'pointer', flex: 1, margin: 0 }}>
-                <span style={{ fontSize: '0.95rem', fontWeight: 500, color: '#1A1A2E' }}>
-                  I accept the policies and confirm all information is accurate
-                </span>
-                {errors.policyAccepted && (
-                  <span style={{ color: '#C0392B', fontSize: '0.85rem', display: 'block', marginTop: '0.25rem' }}>
-                    {errors.policyAccepted.message}
+            <Controller
+              name="policyAccepted"
+              control={control}
+              render={({ field }) => (
+                <label
+                  htmlFor="policyAccepted"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '0.75rem',
+                    padding: '1rem',
+                    background: '#F9FAFB',
+                    border: `1px solid ${errors.policyAccepted ? '#C0392B' : '#E5E5E0'}`,
+                    borderRadius: '10px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <input
+                    id="policyAccepted"
+                    name={field.name}
+                    ref={field.ref}
+                    type="checkbox"
+                    checked={Boolean(field.value)}
+                    onBlur={field.onBlur}
+                    onChange={(event) => field.onChange(event.target.checked)}
+                    style={{ width: '20px', height: '20px', marginTop: '3px', cursor: 'pointer' }}
+                  />
+                  <span style={{ flex: 1 }}>
+                    <span style={{ fontSize: '0.95rem', fontWeight: 500, color: '#1A1A2E' }}>
+                      I accept the policies and confirm all information is accurate
+                    </span>
+                    {errors.policyAccepted && (
+                      <span style={{ color: '#C0392B', fontSize: '0.85rem', display: 'block', marginTop: '0.25rem' }}>
+                        {errors.policyAccepted.message}
+                      </span>
+                    )}
                   </span>
-                )}
-              </label>
-            </div>
+                </label>
+              )}
+            />
           </div>
         )}
 
-        <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem', justifyContent: 'space-between', flexWrap: 'wrap' }}>
           <button
             type="button"
             onClick={goBack}
             disabled={step === 0 || submitting}
             style={{
+              flex: '1 1 160px',
+              minHeight: '48px',
               padding: '0.75rem 1.5rem',
               background: 'white',
               border: '1px solid #E5E5E0',
               borderRadius: '8px',
               cursor: 'pointer',
-              fontWeight: '600'
+              fontWeight: '600',
+              touchAction: 'manipulation'
             }}
           >
             ← Back
@@ -1160,36 +1198,42 @@ export default function ListPropertyPage() {
               onClick={goNext}
               disabled={submitting}
               style={{
+                flex: '1 1 160px',
+                minHeight: '48px',
                 padding: '0.75rem 1.5rem',
                 background: '#1D9E75',
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px',
                 cursor: 'pointer',
-                fontWeight: '600'
+                fontWeight: '600',
+                touchAction: 'manipulation'
               }}
             >
               Continue →
             </button>
           ) : (
             <button
-              type="button"
-              onClick={handleSubmit(submitListing)}
-              disabled={submitting || !isVerified || !formValues.policyAccepted}
+              type="submit"
+              disabled={!canSubmitListing}
               style={{
+                flex: '1 1 200px',
+                minHeight: '48px',
                 padding: '0.75rem 1.5rem',
-                background: (isVerified && formValues.policyAccepted) ? '#1D9E75' : '#CCCCCC',
+                background: canSubmitListing ? '#1D9E75' : '#CCCCCC',
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px',
-                cursor: (isVerified && formValues.policyAccepted) ? 'pointer' : 'not-allowed',
-                fontWeight: '600'
+                cursor: canSubmitListing ? 'pointer' : 'not-allowed',
+                fontWeight: '600',
+                touchAction: 'manipulation'
               }}
             >
-              {submitting ? 'Submitting...' : 'Submit Listing'}
+              {submitButtonLabel}
             </button>
           )}
         </div>
+        </form>
       </section>
 
       {screeningResult && (

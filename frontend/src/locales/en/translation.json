@@ -249,6 +249,7 @@
         "btnContinue": "Continue",
         "btnSubmitting": "Submitting...",
         "btnVerificationRequired": "Verification required",
+        "awaitingAdminApproval": "Waiting for admin approval",
         "btnSubmitListing": "Submit listing",
         "listingSaved": "Listing saved. Automated screening is running in the background.",
         "listingLive": "🎉 Listing is Live!",
