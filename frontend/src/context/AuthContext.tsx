@@ -86,6 +86,14 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [networkError, setNetworkError] = useState(false);
+  const authFlowIdRef = React.useRef(0);
+
+  const beginAuthFlow = useCallback(() => {
+    authFlowIdRef.current += 1;
+    return authFlowIdRef.current;
+  }, []);
+
+  const isCurrentAuthFlow = useCallback((flowId) => authFlowIdRef.current === flowId, []);
 
   const applySession = useCallback((nextSession, rememberMe = true) => {
     if (!nextSession) {
@@ -100,13 +108,18 @@ export function AuthProvider({ children }) {
   }, []);
 
   const hydrateUser = useCallback(
-    async (activeSession, rememberMe = true) => {
+    async (activeSession, rememberMe = true, flowId = authFlowIdRef.current) => {
       if (!activeSession?.access_token || !activeSession?.user?.id) {
-        applySession(null, rememberMe);
+        if (flowId === authFlowIdRef.current) {
+          applySession(null, rememberMe);
+        }
         return null;
       }
 
       const profile = await fetchProfile(activeSession.user.id, activeSession.access_token);
+      if (flowId !== authFlowIdRef.current) {
+        return null;
+      }
       const nextUser = buildCurrentUser(activeSession, profile);
       setUser(nextUser);
       applySession(activeSession, rememberMe);
@@ -116,6 +129,7 @@ export function AuthProvider({ children }) {
   );
 
   const initialize = useCallback(async () => {
+    const flowId = beginAuthFlow();
     setLoading(true);
 
     try {
@@ -123,7 +137,9 @@ export function AuthProvider({ children }) {
       let rememberMe = persistent;
 
       if (!workingSession) {
-        setUser(null);
+        if (isCurrentAuthFlow(flowId)) {
+          setUser(null);
+        }
         return;
       }
 
@@ -142,13 +158,17 @@ export function AuthProvider({ children }) {
         user: authUser
       };
 
-      await hydrateUser(workingSession, rememberMe);
+      await hydrateUser(workingSession, rememberMe, flowId);
     } catch {
-      applySession(null);
+      if (isCurrentAuthFlow(flowId)) {
+        applySession(null);
+      }
     } finally {
-      setLoading(false);
+      if (isCurrentAuthFlow(flowId)) {
+        setLoading(false);
+      }
     }
-  }, [session, persistent, hydrateUser, applySession]);
+  }, [session, persistent, hydrateUser, applySession, beginAuthFlow, isCurrentAuthFlow]);
 
   // We only want to initialize auth ONCE when the provider mounts.
   const hasInitialized = React.useRef(false);
@@ -179,6 +199,7 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(
     async (credentials: Record<string, string>, options: { rememberMe?: boolean } = {}) => {
+      const flowId = beginAuthFlow();
       setLoading(true);
 
       try {
@@ -192,21 +213,24 @@ export function AuthProvider({ children }) {
           throw new Error('Unable to establish session');
         }
 
-        const nextUser = await hydrateUser(nextSession, options.rememberMe !== false);
+        const nextUser = await hydrateUser(nextSession, options.rememberMe !== false, flowId);
 
         return {
           ...response,
           role: nextUser?.role || APP_ROLE.STUDENT
         };
       } finally {
-        setLoading(false);
+        if (isCurrentAuthFlow(flowId)) {
+          setLoading(false);
+        }
       }
     },
-    [hydrateUser]
+    [hydrateUser, beginAuthFlow, isCurrentAuthFlow]
   );
 
   const registerStudent = useCallback(
     async (payload) => {
+      const flowId = beginAuthFlow();
       setLoading(true);
 
       try {
@@ -247,7 +271,9 @@ export function AuthProvider({ children }) {
 
         const nextSession = buildSessionObject(response);
         if (nextSession) {
-          await hydrateUser(nextSession, true);
+          await hydrateUser(nextSession, true, flowId);
+        } else if (isCurrentAuthFlow(flowId)) {
+          applySession(null, true);
         }
 
         return {
@@ -255,14 +281,17 @@ export function AuthProvider({ children }) {
           role: APP_ROLE.STUDENT
         };
       } finally {
-        setLoading(false);
+        if (isCurrentAuthFlow(flowId)) {
+          setLoading(false);
+        }
       }
     },
-    [hydrateUser]
+    [hydrateUser, applySession, beginAuthFlow, isCurrentAuthFlow]
   );
 
   const registerLandlord = useCallback(
     async (payload) => {
+      const flowId = beginAuthFlow();
       setLoading(true);
 
       try {
@@ -304,7 +333,9 @@ export function AuthProvider({ children }) {
 
         const nextSession = buildSessionObject(response);
         if (nextSession) {
-          await hydrateUser(nextSession, true);
+          await hydrateUser(nextSession, true, flowId);
+        } else if (isCurrentAuthFlow(flowId)) {
+          applySession(null, true);
         }
 
         return {
@@ -312,10 +343,12 @@ export function AuthProvider({ children }) {
           role: APP_ROLE.LISTER
         };
       } finally {
-        setLoading(false);
+        if (isCurrentAuthFlow(flowId)) {
+          setLoading(false);
+        }
       }
     },
-    [hydrateUser]
+    [hydrateUser, applySession, beginAuthFlow, isCurrentAuthFlow]
   );
 
   const logout = useCallback(async () => {
@@ -332,6 +365,7 @@ export function AuthProvider({ children }) {
   }, [applySession, session?.access_token]);
 
   const refreshMe = useCallback(async () => {
+    const flowId = beginAuthFlow();
     if (!session?.access_token || !session?.user?.id) {
       return null;
     }
@@ -342,12 +376,14 @@ export function AuthProvider({ children }) {
         ...session,
         user: authUser
       };
-      return await hydrateUser(nextSession, persistent);
+      return await hydrateUser(nextSession, persistent, flowId);
     } catch {
-      applySession(null);
+      if (isCurrentAuthFlow(flowId)) {
+        applySession(null);
+      }
       return null;
     }
-  }, [session, persistent, hydrateUser, applySession]);
+  }, [session, persistent, hydrateUser, applySession, beginAuthFlow, isCurrentAuthFlow]);
 
   const value = useMemo(
     () => ({

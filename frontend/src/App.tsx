@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import { APP_ROLE } from './lib/roles';
@@ -31,11 +31,8 @@ import SearchPage from './pages/SearchPage';
 import LandlordAnalyticsPage from './pages/LandlordAnalyticsPage';
 import ReviewsPage from './pages/ReviewsPage';
 import BookingsPage from './pages/BookingsPage';
-import { useAuth } from './context/AuthContext';
 
 export default function App() {
-  const { isAuthenticated } = useAuth();
-
   return (
     <Layout>
       <Routes>
@@ -192,7 +189,7 @@ export default function App() {
         <Route
           path="/payments"
           element={
-            <ProtectedRoute roles={[APP_ROLE.STUDENT, APP_ROLE.LISTER]}>
+            <ProtectedRoute roles={[APP_ROLE.LISTER]}>
               <PaymentsPage />
             </ProtectedRoute>
           }
@@ -201,7 +198,7 @@ export default function App() {
         <Route
           path="/pay"
           element={
-            <ProtectedRoute roles={[APP_ROLE.STUDENT, APP_ROLE.LISTER]}>
+            <ProtectedRoute roles={[APP_ROLE.STUDENT]}>
               <PayPage />
             </ProtectedRoute>
           }
@@ -243,15 +240,15 @@ export default function App() {
 
         <Route
           path="/login"
-          element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />}
+          element={<LoginPage />}
         />
         <Route
           path="/register/student"
-          element={isAuthenticated ? <Navigate to="/" replace /> : <RegisterStudentPage />}
+          element={<RegisterStudentPage />}
         />
         <Route
           path="/register/landlord"
-          element={isAuthenticated ? <Navigate to="/" replace /> : <RegisterLandlordPage />}
+          element={<RegisterLandlordPage />}
         />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
 

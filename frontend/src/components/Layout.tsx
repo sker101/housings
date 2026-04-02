@@ -17,6 +17,10 @@ export default function Layout({ children }) {
   const [announcement, setAnnouncement] = useState('');
   const { t, i18n } = useTranslation();
   const location = useLocation();
+  const isAuthPage =
+    location.pathname === '/login' ||
+    location.pathname === '/reset-password' ||
+    location.pathname.startsWith('/register/');
 
   const [activeListings, setActiveListings] = useState(0);
   const [tenantCount, setTenantCount] = useState(0);
@@ -272,7 +276,7 @@ export default function Layout({ children }) {
       ) : null}
 
       <header className="topbar" style={{ display: 'flex', alignItems: 'center' }}>
-        {isAuthenticated ? (
+        {isAuthenticated && !isAuthPage ? (
           <button
             type="button"
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -311,7 +315,25 @@ export default function Layout({ children }) {
           </div>
 
           <nav className="topbar__nav">
-            {user?.role === APP_ROLE.LISTER ? (
+            {isAuthPage ? (
+              <>
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--small"
+                  onClick={toggleLanguage}
+                  title="Toggle Language"
+                >
+                  {i18n.language.startsWith('en') ? 'SW' : 'EN'}
+                </button>
+                <NavLink to="/">{t('nav.home')}</NavLink>
+                <NavLink to="/search">{t('nav.search')}</NavLink>
+                {!isAuthenticated ? (
+                  <NavLink to="/login" className={({ isActive }) => isActive ? 'is-active' : ''}>
+                    {t('nav.login')}
+                  </NavLink>
+                ) : null}
+              </>
+            ) : user?.role === APP_ROLE.LISTER ? (
               <>
                 <button
                   type="button"
@@ -387,7 +409,7 @@ export default function Layout({ children }) {
       ) : null}
 
       <div style={{ display: 'flex', minHeight: 'calc(100vh - 64px)', position: 'relative', width: '100%', maxWidth: '100vw' }}>
-        {isAuthenticated && user?.role === APP_ROLE.LISTER && !location.pathname.startsWith('/admin') ? (
+        {isAuthenticated && !isAuthPage && user?.role === APP_ROLE.LISTER && !location.pathname.startsWith('/admin') ? (
           <LandlordSidebar
             unreadMessages={unreadCount}
             unreadNotifs={notifCount}
@@ -402,7 +424,7 @@ export default function Layout({ children }) {
             onMobileDrawerClose={() => setIsSidebarOpen(false)}
           />
         ) : null}
-        {isAuthenticated && user?.role === APP_ROLE.STUDENT && !location.pathname.startsWith('/admin') ? (
+        {isAuthenticated && !isAuthPage && user?.role === APP_ROLE.STUDENT && !location.pathname.startsWith('/admin') ? (
           <StudentSidebar
             unreadMessages={unreadCount}
             unreadNotifs={notifCount}
@@ -413,7 +435,7 @@ export default function Layout({ children }) {
             onMobileDrawerClose={() => setIsSidebarOpen(false)}
           />
         ) : null}
-        {isAuthenticated && user?.role === APP_ROLE.ADMIN ? (
+        {isAuthenticated && !isAuthPage && user?.role === APP_ROLE.ADMIN ? (
           <AdminSidebar
             isCollapsed={!isSidebarOpen}
             mobileDrawerOpen={isSidebarOpen}

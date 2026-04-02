@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
+import { normalizeAuthError } from '../lib/authErrors';
 
 export default function LoginPage() {
   const { login, loading } = useAuth();
@@ -49,9 +50,9 @@ export default function LoginPage() {
       const msg: string = (err as any).message || '';
       if (msg.toLowerCase().includes('email not confirmed')) {
         setEmailNotConfirmed(true);
-        setError('Your email address has not been verified yet.');
+        setError(normalizeAuthError(err, 'login'));
       } else {
-        setError(msg);
+        setError(normalizeAuthError(err, 'login'));
       }
     }
   };

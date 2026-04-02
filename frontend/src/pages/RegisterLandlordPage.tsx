@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
+import { normalizeAuthError } from '../lib/authErrors';
 
 const useListerTypes = (t) => [
   { value: 'owner', label: t('auth.owner') },
@@ -32,7 +33,7 @@ export default function RegisterLandlordPage() {
       await registerLandlord({ ...formData, preferredLanguage: i18n.language });
       navigate('/', { replace: true });
     } catch (err) {
-      setError(err.message);
+      setError(normalizeAuthError(err, 'register'));
     }
   };
 

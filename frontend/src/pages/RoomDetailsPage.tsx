@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import ListingCard from '../components/ListingCard';
 import ListingMap from '../components/ListingMap';
 import { useAuth } from '../context/AuthContext';
+import { APP_ROLE } from '../lib/roles';
 import {
   createBookingRequest,
   fetchListingBookingsForUser,
@@ -402,6 +403,7 @@ export default function RoomDetailsPage() {
     () => (listing?.id ? savedIds.has(listing.id) : false),
     [savedIds, listing?.id]
   );
+  const canReserveListing = !isAuthenticated || user?.role === APP_ROLE.STUDENT;
 
   const galleryPhotos = useMemo(() => {
     if (!listing) {
@@ -928,21 +930,23 @@ export default function RoomDetailsPage() {
             >
               {saved ? t('listingCard.saved') : t('listingCard.save')}
             </button>
-            <Link
-              to="/pay"
-              className="btn btn--large"
-              style={{ flex: 2, textAlign: 'center' }}
-              state={{
-                listingId: listing.id,
-                price: listing.priceMonthly,
-                title: listing.title,
-                availableFrom: listing.availableFrom,
-                coverPhoto: Array.isArray(listing?.photos) ? listing.photos[0] : null,
-                address: listing.location || listing.district || listing.ward || ''
-              }}
-            >
-              Reserve / Pay
-            </Link>
+            {canReserveListing ? (
+              <Link
+                to="/pay"
+                className="btn btn--large"
+                style={{ flex: 2, textAlign: 'center' }}
+                state={{
+                  listingId: listing.id,
+                  price: listing.priceMonthly,
+                  title: listing.title,
+                  availableFrom: listing.availableFrom,
+                  coverPhoto: Array.isArray(listing?.photos) ? listing.photos[0] : null,
+                  address: listing.location || listing.district || listing.ward || ''
+                }}
+              >
+                Reserve / Pay
+              </Link>
+            ) : null}
             <button type="button" className="btn btn--ghost" onClick={() => setOpenInquiry(true)}>
               {t('roomDetails.startChat')}
             </button>

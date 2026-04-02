@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
+import { normalizeAuthError } from '../lib/authErrors';
 
 export default function RegisterStudentPage() {
   const { registerStudent, loading } = useAuth();
@@ -38,7 +39,7 @@ export default function RegisterStudentPage() {
       await registerStudent({ ...formData, preferredLanguage: i18n.language });
       navigate('/', { replace: true });
     } catch (err) {
-      setError(err.message);
+      setError(normalizeAuthError(err, 'register'));
     }
   };
 
