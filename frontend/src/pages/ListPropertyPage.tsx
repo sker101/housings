@@ -142,6 +142,9 @@ const STEPS = [
   { key: 'review', label: 'Review & Submit', description: 'Summary and final submission' }
 ];
 
+const DRAFT_STEP_FIELD = '__currentStep';
+const LEGACY_DRAFT_STEP_LIMIT = 5;
+
 function validateStep(step: number, values: any, files: any): string {
   const stepValidations: Record<number, () => string> = {
     0: () => {
@@ -350,18 +353,33 @@ export default function ListPropertyPage() {
           }
         }
 
-        const draftData = await invokeFunction('get_lister_draft', { accessToken: token });
+        const draftRows = await selectRows('listing_drafts', {
+          select: 'current_step,data',
+          filters: [{ column: 'lister_id', op: 'eq', value: user.userId }],
+          limit: 1,
+          accessToken: token
+        });
 
         if (!mounted) return;
 
-        if (draftData && typeof draftData === 'object') {
+        const draftRow = draftRows[0];
+        const draftData =
+          draftRow?.data && typeof draftRow.data === 'object' ? draftRow.data : null;
+
+        if (draftData) {
+          const restoredStep = Number(
+            (draftData as any)[DRAFT_STEP_FIELD] || draftRow?.current_step || 1
+          );
+          const draftFormValues = { ...(draftData as Record<string, unknown>) };
+          delete (draftFormValues as Record<string, unknown>)[DRAFT_STEP_FIELD];
+
           reset({
             ...DEFAULT_FORM,
-            ...draftData,
-            fullName: (draftData as any).fullName || user?.fullName || '',
-            phone: user?.phone || (draftData as any).phone || ''
+            ...draftFormValues,
+            fullName: (draftFormValues as any).fullName || user?.fullName || '',
+            phone: user?.phone || (draftFormValues as any).phone || ''
           });
-          setStep(Math.max(0, Math.min(Number((draftData as any).current_step || 1) - 1, STEPS.length - 1)));
+          setStep(Math.max(0, Math.min(restoredStep - 1, STEPS.length - 1)));
           setSuccess('Draft restored from cloud.');
         } else {
           reset({
@@ -371,7 +389,14 @@ export default function ListPropertyPage() {
           });
         }
       } catch (err: any) {
-        if (mounted) setError(err.message);
+        console.warn('Draft restore failed:', err?.message || err);
+        if (mounted) {
+          reset({
+            ...DEFAULT_FORM,
+            fullName: user?.fullName || '',
+            phone: user?.phone || ''
+          });
+        }
       } finally {
         if (mounted) setLoadingDraft(false);
       }
@@ -390,12 +415,16 @@ export default function ListPropertyPage() {
  
       setSavingDraft(true);
       try {
+        const draftStep = step + 1;
         await upsertRows(
           'listing_drafts',
           {
             lister_id: user.userId,
-            current_step: step + 1,
-            data: formValues
+            current_step: Math.min(draftStep, LEGACY_DRAFT_STEP_LIMIT),
+            data: {
+              ...formValues,
+              [DRAFT_STEP_FIELD]: draftStep
+            }
           },
           { accessToken: token, onConflict: 'lister_id' }
         );
