@@ -75,7 +75,7 @@ export default function AdminSidebar({
                 flexShrink: 0,
                 background: WHITE,
                 borderRight: `1px solid ${BORDER}`,
-                display: mobileDrawerOpen ? 'flex' : 'none',
+                display: 'flex',
                 flexDirection: 'column',
                 height: '100%',
                 overflowY: 'auto',
@@ -266,8 +266,15 @@ export default function AdminSidebar({
         <>
             <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Poppins:wght@400;500;700&display=swap');
-        .admin-sidebar-desktop { display: none !important; }
+        .admin-sidebar-desktop { display: flex !important; }
         .admin-sidebar-mobile  { display: none !important; }
+        @media (max-width: 919px) {
+          .admin-sidebar-desktop { display: none !important; }
+          .admin-sidebar-mobile  {
+            display: flex !important;
+            flex-direction: column;
+          }
+        }
       `}</style>
             {desktop}
             
