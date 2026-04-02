@@ -535,13 +535,13 @@ export default function ListPropertyPage() {
         const storagePath = `${createdListingId}/${slot.key}_${Date.now()}.${ext}`;
 
         await uploadPublicObject({
-          bucket: 'listings',
+          bucket: 'listing-photos',
           path: storagePath,
           file: compressedFile,
           accessToken
         });
 
-        const publicUrl = publicObjectUrl('listings', storagePath);
+        const publicUrl = publicObjectUrl('listing-photos', storagePath);
 
         let aiVerified = false;
         let aiConfidence = 0;

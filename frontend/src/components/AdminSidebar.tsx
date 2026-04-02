@@ -265,9 +265,10 @@ export default function AdminSidebar({
             <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Poppins:wght@400;500;700&display=swap');
         .admin-sidebar-desktop { display: flex !important; }
+        .admin-sidebar-mobile  { display: none !important; }
         @media (max-width: 919px) {
           .admin-sidebar-desktop { display: none !important; }
-          .admin-sidebar-mobile { display: flex !important; }
+          .admin-sidebar-mobile  { display: flex; flex-direction: column; }
         }
         @media (min-width: 920px) {
           .admin-sidebar-mobile { display: none !important; }
@@ -310,8 +311,6 @@ export default function AdminSidebar({
                 fontFamily: FONT,
                 transform: mobileDrawerOpen ? 'translateX(0)' : 'translateX(-100%)',
                 transition: 'transform 0.3s ease',
-                display: 'none',
-                flexDirection: 'column',
                 overflowY: 'auto',
                 overflowX: 'hidden',
               }}
@@ -370,27 +369,27 @@ export default function AdminSidebar({
                   {SECTIONS.map((item) => {
                     const isActive = isBaseAdminPath && currentTab === item.id;
                     return (
-                      <div key={item.id} onClick={onMobileDrawerClose} style={{ display: 'contents' }}>
-                        <NavLink
-                          to={item.path}
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: '0.65rem',
-                            padding: '0.58rem 1.25rem',
-                            color: isActive ? TEAL : '#374151',
-                            background: isActive ? TEAL_L : 'transparent',
-                            borderLeft: isActive ? `3px solid ${TEAL}` : '3px solid transparent',
-                            textDecoration: 'none',
-                            fontWeight: isActive ? 700 : 500,
-                            fontSize: '0.87rem',
-                            transition: 'all 0.15s',
-                          }}
-                        >
-                          <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            {React.cloneElement(item.icon, { size: 18 })}
-                          </span>
-                          <span style={{ flex: 1 }}>{item.label}</span>
-                        </NavLink>
-                      </div>
+                      <NavLink
+                        key={item.id}
+                        to={item.path}
+                        onClick={onMobileDrawerClose}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '0.65rem',
+                          padding: '0.58rem 1.25rem',
+                          color: isActive ? TEAL : '#374151',
+                          background: isActive ? TEAL_L : 'transparent',
+                          borderLeft: isActive ? `3px solid ${TEAL}` : '3px solid transparent',
+                          textDecoration: 'none',
+                          fontWeight: isActive ? 700 : 500,
+                          fontSize: '0.87rem',
+                          transition: 'all 0.15s',
+                        }}
+                      >
+                        <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {React.cloneElement(item.icon, { size: 18 })}
+                        </span>
+                        <span style={{ flex: 1 }}>{item.label}</span>
+                      </NavLink>
                     );
                   })}
                 </nav>
@@ -410,27 +409,27 @@ export default function AdminSidebar({
                   {MODERATION.map((item) => {
                     const isActive = location.pathname.startsWith(item.path);
                     return (
-                      <div key={item.id} onClick={onMobileDrawerClose} style={{ display: 'contents' }}>
-                        <NavLink
-                          to={item.path}
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: '0.65rem',
-                            padding: '0.58rem 1.25rem',
-                            color: isActive ? TEAL : '#374151',
-                            background: isActive ? TEAL_L : 'transparent',
-                            borderLeft: isActive ? `3px solid ${TEAL}` : '3px solid transparent',
-                            textDecoration: 'none',
-                            fontWeight: isActive ? 700 : 500,
-                            fontSize: '0.87rem',
-                            transition: 'all 0.15s',
-                          }}
-                        >
-                          <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            {React.cloneElement(item.icon, { size: 18 })}
-                          </span>
-                          <span style={{ flex: 1 }}>{item.label}</span>
-                        </NavLink>
-                      </div>
+                      <NavLink
+                        key={item.id}
+                        to={item.path}
+                        onClick={onMobileDrawerClose}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '0.65rem',
+                          padding: '0.58rem 1.25rem',
+                          color: isActive ? TEAL : '#374151',
+                          background: isActive ? TEAL_L : 'transparent',
+                          borderLeft: isActive ? `3px solid ${TEAL}` : '3px solid transparent',
+                          textDecoration: 'none',
+                          fontWeight: isActive ? 700 : 500,
+                          fontSize: '0.87rem',
+                          transition: 'all 0.15s',
+                        }}
+                      >
+                        <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {React.cloneElement(item.icon, { size: 18 })}
+                        </span>
+                        <span style={{ flex: 1 }}>{item.label}</span>
+                      </NavLink>
                     );
                   })}
                 </nav>
