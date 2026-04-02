@@ -22,6 +22,7 @@ type Listing = {
   address?: string;
   district?: string;
   ward?: string;
+  street?: string;
   room_type?: string;
   floor?: string;
   near_universities?: string[];
@@ -33,7 +34,6 @@ type Listing = {
   house_rules?: string[];
   amenities?: string[];
   lister_id?: string;
-  cover_photo?: string;
 };
 
 type Profile = {
@@ -153,13 +153,13 @@ export default function MyRoomPage() {
         }
 
         const listingRows = await selectRows('listings', {
-          select: 'id,title,address,district,ward,room_type,floor,near_universities,lat,lng,price_monthly,security_deposit,house_rules,amenities,lister_id,cover_photo',
+          select: 'id,title,address,district,ward,street,room_type,floor,near_universities,lat,lng,price_monthly,security_deposit,utilities_included,house_rules,amenities,lister_id',
           filters: [{ column: 'id', op: 'eq', value: active.listing_id }],
           accessToken: token
         });
 
         const photoRows = await selectRows('listing_photos', {
-          select: 'url',
+          select: 'public_url,angle,position,is_cover,caption',
           filters: [{ column: 'listing_id', op: 'eq', value: active.listing_id }],
           order: 'position.asc',
           accessToken: token
@@ -182,10 +182,7 @@ export default function MyRoomPage() {
         setBooking(active);
         const listingRecord = listingRows?.[0] || null;
         setListing(listingRecord);
-        const photoUrls = (photoRows || []).map((p: any) => p.url);
-        if (photoUrls.length === 0 && listingRecord?.cover_photo) {
-          photoUrls.push(listingRecord.cover_photo);
-        }
+        const photoUrls = (photoRows || []).map((p: any) => p.public_url).filter(Boolean);
         setPhotos(photoUrls);
         setLandlord(landlordRows?.[0] || null);
         setPayments(paymentRows || []);
@@ -221,12 +218,12 @@ export default function MyRoomPage() {
       try {
         const [listingRows, photoRows] = await Promise.all([
           selectRows('listings', {
-            select: 'id,title,address,district,ward,room_type,floor,near_universities,lat,lng,price_monthly,security_deposit,house_rules,amenities,lister_id,cover_photo',
+            select: 'id,title,address,district,ward,street,room_type,floor,near_universities,lat,lng,price_monthly,security_deposit,utilities_included,house_rules,amenities,lister_id',
             filters: [{ column: 'id', op: 'eq', value: localReservation.listingId }],
             accessToken: token
           }).catch(() => []),
           selectRows('listing_photos', {
-            select: 'url',
+            select: 'public_url,angle,position,is_cover,caption',
             filters: [{ column: 'listing_id', op: 'eq', value: localReservation.listingId }],
             order: 'position.asc',
             accessToken: token
@@ -247,10 +244,7 @@ export default function MyRoomPage() {
         if (!mounted) return;
         const listingRecord = listingRows?.[0] || null;
         setListing(listingRecord);
-        const photoUrls = (photoRows || []).map((p: any) => p.url);
-        if (photoUrls.length === 0 && listingRecord?.cover_photo) {
-          photoUrls.push(listingRecord.cover_photo);
-        }
+        const photoUrls = (photoRows || []).map((p: any) => p.public_url).filter(Boolean);
         setPhotos(photoUrls);
         setLandlord(landlordRow);
       } catch {
@@ -378,7 +372,7 @@ export default function MyRoomPage() {
                 {/* Photo Gallery - Hero Image */}
                 <div style={{ borderRadius: 14, overflow: 'hidden', position: 'relative' }}>
                   <img
-                    src={photos?.[activePhotoIndex] || listing?.cover_photo || 'https://placehold.co/800x500/1D9E75/ffffff?text=CampusStay+TZ'}
+                    src={photos?.[activePhotoIndex] || 'https://placehold.co/800x500/1D9E75/ffffff?text=CampusStay+TZ'}
                     alt={listing?.title || 'Room'}
                     style={{ width: '100%', height: 300, objectFit: 'cover', display: 'block' }}
                   />

@@ -27,6 +27,10 @@ export default function AdminListingsPage() {
   const [loading, setLoading] = useState(true);
   const [messagingListerId, setMessagingListerId] = useState(null);
   const [error, setError] = useState('');
+  const [inspectListing, setInspectListing] = useState<any>(null);
+  const [inspectPhotos, setInspectPhotos] = useState<any[]>([]);
+  const [inspectLoading, setInspectLoading] = useState(false);
+  const [inspectActivePhoto, setInspectActivePhoto] = useState(0);
 
   const [modalState, setModalState] = useState({
     isOpen: false,
@@ -92,6 +96,46 @@ export default function AdminListingsPage() {
       setSelectedIds(new Set());
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleInspect = async (listing: any) => {
+    if (!token) return;
+
+    setInspectListing(listing);
+    setInspectActivePhoto(0);
+    setInspectPhotos([]);
+    setInspectLoading(true);
+
+    try {
+      const fullRows = await selectRows('listings', {
+        select:
+          'id,title,description,room_type,floor,district,ward,street,region,price_monthly,security_deposit,utilities_included,amenities,house_rules,near_universities,status,created_at,lister_id',
+        filters: [{ column: 'id', op: 'eq', value: listing.id }],
+        limit: 1,
+        accessToken: token
+      });
+
+      const listerRows = await selectRows('profiles', {
+        select: 'id,full_name,phone,lister_type,verification_status',
+        filters: [{ column: 'id', op: 'eq', value: listing.lister_id }],
+        limit: 1,
+        accessToken: token
+      });
+
+      const photoRows = await selectRows('listing_photos', {
+        select: 'id,public_url,angle,caption,position',
+        filters: [{ column: 'listing_id', op: 'eq', value: listing.id }],
+        order: 'position.asc',
+        accessToken: token
+      });
+
+      setInspectListing({ ...(fullRows[0] || listing), listerProfile: listerRows[0] || null });
+      setInspectPhotos(photoRows || []);
+    } catch (err) {
+      console.error('Inspect failed:', err);
+    } finally {
+      setInspectLoading(false);
     }
   };
 
@@ -347,6 +391,13 @@ export default function AdminListingsPage() {
                   Preview
                 </Link>
                 <button
+                  type="button"
+                  className="btn btn--ghost btn--small"
+                  onClick={() => handleInspect(listing)}
+                >
+                  Inspect
+                </button>
+                <button
                   className="btn btn--small btn--ghost"
                   onClick={() => messageLister(listing.id, listing.lister_id)}
                   disabled={messagingListerId === listing.id}
@@ -395,6 +446,135 @@ export default function AdminListingsPage() {
             : listings.find(l => l.id === modalState.targetId)?.title || 'Selected listing'
         }
       />
+
+      {inspectListing && (
+        <div
+          className="sheet-backdrop"
+          style={{ alignItems: 'flex-start', paddingTop: '2rem' }}
+          onClick={() => setInspectListing(null)}
+        >
+          <article
+            className="sheet"
+            style={{ maxWidth: 640, maxHeight: '90vh', overflowY: 'auto', width: '100%' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h2 style={{ margin: 0, fontSize: '1.1rem' }}>Listing Inspection</h2>
+              <button className="btn btn--ghost btn--small" onClick={() => setInspectListing(null)}>✕ Close</button>
+            </div>
+
+            {inspectLoading ? (
+              <p className="muted">Loading details...</p>
+            ) : (
+              <>
+                {inspectPhotos.length > 0 && (
+                  <div style={{ marginBottom: '1rem' }}>
+                    <img
+                      src={inspectPhotos[inspectActivePhoto]?.public_url}
+                      alt={inspectPhotos[inspectActivePhoto]?.angle || 'Photo'}
+                      style={{ width: '100%', height: 260, objectFit: 'cover', borderRadius: 10, display: 'block' }}
+                    />
+                    <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+                      {inspectPhotos.map((photo, idx) => (
+                        <div
+                          key={photo.id}
+                          onClick={() => setInspectActivePhoto(idx)}
+                          style={{
+                            width: 68,
+                            height: 52,
+                            borderRadius: 6,
+                            overflow: 'hidden',
+                            border: inspectActivePhoto === idx ? '2px solid #1D9E75' : '2px solid transparent',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <img
+                            src={photo.public_url}
+                            alt={photo.angle || 'photo'}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <p className="muted" style={{ fontSize: '0.8rem', marginTop: '0.35rem' }}>
+                      {inspectPhotos[inspectActivePhoto]?.angle || ''} - {inspectActivePhoto + 1} / {inspectPhotos.length} photos
+                    </p>
+                  </div>
+                )}
+
+                {inspectPhotos.length === 0 && (
+                  <div style={{ background: '#FEF3C7', padding: '0.75rem', borderRadius: 8, marginBottom: '1rem', fontSize: '0.85rem', color: '#92400E' }}>
+                    No photos uploaded for this listing.
+                  </div>
+                )}
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '1rem' }}>
+                  {[
+                    ['Title', inspectListing.title],
+                    ['Status', inspectListing.status],
+                    ['Type', inspectListing.room_type],
+                    ['Floor', inspectListing.floor || '—'],
+                    ['Price', `TZS ${Number(inspectListing.price_monthly || 0).toLocaleString()}/mo`],
+                    ['Deposit', `TZS ${Number(inspectListing.security_deposit || 0).toLocaleString()}`],
+                    ['Location', [inspectListing.street, inspectListing.ward, inspectListing.district].filter(Boolean).join(', ')],
+                    ['Utilities', inspectListing.utilities_included ? 'Included' : 'Not included']
+                  ].map(([label, value]) => (
+                    <div key={String(label)} style={{ padding: '0.5rem 0.65rem', border: '1px solid var(--border)', borderRadius: 8 }}>
+                      <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--mid)' }}>{label}</p>
+                      <strong style={{ fontSize: '0.88rem' }}>{value || '—'}</strong>
+                    </div>
+                  ))}
+                </div>
+
+                {inspectListing.listerProfile && (
+                  <div style={{ background: '#f9fafb', borderRadius: 10, padding: '0.75rem', marginBottom: '1rem' }}>
+                    <p style={{ margin: '0 0 0.4rem', fontWeight: 700, fontSize: '0.88rem' }}>Lister</p>
+                    <p style={{ margin: 0, fontSize: '0.85rem' }}>{inspectListing.listerProfile.full_name}</p>
+                    <p style={{ margin: '0.2rem 0 0', fontSize: '0.82rem', color: 'var(--mid)' }}>
+                      {inspectListing.listerProfile.phone} · {inspectListing.listerProfile.lister_type || 'Landlord'} · {inspectListing.listerProfile.verification_status}
+                    </p>
+                  </div>
+                )}
+
+                {inspectListing.description && (
+                  <div style={{ marginBottom: '1rem' }}>
+                    <p style={{ margin: '0 0 0.35rem', fontWeight: 700, fontSize: '0.88rem' }}>Description</p>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--mid)', lineHeight: 1.5 }}>{inspectListing.description}</p>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'flex-end', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
+                  <button className="btn btn--ghost" onClick={() => setInspectListing(null)}>Close</button>
+                  {inspectListing.status === 'pending' && (
+                    <>
+                      <button
+                        className="btn btn--ghost btn--small"
+                        style={{ color: '#C0392B', borderColor: '#C0392B' }}
+                        onClick={() => {
+                          setInspectListing(null);
+                          setModalState({ isOpen: true, action: 'reject', targetId: inspectListing.id, isBulk: false });
+                        }}
+                      >
+                        Reject
+                      </button>
+                      <button
+                        className="btn"
+                        style={{ background: '#1D9E75', color: '#fff' }}
+                        onClick={async () => {
+                          setInspectListing(null);
+                          setModalState({ isOpen: true, action: 'approve', targetId: inspectListing.id, isBulk: false });
+                        }}
+                      >
+                        Approve Listing
+                      </button>
+                    </>
+                  )}
+                </div>
+              </>
+            )}
+          </article>
+        </div>
+      )}
     </div>
   );
 }

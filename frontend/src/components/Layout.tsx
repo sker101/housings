@@ -283,7 +283,7 @@ export default function Layout({ children }) {
             style={{
               padding: '0.5rem',
               marginLeft: '0.5rem',
-              marginRight: '0.5rem',
+              marginRight: '0',
               background: 'transparent',
               border: 'none',
               cursor: 'pointer',
@@ -293,14 +293,10 @@ export default function Layout({ children }) {
               color: 'inherit',
               flexShrink: 0,
               borderRadius: '8px',
-              transition: 'background 0.2s ease'
+              zIndex: 10
             }}
-            onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
-            onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-            onFocus={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
-            onBlur={(e) => e.currentTarget.style.background = 'transparent'}
           >
-            <Menu size={24} />
+            <Menu size={22} />
           </button>
         ) : null}
 
@@ -348,6 +344,23 @@ export default function Layout({ children }) {
                 </NavLink>
                 <NavLink to="/list-property" className="btn btn--small desktop-only">
                   {t('nav.listProperty')}
+                </NavLink>
+                <button type="button" className="btn btn--ghost btn--small" onClick={logout}>
+                  {t('nav.logout')}
+                </button>
+              </>
+            ) : user?.role === APP_ROLE.ADMIN ? (
+              <>
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--small"
+                  onClick={toggleLanguage}
+                  title="Toggle Language"
+                >
+                  {i18n.language.startsWith('en') ? 'SW' : 'EN'}
+                </button>
+                <NavLink to="/admin" className={({ isActive }) => isActive ? 'is-active' : ''}>
+                  {t('nav.admin')}
                 </NavLink>
                 <button type="button" className="btn btn--ghost btn--small" onClick={logout}>
                   {t('nav.logout')}

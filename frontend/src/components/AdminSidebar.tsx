@@ -268,10 +268,10 @@ export default function AdminSidebar({
         .admin-sidebar-mobile  { display: none !important; }
         @media (max-width: 919px) {
           .admin-sidebar-desktop { display: none !important; }
-          .admin-sidebar-mobile  { display: flex; flex-direction: column; }
-        }
-        @media (min-width: 920px) {
-          .admin-sidebar-mobile { display: none !important; }
+          .admin-sidebar-mobile  {
+            display: flex !important;
+            flex-direction: column;
+          }
         }
       `}</style>
             {desktop}
@@ -306,11 +306,11 @@ export default function AdminSidebar({
                 bottom: 0,
                 width: 280,
                 background: WHITE,
-                boxShadow: '-2px 0 8px rgba(0,0,0,0.1)',
+                boxShadow: '4px 0 20px rgba(0,0,0,0.15)',
                 zIndex: 1001,
                 fontFamily: FONT,
                 transform: mobileDrawerOpen ? 'translateX(0)' : 'translateX(-100%)',
-                transition: 'transform 0.3s ease',
+                transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                 overflowY: 'auto',
                 overflowX: 'hidden',
               }}
