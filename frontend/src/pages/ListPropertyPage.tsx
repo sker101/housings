@@ -181,12 +181,17 @@ function validateStep(step: number, values: any, files: any): string {
       return '';
     },
     5: () => {
-      const requiredPhotos = PHOTO_SLOTS.filter(p => p.required);
-      for (const photo of requiredPhotos) {
-        if (!files[photo.key]) return `${photo.label} photo is required`;
+      // If editing, existing photos will be kept if new ones aren't provided.
+      const isEditingOffset = new URLSearchParams(window.location.search).has('edit');
+      
+      if (!isEditingOffset) {
+        const requiredPhotos = PHOTO_SLOTS.filter(p => p.required);
+        for (const photo of requiredPhotos) {
+          if (!files[photo.key]) return `${photo.label} photo is required`;
+        }
+        const uploadedCount = Object.values(files).filter(f => f).length;
+        if (uploadedCount < 4 || uploadedCount > 10) return 'Upload 4-10 photos';
       }
-      const uploadedCount = Object.values(files).filter(f => f).length;
-      if (uploadedCount < 4 || uploadedCount > 10) return 'Upload 4-10 photos';
       return '';
     },
     6: () => {
@@ -341,7 +346,7 @@ export default function ListPropertyPage() {
               lng: row.lng ? String(row.lng) : '',
               university: (row.near_universities?.[0]) || 'UDSM',
               accessibilityNotes: row.accessibility_notes || '',
-              amenities: { ...DEFAULT_AMENITIES, ...(row.amenities || {}) },
+              amenities: { ...DEFAULT_AMENITIES, ...(typeof row.amenities === 'string' ? (() => { try { return JSON.parse(row.amenities); } catch { return {}; } })()  : (row.amenities || {})) },
               houseRules: row.house_rules || '',
               videoTourUrl: row.video_tour_url || '',
               availableFrom: row.available_from ? new Date(row.available_from).toISOString().split('T')[0] : '',
@@ -816,9 +821,11 @@ export default function ListPropertyPage() {
           background: '#EDF7F1'
         }}>
           <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>🎉</div>
-          <h1 style={{ color: '#1D9E75', marginBottom: '1rem' }}>Listing Posted Successfully!</h1>
+          <h1 style={{ color: '#1D9E75', marginBottom: '1rem' }}>
+            {editId ? 'Listing Updated Successfully!' : 'Listing Posted Successfully!'}
+          </h1>
           <p style={{ fontSize: '1.1rem', color: '#4A4A3F', marginBottom: '2rem', lineHeight: '1.6' }}>
-            Your property <strong>"{formValues.title}"</strong> has been posted and is now visible to students and tenants in the search page.
+            Your property <strong>"{formValues.title}"</strong> has been {editId ? 'updated' : 'posted'} and is now visible to students and tenants in the search page.
           </p>
           
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
