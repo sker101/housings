@@ -355,7 +355,12 @@ export default function ListPropertyPage() {
         if (!mounted) return;
 
         if (draftData && typeof draftData === 'object') {
-          reset({ ...DEFAULT_FORM, ...draftData });
+          reset({
+            ...DEFAULT_FORM,
+            ...draftData,
+            fullName: (draftData as any).fullName || user?.fullName || '',
+            phone: user?.phone || (draftData as any).phone || ''
+          });
           setStep(Math.max(0, Math.min(Number((draftData as any).current_step || 1) - 1, STEPS.length - 1)));
           setSuccess('Draft restored from cloud.');
         } else {
@@ -509,8 +514,7 @@ export default function ListPropertyPage() {
           id: user.userId,
           role: 'lister',
           lister_type: values.listerType,
-          full_name: values.fullName.trim(),
-          phone: values.phone.trim()
+          full_name: values.fullName.trim()
         },
         { accessToken, onConflict: 'id' }
       );
@@ -847,7 +851,24 @@ export default function ListPropertyPage() {
 
             <label>
               <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '0.4rem', color: '#1A1A2E' }}>Phone</div>
-              <input {...register('phone')} placeholder="+255" style={{ width: '100%', padding: '0.6rem', border: '1px solid #E5E5E0', borderRadius: '8px' }} />
+              <input
+                {...register('phone')}
+                placeholder="+255"
+                readOnly={Boolean(user?.phone)}
+                style={{
+                  width: '100%',
+                  padding: '0.6rem',
+                  border: '1px solid #E5E5E0',
+                  borderRadius: '8px',
+                  background: user?.phone ? '#F9FAFB' : 'white',
+                  color: user?.phone ? '#6B6B5A' : '#1A1A2E'
+                }}
+              />
+              {user?.phone && (
+                <span style={{ color: '#6B6B5A', fontSize: '0.8rem', display: 'block', marginTop: '0.3rem' }}>
+                  Phone number comes from your account. Update it in Account settings if needed.
+                </span>
+              )}
               {errors.phone && <span style={{ color: '#C0392B', fontSize: '0.85rem' }}>{errors.phone.message}</span>}
             </label>
 
