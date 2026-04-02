@@ -37,9 +37,7 @@ export default function Layout({ children }) {
   useEffect(() => {
     const handleResize = () => {
       // Only force collapse on small screens, never force expansion
-      if (window.innerWidth <= 1024) {
-        setIsSidebarOpen(false);
-      }
+      setIsSidebarOpen(false);
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -48,7 +46,7 @@ export default function Layout({ children }) {
   // Close mobile drawer on route change
   useEffect(() => {
     setIsSidebarOpen(false);
-  }, [location.pathname]);
+  }, [location.pathname, location.search]);
 
   const toggleLanguage = async () => {
     const nextLang = i18n.language.startsWith('en') ? 'sw' : 'en';

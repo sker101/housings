@@ -75,7 +75,7 @@ export default function AdminSidebar({
                 flexShrink: 0,
                 background: WHITE,
                 borderRight: `1px solid ${BORDER}`,
-                display: 'flex',
+                display: mobileDrawerOpen ? 'flex' : 'none',
                 flexDirection: 'column',
                 height: '100%',
                 overflowY: 'auto',
@@ -142,6 +142,7 @@ export default function AdminSidebar({
                                 key={item.id}
                                 to={item.path}
                                 title={isCollapsed ? item.label : undefined}
+                                onClick={onMobileDrawerClose}
                                 style={{
                                     display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'flex-start', gap: '0.65rem',
                                     padding: isCollapsed ? '0.62rem 0' : '0.58rem 1rem 0.58rem 1.25rem',
@@ -188,6 +189,7 @@ export default function AdminSidebar({
                                 key={item.id}
                                 to={item.path}
                                 title={isCollapsed ? item.label : undefined}
+                                onClick={onMobileDrawerClose}
                                 style={{
                                     display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'flex-start', gap: '0.65rem',
                                     padding: isCollapsed ? '0.62rem 0' : '0.58rem 1rem 0.58rem 1.25rem',
@@ -221,7 +223,7 @@ export default function AdminSidebar({
                 <button
                     type="button"
                     title={isCollapsed ? 'Admin Help' : undefined}
-                    onClick={() => window.location.href = 'mailto:support@campusstay.co.tz'}
+                    onClick={() => { window.location.href = 'mailto:support@campusstay.co.tz'; if(onMobileDrawerClose) onMobileDrawerClose(); }}
                     style={{
                         display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'flex-start', gap: '0.5rem',
                         width: '100%', padding: isCollapsed ? '0.62rem 0' : '0.5rem 0.75rem',
@@ -240,7 +242,7 @@ export default function AdminSidebar({
                 <button
                     type="button"
                     title={isCollapsed ? 'Sign Out' : undefined}
-                    onClick={logout}
+                    onClick={() => { logout(); if(onMobileDrawerClose) onMobileDrawerClose(); }}
                     style={{
                         display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'flex-start', gap: '0.5rem',
                         width: '100%', padding: isCollapsed ? '0.62rem 0' : '0.5rem 0.75rem',
@@ -264,15 +266,8 @@ export default function AdminSidebar({
         <>
             <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Poppins:wght@400;500;700&display=swap');
-        .admin-sidebar-desktop { display: flex !important; }
+        .admin-sidebar-desktop { display: none !important; }
         .admin-sidebar-mobile  { display: none !important; }
-        @media (max-width: 919px) {
-          .admin-sidebar-desktop { display: none !important; }
-          .admin-sidebar-mobile  {
-            display: flex !important;
-            flex-direction: column;
-          }
-        }
       `}</style>
             {desktop}
             

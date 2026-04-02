@@ -6,6 +6,7 @@ import {
   insertRows,
   selectRows,
   upsertRows,
+  updateRows,
   uploadPublicObject,
   deleteRows,
   invokeFunction,
@@ -214,6 +215,7 @@ export default function ListPropertyPage() {
   const [files, setFiles] = useState<Record<string, File | null>>(
     Object.fromEntries(PHOTO_SLOTS.map(p => [p.key, null]))
   );
+  const [editId] = useState<string | null>(() => new URLSearchParams(location.search).get('edit'));
   const [loadingDraft, setLoadingDraft] = useState(true);
   const [savingDraft, setSavingDraft] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -240,7 +242,7 @@ export default function ListPropertyPage() {
       ? isRejected
         ? t('hostFlow.btnVerificationRequired')
         : t('hostFlow.awaitingAdminApproval')
-      : t('hostFlow.btnSubmitListing');
+      : editId ? 'Update Listing' : t('hostFlow.btnSubmitListing');
   const canSubmitListing = isVerified && Boolean(formValues.policyAccepted) && !submitting;
 
   useEffect(() => {
@@ -617,15 +619,41 @@ export default function ListPropertyPage() {
 
       console.log('📦 Step 2: Creating Listing...');
       let createdListingId: string;
-      try {
-        const inserted = await insertRows('listings', fullListingPayload, { accessToken });
-        createdListingId = inserted[0].id;
-        console.log('✅ Listing created (Full Mode)');
-      } catch (insertErr: any) {
-        console.warn('⚠️ Full listing insert failed, trying Safe Mode...', insertErr.message);
-        const inserted = await insertRows('listings', minimalListingPayload, { accessToken });
-        createdListingId = inserted[0].id;
-        console.log('✅ Listing created (Safe Mode)');
+
+      if (editId) {
+        try {
+          await updateRows('listings', fullListingPayload, {
+            filters: [
+              { column: 'id', op: 'eq', value: editId },
+              { column: 'lister_id', op: 'eq', value: user.userId }
+            ],
+            accessToken
+          });
+          createdListingId = editId;
+          console.log('✅ Listing updated (Full Mode)');
+        } catch (updateErr: any) {
+          console.warn('⚠️ Full listing update failed, trying Safe Mode...', updateErr.message);
+          await updateRows('listings', minimalListingPayload, {
+            filters: [
+              { column: 'id', op: 'eq', value: editId },
+              { column: 'lister_id', op: 'eq', value: user.userId }
+            ],
+            accessToken
+          });
+          createdListingId = editId;
+          console.log('✅ Listing updated (Safe Mode)');
+        }
+      } else {
+        try {
+          const inserted = await insertRows('listings', fullListingPayload, { accessToken });
+          createdListingId = inserted[0].id;
+          console.log('✅ Listing created (Full Mode)');
+        } catch (insertErr: any) {
+          console.warn('⚠️ Full listing insert failed, trying Safe Mode...', insertErr.message);
+          const inserted = await insertRows('listings', minimalListingPayload, { accessToken });
+          createdListingId = inserted[0].id;
+          console.log('✅ Listing created (Safe Mode)');
+        }
       }
 
       // Handle photos
@@ -633,7 +661,9 @@ export default function ListPropertyPage() {
       const photoRows: any[] = [];
       const slots = PHOTO_SLOTS;
 
-      for (let index = 0; index < slots.length; index++) {
+      const hasNewPhotos = Object.values(files).some(f => f !== null && f !== undefined);
+      if (!editId || hasNewPhotos) {
+        for (let index = 0; index < slots.length; index++) {
         const slot = slots[index];
         const file = files[slot.key];
         if (!file) continue;
@@ -704,32 +734,35 @@ export default function ListPropertyPage() {
         } catch (photoErr: any) {
           console.warn('⚠️ Full photo records failed, trying Safe Mode...', photoErr.message);
           // Safe mode: remove columns not in initial seed
-          const safePhotoRows = photoRows.map(p => {
-            const { position, caption, is_cover, ...rest } = p;
-            return rest;
-          });
-          await insertRows('listing_photos', safePhotoRows, { accessToken });
-          console.log('✅ Photos saved (Safe Mode)');
+            const safePhotoRows = photoRows.map(p => {
+              const { position, caption, is_cover, ...rest } = p;
+              return rest;
+            });
+            await insertRows('listing_photos', safePhotoRows, { accessToken });
+            console.log('✅ Photos saved (Safe Mode)');
+          }
         }
       }
 
       console.log('📦 Step 5: Cleaning up Draft...');
-      await deleteRows('listing_drafts', {
-        filters: [{ column: 'lister_id', op: 'eq', value: user.userId }],
-        accessToken
-      });
+      if (!editId) {
+        await deleteRows('listing_drafts', {
+          filters: [{ column: 'lister_id', op: 'eq', value: user.userId }],
+          accessToken
+        });
+      }
 
       console.log('📦 Step 6: Triggering Screening...');
       try {
         const screeningResponse = await invokeFunction('screen-listing', { listingId: createdListingId }, accessToken);
         setScreeningResult(screeningResponse);
-        setSuccess('🎉 Your listing is now live!');
+        setSuccess(editId ? '🎉 Your listing has been updated!' : '🎉 Your listing is now live!');
         setIsSubmitted(true);
         setSubmittedListingId(createdListingId);
         console.log('✅ Screening triggered successfully');
       } catch (screenErr) {
         console.warn('⚠️ Screening delayed:', screenErr);
-        setSuccess('Listing saved. Screening is running in the background.');
+        setSuccess(editId ? '🎉 Your listing has been updated!' : 'Listing saved. Screening is running in the background.');
         setIsSubmitted(true);
         setSubmittedListingId(createdListingId);
       }
