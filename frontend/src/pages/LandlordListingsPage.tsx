@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
-import { selectRows, updateRows } from '../lib/supabase';
+import { selectRows, updateRows, deleteRows } from '../lib/supabase';
 import PaymentModal from '../components/PaymentModal';
 
 export default function LandlordListingsPage() {
@@ -112,6 +112,34 @@ export default function LandlordListingsPage() {
     }
   };
 
+  const handleDelete = async (listingId: string) => {
+    if (!window.confirm('Are you sure you want to delete this listing? This action cannot be undone.')) {
+      return;
+    }
+    setActingId(listingId);
+    try {
+      await deleteRows('listings', {
+        filters: [{ column: 'id', op: 'eq', value: listingId }, { column: 'lister_id', op: 'eq', value: user.userId }],
+        accessToken: token
+      });
+      setListings((prev) => prev.filter(l => l.id !== listingId));
+    } catch (err: any) {
+      console.error('Failed to delete listing', err);
+      // Fallback to soft delete if DB constraints block hard delete
+      try {
+        await updateRows('listings', { status: 'rejected' }, {
+          filters: [{ column: 'id', op: 'eq', value: listingId }],
+          accessToken: token
+        });
+        setListings((prev) => prev.filter(l => l.id !== listingId));
+      } catch (e) {
+        alert('Failed to delete listing due to active tenant records.');
+      }
+    } finally {
+      setActingId(null);
+    }
+  };
+
   const handleBoostClick = (listingId: string) => {
     setBoostingListingId(listingId);
     setBoostModalOpen(true);
@@ -149,7 +177,7 @@ export default function LandlordListingsPage() {
 
   return (
     <>
-      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}} .lst-page{padding:2rem} .kpi-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:1.5rem} .kpi{background:var(--cream,#f8faf9);border-radius:12px;padding:14px 16px} .kpi-lbl{font-size:11px;color:var(--mid);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em} .kpi-val{font-size:22px;font-weight:700;line-height:1;color:var(--ink)} .kpi-sub{font-size:11px;margin-top:4px;color:var(--mid)} .toolbar{display:flex;align-items:center;gap:10px;margin-bottom:1.25rem;flex-wrap:wrap} .lst-search{flex:1;max-width:360px;padding:8px 12px;border-radius:10px;border:0.5px solid var(--border);background:#fff;font-size:13px;color:var(--ink);outline:none} .ftab{padding:6px 14px;border-radius:10px;border:0.5px solid var(--border);background:#fff;font-size:12px;color:var(--mid);cursor:pointer;transition:all 0.15s} .ftab.on{background:#EAF3DE;color:#27500A;border-color:#97C459;font-weight:600} .lst-table-wrap{overflow-x:auto} .lst-table{width:100%;border-collapse:collapse;font-size:12px} .lst-table th{padding:9px 14px;text-align:left;font-size:10px;font-weight:600;color:var(--mid);text-transform:uppercase;letter-spacing:.05em;border-bottom:0.5px solid var(--border);background:#fafafa;white-space:nowrap} .lst-table td{padding:12px 14px;border-bottom:0.5px solid var(--border);color:var(--ink);vertical-align:middle} .lst-table tr:last-child td{border-bottom:none} .lst-table tr:hover td{background:#fafcfb} .l-name{font-size:13px;font-weight:600;color:var(--jade);text-decoration:none} .l-name:hover{text-decoration:underline} .l-type{font-size:11px;color:var(--mid);margin-top:2px} .pill{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600} .p-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0} .p-approved{background:#EAF3DE;color:#27500A} .p-approved .p-dot{background:#3B6D11} .p-pending{background:#FAEEDA;color:#633806} .p-pending .p-dot{background:#854F0B} .p-flagged{background:#FCEBEB;color:#791F1F} .p-flagged .p-dot{background:#A32D2D} .p-rejected{background:#F1EFE8;color:#444441} .p-rejected .p-dot{background:#888780} .p-available{background:#E6F1FB;color:#0C447C} .p-available .p-dot{background:#185FA5} .p-occupied{background:#FCEBEB;color:#791F1F} .p-occupied .p-dot{background:#A32D2D} .p-boosted{background:#FAEEDA;color:#633806} .vbar-wrap{margin-top:4px;height:3px;border-radius:2px;background:var(--border);overflow:hidden;width:80px} .vbar{height:100%;border-radius:2px;background:var(--jade)} .vbar.low{background:#A32D2D} .act-btn{padding:5px 10px;border-radius:7px;border:0.5px solid var(--border);background:#fff;font-size:11px;font-weight:500;cursor:pointer;color:var(--ink);white-space:nowrap;transition:background 0.15s} .act-btn:hover{background:var(--cream)} .act-btn:disabled{opacity:0.5;cursor:default} .act-boost{background:#FAEEDA;color:#633806;border-color:#FAC775} .act-boost:hover{background:#FAC775} .act-fix{color:#791F1F;border-color:#F09595} .act-fix:hover{background:#FCEBEB} .act-done{background:#f3f4f6;color:#9ca3af;border-color:transparent;cursor:default} .lst-empty{padding:3rem 2rem;text-align:center;color:var(--mid);font-size:13px} .add-btn{padding:8px 18px;border-radius:10px;border:none;background:var(--jade);color:#fff;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-block} @media(max-width:768px){.kpi-strip{grid-template-columns:1fr 1fr}.lst-page{padding:1rem}}`}</style>
+      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}} .lst-page{padding:2rem} .kpi-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:1.5rem} .kpi{background:var(--cream,#f8faf9);border-radius:12px;padding:14px 16px} .kpi-lbl{font-size:11px;color:var(--mid);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em} .kpi-val{font-size:22px;font-weight:700;line-height:1;color:var(--ink)} .kpi-sub{font-size:11px;margin-top:4px;color:var(--mid)} .toolbar{display:flex;align-items:center;gap:10px;margin-bottom:1.25rem;flex-wrap:wrap} .lst-search{flex:1;max-width:360px;padding:8px 12px;border-radius:10px;border:0.5px solid var(--border);background:#fff;font-size:13px;color:var(--ink);outline:none} .ftab{padding:6px 14px;border-radius:10px;border:0.5px solid var(--border);background:#fff;font-size:12px;color:var(--mid);cursor:pointer;transition:all 0.15s} .ftab.on{background:#EAF3DE;color:#27500A;border-color:#97C459;font-weight:600} .lst-table-wrap{overflow-x:auto} .lst-table{width:100%;border-collapse:collapse;font-size:12px} .lst-table th{padding:9px 14px;text-align:left;font-size:10px;font-weight:600;color:var(--mid);text-transform:uppercase;letter-spacing:.05em;border-bottom:0.5px solid var(--border);background:#fafafa;white-space:nowrap} .lst-table td{padding:12px 14px;border-bottom:0.5px solid var(--border);color:var(--ink);vertical-align:middle} .lst-table tr:last-child td{border-bottom:none} .lst-table tr:hover td{background:#fafcfb} .l-name{font-size:13px;font-weight:600;color:var(--jade);text-decoration:none} .l-name:hover{text-decoration:underline} .l-type{font-size:11px;color:var(--mid);margin-top:2px} .pill{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600} .p-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0} .p-approved{background:#EAF3DE;color:#27500A} .p-approved .p-dot{background:#3B6D11} .p-pending{background:#FAEEDA;color:#633806} .p-pending .p-dot{background:#854F0B} .p-flagged{background:#FCEBEB;color:#791F1F} .p-flagged .p-dot{background:#A32D2D} .p-rejected{background:#F1EFE8;color:#444441} .p-rejected .p-dot{background:#888780} .p-available{background:#E6F1FB;color:#0C447C} .p-available .p-dot{background:#185FA5} .p-occupied{background:#FCEBEB;color:#791F1F} .p-occupied .p-dot{background:#A32D2D} .p-boosted{background:#FAEEDA;color:#633806} .vbar-wrap{margin-top:4px;height:3px;border-radius:2px;background:var(--border);overflow:hidden;width:80px} .vbar{height:100%;border-radius:2px;background:var(--jade)} .vbar.low{background:#A32D2D} .act-btn{padding:5px 10px;border-radius:7px;border:0.5px solid var(--border);background:#fff;font-size:11px;font-weight:500;cursor:pointer;color:var(--ink);white-space:nowrap;transition:background 0.15s} .act-btn:hover{background:var(--cream)} .act-btn:disabled{opacity:0.5;cursor:default} .act-boost{background:#FAEEDA;color:#633806;border-color:#FAC775} .act-boost:hover{background:#FAC775} .act-fix{color:#791F1F;border-color:#F09595} .act-fix:hover{background:#FCEBEB} .act-delete {color:#791F1F;} .act-delete:hover{background:#FCEBEB;} .act-done{background:#f3f4f6;color:#9ca3af;border-color:transparent;cursor:default} .lst-empty{padding:3rem 2rem;text-align:center;color:var(--mid);font-size:13px} .add-btn{padding:8px 18px;border-radius:10px;border:none;background:var(--jade);color:#fff;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-block} @media(max-width:768px){.kpi-strip{grid-template-columns:1fr 1fr}.lst-page{padding:1rem}}`}</style>
 
       <div className="lst-page">
         <div
@@ -343,6 +371,13 @@ export default function LandlordListingsPage() {
                                 Boosted
                               </button>
                             ) : null}
+                            <button
+                                className="act-btn act-delete"
+                                disabled={actingId === l.id}
+                                onClick={() => handleDelete(l.id)}
+                              >
+                                Delete
+                            </button>
                           </div>
                         </td>
                       </tr>
