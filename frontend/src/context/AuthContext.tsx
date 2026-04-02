@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import {
+  AUTH_SESSION_REFRESH_EVENT,
   clearStoredSession,
   fetchAuthUser,
   isSessionExpired,
@@ -158,6 +159,23 @@ export function AuthProvider({ children }) {
       initialize();
     }
   }, [initialize]);
+
+  useEffect(() => {
+    const handleSessionRefresh = (event: Event) => {
+      const detail = (event as CustomEvent)?.detail;
+      if (!detail?.session) {
+        return;
+      }
+
+      setSessionState({
+        session: detail.session,
+        persistent: detail.persistent !== false
+      });
+    };
+
+    window.addEventListener(AUTH_SESSION_REFRESH_EVENT, handleSessionRefresh);
+    return () => window.removeEventListener(AUTH_SESSION_REFRESH_EVENT, handleSessionRefresh);
+  }, []);
 
   const login = useCallback(
     async (credentials: Record<string, string>, options: { rememberMe?: boolean } = {}) => {

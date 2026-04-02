@@ -1,5 +1,6 @@
 const DEFAULT_PROJECT_REF = 'iavflytaqfdwhmshocvm';
 const SESSION_KEY = 'campusstay.supabase.session.v1';
+export const AUTH_SESSION_REFRESH_EVENT = 'campusstay:session-refreshed';
 
 const projectRef =
   import.meta.env.VITE_SUPABASE_PROJECT_REF ||
@@ -72,6 +73,81 @@ interface RequestOptions {
   extraHeaders?: Record<string, string>;
 }
 
+function buildSessionFromAuthPayload(authPayload, existingSession = null) {
+  if (!authPayload?.access_token) {
+    return null;
+  }
+
+  return {
+    access_token: authPayload.access_token,
+    refresh_token: authPayload.refresh_token || existingSession?.refresh_token || null,
+    expires_at: authPayload.expires_at,
+    expires_in: authPayload.expires_in,
+    token_type: authPayload.token_type,
+    user: authPayload.user || existingSession?.user || null
+  };
+}
+
+function dispatchSessionRefresh(session, persistent) {
+  if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function') {
+    return;
+  }
+
+  window.dispatchEvent(
+    new CustomEvent(AUTH_SESSION_REFRESH_EVENT, {
+      detail: { session, persistent }
+    })
+  );
+}
+
+function shouldRefreshAuthToken(status, payload) {
+  if (status !== 401) {
+    return false;
+  }
+
+  const message = normalizeErrorMessage(payload, '').toLowerCase();
+  return (
+    message.includes('jwt expired') ||
+    message.includes('invalid jwt') ||
+    message.includes('token has expired') ||
+    message.includes('expired')
+  );
+}
+
+async function refreshStoredAccessToken(accessToken?: string) {
+  if (!accessToken) {
+    return accessToken;
+  }
+
+  const { session, persistent } = readStoredSession();
+  if (!session?.refresh_token) {
+    return session?.access_token || accessToken;
+  }
+
+  if (session.access_token && session.access_token !== accessToken && !isSessionExpired(session)) {
+    return session.access_token;
+  }
+
+  if (!isSessionExpired(session) && session.access_token) {
+    return session.access_token;
+  }
+
+  try {
+    const refreshed = await refreshAuthSession(session.refresh_token);
+    const nextSession = buildSessionFromAuthPayload(refreshed, session);
+
+    if (!nextSession?.access_token) {
+      return accessToken;
+    }
+
+    writeStoredSession(nextSession, persistent);
+    dispatchSessionRefresh(nextSession, persistent);
+    return nextSession.access_token;
+  } catch {
+    return accessToken;
+  }
+}
+
 async function request(path: string, options: RequestOptions = {}) {
   if (!SUPABASE_ANON_KEY) {
     throw new Error(
@@ -90,6 +166,7 @@ async function request(path: string, options: RequestOptions = {}) {
     extraHeaders = {}
   } = options;
 
+  const resolvedAccessToken = await refreshStoredAccessToken(accessToken);
   const target = new URL(path, SUPABASE_URL);
   if (query) {
     Object.entries(query).forEach(([key, value]) => {
@@ -99,28 +176,50 @@ async function request(path: string, options: RequestOptions = {}) {
     });
   }
 
-  const response = await fetch(target.toString(), {
-    method,
-    headers: buildHeaders({
-      accessToken,
-      contentType: body == null ? undefined : contentType,
-      prefer,
-      extra: extraHeaders
-    }),
-    body: body == null ? undefined : contentType === 'application/json' ? JSON.stringify(body) : body
-  });
+  const executeFetch = async (tokenOverride?: string) =>
+    fetch(target.toString(), {
+      method,
+      headers: buildHeaders({
+        accessToken: tokenOverride,
+        contentType: body == null ? undefined : contentType,
+        prefer,
+        extra: extraHeaders
+      }),
+      body: body == null ? undefined : contentType === 'application/json' ? JSON.stringify(body) : body
+    });
+
+  let response = await executeFetch(resolvedAccessToken);
 
   if (raw) {
+    if (accessToken && response.status === 401) {
+      const retriedAccessToken = await refreshStoredAccessToken(resolvedAccessToken);
+      if (retriedAccessToken && retriedAccessToken !== resolvedAccessToken) {
+        response = await executeFetch(retriedAccessToken);
+      }
+    }
     return response;
   }
 
-  const text = await response.text();
-  let payload = null;
-  if (text) {
-    try {
-      payload = JSON.parse(text);
-    } catch {
-      payload = text;
+  const parseResponse = async (activeResponse) => {
+    const text = await activeResponse.text();
+    let payload = null;
+    if (text) {
+      try {
+        payload = JSON.parse(text);
+      } catch {
+        payload = text;
+      }
+    }
+    return payload;
+  };
+
+  let payload = await parseResponse(response);
+
+  if (accessToken && shouldRefreshAuthToken(response.status, payload)) {
+    const retriedAccessToken = await refreshStoredAccessToken(resolvedAccessToken);
+    if (retriedAccessToken && retriedAccessToken !== resolvedAccessToken) {
+      response = await executeFetch(retriedAccessToken);
+      payload = await parseResponse(response);
     }
   }
 
@@ -427,25 +526,40 @@ export async function uploadPublicObject({ bucket, path, file, accessToken }) {
     .map((segment) => encodeURIComponent(segment))
     .join('/');
 
-  const response = await fetch(
-    `${SUPABASE_URL}/storage/v1/object/${encodeURIComponent(bucket)}/${encodedPath}`,
-    {
+  const resolvedAccessToken = await refreshStoredAccessToken(accessToken);
+  const target = `${SUPABASE_URL}/storage/v1/object/${encodeURIComponent(bucket)}/${encodedPath}`;
+  const executeUpload = async (tokenOverride?: string) =>
+    fetch(target, {
       method: 'POST',
       headers: {
-        ...buildHeaders({ accessToken, contentType: file.type || 'application/octet-stream' }),
+        ...buildHeaders({ accessToken: tokenOverride, contentType: file.type || 'application/octet-stream' }),
         'x-upsert': 'true'
       },
       body: file
-    }
-  );
+    });
 
-  const text = await response.text();
-  let payload = null;
-  if (text) {
-    try {
-      payload = JSON.parse(text);
-    } catch {
-      payload = text;
+  let response = await executeUpload(resolvedAccessToken);
+
+  const parseResponse = async (activeResponse) => {
+    const text = await activeResponse.text();
+    let payload = null;
+    if (text) {
+      try {
+        payload = JSON.parse(text);
+      } catch {
+        payload = text;
+      }
+    }
+    return payload;
+  };
+
+  let payload = await parseResponse(response);
+
+  if (accessToken && shouldRefreshAuthToken(response.status, payload)) {
+    const retriedAccessToken = await refreshStoredAccessToken(resolvedAccessToken);
+    if (retriedAccessToken && retriedAccessToken !== resolvedAccessToken) {
+      response = await executeUpload(retriedAccessToken);
+      payload = await parseResponse(response);
     }
   }
 
