@@ -117,7 +117,7 @@ export default function AdminSidebar({
               }}
             >
               {/* Header */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', borderBottom: \`1px solid \${BORDER}\` }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', borderBottom: `1px solid \${BORDER}` }}>
                 <h3 style={{ margin: 0, fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: MUTED }}>Admin Menu</h3>
                 <button
                   onClick={onMobileDrawerClose}
@@ -128,11 +128,11 @@ export default function AdminSidebar({
               </div>
 
               {/* Profile Block */}
-              <div style={{ padding: '0.75rem 1rem', borderBottom: \`1px solid \${BORDER}\` }}>
+              <div style={{ padding: '0.75rem 1rem', borderBottom: `1px solid \${BORDER}` }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                   <div style={{
                     width: 32, height: 32, borderRadius: 50,
-                    background: \`linear-gradient(135deg, \${TEAL}, #14b8a6)\`,
+                    background: `linear-gradient(135deg, \${TEAL}, #14b8a6)`,
                     color: WHITE, fontWeight: 800, fontSize: '0.75rem',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     flexShrink: 0,
@@ -193,7 +193,7 @@ export default function AdminSidebar({
                   fontSize: '0.55rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.07em', color: MUTED,
                   padding: '0.75rem 1.2rem 0.25rem',
                   margin: 0,
-                  borderTop: \`1px solid \${BORDER}\`,
+                  borderTop: `1px solid \${BORDER}`,
                   marginTop: '0.5rem',
                 }}>
                   Moderation
@@ -231,7 +231,7 @@ export default function AdminSidebar({
               </div>
 
               {/* Help & Logout */}
-              <div style={{ padding: '0.5rem', borderTop: \`1px solid \${BORDER}\`, background: '#f8fafc' }}>
+              <div style={{ padding: '0.5rem', borderTop: `1px solid \${BORDER}`, background: '#f8fafc' }}>
                 <button
                   type="button"
                   onClick={() => { window.location.href = 'mailto:support@campusstay.co.tz'; if (onMobileDrawerClose) onMobileDrawerClose(); }}
