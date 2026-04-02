@@ -221,11 +221,13 @@ export default function ListPropertyPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submittedListingId, setSubmittedListingId] = useState<string | null>(null);
   const [draftsDisabled, setDraftsDisabled] = useState(false);
+  const [verificationStatus, setVerificationStatus] = useState(
+    String(user?.landlordVerificationStatus || '').trim().toLowerCase()
+  );
 
   const hasListerRole = user?.role === 'LISTER';
-  const rawStatus = String(user?.landlordVerificationStatus || '').trim().toLowerCase();
-  const isVerified = rawStatus === 'approved' || rawStatus === 'verified';
-  const isRejected = rawStatus === 'rejected';
+  const isVerified = verificationStatus === 'approved' || verificationStatus === 'verified';
+  const isRejected = verificationStatus === 'rejected';
   const verificationRequiredMessage = isRejected
     ? t('hostFlow.verificationRejected')
     : t('hostFlow.verificationPending');
@@ -237,6 +239,51 @@ export default function ListPropertyPage() {
         : t('hostFlow.awaitingAdminApproval')
       : t('hostFlow.btnSubmitListing');
   const canSubmitListing = isVerified && Boolean(formValues.policyAccepted) && !submitting;
+
+  useEffect(() => {
+    setVerificationStatus(String(user?.landlordVerificationStatus || '').trim().toLowerCase());
+  }, [user?.landlordVerificationStatus]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function syncVerificationStatus() {
+      if (!user?.userId || !token || !hasListerRole) {
+        return;
+      }
+
+      try {
+        const rows = await selectRows('profiles', {
+          select: 'verification_status',
+          filters: [{ column: 'id', op: 'eq', value: user.userId }],
+          limit: 1,
+          accessToken: token
+        });
+
+        if (!cancelled && rows[0]) {
+          setVerificationStatus(String(rows[0].verification_status || '').trim().toLowerCase());
+        }
+      } catch {
+        // Keep the current in-memory status if background refresh fails.
+      }
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void syncVerificationStatus();
+      }
+    };
+
+    void syncVerificationStatus();
+    window.addEventListener('focus', syncVerificationStatus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener('focus', syncVerificationStatus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [user?.userId, token, hasListerRole, step]);
 
   // Load draft on mount
   useEffect(() => {
@@ -432,6 +479,28 @@ export default function ListPropertyPage() {
     try {
       const accessToken = token;
       const values = formValues;
+      const profileRows = await selectRows('profiles', {
+        select: 'verification_status',
+        filters: [{ column: 'id', op: 'eq', value: user.userId }],
+        limit: 1,
+        accessToken
+      });
+      const latestVerificationStatus = String(
+        profileRows[0]?.verification_status || verificationStatus
+      )
+        .trim()
+        .toLowerCase();
+
+      setVerificationStatus(latestVerificationStatus);
+
+      if (latestVerificationStatus !== 'approved' && latestVerificationStatus !== 'verified') {
+        setError(
+          latestVerificationStatus === 'rejected'
+            ? t('hostFlow.verificationRejected')
+            : t('hostFlow.verificationPending')
+        );
+        return;
+      }
 
       console.log('📦 Step 1: Updating Profile...');
       await upsertRows(
