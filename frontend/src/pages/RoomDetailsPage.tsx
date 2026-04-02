@@ -180,8 +180,7 @@ export default function RoomDetailsPage() {
 
   // Bookings state
   const [existingBooking, setExistingBooking] = useState(null);
-  // const [bookingsLoading, setBookingsLoading] = useState(true);
-  // const [bookings, setBookings] = useState([]);
+  const [bookingsLoading, setBookingsLoading] = useState(true);
 
   // Report state
   const [openReport, setOpenReport] = useState(false);
@@ -342,6 +341,7 @@ export default function RoomDetailsPage() {
 
     async function loadBookings() {
       if (!listing?.id || !user?.userId || !token) {
+        setBookingsLoading(false);
         return;
       }
 
@@ -354,7 +354,6 @@ export default function RoomDetailsPage() {
 
         if (mounted) {
           setExistingBooking(bookings.length > 0 ? bookings[0] : null);
-          // setBookings(activeBookings);
         }
       } catch (err) {
         console.error('Error fetching bookings:', err);
@@ -363,7 +362,7 @@ export default function RoomDetailsPage() {
         }
       } finally {
         if (mounted) {
-          // setBookingsLoading(false); // This line was removed
+          setBookingsLoading(false);
         }
       }
     }
@@ -374,6 +373,19 @@ export default function RoomDetailsPage() {
       mounted = false;
     };
   }, [listing?.id, user?.userId, token]);
+
+  const isAuthorized = useMemo(() => {
+    if (!listing) return null;
+    if (listing.vacancyStatus !== 'occupied') return true;
+    if (user?.userId === listing.listerId) return true;
+    if (!user?.userId) return false;
+    
+    if (bookingsLoading) return null; 
+    
+    if (existingBooking && ['approved', 'paid', 'confirmed'].includes(existingBooking.status) && existingBooking.tenantId === user.userId) return true;
+    
+    return false;
+  }, [listing, user?.userId, existingBooking, bookingsLoading]);
 
   const amenities = useMemo(() => {
     if (!listing?.amenities || typeof listing.amenities !== 'object') {
@@ -761,6 +773,31 @@ export default function RoomDetailsPage() {
         </section>
       </div>
     );
+  }
+
+  if (isAuthorized === false) {
+    return (
+      <div className="container section">
+        <section className="card" style={{ textAlign: 'center', padding: '4rem 1rem' }}>
+          <h1 style={{ color: '#E53E3E', marginBottom: '1rem' }}>Room Unavailable</h1>
+          <p className="error-text">This room has been paid for and is no longer available for viewing.</p>
+          <Link className="btn" to="/search" style={{ marginTop: '1.5rem', display: 'inline-block' }}>
+            {t('roomDetails.backToSearch')}
+          </Link>
+        </section>
+      </div>
+    );
+  }
+
+  // Prevent rendering if still determining authorization for an occupied listing
+  if (listing.vacancyStatus === 'occupied' && isAuthorized === null) {
+     return (
+      <div className="container section room-page">
+        <section className="card" style={{ textAlign: 'center', padding: '4rem 1rem' }}>
+          <p>Verifying access...</p>
+        </section>
+      </div>
+     );
   }
 
   return (
