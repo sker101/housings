@@ -8,6 +8,7 @@ import LandlordSidebar from './LandlordSidebar';
 import StudentSidebar from './StudentSidebar';
 import AdminSidebar from './AdminSidebar';
 import { Menu } from 'lucide-react';
+import { Toaster } from 'react-hot-toast';
 
 export default function Layout({ children }) {
   const { user, token, isAuthenticated, logout, networkError, setNetworkError } = useAuth();
@@ -260,7 +261,9 @@ export default function Layout({ children }) {
   })();
 
   return (
-    <div className="app-shell">
+    <>
+      <Toaster position="top-right" />
+      <div className="app-shell">
       {sosMode ? (
         <div className="sos-banner">
           <span className="sos-banner__content">
@@ -528,5 +531,6 @@ export default function Layout({ children }) {
       ) : null}
 
     </div>
+    </>
   );
 }

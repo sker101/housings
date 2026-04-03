@@ -8,6 +8,12 @@ import AdminDashboardPage from './pages/AdminDashboardPage';
 import AdminLandlordsPage from './pages/AdminLandlordsPage';
 import AdminListingsPage from './pages/AdminListingsPage';
 import AdminReportsPage from './pages/AdminReportsPage';
+import AdminAccessPage from './pages/AdminAccessPage';
+import AdminDisputesPage from './pages/AdminDisputesPage';
+import AdminFlagsPage from './pages/AdminFlagsPage';
+import AdminConfigPage from './pages/AdminConfigPage';
+import AdminAuditPage from './pages/AdminAuditPage';
+import AdminUsersPage from './pages/AdminUsersPage';
 import HomePage from './pages/HomePage';
 import LandlordDashboardPage from './pages/LandlordDashboardPage';
 import LandlordListingsPage from './pages/LandlordListingsPage';
@@ -173,6 +179,54 @@ export default function App() {
           element={
             <ProtectedRoute roles={[APP_ROLE.ADMIN]}>
               <AdminClaimsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/access"
+          element={
+            <ProtectedRoute roles={[APP_ROLE.ADMIN]}>
+              <AdminAccessPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/disputes"
+          element={
+            <ProtectedRoute roles={[APP_ROLE.ADMIN]}>
+              <AdminDisputesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/flags"
+          element={
+            <ProtectedRoute roles={[APP_ROLE.ADMIN]}>
+              <AdminFlagsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/config"
+          element={
+            <ProtectedRoute roles={[APP_ROLE.ADMIN]}>
+              <AdminConfigPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/audit"
+          element={
+            <ProtectedRoute roles={[APP_ROLE.ADMIN]}>
+              <AdminAuditPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            <ProtectedRoute roles={[APP_ROLE.ADMIN]}>
+              <AdminUsersPage />
             </ProtectedRoute>
           }
         />
