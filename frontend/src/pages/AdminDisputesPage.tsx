@@ -33,9 +33,9 @@ export default function AdminDisputesPage() {
   const loadCounts = async () => {
     try {
       const counts = await Promise.all([
-        countRows('disputes', { filters: ['status.eq.open'] }),
-        countRows('disputes', { filters: ['status.eq.under_review'] }),
-        countRows('disputes', { filters: ['status.eq.resolved'] })
+        countRows('disputes', { filters: [{ column: 'status', op: 'eq', value: 'open' }] }),
+        countRows('disputes', { filters: [{ column: 'status', op: 'eq', value: 'under_review' }] }),
+        countRows('disputes', { filters: [{ column: 'status', op: 'eq', value: 'resolved' }] })
       ]);
       setCounts({
         open: counts[0],
@@ -51,7 +51,7 @@ export default function AdminDisputesPage() {
     setIsLoading(true);
     try {
       const data = await selectRows('disputes', {
-        filters: [`status.eq.${activeTab}`],
+        filters: [{ column: 'status', op: 'eq', value: activeTab }],
         order: 'created_at.desc'
       });
       setDisputes(data);
@@ -70,7 +70,7 @@ export default function AdminDisputesPage() {
         resolution,
         resolved_by: user?.id
       }, {
-        filters: [`id.eq.${disputeId}`]
+        filters: [{ column: 'id', op: 'eq', value: disputeId }]
       });
 
       await insertRows('admin_audit_log', {

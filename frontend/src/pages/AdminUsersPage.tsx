@@ -30,18 +30,15 @@ export default function AdminUsersPage() {
   const loadUsers = async () => {
     setIsLoading(true);
     try {
-      let filters: string[] = [];
+      let filters = [];
 
       if (activeRole !== 'all') {
-        filters.push(`role.eq.${activeRole}`);
-      }
-
-      if (searchQuery.trim()) {
-        filters.push(`or(full_name.ilike.%${searchQuery}%,email.ilike.%${searchQuery}%,phone.ilike.%${searchQuery}%)`);
+        filters.push({ column: 'role', op: 'eq', value: activeRole });
       }
 
       const data = await selectRows('profiles', {
-        filters,
+        filters: filters.length > 0 ? filters : undefined,
+        or: searchQuery.trim() ? `full_name.ilike.%${searchQuery}%,email.ilike.%${searchQuery}%,phone.ilike.%${searchQuery}%` : undefined,
         limit: 100,
         order: 'created_at.desc'
       });
@@ -57,7 +54,7 @@ export default function AdminUsersPage() {
   const suspendUser = async (userId: string) => {
     try {
       await updateRows('profiles', { status: 'suspended' }, {
-        filters: [`id.eq.${userId}`]
+        filters: [{ column: 'id', op: 'eq', value: userId }]
       });
 
       setUsers(users.map(u => u.id === userId ? { ...u, status: 'suspended' } : u));
@@ -70,7 +67,7 @@ export default function AdminUsersPage() {
   const unsuspendUser = async (userId: string) => {
     try {
       await updateRows('profiles', { status: 'active' }, {
-        filters: [`id.eq.${userId}`]
+        filters: [{ column: 'id', op: 'eq', value: userId }]
       });
 
       setUsers(users.map(u => u.id === userId ? { ...u, status: 'active' } : u));

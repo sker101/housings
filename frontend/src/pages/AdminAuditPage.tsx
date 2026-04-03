@@ -31,14 +31,13 @@ export default function AdminAuditPage() {
 
   const loadCount = async () => {
     try {
-      const filters: string[] = [];
-      if (filterAction) filters.push(`action.ilike.%${filterAction}%`);
-      if (filterStartDate) filters.push(`created_at.gte.${filterStartDate}T00:00:00Z`);
-      if (filterEndDate) filters.push(`created_at.lte.${filterEndDate}T23:59:59Z`);
+      const filters = [];
+      if (filterAction) filters.push({ column: 'action', op: 'ilike', value: `%${filterAction}%` });
+      if (filterStartDate) filters.push({ column: 'created_at', op: 'gte', value: `${filterStartDate}T00:00:00Z` });
+      if (filterEndDate) filters.push({ column: 'created_at', op: 'lte', value: `${filterEndDate}T23:59:59Z` });
 
-      const query = filters.length > 0 ? `or(${filters.join(',')})` : undefined;
       const count = await countRows('admin_audit_log', {
-        filters: query ? [query] : undefined
+        filters: filters.length > 0 ? filters : undefined
       });
       setTotalCount(count);
     } catch (error) {
@@ -49,13 +48,13 @@ export default function AdminAuditPage() {
   const loadLogs = async () => {
     setIsLoading(true);
     try {
-      const filters: string[] = [];
-      if (filterAction) filters.push(`action.ilike.%${filterAction}%`);
-      if (filterStartDate) filters.push(`created_at.gte.${filterStartDate}T00:00:00Z`);
-      if (filterEndDate) filters.push(`created_at.lte.${filterEndDate}T23:59:59Z`);
+      const filters = [];
+      if (filterAction) filters.push({ column: 'action', op: 'ilike', value: `%${filterAction}%` });
+      if (filterStartDate) filters.push({ column: 'created_at', op: 'gte', value: `${filterStartDate}T00:00:00Z` });
+      if (filterEndDate) filters.push({ column: 'created_at', op: 'lte', value: `${filterEndDate}T23:59:59Z` });
 
       const data = await selectRows('admin_audit_log', {
-        filters,
+        filters: filters.length > 0 ? filters : undefined,
         order: 'created_at.desc',
         limit: pageSize,
         offset: page * pageSize,

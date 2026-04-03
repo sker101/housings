@@ -43,9 +43,7 @@ export default function AdminAccessPage() {
     setIsSearching(true);
     try {
       const results = await selectRows('profiles', {
-        filters: [
-          `or(full_name.ilike.%${query}%,email.ilike.%${query}%,phone.ilike.%${query}%)`
-        ]
+        or: `full_name.ilike.%${query}%,email.ilike.%${query}%,phone.ilike.%${query}%`
       });
       setSearchResults(results);
     } catch (error) {
@@ -64,7 +62,7 @@ export default function AdminAccessPage() {
       setIsLoadingListings(true);
       try {
         const listings = await selectRows('listings', {
-          filters: [`lister_id.eq.${profile.id}`],
+          filters: [{ column: 'lister_id', op: 'eq', value: profile.id }],
           select: 'id,title,status,created_at'
         });
         setAccountListings(listings);
@@ -96,7 +94,7 @@ export default function AdminAccessPage() {
 
     try {
       await updateRows('profiles', { status: 'suspended' }, {
-        filters: [`id.eq.${selectedAccount.id}`]
+        filters: [{ column: 'id', op: 'eq', value: selectedAccount.id }]
       });
 
       await logAdminAction('suspend_account', 'profile', selectedAccount.id, {
@@ -116,7 +114,7 @@ export default function AdminAccessPage() {
 
     try {
       await updateRows('profiles', { status: 'active' }, {
-        filters: [`id.eq.${selectedAccount.id}`]
+        filters: [{ column: 'id', op: 'eq', value: selectedAccount.id }]
       });
 
       await logAdminAction('unsuspend_account', 'profile', selectedAccount.id, {
@@ -231,8 +229,10 @@ export default function AdminAccessPage() {
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   cursor: 'pointer',
-                  ':hover': { background: '#f9fafb' }
+                  background: '#fff'
                 }}
+                onMouseOver={(e) => (e.currentTarget.style.background = '#f9fafb')}
+                onMouseOut={(e) => (e.currentTarget.style.background = '#fff')}
               >
                 <div style={{ flex: 1 }}>
                   <p style={{ fontWeight: '600', marginBottom: '0.25rem' }}>{profile.full_name}</p>

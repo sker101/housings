@@ -1,330 +1,297 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
-    LayoutDashboard, Users, Home, ClipboardList, Flag, Star, BellRing, Settings,
-    UserPlus, Building, ShieldAlert, BookOpen, LogOut, HelpCircle, Lock, Gavel,
-    AlertTriangle, Sliders, BarChart3, Eye
+  LayoutDashboard, Eye, Users, Lock, Building, Gavel, DollarSign, AlertTriangle,
+  BarChart3, Settings, BookOpen, LogOut, Menu, X, Shield
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-// ── Design tokens ──────────────────────────────────────────────────────────
 const TEAL = '#0d7a6e';
-const TEAL_L = '#e6f7f5';
-const CORAL = '#e8550a';
-const CORAL_L = '#fff1ec';
-const MUTED = '#6b7280';
-const BORDER = '#e2e8f0';
+const BORDER = '#e5e7eb';
 const WHITE = '#ffffff';
-
+const MUTED = '#6b7280';
 const FONT = "'Nunito', 'Poppins', system-ui, sans-serif";
 
-interface AdminSidebarProps {
-    isCollapsed?: boolean;
+interface NavItem {
+  label: string;
+  icon: React.ReactNode;
+  path: string;
 }
 
-export default function AdminSidebar({
-    isCollapsed = false,
-}: AdminSidebarProps) {
-    const { user, logout } = useAuth();
-    const location = useLocation();
-    const searchParams = new URLSearchParams(location.search);
-    const currentTab = searchParams.get('tab') || 'overview';
-    const isBaseAdminPath = location.pathname === '/admin' || location.pathname === '/admin/';
-    const [visible, setVisible] = useState(false);
+interface NavCategory {
+  name: string;
+  items: NavItem[];
+}
 
-    // Staggered fade-in on mount
-    useEffect(() => { const t = setTimeout(() => setVisible(true), 60); return () => clearTimeout(t); }, []);
+export default function AdminSidebar() {
+  const { user, logout } = useAuth();
+  const location = useLocation();
+  const [isOpen, setIsOpen] = useState(false);
 
-    const initials = (user?.fullName ?? 'A').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
+  const categories: NavCategory[] = [
+    {
+      name: 'Overview',
+      items: [
+        { label: 'Dashboard', icon: <LayoutDashboard size={16} />, path: '/admin' },
+        { label: 'Live Activity', icon: <Eye size={16} />, path: '/admin?tab=overview' }
+      ]
+    },
+    {
+      name: 'Users',
+      items: [
+        { label: 'All Users', icon: <Users size={16} />, path: '/admin/users' },
+        { label: 'Access Accounts', icon: <Lock size={16} />, path: '/admin/access' },
+        { label: 'Landlords & Dalalis', icon: <Building size={16} />, path: '/admin/landlords' },
+        { label: 'Students', icon: <Users size={16} />, path: '/admin/students' }
+      ]
+    },
+    {
+      name: 'Operations',
+      items: [
+        { label: 'Listings', icon: <Building size={16} />, path: '/admin/listings' },
+        { label: 'Disputes', icon: <Gavel size={16} />, path: '/admin/disputes' },
+        { label: 'Payments', icon: <DollarSign size={16} />, path: '/admin/payments' },
+        { label: 'Flagged Content', icon: <AlertTriangle size={16} />, path: '/admin/flags' }
+      ]
+    },
+    {
+      name: 'Platform',
+      items: [
+        { label: 'Analytics', icon: <BarChart3 size={16} />, path: '/admin/analytics' },
+        { label: 'System Config', icon: <Settings size={16} />, path: '/admin/config' },
+        { label: 'Audit Log', icon: <BookOpen size={16} />, path: '/admin/audit' }
+      ]
+    }
+  ];
 
-    const SECTIONS = [
-        { id: 'overview', label: 'Overview', icon: <LayoutDashboard size={18} />, group: 'main', path: '/admin?tab=overview' },
-        { id: 'users', label: 'Users', icon: <Users size={18} />, group: 'main', path: '/admin?tab=users' },
-        { id: 'listings', label: 'Listings', icon: <Home size={18} />, group: 'main', path: '/admin?tab=listings' },
-        { id: 'bookings', label: 'Bookings', icon: <ClipboardList size={18} />, group: 'main', path: '/admin?tab=bookings' },
-        { id: 'reports', label: 'Reports', icon: <Flag size={18} />, group: 'main', path: '/admin?tab=reports' },
-        { id: 'reviews', label: 'Reviews', icon: <Star size={18} />, group: 'main', path: '/admin?tab=reviews' },
-        { id: 'notifications', label: 'Notify', icon: <BellRing size={18} />, group: 'main', path: '/admin?tab=notifications' },
-        { id: 'settings', label: 'Settings', icon: <Settings size={18} />, group: 'main', path: '/admin?tab=settings' },
-    ];
+  const isActive = (path: string) => {
+    if (path === '/admin') return location.pathname === '/admin';
+    if (path.includes('?')) return location.pathname === '/admin';
+    return location.pathname === path;
+  };
 
-    const MODERATION = [
-        { id: 'queue_listers', label: 'Listers Queue', icon: <UserPlus size={18} />, path: '/admin/landlords' },
-        { id: 'queue_listings', label: 'Listings Queue', icon: <Building size={18} />, path: '/admin/listings' },
-        { id: 'queue_reports', label: 'Reports Queue', icon: <Flag size={18} />, path: '/admin/reports' },
-        { id: 'queue_claims', label: 'Claims Queue', icon: <ShieldAlert size={18} />, path: '/admin/claims' },
-    ];
+  const handleLogout = () => {
+    setIsOpen(false);
+    logout();
+  };
 
-    const GOVERNANCE = [
-        { id: 'access_accounts', label: 'Access Accounts', icon: <Lock size={18} />, path: '/admin/access', badge: 'HIGH' },
-        { id: 'disputes', label: 'Disputes', icon: <Gavel size={18} />, path: '/admin/disputes', badge: 'NEW' },
-        { id: 'flagged_content', label: 'Flagged Content', icon: <AlertTriangle size={18} />, path: '/admin/flags' },
-        { id: 'users_all', label: 'All Users', icon: <Users size={18} />, path: '/admin/users' },
-        { id: 'system_config', label: 'System Config', icon: <Sliders size={18} />, path: '/admin/config' },
-        { id: 'audit_log', label: 'Audit Log', icon: <BookOpen size={18} />, path: '/admin/audit' },
-    ];
+  // Always render both button and drawer
+  return (
+    <>
+      {/* ALWAYS VISIBLE Menu Button - z-index ensures it stays on top */}
+      <button
+        onClick={() => setIsOpen(true)}
+        type="button"
+        style={{
+          position: 'fixed',
+          bottom: '2.5rem',
+          right: '2.5rem',
+          width: '60px',
+          height: '60px',
+          borderRadius: '50%',
+          background: TEAL,
+          border: 'none',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: WHITE,
+          boxShadow: '0 4px 12px rgba(13, 122, 110, 0.4)',
+          transition: 'all 0.2s ease',
+          zIndex: isOpen ? -1 : 999, // Hidden behind drawer when open
+          opacity: isOpen ? 0 : 1,
+          pointerEvents: isOpen ? 'none' : 'auto',
+          padding: 0,
+          fontSize: '0'
+        }}
+        onMouseOver={(e) => !isOpen && (e.currentTarget.style.transform = 'scale(1.1)')}
+        onMouseOut={(e) => !isOpen && (e.currentTarget.style.transform = 'scale(1)')}
+        title="Click to open admin menu"
+      >
+        <Menu size={28} />
+      </button>
 
-    const desktop = (
-        <aside
-            className="admin-sidebar-desktop"
+      {/* Drawer Modal */}
+      {isOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 999,
+          display: 'flex',
+          background: 'transparent'
+        }}>
+          {/* Backdrop - clickable to close */}
+          <div
             style={{
-                width: isCollapsed ? 70 : 240,
-                flexShrink: 0,
-                background: WHITE,
-                borderRight: `1px solid ${BORDER}`,
-                display: 'flex',
-                flexDirection: 'column',
-                height: '100%',
-                overflowY: 'auto',
-                overflowX: 'hidden',
-                fontFamily: FONT,
-                opacity: visible ? 1 : 0,
-                transform: visible ? 'translateX(0)' : 'translateX(-12px)',
-                transition: 'width 0.3s ease, opacity 0.4s ease, transform 0.4s ease',
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(0, 0, 0, 0.4)',
+              zIndex: 998
             }}
-        >
-            {/* Profile block */}
-            <div style={{ padding: isCollapsed ? '1.5rem 0' : '1.5rem 1.25rem 1rem', borderBottom: `1px solid ${BORDER}`, display: 'flex', flexDirection: 'column', alignItems: isCollapsed ? 'center' : 'stretch' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'flex-start', gap: '0.75rem', marginBottom: isCollapsed ? 0 : '0.5rem' }}>
-                    <div style={{
-                        width: 44, height: 44, borderRadius: 50,
-                        background: `linear-gradient(135deg, ${TEAL}, #14b8a6)`,
-                        color: WHITE, fontWeight: 800, fontSize: '0.95rem',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        flexShrink: 0,
-                    }} title={user?.fullName ?? 'Admin'}>
-                        {initials}
-                    </div>
-                    {!isCollapsed && (
-                        <div style={{ minWidth: 0, opacity: isCollapsed ? 0 : 1, transition: 'opacity 0.2s ease' }}>
-                            <p style={{ fontWeight: 700, fontSize: '0.92rem', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {user?.fullName ?? 'Admin'}
-                            </p>
-                            <p style={{ fontSize: '0.73rem', color: MUTED, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                System Maintainer
-                            </p>
-                        </div>
-                    )}
+            onClick={() => setIsOpen(false)}
+          />
+
+          {/* Sidebar Panel - higher z-index */}
+          <div style={{
+            position: 'fixed',
+            left: 0,
+            top: 0,
+            height: '100%',
+            width: '280px',
+            background: WHITE,
+            display: 'flex',
+            flexDirection: 'column',
+            fontFamily: FONT,
+            boxShadow: '2px 0 20px rgba(0, 0, 0, 0.15)',
+            zIndex: 999,
+            animation: 'slideIn 0.25s ease'
+          }}>
+            {/* Header */}
+            <div style={{
+              padding: '1.5rem',
+              borderBottom: `1px solid ${BORDER}`,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <h2 style={{ fontWeight: '700', fontSize: '1rem', margin: 0 }}>Admin Menu</h2>
+              <button
+                onClick={() => setIsOpen(false)}
+                type="button"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '0.5rem',
+                  color: MUTED,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'color 0.2s'
+                }}
+                onMouseOver={(e) => (e.currentTarget.style.color = TEAL)}
+                onMouseOut={(e) => (e.currentTarget.style.color = MUTED)}
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            {/* Navigation */}
+            <nav style={{ flex: 1, padding: '1rem 0', overflowY: 'auto' }}>
+              {categories.map((category) => (
+                <div key={category.name} style={{ marginBottom: '1.5rem' }}>
+                  <p style={{
+                    fontSize: '0.7rem',
+                    fontWeight: '700',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.08em',
+                    color: MUTED,
+                    padding: '0.5rem 1.5rem 0.75rem',
+                    margin: 0
+                  }}>
+                    {category.name}
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    {category.items.map((item) => (
+                      <NavLink
+                        key={item.label}
+                        to={item.path}
+                        onClick={() => setIsOpen(false)}
+                        style={({ isActive: active }) => ({
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.75rem',
+                          padding: '0.65rem 1.5rem',
+                          color: active ? TEAL : '#525252',
+                          background: active ? '#f0fffe' : 'transparent',
+                          borderLeft: active ? `4px solid ${TEAL}` : '4px solid transparent',
+                          paddingLeft: active ? '1.25rem' : '1.5rem',
+                          textDecoration: 'none',
+                          fontWeight: active ? '600' : '500',
+                          fontSize: '0.88rem',
+                          transition: 'all 0.15s'
+                        })}
+                      >
+                        <span style={{ display: 'flex', alignItems: 'center', width: '18px' }}>
+                          {item.icon}
+                        </span>
+                        {item.label}
+                      </NavLink>
+                    ))}
+                  </div>
                 </div>
-                {!isCollapsed && (
-                    <span style={{
-                        display: 'inline-block',
-                        background: TEAL_L, color: TEAL, alignSelf: 'flex-start',
-                        fontSize: '0.65rem', fontWeight: 700,
-                        borderRadius: 999, padding: '0.15rem 0.55rem',
-                        textTransform: 'uppercase', letterSpacing: '0.04em',
-                    }}>
-                        Superuser
-                    </span>
-                )}
+              ))}
+            </nav>
+
+            {/* Footer */}
+            <div style={{
+              padding: '1.5rem',
+              borderTop: `1px solid ${BORDER}`,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1rem'
+            }}>
+              {/* Super Admin Badge */}
+              <div style={{
+                background: '#fef3c7',
+                border: `1px solid #fcd34d`,
+                borderRadius: '8px',
+                padding: '0.75rem 1rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem'
+              }}>
+                <Shield size={18} style={{ color: '#d97706', flexShrink: 0 }} />
+                <div>
+                  <p style={{ fontWeight: '700', margin: 0, fontSize: '0.85rem', color: '#92400e' }}>
+                    Super Admin
+                  </p>
+                  <p style={{ margin: 0, fontSize: '0.75rem', color: '#b45309' }}>Full access</p>
+                </div>
+              </div>
+              {/* Sign Out Button */}
+              <button
+                onClick={handleLogout}
+                type="button"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.75rem',
+                  padding: '0.75rem 1rem',
+                  background: '#fff1ec',
+                  color: '#e8550a',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  fontSize: '0.9rem',
+                  fontFamily: FONT,
+                  transition: 'all 0.15s'
+                }}
+                onMouseOver={(e) => (e.currentTarget.style.background = '#ffe5d5')}
+                onMouseOut={(e) => (e.currentTarget.style.background = '#fff1ec')}
+              >
+                <LogOut size={18} />
+                Sign Out
+              </button>
             </div>
+          </div>
+        </div>
+      )}
 
-            <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
-                {/* Dashboard Sections */}
-                <p style={{
-                    fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.07em', color: MUTED,
-                    padding: isCollapsed ? '1.25rem 0 0.5rem' : '1.25rem 1.25rem 0.5rem',
-                    textAlign: isCollapsed ? 'center' : 'left',
-                    width: '100%',
-                    opacity: visible ? 1 : 0, transition: 'opacity 0.4s ease 0.1s'
-                }}>
-                    {isCollapsed ? '•••' : 'Dashboard'}
-                </p>
-
-                <nav style={{ padding: '0.25rem 0' }}>
-                    {SECTIONS.map((item, i) => {
-                        const isActive = isBaseAdminPath && currentTab === item.id;
-                        return (
-                            <NavLink
-                                key={item.id}
-                                to={item.path}
-                                title={isCollapsed ? item.label : undefined}
-                                style={{
-                                    display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'flex-start', gap: '0.65rem',
-                                    padding: isCollapsed ? '0.62rem 0' : '0.58rem 1rem 0.58rem 1.25rem',
-                                    margin: isCollapsed ? '0.35rem 0' : '0.05rem 0',
-                                    color: isActive ? TEAL : '#374151',
-                                    background: isActive ? TEAL_L : 'transparent',
-                                    borderLeft: isActive ? `3px solid ${TEAL}` : '3px solid transparent',
-                                    textDecoration: 'none',
-                                    fontWeight: isActive ? 700 : 500,
-                                    fontSize: '0.87rem',
-                                    borderRadius: isCollapsed ? '0' : '0 8px 8px 0',
-                                    marginRight: isCollapsed ? '0' : '0.5rem',
-                                    transition: 'all 0.15s',
-                                    opacity: visible ? 1 : 0,
-                                    transform: visible ? 'translateX(0)' : 'translateX(-8px)',
-                                    transitionDelay: `${0.04 * i}s`,
-                                }}
-                            >
-                                <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    {React.cloneElement(item.icon, { size: isCollapsed ? 22 : 18 })}
-                                </span>
-                                {!isCollapsed && <span style={{ flex: 1 }}>{item.label}</span>}
-                            </NavLink>
-                        );
-                    })}
-                </nav>
-
-                {/* Moderation Sections */}
-                <p style={{
-                    fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.07em', color: MUTED,
-                    padding: isCollapsed ? '1rem 0 0.5rem' : '1rem 1.25rem 0.5rem',
-                    textAlign: isCollapsed ? 'center' : 'left',
-                    width: '100%', borderTop: `1px solid ${BORDER}`, marginTop: '0.5rem',
-                    opacity: visible ? 1 : 0, transition: 'opacity 0.4s ease 0.3s'
-                }}>
-                    {isCollapsed ? '•••' : 'Moderation Widgets'}
-                </p>
-
-                <nav style={{ padding: '0.25rem 0' }}>
-                    {MODERATION.map((item, i) => {
-                        const isActive = location.pathname.startsWith(item.path);
-                        return (
-                            <NavLink
-                                key={item.id}
-                                to={item.path}
-                                title={isCollapsed ? item.label : undefined}
-                                style={{
-                                    display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'flex-start', gap: '0.65rem',
-                                    padding: isCollapsed ? '0.62rem 0' : '0.58rem 1rem 0.58rem 1.25rem',
-                                    margin: isCollapsed ? '0.35rem 0' : '0.05rem 0',
-                                    color: isActive ? TEAL : '#374151',
-                                    background: isActive ? TEAL_L : 'transparent',
-                                    borderLeft: isActive ? `3px solid ${TEAL}` : '3px solid transparent',
-                                    textDecoration: 'none',
-                                    fontWeight: isActive ? 700 : 500,
-                                    fontSize: '0.87rem',
-                                    borderRadius: isCollapsed ? '0' : '0 8px 8px 0',
-                                    marginRight: isCollapsed ? '0' : '0.5rem',
-                                    transition: 'all 0.15s',
-                                    opacity: visible ? 1 : 0,
-                                    transform: visible ? 'translateX(0)' : 'translateX(-8px)',
-                                    transitionDelay: `${0.04 * (i + SECTIONS.length)}s`,
-                                }}
-                            >
-                                <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    {React.cloneElement(item.icon, { size: isCollapsed ? 22 : 18 })}
-                                </span>
-                                {!isCollapsed && <span style={{ flex: 1 }}>{item.label}</span>}
-                            </NavLink>
-                        );
-                    })}
-                </nav>
-
-                {/* Governance & Trust & Safety */}
-                <p style={{
-                    fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.07em', color: MUTED,
-                    padding: isCollapsed ? '1rem 0 0.5rem' : '1rem 1.25rem 0.5rem',
-                    textAlign: isCollapsed ? 'center' : 'left',
-                    width: '100%', borderTop: `1px solid ${BORDER}`, marginTop: '0.5rem',
-                    opacity: visible ? 1 : 0, transition: 'opacity 0.4s ease 0.3s'
-                }}>
-                    {isCollapsed ? '•••' : 'Governance & Safety'}
-                </p>
-
-                <nav style={{ padding: '0.25rem 0' }}>
-                    {GOVERNANCE.map((item, i) => {
-                        const isActive = location.pathname.startsWith(item.path);
-                        return (
-                            <NavLink
-                                key={item.id}
-                                to={item.path}
-                                title={isCollapsed ? item.label : undefined}
-                                style={{
-                                    display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'flex-start', gap: '0.65rem',
-                                    padding: isCollapsed ? '0.62rem 0' : '0.58rem 1rem 0.58rem 1.25rem',
-                                    margin: isCollapsed ? '0.35rem 0' : '0.05rem 0',
-                                    color: isActive ? TEAL : '#374151',
-                                    background: isActive ? TEAL_L : 'transparent',
-                                    borderLeft: isActive ? `3px solid ${TEAL}` : '3px solid transparent',
-                                    textDecoration: 'none',
-                                    fontWeight: isActive ? 700 : 500,
-                                    fontSize: '0.87rem',
-                                    borderRadius: isCollapsed ? '0' : '0 8px 8px 0',
-                                    marginRight: isCollapsed ? '0' : '0.5rem',
-                                    transition: 'all 0.15s',
-                                    opacity: visible ? 1 : 0,
-                                    transform: visible ? 'translateX(0)' : 'translateX(-8px)',
-                                    transitionDelay: `${0.04 * (i + SECTIONS.length + MODERATION.length)}s`,
-                                    position: 'relative',
-                                }}
-                            >
-                                <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    {React.cloneElement(item.icon, { size: isCollapsed ? 22 : 18 })}
-                                </span>
-                                {!isCollapsed && (
-                                    <>
-                                        <span style={{ flex: 1 }}>{item.label}</span>
-                                        {item.badge && (
-                                            <span style={{
-                                                fontSize: '0.6rem', fontWeight: 700,
-                                                background: item.badge === 'HIGH' ? '#dc2626' : '#f59e0b',
-                                                color: '#fff', borderRadius: '3px', padding: '0.2rem 0.4rem',
-                                                textTransform: 'uppercase', letterSpacing: '0.03em',
-                                            }}>
-                                                {item.badge}
-                                            </span>
-                                        )}
-                                    </>
-                                )}
-                            </NavLink>
-                        );
-                    })}
-                </nav>
-            </div>
-
-            {/* Help & Logout */}
-            <div style={{ padding: isCollapsed ? '0 0 1.25rem' : '0 0.75rem 1.25rem', marginTop: 'auto', borderTop: `1px solid ${BORDER}`, paddingTop: '0.75rem' }}>
-                <button
-                    type="button"
-                    title={isCollapsed ? 'Admin Help' : undefined}
-                    onClick={() => window.location.href = 'mailto:support@campusstay.co.tz'}
-                    style={{
-                        display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'flex-start', gap: '0.5rem',
-                        width: '100%', padding: isCollapsed ? '0.62rem 0' : '0.5rem 0.75rem',
-                        background: 'transparent', border: 'none',
-                        cursor: 'pointer', color: MUTED,
-                        fontSize: '0.83rem', fontFamily: FONT, borderRadius: isCollapsed ? 0 : 8,
-                        transition: 'background 0.15s',
-                    }}
-                    onMouseOver={(e) => (e.currentTarget.style.background = '#f1f5f9')}
-                    onMouseOut={(e) => (e.currentTarget.style.background = 'transparent')}
-                    onFocus={(e) => (e.currentTarget.style.background = '#f1f5f9')}
-                    onBlur={(e) => (e.currentTarget.style.background = 'transparent')}
-                >
-                    <HelpCircle size={15} /> {!isCollapsed && <span style={{ opacity: isCollapsed ? 0 : 1 }}>Admin Help</span>}
-                </button>
-                <button
-                    type="button"
-                    title={isCollapsed ? 'Sign Out' : undefined}
-                    onClick={logout}
-                    style={{
-                        display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'flex-start', gap: '0.5rem',
-                        width: '100%', padding: isCollapsed ? '0.62rem 0' : '0.5rem 0.75rem',
-                        background: 'transparent', border: 'none',
-                        cursor: 'pointer', color: CORAL,
-                        fontSize: '0.83rem', fontFamily: FONT, borderRadius: isCollapsed ? 0 : 8,
-                        transition: 'background 0.15s',
-                    }}
-                    onMouseOver={(e) => (e.currentTarget.style.background = CORAL_L)}
-                    onMouseOut={(e) => (e.currentTarget.style.background = 'transparent')}
-                    onFocus={(e) => (e.currentTarget.style.background = CORAL_L)}
-                    onBlur={(e) => (e.currentTarget.style.background = 'transparent')}
-                >
-                    <LogOut size={15} /> {!isCollapsed && <span style={{ opacity: isCollapsed ? 0 : 1 }}>Sign Out</span>}
-                </button>
-            </div>
-        </aside>
-    );
-
-    return (
-        <>
-            <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Poppins:wght@400;500;700&display=swap');
-        .admin-sidebar-desktop { display: flex !important; }
+      <style>{`
+        @keyframes slideIn {
+          from { transform: translateX(-100%); }
+          to { transform: translateX(0); }
+        }
       `}</style>
-            {desktop}
-        </>
-    );
+    </>
+  );
 }

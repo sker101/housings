@@ -35,7 +35,7 @@ export default function AdminFlagsPage() {
 
   const loadCounts = async () => {
     try {
-      const count = await countRows('content_flags', { filters: ['status.eq.pending'] });
+      const count = await countRows('content_flags', { filters: [{ column: 'status', op: 'eq', value: 'pending' }] });
       setPendingCount(count);
     } catch (error) {
       console.error('Failed to load count:', error);
@@ -46,7 +46,7 @@ export default function AdminFlagsPage() {
     setIsLoading(true);
     try {
       const data = await selectRows('content_flags', {
-        filters: [`status.eq.${filter}`],
+        filters: [{ column: 'status', op: 'eq', value: filter }],
         order: 'created_at.desc'
       });
       setFlags(data);
@@ -54,7 +54,7 @@ export default function AdminFlagsPage() {
       // Pre-load listing data
       const listingIds = [...new Set(data.map(f => f.listing_id))];
       const listings = await selectRows('listings', {
-        filters: [`id.in.(${listingIds.join(',')})`]
+        filters: [{ column: 'id', op: 'in', value: `(${listingIds.join(',')})` }]
       });
 
       const cache: Record<string, Listing> = {};
@@ -73,7 +73,7 @@ export default function AdminFlagsPage() {
   const clearFlag = async (flagId: string) => {
     try {
       await updateRows('content_flags', { status: 'cleared' }, {
-        filters: [`id.eq.${flagId}`]
+        filters: [{ column: 'id', op: 'eq', value: flagId }]
       });
 
       await insertRows('admin_audit_log', {
@@ -94,11 +94,11 @@ export default function AdminFlagsPage() {
   const takeDownListing = async (listingId: string, flagId: string) => {
     try {
       await updateRows('listings', { status: 'taken_down' }, {
-        filters: [`id.eq.${listingId}`]
+        filters: [{ column: 'id', op: 'eq', value: listingId }]
       });
 
       await updateRows('content_flags', { status: 'reviewed' }, {
-        filters: [`id.eq.${flagId}`]
+        filters: [{ column: 'id', op: 'eq', value: flagId }]
       });
 
       await insertRows('admin_audit_log', {
