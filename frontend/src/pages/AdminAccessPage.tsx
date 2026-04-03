@@ -7,11 +7,12 @@ import toast from 'react-hot-toast';
 interface Profile {
   id: string;
   full_name: string;
-  email: string;
+  email?: string;
   phone: string;
-  role: 'student' | 'dalali' | 'landlord' | 'admin';
+  role: 'student' | 'lister' | 'admin';
   university?: string;
-  status: 'active' | 'suspended' | 'pending';
+  status?: 'active' | 'suspended' | 'pending';
+  is_suspended?: boolean;
   created_at: string;
   avatar_url?: string;
 }
@@ -24,7 +25,7 @@ interface Listing {
 }
 
 export default function AdminAccessPage() {
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, token } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Profile[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -43,9 +44,12 @@ export default function AdminAccessPage() {
     setIsSearching(true);
     try {
       const results = await selectRows('profiles', {
-        or: `full_name.ilike.%${query}%,email.ilike.%${query}%,phone.ilike.%${query}%`
+        select: 'id,full_name,phone,role,verification_status,is_suspended,created_at',
+        or: `full_name.ilike.%${query}%,phone.ilike.%${query}%`,
+        accessToken: token,
       });
-      setSearchResults(results);
+      // Map is_suspended to a status field for display
+      setSearchResults(results.map((p: any) => ({ ...p, status: p.is_suspended ? 'suspended' : 'active' })));
     } catch (error) {
       toast.error('Failed to search accounts');
       console.error(error);
@@ -58,12 +62,13 @@ export default function AdminAccessPage() {
     setSelectedAccount(profile);
     setIsViewMode(true);
 
-    if (profile.role === 'dalali' || profile.role === 'landlord') {
+    if (profile.role === 'lister') {
       setIsLoadingListings(true);
       try {
         const listings = await selectRows('listings', {
+          select: 'id,title,status,created_at',
           filters: [{ column: 'lister_id', op: 'eq', value: profile.id }],
-          select: 'id,title,status,created_at'
+          accessToken: token,
         });
         setAccountListings(listings);
       } catch (error) {
@@ -90,11 +95,12 @@ export default function AdminAccessPage() {
   };
 
   const suspendAccount = async () => {
-    if (!selectedAccount) return;
+    if (!selectedAccount || !token) return;
 
     try {
-      await updateRows('profiles', { status: 'suspended' }, {
-        filters: [{ column: 'id', op: 'eq', value: selectedAccount.id }]
+      await updateRows('profiles', { is_suspended: true }, {
+        filters: [{ column: 'id', op: 'eq', value: selectedAccount.id }],
+        accessToken: token,
       });
 
       await logAdminAction('suspend_account', 'profile', selectedAccount.id, {
@@ -110,11 +116,12 @@ export default function AdminAccessPage() {
   };
 
   const unsuspendAccount = async () => {
-    if (!selectedAccount) return;
+    if (!selectedAccount || !token) return;
 
     try {
-      await updateRows('profiles', { status: 'active' }, {
-        filters: [{ column: 'id', op: 'eq', value: selectedAccount.id }]
+      await updateRows('profiles', { is_suspended: false }, {
+        filters: [{ column: 'id', op: 'eq', value: selectedAccount.id }],
+        accessToken: token,
       });
 
       await logAdminAction('unsuspend_account', 'profile', selectedAccount.id, {
@@ -130,15 +137,15 @@ export default function AdminAccessPage() {
   };
 
   const banPhoneNumber = async (reason: string) => {
-    if (!selectedAccount?.phone) return;
+    if (!selectedAccount?.phone || !token) return;
 
     try {
       await insertRows('banned_phones', {
         phone: selectedAccount.phone,
-        banned_by: currentUser?.id,
+        banned_by: currentUser?.userId,
         reason,
         banned_at: new Date().toISOString()
-      });
+      }, { accessToken: token });
 
       await logAdminAction('ban_phone', 'phone', selectedAccount.id, {
         phone: selectedAccount.phone,
@@ -401,7 +408,7 @@ export default function AdminAccessPage() {
               </div>
 
               {/* Listings (Dalalis/Landlords) */}
-              {(selectedAccount.role === 'dalali' || selectedAccount.role === 'landlord') && (
+              {selectedAccount.role === 'lister' && (
                 <div>
                   <h3 style={{ fontSize: '0.9rem', fontWeight: '700', textTransform: 'uppercase', color: '#6b7280', marginBottom: '1rem' }}>
                     Listings ({accountListings.length})

@@ -1,285 +1,225 @@
 import React, { useState, useEffect } from 'react';
-import { selectRows, updateRows, insertRows, countRows } from '../lib/supabase';
+import { Link } from 'react-router-dom';
+import { selectRows, updateRows, countRows } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { Gavel, AlertCircle, Eye, MessageSquare, DollarSign, Trash2, X, Loader } from 'lucide-react';
+import { AlertCircle, Loader } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-interface Dispute {
-  id: string;
-  type: string;
-  title: string;
-  description: string;
-  status: 'open' | 'under_review' | 'resolved';
-  priority: 'low' | 'medium' | 'urgent';
-  reporter_id: string;
-  respondent_id: string;
-  amount_disputed: number;
-  created_at: string;
-  resolution?: string;
-}
+const REASON_LABELS: Record<string, string> = {
+  fraud: '⚠️ Fraud / Scam',
+  photos_mismatch: '📷 Photos Mismatch',
+  misleading_price: '💸 Misleading Price',
+  unsafe: '🔒 Unsafe Property',
+  harassment: '😠 Harassment',
+  already_rented: '🔑 Already Rented',
+  unconducive: '🏚️ Bad Environment',
+};
 
 export default function AdminDisputesPage() {
-  const { user } = useAuth();
-  const [disputes, setDisputes] = useState<Dispute[]>([]);
-  const [activeTab, setActiveTab] = useState('open');
+  const { token } = useAuth();
+  const [reports, setReports] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState('pending');
   const [isLoading, setIsLoading] = useState(true);
-  const [counts, setCounts] = useState({ open: 0, under_review: 0, resolved: 0 });
+  const [counts, setCounts] = useState({ pending: 0, upheld: 0, dismissed: 0 });
+  const [actingId, setActingId] = useState<string | null>(null);
 
   useEffect(() => {
-    loadDisputes();
+    loadReports();
     loadCounts();
-  }, [activeTab]);
+  }, [activeTab, token]);
 
   const loadCounts = async () => {
+    if (!token) return;
     try {
-      const counts = await Promise.all([
-        countRows('disputes', { filters: [{ column: 'status', op: 'eq', value: 'open' }] }),
-        countRows('disputes', { filters: [{ column: 'status', op: 'eq', value: 'under_review' }] }),
-        countRows('disputes', { filters: [{ column: 'status', op: 'eq', value: 'resolved' }] })
+      const [pending, upheld, dismissed] = await Promise.all([
+        countRows('listing_reports', { filters: [{ column: 'status', op: 'eq', value: 'pending' }], accessToken: token }),
+        countRows('listing_reports', { filters: [{ column: 'status', op: 'eq', value: 'upheld' }], accessToken: token }),
+        countRows('listing_reports', { filters: [{ column: 'status', op: 'eq', value: 'dismissed' }], accessToken: token }),
       ]);
-      setCounts({
-        open: counts[0],
-        under_review: counts[1],
-        resolved: counts[2]
-      });
-    } catch (error) {
-      console.error('Failed to load counts:', error);
+      setCounts({ pending, upheld, dismissed });
+    } catch (err) {
+      console.error('Failed to load counts:', err);
     }
   };
 
-  const loadDisputes = async () => {
+  const loadReports = async () => {
+    if (!token) return;
     setIsLoading(true);
     try {
-      const data = await selectRows('disputes', {
+      const rows = await selectRows('listing_reports', {
+        select: 'id,listing_id,reporter_id,reason,description,reporter_has_booking,status,admin_note,created_at',
         filters: [{ column: 'status', op: 'eq', value: activeTab }],
-        order: 'created_at.desc'
+        order: 'created_at.desc',
+        limit: 100,
+        accessToken: token,
       });
-      setDisputes(data);
-    } catch (error) {
-      toast.error('Failed to load disputes');
-      console.error(error);
+
+      if (rows.length === 0) { setReports([]); setIsLoading(false); return; }
+
+      const listingIds = [...new Set(rows.map((r: any) => r.listing_id))];
+      const listings = await selectRows('listings', {
+        select: 'id,title',
+        filters: [{ column: 'id', op: 'in', value: `(${listingIds.join(',')})` }],
+        accessToken: token,
+      });
+      const listingMap = new Map(listings.map((l: any) => [l.id, l]));
+      setReports(rows.map((r: any) => ({ ...r, listing: listingMap.get(r.listing_id) })));
+    } catch (err) {
+      toast.error('Failed to load reports');
+      console.error(err);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const resolveDispute = async (disputeId: string, resolution: 'reporter_wins' | 'respondent_wins') => {
+  const act = async (reportId: string, status: 'upheld' | 'dismissed', note = '') => {
+    setActingId(reportId);
     try {
-      await updateRows('disputes', {
-        status: 'resolved',
-        resolution,
-        resolved_by: user?.id
-      }, {
-        filters: [{ column: 'id', op: 'eq', value: disputeId }]
+      await updateRows('listing_reports', { status, admin_note: note || null }, {
+        filters: [{ column: 'id', op: 'eq', value: reportId }],
+        accessToken: token,
       });
-
-      await insertRows('admin_audit_log', {
-        admin_id: user?.id,
-        action: 'resolve_dispute',
-        target_type: 'dispute',
-        target_id: disputeId,
-        metadata: { resolution }
-      });
-
-      toast.success('Dispute resolved');
-      loadDisputes();
+      toast.success(status === 'upheld' ? 'Report upheld' : 'Report dismissed');
+      loadReports();
       loadCounts();
-    } catch (error) {
-      toast.error('Failed to resolve dispute');
+    } catch {
+      toast.error('Action failed');
+    } finally {
+      setActingId(null);
     }
   };
 
-  const priorityColors: Record<string, string> = {
-    low: '#3b82f6',
-    medium: '#f59e0b',
-    urgent: '#ef4444'
+  const handleUphold = async (r: any) => {
+    const note = window.prompt(`Uphold report for "${r.listing?.title || r.listing_id}"?\n\nEnter admin note:`);
+    if (note === null) return;
+    await act(r.id, 'upheld', note);
   };
 
-  const priorityBgColors: Record<string, string> = {
-    low: '#eff6ff',
-    medium: '#fffbeb',
-    urgent: '#fef2f2'
+  const handleDismiss = async (r: any) => {
+    const note = window.prompt(`Dismiss report for "${r.listing?.title || r.listing_id}"?\n\nEnter admin note:`);
+    if (note === null) return;
+    await act(r.id, 'dismissed', note);
   };
 
   const tabs = [
-    { id: 'open', label: 'Open', count: counts.open },
-    { id: 'under_review', label: 'Under Review', count: counts.under_review },
-    { id: 'resolved', label: 'Resolved', count: counts.resolved }
+    { id: 'pending', label: 'Pending', count: counts.pending },
+    { id: 'upheld', label: 'Upheld', count: counts.upheld },
+    { id: 'dismissed', label: 'Dismissed', count: counts.dismissed },
   ];
 
   return (
     <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
       <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: '700', marginBottom: '0.5rem' }}>Dispute Resolution</h1>
-        <p style={{ color: '#6b7280' }}>Review and resolve user disputes and conflicts</p>
+        <h1 style={{ fontSize: '1.75rem', fontWeight: '700', marginBottom: '0.5rem' }}>Dispute & Report Resolution</h1>
+        <p style={{ color: '#6b7280' }}>Review and resolve user-submitted listing reports</p>
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid #e5e7eb', marginBottom: '2rem' }}>
+      <div style={{ display: 'flex', gap: '0', borderBottom: '2px solid #e5e7eb', marginBottom: '2rem' }}>
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             style={{
-              padding: '1rem 1.5rem',
-              background: activeTab === tab.id ? '#fff' : 'transparent',
-              borderBottom: activeTab === tab.id ? '2px solid #0d7a6e' : 'none',
+              padding: '0.75rem 1.5rem',
+              background: 'transparent',
+              borderBottom: activeTab === tab.id ? '2px solid #0d7a6e' : '2px solid transparent',
+              marginBottom: '-2px',
               cursor: 'pointer',
-              fontSize: '1rem',
-              fontWeight: activeTab === tab.id ? '600' : '500',
+              fontSize: '0.95rem',
+              fontWeight: activeTab === tab.id ? '700' : '500',
               color: activeTab === tab.id ? '#0d7a6e' : '#6b7280',
-              border: 'none'
+              border: 'none',
+              transition: 'all 0.15s',
             }}
           >
-            {tab.label} <span style={{ marginLeft: '0.5rem', color: '#9ca3af' }}>({tab.count})</span>
+            {tab.label}{' '}
+            <span style={{
+              marginLeft: '0.4rem',
+              background: activeTab === tab.id ? '#0d7a6e' : '#e5e7eb',
+              color: activeTab === tab.id ? '#fff' : '#6b7280',
+              fontSize: '0.75rem',
+              padding: '0.1rem 0.45rem',
+              borderRadius: '999px',
+              fontWeight: 700,
+            }}>{tab.count}</span>
           </button>
         ))}
       </div>
 
-      {/* Loading State */}
       {isLoading && (
         <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
           <Loader size={32} style={{ margin: '0 auto 1rem', animation: 'spin 1s linear infinite' }} />
-          Loading disputes...
+          Loading reports...
         </div>
       )}
 
-      {/* Disputes List */}
-      {!isLoading && disputes.length === 0 && (
-        <div style={{
-          textAlign: 'center',
-          padding: '3rem',
-          background: '#f9fafb',
-          borderRadius: '8px',
-          color: '#6b7280'
-        }}>
-          <AlertCircle size={32} style={{ margin: '0 auto 1rem', opacity: '0.5' }} />
-          No disputes found in this category
+      {!isLoading && reports.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '3rem', background: '#f9fafb', borderRadius: '8px', color: '#6b7280' }}>
+          <AlertCircle size={32} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
+          No {activeTab} reports found
         </div>
       )}
 
-      {/* Disputes Grid */}
-      <div style={{ display: 'grid', gap: '1.5rem' }}>
-        {disputes.map((dispute) => (
-          <div
-            key={dispute.id}
-            style={{
-              background: '#fff',
-              border: `3px solid ${priorityColors[dispute.priority]}`,
-              borderRadius: '8px',
-              padding: '1.5rem',
-              display: 'flex',
-              gap: '1.5rem'
-            }}
-          >
+      <div style={{ display: 'grid', gap: '1rem' }}>
+        {reports.map((r: any) => (
+          <article key={r.id} style={{
+            background: '#fff',
+            border: '1px solid #e5e7eb',
+            borderRadius: '8px',
+            padding: '1.5rem',
+            display: 'flex',
+            gap: '1.5rem',
+            justifyContent: 'space-between',
+          }}>
             <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                <span style={{
-                  background: priorityBgColors[dispute.priority],
-                  color: priorityColors[dispute.priority],
-                  fontSize: '0.75rem',
-                  fontWeight: '700',
-                  padding: '0.35rem 0.75rem',
-                  borderRadius: '4px',
-                  textTransform: 'uppercase'
-                }}>
-                  {dispute.priority}
-                </span>
-                <span style={{
-                  fontSize: '0.85rem',
-                  color: '#6b7280'
-                }}>
-                  {new Date(dispute.created_at).toLocaleDateString()}
-                </span>
-              </div>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '0.5rem' }}>{dispute.title}</h3>
-              <p style={{ color: '#6b7280', marginBottom: '1rem', lineHeight: '1.5' }}>{dispute.description}</p>
-              {dispute.amount_disputed && (
-                <p style={{
-                  fontSize: '0.95rem',
-                  fontWeight: '600',
-                  color: '#1f2937'
-                }}>
-                  <DollarSign size={16} style={{ display: 'inline-block', marginRight: '0.5rem' }} />
-                  Amount Disputed: {new Intl.NumberFormat('sw-TZ', { style: 'currency', currency: 'TZS' }).format(dispute.amount_disputed)}
+              <p style={{ marginBottom: '0.5rem', fontWeight: 600 }}>
+                <Link to={`/rooms/${r.listing_id}`} target="_blank" rel="noopener noreferrer" style={{ color: '#0d7a6e', textDecoration: 'none' }}>
+                  {r.listing?.title || `Listing: ${r.listing_id?.slice(0, 8)}…`}
+                </Link>
+              </p>
+              <p style={{ marginBottom: '0.5rem', fontSize: '0.9rem' }}>
+                Reason: <strong>{REASON_LABELS[r.reason] || r.reason}</strong>
+              </p>
+              {r.description && (
+                <p style={{ color: '#6b7280', fontSize: '0.88rem', marginBottom: '0.5rem' }}>
+                  &ldquo;{r.description}&rdquo;
+                </p>
+              )}
+              <p style={{ fontSize: '0.8rem', color: '#9ca3af' }}>
+                {r.reporter_has_booking ? '🎫 Verified tenant' : '👤 Anonymous reporter'} ·{' '}
+                {r.created_at ? new Date(r.created_at).toLocaleString() : '—'}
+              </p>
+              {r.admin_note && (
+                <p style={{ marginTop: '0.5rem', padding: '0.4rem 0.75rem', background: '#f3f4f6', borderRadius: '6px', fontSize: '0.85rem', borderLeft: '3px solid #0d7a6e' }}>
+                  Admin note: {r.admin_note}
                 </p>
               )}
             </div>
 
-            {/* Actions */}
-            {dispute.status === 'open' && (
+            {activeTab === 'pending' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flexShrink: 0 }}>
                 <button
-                  onClick={() => resolveDispute(dispute.id, 'reporter_wins')}
-                  style={{
-                    padding: '0.75rem 1rem',
-                    background: '#10b981',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontWeight: '600',
-                    fontSize: '0.9rem'
-                  }}
+                  onClick={() => handleUphold(r)}
+                  disabled={actingId === r.id}
+                  style={{ padding: '0.65rem 1.25rem', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem', opacity: actingId === r.id ? 0.6 : 1 }}
                 >
-                  Rule Reporter
+                  {actingId === r.id ? '…' : 'Uphold'}
                 </button>
                 <button
-                  onClick={() => resolveDispute(dispute.id, 'respondent_wins')}
-                  style={{
-                    padding: '0.75rem 1rem',
-                    background: '#f59e0b',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontWeight: '600',
-                    fontSize: '0.9rem'
-                  }}
+                  onClick={() => handleDismiss(r)}
+                  disabled={actingId === r.id}
+                  style={{ padding: '0.65rem 1.25rem', background: '#f3f4f6', color: '#1f2937', border: '1px solid #e5e7eb', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem', opacity: actingId === r.id ? 0.6 : 1 }}
                 >
-                  Rule Respondent
-                </button>
-                <button
-                  style={{
-                    padding: '0.75rem 1rem',
-                    background: '#3b82f6',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontWeight: '600',
-                    fontSize: '0.9rem'
-                  }}
-                >
-                  <Eye size={16} style={{ display: 'inline-block', marginRight: '0.5rem' }} />
-                  Evidence
-                </button>
-                <button
-                  style={{
-                    padding: '0.75rem 1rem',
-                    background: '#8b5cf6',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontWeight: '600',
-                    fontSize: '0.9rem'
-                  }}
-                >
-                  <MessageSquare size={16} style={{ display: 'inline-block', marginRight: '0.5rem' }} />
-                  Message
+                  {actingId === r.id ? '…' : 'Dismiss'}
                 </button>
               </div>
             )}
-          </div>
+          </article>
         ))}
       </div>
 
-      <style>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
