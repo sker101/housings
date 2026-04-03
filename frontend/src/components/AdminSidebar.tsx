@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Eye, Users, Lock, Building, Gavel, DollarSign, AlertTriangle,
-  BarChart3, Settings, BookOpen, LogOut, Menu, X, Shield
+  BarChart3, Settings, BookOpen, LogOut, X, Shield
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -23,10 +23,14 @@ interface NavCategory {
   items: NavItem[];
 }
 
-export default function AdminSidebar() {
+interface AdminSidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
   const { user, logout } = useAuth();
   const location = useLocation();
-  const [isOpen, setIsOpen] = useState(false);
 
   const categories: NavCategory[] = [
     {
@@ -71,45 +75,12 @@ export default function AdminSidebar() {
   };
 
   const handleLogout = () => {
-    setIsOpen(false);
+    onClose();
     logout();
   };
 
-  // Always render both button and drawer
   return (
     <>
-      {/* ALWAYS VISIBLE Menu Button - z-index ensures it stays on top */}
-      <button
-        onClick={() => setIsOpen(true)}
-        type="button"
-        style={{
-          position: 'fixed',
-          bottom: '2.5rem',
-          right: '2.5rem',
-          width: '60px',
-          height: '60px',
-          borderRadius: '50%',
-          background: TEAL,
-          border: 'none',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: WHITE,
-          boxShadow: '0 4px 12px rgba(13, 122, 110, 0.4)',
-          transition: 'all 0.2s ease',
-          zIndex: isOpen ? -1 : 999, // Hidden behind drawer when open
-          opacity: isOpen ? 0 : 1,
-          pointerEvents: isOpen ? 'none' : 'auto',
-          padding: 0,
-          fontSize: '0'
-        }}
-        onMouseOver={(e) => !isOpen && (e.currentTarget.style.transform = 'scale(1.1)')}
-        onMouseOut={(e) => !isOpen && (e.currentTarget.style.transform = 'scale(1)')}
-        title="Click to open admin menu"
-      >
-        <Menu size={28} />
-      </button>
 
       {/* Drawer Modal */}
       {isOpen && (
@@ -134,7 +105,7 @@ export default function AdminSidebar() {
               background: 'rgba(0, 0, 0, 0.4)',
               zIndex: 998
             }}
-            onClick={() => setIsOpen(false)}
+            onClick={onClose}
           />
 
           {/* Sidebar Panel - higher z-index */}
@@ -162,7 +133,7 @@ export default function AdminSidebar() {
             }}>
               <h2 style={{ fontWeight: '700', fontSize: '1rem', margin: 0 }}>Admin Menu</h2>
               <button
-                onClick={() => setIsOpen(false)}
+                onClick={onClose}
                 type="button"
                 style={{
                   background: 'none',
@@ -202,7 +173,7 @@ export default function AdminSidebar() {
                       <NavLink
                         key={item.label}
                         to={item.path}
-                        onClick={() => setIsOpen(false)}
+                        onClick={onClose}
                         style={({ isActive: active }) => ({
                           display: 'flex',
                           alignItems: 'center',

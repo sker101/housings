@@ -450,7 +450,7 @@ export default function Layout({ children }) {
           />
         ) : null}
         {isAuthenticated && !isAuthPage && user?.role === APP_ROLE.ADMIN ? (
-          <AdminSidebar />
+          <AdminSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
         ) : null}
 
         <main className="main-content" style={{ flex: 1, minWidth: 0, transition: 'all 0.3s ease' }}>
