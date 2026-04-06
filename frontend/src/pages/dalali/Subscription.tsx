@@ -43,7 +43,7 @@ export default function DalaliSubscription() {
   }, [user?.userId, token]);
 
   return (
-    <DashboardLayout role="dalali" accentColor="var(--amber)" navItems={NAV} pageTitle="Subscription">
+    <>
       {/* Current plan banner */}
       {loading ? <SkeletonCard variant="kpi" count={1} /> : subscription ? (
         <div style={{
@@ -113,6 +113,6 @@ export default function DalaliSubscription() {
           );
         })}
       </div>
-    </DashboardLayout>
+    </>
   );
 }

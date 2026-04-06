@@ -135,7 +135,7 @@ export default function AdminUsersPage() {
   });
 
   return (
-    <DashboardLayout role="admin" accentColor="var(--red)" navItems={NAV} pageTitle="Users">
+    <>
       {/* Search + refresh */}
       <div style={{ display: 'flex', gap: '0.6rem', marginBottom: '1rem' }}>
         <div style={{ flex: 1, position: 'relative' }}>
@@ -237,6 +237,6 @@ export default function AdminUsersPage() {
       <p style={{ marginTop: '0.75rem', fontSize: '0.8rem', color: 'var(--mid)' }}>
         Showing {filtered.length} of {profiles.length} users · Updates in real-time
       </p>
-    </DashboardLayout>
+    </>
   );
 }

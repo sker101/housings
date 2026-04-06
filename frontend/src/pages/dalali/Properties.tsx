@@ -31,7 +31,7 @@ export default function DalaliProperties() {
   }, { active: [], vacant: [], paused: [], removed: [] });
 
   return (
-    <DashboardLayout role="dalali" accentColor="var(--amber)" navItems={NAV} pageTitle="My Properties">
+    <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
         <div>
           <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: '1.3rem' }}>My Properties</h2>
@@ -74,6 +74,6 @@ export default function DalaliProperties() {
           ))}
         </div>
       )}
-    </DashboardLayout>
+    </>
   );
 }

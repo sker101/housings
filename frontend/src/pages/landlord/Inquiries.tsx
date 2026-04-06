@@ -35,7 +35,7 @@ export default function LandlordInquiries() {
   };
 
   return (
-    <DashboardLayout role="landlord" accentColor="var(--jade)" navItems={NAV} pageTitle="Inquiries">
+    <>
       {loading ? (
         <div style={{ display: 'grid', gap: '0.7rem' }}><SkeletonCard variant="row" count={5} /></div>
       ) : inquiries.length === 0 ? (
@@ -72,6 +72,6 @@ export default function LandlordInquiries() {
           )}
         </div>
       )}
-    </DashboardLayout>
+    </>
   );
 }

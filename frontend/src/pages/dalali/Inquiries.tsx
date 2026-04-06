@@ -28,7 +28,7 @@ export default function DalaliInquiries() {
   const handleDecline = async (id: string) => { try { await declineInquiry(id); toast.success('Inquiry declined'); } catch { toast.error('Could not decline'); } };
 
   return (
-    <DashboardLayout role="dalali" accentColor="var(--amber)" navItems={NAV} pageTitle="Inquiries">
+    <>
       {loading ? (
         <div style={{ display: 'grid', gap: '0.7rem' }}><SkeletonCard variant="row" count={5} /></div>
       ) : inquiries.length === 0 ? (
@@ -56,6 +56,6 @@ export default function DalaliInquiries() {
           )}
         </div>
       )}
-    </DashboardLayout>
+    </>
   );
 }

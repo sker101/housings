@@ -27,7 +27,7 @@ export default function DalaliEarnings() {
   const commission = paidTotal * COMMISSION_RATE;
 
   return (
-    <DashboardLayout role="dalali" accentColor="var(--amber)" navItems={NAV} pageTitle="Earnings">
+    <>
       {/* Summary */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '0.75rem', marginBottom: '1.5rem' }}>
         {[
@@ -77,6 +77,6 @@ export default function DalaliEarnings() {
           </div>
         )}
       </section>
-    </DashboardLayout>
+    </>
   );
 }

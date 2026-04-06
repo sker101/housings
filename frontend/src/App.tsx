@@ -58,6 +58,7 @@ import AdminFlagsPage     from './pages/AdminFlagsPage';
 import AdminConfigPage    from './pages/AdminConfigPage';
 import AdminAuditPage     from './pages/AdminAuditPage';
 import AdminAuditLogPage  from './pages/AdminAuditLogPage';
+import AdminLandlordsPage from './pages/AdminLandlordsPage';
 
 type AllRoles = 'student' | 'landlord' | 'dalali' | 'admin';
 const ALL: AllRoles[] = ['student', 'landlord', 'dalali', 'admin'];
@@ -145,7 +146,7 @@ export default function App() {
           <Route path="/admin/config"    element={<ProtectedRoute roles={['admin']}><AdminConfigPage /></ProtectedRoute>} />
           <Route path="/admin/audit"     element={<ProtectedRoute roles={['admin']}><AdminAuditPage /></ProtectedRoute>} />
           <Route path="/admin/audit-log" element={<ProtectedRoute roles={['admin']}><AdminAuditLogPage /></ProtectedRoute>} />
-          <Route path="/admin/landlords" element={<ProtectedRoute roles={['admin']}><AdminAuditLogPage /></ProtectedRoute>} />
+          <Route path="/admin/landlords" element={<ProtectedRoute roles={['admin']}><AdminLandlordsPage /></ProtectedRoute>} />
 
         </Route>
 

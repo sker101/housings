@@ -104,28 +104,13 @@ export default function RoleBasedLayout() {
           to="/"
           style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}
         >
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 9,
-              background: `linear-gradient(140deg, ${accentColor}, ${accentColor}cc)`,
-              display: 'grid',
-              placeItems: 'center',
-              color: '#fff',
-              fontSize: '0.9rem',
-              fontWeight: 800,
-              fontFamily: "'Syne', sans-serif",
-            }}
-          >
-            CS
-          </div>
           <span
             style={{
               fontFamily: "'Syne', sans-serif",
               fontWeight: 800,
               color: 'var(--ink)',
-              fontSize: '1rem',
+              fontSize: '1.3rem',
+              letterSpacing: '-0.03em',
             }}
           >
             Campus<span style={{ color: accentColor }}>Stay</span>
