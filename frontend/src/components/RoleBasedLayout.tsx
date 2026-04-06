@@ -99,18 +99,18 @@ export default function RoleBasedLayout() {
   const SidebarContent = () => (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Logo */}
-      <div style={{ padding: '1.2rem 1rem', borderBottom: '1px solid var(--border)' }}>
+      <div style={{ padding: '1rem 1rem', borderBottom: '1px solid var(--border)' }}>
         <Link
           to="/"
-          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none' }}
         >
           <span
             style={{
               fontFamily: "'Syne', sans-serif",
               fontWeight: 800,
               color: 'var(--ink)',
-              fontSize: '1.3rem',
-              letterSpacing: '-0.03em',
+              fontSize: '1.1rem',
+              letterSpacing: '-0.02em',
             }}
           >
             Campus<span style={{ color: accentColor }}>Stay</span>
