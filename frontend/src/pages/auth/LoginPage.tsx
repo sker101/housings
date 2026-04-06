@@ -8,8 +8,7 @@ import { friendlyError } from '../../utils/format';
 function dashboardForRole(role: string): string {
   const r = String(role).toLowerCase();
   if (r === 'admin') return '/admin';
-  if (r === 'lister' || r === 'landlord') return '/landlord/dashboard';
-  if (r === 'dalali') return '/dalali/dashboard';
+  if (r === 'lister' || r === 'landlord' || r === 'dalali') return '/list-property';
   return '/tenant/dashboard';
 }
 

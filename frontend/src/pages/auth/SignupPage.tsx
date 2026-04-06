@@ -63,8 +63,7 @@ export default function SignupPage() {
         // role stored in DB as 'lister' or 'dalali' per listerType
         const listerType = selectedRole === 'dalali' ? 'dalali' : 'owner';
         await registerLandlord({ fullName, email, phone, password, listerType, preferredLanguage });
-        const dest = selectedRole === 'dalali' ? '/dalali/dashboard' : '/landlord/dashboard';
-        navigate(dest, { replace: true });
+        navigate('/list-property', { replace: true });
       }
     } catch (err) {
       setError(friendlyError(err));
