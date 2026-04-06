@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, ArrowRight, ShieldCheck, Mail, Lock } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { checkRateLimit, recordFailure, clearRateLimit, RateLimitError } from '../../lib/rateLimit';
-import { APP_ROLE } from '../../lib/roles';
 import { friendlyError } from '../../utils/format';
-import toast from 'react-hot-toast';
 
 function dashboardForRole(role: string): string {
   const r = String(role).toLowerCase();
@@ -41,7 +39,6 @@ export default function LoginPage() {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    // ── Rate limit check ──────────────────────────────────
     try {
       checkRateLimit(normalizedEmail);
     } catch (err) {
@@ -66,48 +63,95 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="auth-page">
-      <div className="container narrow">
-        <div className="auth-shell">
-          {/* Intro card */}
-          <div className="auth-shell__intro">
-            <p className="auth-shell__eyebrow">CampusStay TZ</p>
-            <h1 style={{ fontSize: 'clamp(1.4rem, 4vw, 1.9rem)', marginTop: '0.4rem' }}>
-              Welcome back
-            </h1>
-            <p>Sign in to access your dashboard.</p>
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '2rem 1rem',
+      background: 'radial-gradient(circle at top right, rgba(29, 158, 117, 0.08), transparent 400px), var(--surface)',
+    }}>
+      <div style={{
+        width: '100%',
+        maxWidth: '420px',
+        animation: 'fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+      }}>
+        
+        {/* Brand Banner */}
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 48,
+            height: 48,
+            background: 'var(--jade)',
+            color: '#fff',
+            borderRadius: '14px',
+            marginBottom: '1rem',
+            boxShadow: '0 8px 16px rgba(29, 158, 117, 0.25)',
+          }}>
+            <ShieldCheck size={24} />
           </div>
+          <h1 style={{
+            fontFamily: "'Syne', sans-serif",
+            fontSize: '1.8rem',
+            fontWeight: 800,
+            color: 'var(--ink)',
+            marginBottom: '0.5rem',
+            letterSpacing: '-0.02em'
+          }}>
+            Welcome Back
+          </h1>
+          <p style={{ color: 'var(--mid)', fontSize: '0.95rem' }}>
+            Enter your details to access your dashboard.
+          </p>
+        </div>
 
-          {/* Suspended banner */}
-          {suspendedReason && (
-            <div
-              style={{
-                background: 'var(--red-light)',
-                border: '1px solid rgba(192,57,43,0.3)',
-                borderRadius: 12,
-                padding: '0.85rem 1rem',
-                display: 'flex',
-                gap: '0.6rem',
-                alignItems: 'flex-start',
-              }}
-            >
-              <AlertCircle size={16} style={{ color: 'var(--red)', marginTop: 2, flexShrink: 0 }} />
-              <div>
-                <p style={{ fontWeight: 700, color: 'var(--red)', fontSize: '0.9rem' }}>
-                  Account suspended
-                </p>
-                <p style={{ color: 'var(--red)', fontSize: '0.84rem' }}>
-                  Your account has been suspended. Contact support if you believe this is an error.
-                </p>
-              </div>
+        {/* Suspended Alert */}
+        {suspendedReason && (
+          <div style={{
+            background: 'var(--red-light)',
+            border: '1px solid rgba(192,57,43,0.2)',
+            borderRadius: 14,
+            padding: '1rem',
+            display: 'flex',
+            gap: '0.75rem',
+            alignItems: 'flex-start',
+            marginBottom: '1.5rem',
+            animation: 'fadeIn 0.3s ease-out'
+          }}>
+            <AlertCircle size={18} style={{ color: 'var(--red)', marginTop: 2, flexShrink: 0 }} />
+            <div>
+              <p style={{ fontWeight: 700, color: 'var(--red)', fontSize: '0.9rem', marginBottom: '0.2rem' }}>Account suspended</p>
+              <p style={{ color: 'var(--red)', fontSize: '0.84rem', lineHeight: 1.4 }}>Your account has been suspended. Contact support if you believe this is an error.</p>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Form */}
-          <div className="card auth-form-card">
-            <form onSubmit={handleSubmit}>
-              <label htmlFor="login-email">
+        {/* Main Card */}
+        <div style={{
+          background: '#ffffff',
+          borderRadius: 24,
+          padding: '2.5rem 2rem',
+          boxShadow: '0 12px 36px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.03)',
+          border: '1px solid rgba(0,0,0,0.04)',
+        }}>
+          <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '1.25rem' }}>
+            
+            {/* Email Field */}
+            <div>
+              <label htmlFor="login-email" style={{
+                display: 'block',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                color: 'var(--ink)',
+                marginBottom: '0.5rem'
+              }}>
                 Email address
+              </label>
+              <div style={{ position: 'relative' }}>
+                <Mail size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--mid)' }} />
                 <input
                   id="login-email"
                   type="email"
@@ -116,86 +160,196 @@ export default function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
                   required
+                  style={{
+                    width: '100%',
+                    padding: '0.85rem 1rem 0.85rem 2.75rem',
+                    borderRadius: 12,
+                    border: '1px solid var(--border)',
+                    background: 'var(--surface)',
+                    fontSize: '0.95rem',
+                    transition: 'all 0.2s',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = 'var(--jade)'}
+                  onBlur={(e) => e.target.style.borderColor = 'var(--border)'}
                 />
-              </label>
+              </div>
+            </div>
 
-              <label htmlFor="login-password">
-                Password
-                <div className="password-field">
-                  <input
-                    id="login-password"
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete="current-password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    required
-                  />
-                  <button
-                    type="button"
-                    className="password-toggle"
-                    onClick={() => setShowPassword((v) => !v)}
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  >
-                    {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                  </button>
-                </div>
-              </label>
-
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '0.5rem',
-                }}
-              >
-                <label className="remember-me" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    style={{ width: 'auto' }}
-                  />
-                  <span style={{ fontSize: '0.86rem', fontWeight: 400 }}>Remember me</span>
+            {/* Password Field */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <label htmlFor="login-password" style={{
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  color: 'var(--ink)'
+                }}>
+                  Password
                 </label>
-                <Link
-                  to="/reset-password"
-                  style={{ fontSize: '0.86rem', color: 'var(--jade)', fontWeight: 600 }}
-                >
+                <Link to="/reset-password" style={{
+                  fontSize: '0.8rem',
+                  color: 'var(--jade)',
+                  fontWeight: 600,
+                  textDecoration: 'none'
+                }}>
                   Forgot password?
                 </Link>
               </div>
-
-              {error && (
-                <p
-                  role="alert"
+              <div style={{ position: 'relative' }}>
+                <Lock size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--mid)' }} />
+                <input
+                  id="login-password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
                   style={{
-                    color: 'var(--red)',
-                    fontSize: '0.86rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.4rem',
+                    width: '100%',
+                    padding: '0.85rem 2.75rem 0.85rem 2.75rem',
+                    borderRadius: 12,
+                    border: '1px solid var(--border)',
+                    background: 'var(--surface)',
+                    fontSize: '0.95rem',
+                    transition: 'all 0.2s',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = 'var(--jade)'}
+                  onBlur={(e) => e.target.style.borderColor = 'var(--border)'}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  style={{
+                    position: 'absolute',
+                    right: '0.5rem',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--mid)',
+                    padding: '0.5rem',
+                    cursor: 'pointer',
+                    display: 'grid',
+                    placeItems: 'center',
+                    borderRadius: 8
                   }}
                 >
-                  <AlertCircle size={14} /> {error}
-                </p>
-              )}
-
-              <button type="submit" className="btn" disabled={loading} style={{ width: '100%' }}>
-                {loading ? 'Signing in…' : 'Sign in'}
-              </button>
-            </form>
-
-            <div className="auth-links" style={{ justifyContent: 'center', marginTop: '0.25rem' }}>
-              <span style={{ fontSize: '0.87rem', color: 'var(--mid)' }}>No account?</span>
-              <Link to="/auth/signup" style={{ fontSize: '0.87rem', color: 'var(--jade)', fontWeight: 600 }}>
-                Create one
-              </Link>
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
-          </div>
+
+            {/* Remember Me */}
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              cursor: 'pointer',
+              userSelect: 'none'
+            }}>
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                style={{
+                  width: 16,
+                  height: 16,
+                  accentColor: 'var(--jade)',
+                  cursor: 'pointer'
+                }}
+              />
+              <span style={{ fontSize: '0.87rem', color: 'var(--mid)' }}>Keep me signed in</span>
+            </label>
+
+            {/* Error Message */}
+            {error && (
+              <div style={{
+                background: 'var(--red-light)',
+                color: 'var(--red)',
+                padding: '0.75rem 1rem',
+                borderRadius: 10,
+                fontSize: '0.85rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                animation: 'shake 0.4s ease-in-out'
+              }}>
+                <AlertCircle size={16} style={{ flexShrink: 0 }} />
+                <span>{error}</span>
+              </div>
+            )}
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                background: 'var(--jade)',
+                color: '#fff',
+                border: 'none',
+                height: 48,
+                borderRadius: 12,
+                fontSize: '1rem',
+                fontWeight: 600,
+                cursor: loading ? 'not-allowed' : 'pointer',
+                opacity: loading ? 0.7 : 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                transition: 'all 0.2s',
+                marginTop: '0.5rem'
+              }}
+            >
+              {loading ? (
+                'Signing in...'
+              ) : (
+                <>
+                  Sign In <ArrowRight size={18} />
+                </>
+              )}
+            </button>
+          </form>
         </div>
+
+        {/* Footer */}
+        <p style={{
+          textAlign: 'center',
+          marginTop: '2rem',
+          fontSize: '0.9rem',
+          color: 'var(--mid)'
+        }}>
+          Don't have an account?{' '}
+          <Link to="/auth/signup" style={{
+            color: 'var(--jade)',
+            fontWeight: 700,
+            textDecoration: 'none'
+          }}>
+            Create one now
+          </Link>
+        </p>
       </div>
+
+      <style>{`
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(15px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-4px); }
+          75% { transform: translateX(4px); }
+        }
+      `}</style>
     </div>
   );
 }

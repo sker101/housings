@@ -107,19 +107,24 @@ function buildCurrentUser(
 async function fetchProfile(userId: string, accessToken: string): Promise<Profile | null> {
   if (!userId || !accessToken) return null;
 
-  const rows = await selectRows('profiles', {
-    select: [
-      'id', 'role', 'lister_type', 'full_name', 'phone', 'phone_verified',
-      'university', 'profile_photo_url', 'id_verified', 'id_document_url',
-      'suspended', 'avg_rating', 'verification_status', 'preferred_language',
-      'created_at',
-    ].join(','),
-    filters: [{ column: 'id', op: 'eq', value: userId }],
-    limit: 1,
-    accessToken,
-  });
+  try {
+    const rows = await selectRows('profiles', {
+      select: [
+        'id', 'role', 'lister_type', 'full_name', 'phone', 'phone_verified',
+        'university', 'profile_photo_url', 'id_verified', 'id_document_url',
+        'suspended', 'avg_rating', 'verification_status', 'preferred_language',
+        'created_at',
+      ].join(','),
+      filters: [{ column: 'id', op: 'eq', value: userId }],
+      limit: 1,
+      accessToken,
+    });
 
-  return (rows[0] as Profile) || null;
+    return (rows[0] as Profile) || null;
+  } catch (err) {
+    console.error('Failed to fetch profile during auth:', err);
+    return null;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────

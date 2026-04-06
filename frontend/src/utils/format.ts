@@ -70,8 +70,8 @@ export function friendlyError(error: unknown): string {
   if (msg.includes('email not confirmed'))
     return 'Please confirm your email address before logging in.';
 
-  // Fallback — never show raw DB strings
-  return 'Something went wrong. Please try again.';
+  // Fallback — never show raw DB strings in production, but we append for debugging now
+  return 'Something went wrong. Please try again. Error details: ' + msg.substring(0, 50);
 }
 
 /**
