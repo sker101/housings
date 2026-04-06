@@ -59,7 +59,7 @@ export default function AdminConfigPage() {
           value: item.value,
           value_type: item.value_type,
           description: item.description,
-          updated_by: user?.id,
+          updated_by: user?.userId,
           updated_at: new Date().toISOString()
         }, {
           onConflict: 'key'

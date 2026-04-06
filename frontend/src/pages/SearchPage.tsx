@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import ListingMap from '../components/ListingMap';
 import ListingCard from '../components/ListingCard';
 import { useAuth } from '../context/AuthContext';
-import SkeletonCard from '../components/SkeletonCard';
+import { SkeletonCard } from '../components/SkeletonCard';
 import {
   fetchApprovedListings,
   fetchSavedListingIds,

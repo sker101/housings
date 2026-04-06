@@ -82,7 +82,7 @@ export default function AdminAccessPage() {
   const logAdminAction = async (action: string, targetType: string, targetId: string, metadata?: any) => {
     try {
       await insertRows('admin_audit_log', {
-        admin_id: currentUser?.id,
+        admin_id: currentUser?.userId,
         action,
         target_type: targetType,
         target_id: targetId,
