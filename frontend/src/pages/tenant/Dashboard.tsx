@@ -51,13 +51,7 @@ export default function TenantDashboard() {
   const activeBookings  = bookings.filter((b) => b.payment_status !== 'failed').length;
 
   return (
-    <DashboardLayout
-      role="student"
-      accentColor="var(--blue)"
-      navItems={NAV}
-      pageTitle="My Dashboard"
-    >
-      {/* Welcome */}
+    <>
       <div style={{ marginBottom: '1.25rem' }}>
         <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: '1.3rem', color: 'var(--ink)' }}>
           Welcome back, {user?.fullName?.split(' ')[0] ?? 'there'} 👋
@@ -65,7 +59,6 @@ export default function TenantDashboard() {
         <p style={{ color: 'var(--mid)', fontSize: '0.88rem' }}>Here's what's happening with your housing search.</p>
       </div>
 
-      {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '0.75rem', marginBottom: '1.5rem' }}>
         <KpiCard label="Saved Rooms"     value={savedListings.length}  sub="listings saved" />
         <KpiCard label="Open Inquiries"  value={activeInquiries}        sub="pending responses" />
@@ -73,7 +66,6 @@ export default function TenantDashboard() {
         <KpiCard label="Profile"         value={`${completion.percent}%`} sub="complete" />
       </div>
 
-      {/* Profile Completion */}
       {completion.percent < 100 && (
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '1rem', marginBottom: '1.25rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
@@ -101,8 +93,6 @@ export default function TenantDashboard() {
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.25rem' }}>
-
-        {/* Saved Listings */}
         <section>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
             <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: '1rem' }}>Saved Rooms</h3>
@@ -132,7 +122,6 @@ export default function TenantDashboard() {
           )}
         </section>
 
-        {/* Activity Feed */}
         <section>
           <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: '1rem', marginBottom: '0.75rem' }}>Recent Activity</h3>
           {actLoading ? (
@@ -157,8 +146,7 @@ export default function TenantDashboard() {
             </div>
           )}
         </section>
-
       </div>
-    </DashboardLayout>
+    </>
   );
 }

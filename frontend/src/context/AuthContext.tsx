@@ -111,8 +111,8 @@ async function fetchProfile(userId: string, accessToken: string): Promise<Profil
     const rows = await selectRows('profiles', {
       select: [
         'id', 'role', 'lister_type', 'full_name', 'phone', 'phone_verified',
-        'university', 'profile_photo_url', 'id_verified', 'id_document_url',
-        'suspended', 'avg_rating', 'verification_status', 'preferred_language',
+        'university', 'profile_photo_url', 'id_doc_url', 'is_suspended', 
+        'avg_rating', 'verification_status', 'preferred_language',
         'created_at',
       ].join(','),
       filters: [{ column: 'id', op: 'eq', value: userId }],
@@ -120,7 +120,15 @@ async function fetchProfile(userId: string, accessToken: string): Promise<Profil
       accessToken,
     });
 
-    return (rows[0] as Profile) || null;
+    const profile = rows[0] as any;
+    if (profile) {
+      // Map back to expected types where necessary
+      profile.suspended = profile.is_suspended;
+      profile.id_document_url = profile.id_doc_url;
+      // id_verified mapping not needed since it's not strongly typed in Profile, or just use verification_status
+    }
+
+    return (profile as Profile) || null;
   } catch (err) {
     console.error('Failed to fetch profile during auth:', err);
     return null;

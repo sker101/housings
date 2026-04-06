@@ -75,13 +75,7 @@ export default function DalaliDashboard() {
   };
 
   return (
-    <DashboardLayout
-      role="dalali"
-      accentColor="var(--amber)"
-      navItems={NAV}
-      pageTitle="Dalali Dashboard"
-      upgradeCTA={{ label: '⬆ Upgrade Plan', href: '/dalali/subscription' }}
-    >
+    <>
       <div style={{ marginBottom: '1.25rem' }}>
         <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: '1.3rem' }}>
           {user?.fullName?.split(' ')[0] ?? 'Hi'}'s Broker Hub
@@ -89,7 +83,6 @@ export default function DalaliDashboard() {
         <p style={{ color: 'var(--mid)', fontSize: '0.88rem' }}>Manage your properties, commissions and subscription.</p>
       </div>
 
-      {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(155px, 1fr))', gap: '0.75rem', marginBottom: '1.5rem' }}>
         <KpiCard label="Monthly Income"    value={TZSFormat(monthlyIncome)} sub="paid bookings" accent="var(--amber)" />
         <KpiCard label="Commission Earned" value={TZSFormat(totalCommission)} sub="5% of payments" />
@@ -98,8 +91,6 @@ export default function DalaliDashboard() {
       </div>
 
       <div style={{ display: 'grid', gap: '1.25rem' }}>
-
-        {/* Subscription Card */}
         <section>
           <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: '1rem', marginBottom: '0.75rem' }}>Subscription</h3>
           {subLoading ? <SkeletonCard variant="kpi" count={1} /> : (
@@ -141,7 +132,6 @@ export default function DalaliDashboard() {
           )}
         </section>
 
-        {/* Inquiry Inbox */}
         <section>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
             <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: '1rem' }}>Inquiry Inbox</h3>
@@ -161,7 +151,6 @@ export default function DalaliDashboard() {
           )}
         </section>
 
-        {/* Activity Feed */}
         <section>
           <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: '1rem', marginBottom: '0.75rem' }}>Recent Activity</h3>
           {actLoading ? <div style={{ display: 'grid', gap: '0.6rem' }}><SkeletonCard variant="activity" count={4} /></div>
@@ -183,8 +172,7 @@ export default function DalaliDashboard() {
             </div>
           )}
         </section>
-
       </div>
-    </DashboardLayout>
+    </>
   );
 }

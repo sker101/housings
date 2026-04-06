@@ -65,14 +65,7 @@ export default function LandlordDashboard() {
   };
 
   return (
-    <DashboardLayout
-      role="landlord"
-      accentColor="var(--jade)"
-      navItems={NAV}
-      pageTitle="Landlord Dashboard"
-      upgradeCTA={{ label: '⚡ Boost Listings', href: '/landlord/analytics' }}
-    >
-      {/* Welcome */}
+    <>
       <div style={{ marginBottom: '1.25rem' }}>
         <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: '1.3rem', color: 'var(--ink)' }}>
           {user?.fullName?.split(' ')[0] ?? 'Hi'}'s Properties
@@ -80,7 +73,6 @@ export default function LandlordDashboard() {
         <p style={{ color: 'var(--mid)', fontSize: '0.88rem' }}>Manage your listings, inquiries and income.</p>
       </div>
 
-      {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(155px, 1fr))', gap: '0.75rem', marginBottom: '1.5rem' }}>
         <KpiCard label="Monthly Income"   value={TZSFormat(monthlyIncome)} sub="paid bookings" accent="var(--jade)" />
         <KpiCard label="Occupancy Rate"   value={`${occupancyRate}%`}      sub={`${activeListings} active`} />
@@ -89,8 +81,6 @@ export default function LandlordDashboard() {
       </div>
 
       <div style={{ display: 'grid', gap: '1.25rem' }}>
-
-        {/* Inquiry Inbox */}
         <section>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
             <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: '1rem' }}>
@@ -123,7 +113,6 @@ export default function LandlordDashboard() {
           )}
         </section>
 
-        {/* Listing Performance Bar Chart (pure CSS) */}
         <section>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
             <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: '1rem' }}>Listing Views</h3>
@@ -159,7 +148,6 @@ export default function LandlordDashboard() {
           })()}
         </section>
 
-        {/* Rent Tracker */}
         <section>
           <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: '1rem', marginBottom: '0.75rem' }}>Rent Tracker</h3>
           {bookLoading ? (
@@ -193,7 +181,6 @@ export default function LandlordDashboard() {
           )}
         </section>
 
-        {/* Activity Feed */}
         <section>
           <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: '1rem', marginBottom: '0.75rem' }}>Recent Activity</h3>
           {actLoading ? (
@@ -218,6 +205,6 @@ export default function LandlordDashboard() {
         </section>
 
       </div>
-    </DashboardLayout>
+    </>
   );
 }
