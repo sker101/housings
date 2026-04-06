@@ -99,20 +99,37 @@ export default function RoleBasedLayout() {
   const SidebarContent = () => (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Logo */}
-      <div style={{ padding: '1rem 1rem', borderBottom: '1px solid var(--border)' }}>
+      <div style={{ padding: '0.85rem 1rem', borderBottom: '1px solid var(--border)' }}>
         <Link
           to="/"
-          style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none' }}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', textDecoration: 'none' }}
         >
-          <span
-            style={{
-              fontFamily: "'Syne', sans-serif",
-              fontWeight: 800,
-              color: 'var(--ink)',
-              fontSize: '1.1rem',
-              letterSpacing: '-0.02em',
-            }}
-          >
+          {/* Compact icon badge */}
+          <div style={{
+            width: 28,
+            height: 28,
+            borderRadius: 8,
+            background: accentColor,
+            display: 'grid',
+            placeItems: 'center',
+            color: '#fff',
+            fontSize: '0.72rem',
+            fontWeight: 900,
+            fontFamily: "'Syne', sans-serif",
+            flexShrink: 0,
+          }}>
+            CS
+          </div>
+          <span style={{
+            fontFamily: "'Syne', sans-serif",
+            fontWeight: 800,
+            color: 'var(--ink)',
+            fontSize: '0.92rem',
+            letterSpacing: '-0.02em',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}>
             Campus<span style={{ color: accentColor }}>Stay</span>
           </span>
         </Link>

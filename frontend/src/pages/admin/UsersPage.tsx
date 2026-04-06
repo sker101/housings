@@ -1,33 +1,34 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  LayoutDashboard, Users, List, DollarSign, Flag,
-  CheckCircle, ShieldX, RefreshCw, Shield, Search, AlertTriangle,
+  Users, CheckCircle, ShieldX, RefreshCw, Shield, Search,
+  GraduationCap, Home, Handshake, ShieldCheck,
 } from 'lucide-react';
-import DashboardLayout from '../../components/DashboardLayout';
 import { SkeletonCard } from '../../components/SkeletonCard';
 import { StatusPill } from '../../components/StatusPill';
-import { RoleBadge } from '../../components/RoleBadge';
 import { useAuth } from '../../context/AuthContext';
 import { selectRows, updateRows, insertRows, SUPABASE_URL, SUPABASE_ANON_KEY } from '../../lib/supabase';
 import { formatDate, friendlyError } from '../../utils/format';
-import type { Profile, NavItem, Role } from '../../types';
+import type { Profile, Role } from '../../types';
 import toast from 'react-hot-toast';
 
-const NAV: NavItem[] = [
-  { label: 'Dashboard', href: '/admin',           icon: <LayoutDashboard size={16} /> },
-  { label: 'Users',     href: '/admin/users',     icon: <Users size={16} /> },
-  { label: 'Listings',  href: '/admin/listings',  icon: <List size={16} /> },
-  { label: 'Payments',  href: '/admin/payments',  icon: <DollarSign size={16} /> },
-  { label: 'Disputes',  href: '/admin/disputes',  icon: <Flag size={16} /> },
-];
-
 type AdminProfile = Profile & { email?: string };
+
+type RoleTab = 'all' | 'student' | 'landlord' | 'dalali' | 'admin';
+
+const TABS: { key: RoleTab; label: string; icon: React.ReactNode }[] = [
+  { key: 'all',      label: 'All',      icon: <Users size={14} /> },
+  { key: 'student',  label: 'Tenants',  icon: <GraduationCap size={14} /> },
+  { key: 'landlord', label: 'Landlords',icon: <Home size={14} /> },
+  { key: 'dalali',   label: 'Dalalis',  icon: <Handshake size={14} /> },
+  { key: 'admin',    label: 'Admins',   icon: <ShieldCheck size={14} /> },
+];
 
 export default function AdminUsersPage() {
   const { user: me, token } = useAuth();
   const [profiles, setProfiles] = useState<AdminProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [activeTab, setActiveTab] = useState<RoleTab>('all');
   const [busyId, setBusyId] = useState<string | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
 
@@ -38,7 +39,7 @@ export default function AdminUsersPage() {
       const rows = await selectRows('profiles', {
         select: 'id,role,full_name,phone,id_verified,suspended,avg_rating,created_at',
         order: 'created_at.desc',
-        limit: 200,
+        limit: 500,
         accessToken: token,
       });
       setProfiles(rows as AdminProfile[]);
@@ -51,14 +52,13 @@ export default function AdminUsersPage() {
 
   useEffect(() => { loadProfiles(); }, [loadProfiles]);
 
-  // ── Realtime: live profile updates ───────────────────────────
+  // ── Realtime ────────────────────────────────────────────────
   useEffect(() => {
     if (!token) return;
     const wsUrl = `${SUPABASE_URL.replace('https://', 'wss://').replace('http://', 'ws://')}/realtime/v1/websocket?apikey=${SUPABASE_ANON_KEY}&vsn=1.0.0`;
     let ws: WebSocket;
     let heartbeatId: ReturnType<typeof setInterval>;
     let ref = 1;
-
     try {
       ws = new WebSocket(wsUrl);
       wsRef.current = ws;
@@ -73,30 +73,25 @@ export default function AdminUsersPage() {
           const msg = JSON.parse(evt.data as string);
           if (msg.event === 'postgres_changes') {
             const { type, record } = msg.payload?.data ?? {};
-            if (type === 'UPDATE' && record?.id) {
-              setProfiles((prev) => prev.map((p) => p.id === record.id ? { ...p, ...record } : p));
-            }
-            if (type === 'INSERT' && record?.id) {
-              setProfiles((prev) => [record as AdminProfile, ...prev]);
-            }
+            if (type === 'UPDATE' && record?.id) setProfiles((prev) => prev.map((p) => p.id === record.id ? { ...p, ...record } : p));
+            if (type === 'INSERT' && record?.id) setProfiles((prev) => [record as AdminProfile, ...prev]);
           }
         } catch { /* ignore */ }
       };
     } catch { /* WebSocket not available */ }
-
     return () => {
       clearInterval(heartbeatId);
       if (wsRef.current) { wsRef.current.close(); wsRef.current = null; }
     };
   }, [token]);
 
-  // ── Optimistic actions ────────────────────────────────────────
+  // ── Actions ───────────────────────────────────────────────────
   const logAdminAction = async (action: string, targetId: string, metadata: Record<string, unknown> = {}) => {
     if (!token || !me?.userId) return;
     await insertRows('admin_audit_log', {
       admin_id: me.userId, action, target_type: 'profile', target_id: targetId,
       metadata, created_at: new Date().toISOString(),
-    }, { accessToken: token }).catch(() => {/* log failure is non-blocking */});
+    }, { accessToken: token }).catch(() => {});
   };
 
   const optimisticUpdate = async (id: string, patch: Partial<AdminProfile>, action: string, successMsg: string) => {
@@ -109,48 +104,94 @@ export default function AdminUsersPage() {
       await logAdminAction(action, id, { before: prev, after: { ...prev, ...patch } });
       toast.success(successMsg);
     } catch (err) {
-      setProfiles((ps) => ps.map((p) => p.id === id ? prev : p)); // revert
+      setProfiles((ps) => ps.map((p) => p.id === id ? prev : p));
       toast.error(friendlyError(err));
     } finally {
       setBusyId(null);
     }
   };
 
-  const handleVerifyId     = (id: string) => optimisticUpdate(id, { id_verified: true },  'verify_id',    'ID verified');
-  const handleSuspend      = (id: string) => optimisticUpdate(id, { suspended: true },    'suspend',      'Account suspended');
-  const handleUnsuspend    = (id: string) => optimisticUpdate(id, { suspended: false },   'unsuspend',    'Account reinstated');
+  const handleVerifyId  = (id: string) => optimisticUpdate(id, { id_verified: true },  'verify_id',  'ID verified');
+  const handleSuspend   = (id: string) => optimisticUpdate(id, { suspended: true },    'suspend',    'Account suspended');
+  const handleUnsuspend = (id: string) => optimisticUpdate(id, { suspended: false },   'unsuspend',  'Account reinstated');
+  const changeRole = (id: string, newRole: Role) => optimisticUpdate(id, { role: newRole } as Partial<AdminProfile>, 'change_role', `Role changed to ${newRole}`);
 
-  const changeRole = async (id: string, newRole: Role) => {
-    await optimisticUpdate(id, { role: newRole } as Partial<AdminProfile>, 'change_role', `Role changed to ${newRole}`);
+  // ── Filtering ────────────────────────────────────────────────
+  const counts: Record<RoleTab, number> = {
+    all:      profiles.length,
+    student:  profiles.filter((p) => p.role === 'student').length,
+    landlord: profiles.filter((p) => p.role === 'landlord').length,
+    dalali:   profiles.filter((p) => p.role === 'dalali').length,
+    admin:    profiles.filter((p) => p.role === 'admin').length,
   };
 
   const filtered = profiles.filter((p) => {
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    return (
-      p.full_name?.toLowerCase().includes(q) ||
-      p.phone?.toLowerCase().includes(q) ||
-      p.role?.toLowerCase().includes(q)
-    );
+    const matchTab =
+      activeTab === 'all' ||
+      p.role === activeTab;
+    const q = search.trim().toLowerCase();
+    const matchSearch = !q || p.full_name?.toLowerCase().includes(q) || p.phone?.toLowerCase().includes(q);
+    return matchTab && matchSearch;
   });
 
   return (
     <>
-      {/* Search + refresh */}
-      <div style={{ display: 'flex', gap: '0.6rem', marginBottom: '1rem' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', gap: '0.6rem', marginBottom: '1rem', alignItems: 'center' }}>
         <div style={{ flex: 1, position: 'relative' }}>
           <Search size={15} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--mid)' }} />
           <input
             type="text"
-            placeholder="Search by name, phone or role…"
+            placeholder="Search by name or phone…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            style={{ paddingLeft: '2.2rem' }}
+            style={{ paddingLeft: '2.2rem', width: '100%' }}
           />
         </div>
         <button className="btn btn--ghost btn--small" onClick={loadProfiles} title="Refresh" style={{ flexShrink: 0 }}>
           <RefreshCw size={14} />
         </button>
+      </div>
+
+      {/* Role Tabs */}
+      <div style={{ display: 'flex', gap: '0.35rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+        {TABS.map((tab) => {
+          const isActive = activeTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                padding: '0.38rem 0.75rem',
+                borderRadius: 99,
+                border: isActive ? '2px solid var(--jade)' : '1px solid var(--border)',
+                background: isActive ? 'var(--jade-muted, #e8f8f2)' : 'var(--surface)',
+                color: isActive ? 'var(--jade)' : 'var(--mid)',
+                fontWeight: isActive ? 700 : 500,
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+              }}
+            >
+              {tab.icon}
+              {tab.label}
+              <span style={{
+                background: isActive ? 'var(--jade)' : 'var(--border)',
+                color: isActive ? '#fff' : 'var(--mid)',
+                borderRadius: 99,
+                fontSize: '0.7rem',
+                fontWeight: 700,
+                padding: '0 0.4rem',
+                lineHeight: '1.5',
+              }}>
+                {counts[tab.key]}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Table */}
@@ -159,15 +200,15 @@ export default function AdminUsersPage() {
       ) : filtered.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '3rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14 }}>
           <Users size={36} style={{ color: 'var(--mid)', marginBottom: '0.75rem' }} />
-          <p style={{ color: 'var(--mid)' }}>No users found.</p>
+          <p style={{ color: 'var(--mid)' }}>No users found in this category.</p>
         </div>
       ) : (
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.83rem', minWidth: 700 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.83rem', minWidth: 680 }}>
             <thead>
               <tr style={{ background: 'var(--cream)' }}>
-                {['Name', 'Phone', 'Role', 'ID Verified', 'Status', 'Joined', 'Actions'].map((h) => (
-                  <th key={h} style={{ textAlign: 'left', padding: '0.55rem 0.75rem', fontWeight: 700, color: 'var(--mid)', fontSize: '0.73rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
+                {['Name', 'Phone', 'Role', 'ID', 'Status', 'Joined', 'Actions'].map((h) => (
+                  <th key={h} style={{ textAlign: 'left', padding: '0.55rem 0.75rem', fontWeight: 700, color: 'var(--mid)', fontSize: '0.72rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -181,7 +222,7 @@ export default function AdminUsersPage() {
                       value={p.role}
                       disabled={busyId === p.id}
                       onChange={(e) => changeRole(p.id, e.target.value as Role)}
-                      style={{ fontSize: '0.8rem', padding: '0.2rem 0.4rem', borderRadius: 6, border: '1px solid var(--border)', background: '#fff', cursor: 'pointer', width: 'auto' }}
+                      style={{ fontSize: '0.8rem', padding: '0.2rem 0.4rem', borderRadius: 6, border: '1px solid var(--border)', background: '#fff', cursor: 'pointer' }}
                     >
                       {(['student', 'landlord', 'dalali', 'admin'] as Role[]).map((r) => (
                         <option key={r} value={r}>{r}</option>
@@ -196,33 +237,21 @@ export default function AdminUsersPage() {
                   </td>
                   <td style={{ padding: '0.6rem 0.75rem', color: 'var(--mid)', whiteSpace: 'nowrap' }}>{formatDate(p.created_at)}</td>
                   <td style={{ padding: '0.6rem 0.75rem' }}>
-                    <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'nowrap' }}>
+                    <div style={{ display: 'flex', gap: '0.35rem' }}>
                       {!p.id_verified && (
-                        <button
-                          onClick={() => handleVerifyId(p.id)}
-                          disabled={busyId === p.id}
-                          title="Verify ID"
-                          style={{ background: 'var(--jade-muted)', border: 'none', borderRadius: 6, padding: '0.3rem 0.5rem', cursor: 'pointer', color: 'var(--jade)' }}
-                        >
+                        <button onClick={() => handleVerifyId(p.id)} disabled={busyId === p.id} title="Verify ID"
+                          style={{ background: 'var(--jade-muted)', border: 'none', borderRadius: 6, padding: '0.3rem 0.5rem', cursor: 'pointer', color: 'var(--jade)' }}>
                           <CheckCircle size={13} />
                         </button>
                       )}
                       {p.suspended ? (
-                        <button
-                          onClick={() => handleUnsuspend(p.id)}
-                          disabled={busyId === p.id}
-                          title="Reinstate"
-                          style={{ background: 'var(--jade-muted)', border: 'none', borderRadius: 6, padding: '0.3rem 0.5rem', cursor: 'pointer', color: 'var(--jade)' }}
-                        >
+                        <button onClick={() => handleUnsuspend(p.id)} disabled={busyId === p.id} title="Reinstate"
+                          style={{ background: 'var(--jade-muted)', border: 'none', borderRadius: 6, padding: '0.3rem 0.5rem', cursor: 'pointer', color: 'var(--jade)' }}>
                           <Shield size={13} />
                         </button>
                       ) : (
-                        <button
-                          onClick={() => handleSuspend(p.id)}
-                          disabled={busyId === p.id || p.role === 'admin'}
-                          title="Suspend"
-                          style={{ background: 'var(--red-light)', border: 'none', borderRadius: 6, padding: '0.3rem 0.5rem', cursor: 'pointer', color: 'var(--red)', opacity: p.role === 'admin' ? 0.4 : 1 }}
-                        >
+                        <button onClick={() => handleSuspend(p.id)} disabled={busyId === p.id || p.role === 'admin'} title="Suspend"
+                          style={{ background: 'var(--red-light)', border: 'none', borderRadius: 6, padding: '0.3rem 0.5rem', cursor: 'pointer', color: 'var(--red)', opacity: p.role === 'admin' ? 0.4 : 1 }}>
                           <ShieldX size={13} />
                         </button>
                       )}
