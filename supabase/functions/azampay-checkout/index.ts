@@ -57,6 +57,9 @@ serve(async (req) => {
     }
 
     // 2. Initiate Checkout
+    // We add a timestamp to externalId to ensure every payment attempt is unique in AzamPay
+    const attemptId = `${bookingId}_${Date.now()}`
+
     const checkoutResponse = await fetch("https://sandbox.azampay.co.tz/azampay/mno/checkout", {
       method: "POST",
       headers: {
@@ -66,14 +69,14 @@ serve(async (req) => {
       body: JSON.stringify({
         amount: amount.toString(),
         currency: "TZS",
-        externalId: bookingId,
+        externalId: attemptId,
         name: name || "CampusStay Tenant",
         phoneNumber: phone || "255700000000",
         email: email || "tenant@campusstay.co",
         appName: AZAMPAY_APP_NAME,
         redirectFail: `${req.headers.get("origin")}/my-room?payment=failed`,
         redirectSuccess: `${req.headers.get("origin")}/my-room?payment=success`,
-        vendorId: AZAMPAY_CLIENT_ID, // Use Client ID as vendorId if not provided elsewhere
+        vendorId: AZAMPAY_CLIENT_ID, 
         merchantMobileNumber: "255700000000", 
       }),
     })

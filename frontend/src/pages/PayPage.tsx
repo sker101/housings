@@ -139,15 +139,16 @@ export default function PayPage() {
           months
         }, token);
 
-        if (azamResponse?.success && azamResponse?.data?.url) {
-           window.location.href = azamResponse.data.url;
+        if (azamResponse?.success && (azamResponse?.checkout_url || azamResponse?.data?.url || azamResponse?.url)) {
+           window.location.href = azamResponse.checkout_url || azamResponse.data?.url || azamResponse.url;
            return;
         } else if (azamResponse?.checkout_url) {
-           // Handle mock/redirect
            window.location.href = azamResponse.checkout_url;
            return;
         }
-        throw new Error(azamResponse?.error || 'Failed to initiate AzamPay checkout');
+        
+        console.error('AzamPay Response:', azamResponse);
+        throw new Error(azamResponse?.error || azamResponse?.message || 'Failed to initiate AzamPay checkout');
       }
 
       setNotice('Payment successful! Your reservation has been recorded.');
