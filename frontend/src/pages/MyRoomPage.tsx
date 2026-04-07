@@ -93,32 +93,11 @@ export default function MyRoomPage() {
   const [landlord, setLandlord] = useState<Profile | null>(null);
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
   const [activeTab, setActiveTab] = useState<'overview' | 'contacts' | 'payment' | 'contract'>('overview');
-  const [localReservation, setLocalReservation] = useState<any>(null);
-  const storageKey = useMemo(
-    () => (user?.userId ? `myRoomReservation:${user.userId}` : 'myRoomReservation'),
-    [user?.userId]
-  );
 
   // Reset photo index when photos change
   useEffect(() => {
     setActivePhotoIndex(0);
   }, [photos]);
-
-  useEffect(() => {
-    // Load any reservation passed via navigation state or stored locally up front
-    if ((location.state as any)?.listingId) {
-      setLocalReservation(location.state);
-    } else {
-      const stored = localStorage.getItem(storageKey);
-      if (stored) {
-        try {
-          setLocalReservation(JSON.parse(stored));
-        } catch {
-          setLocalReservation(null);
-        }
-      }
-    }
-  }, [location.state, storageKey]);
 
   useEffect(() => {
     let mounted = true;
@@ -135,7 +114,7 @@ export default function MyRoomPage() {
           select: 'id,listing_id,lister_id,move_in_date,duration_months,status,reference,created_at',
           filters: [
             { column: 'tenant_id', op: 'eq', value: user.userId },
-            { column: 'status', op: 'in', value: '(approved,reserved,paid)' }
+            { column: 'status', op: 'in', value: '(approved,completed)' }
           ],
           order: 'created_at.desc',
           limit: 1,
@@ -154,7 +133,7 @@ export default function MyRoomPage() {
         }
 
         const listingRows = await selectRows('listings', {
-          select: 'id,title,address,district,ward,street,room_type,floor,near_universities,lat,lng,price_monthly,security_deposit,utilities_included,house_rules,amenities,lister_id',
+          select: 'id,title,district,ward,street,room_type,floor,near_universities,lat,lng,price_monthly,security_deposit,utilities_included,house_rules,amenities,lister_id',
           filters: [{ column: 'id', op: 'eq', value: active.listing_id }],
           accessToken: token
         });
@@ -187,19 +166,9 @@ export default function MyRoomPage() {
         setPhotos(photoUrls);
         setLandlord(landlordRows?.[0] || null);
         setPayments(paymentRows || []);
-        setLocalReservation(null);
       } catch (err: any) {
         if (mounted) {
           setError(err.message || 'Failed to load your room');
-          // fallback to local reservation if available
-          const stored = localStorage.getItem(storageKey);
-          if (stored) {
-            try {
-              setLocalReservation(JSON.parse(stored));
-            } catch {
-              setLocalReservation(null);
-            }
-          }
         }
       } finally {
         if (mounted) setLoading(false);
@@ -209,66 +178,19 @@ export default function MyRoomPage() {
     return () => {
       mounted = false;
     };
-  }, [user?.userId, token, storageKey]);
-
-  // If we only have a local reservation, fetch listing + landlord for richer display
-  useEffect(() => {
-    let mounted = true;
-    async function loadFromLocal() {
-      if (booking || listing || !localReservation?.listingId || !token) return;
-      try {
-        const [listingRows, photoRows] = await Promise.all([
-          selectRows('listings', {
-            select: 'id,title,address,district,ward,street,room_type,floor,near_universities,lat,lng,price_monthly,security_deposit,utilities_included,house_rules,amenities,lister_id',
-            filters: [{ column: 'id', op: 'eq', value: localReservation.listingId }],
-            accessToken: token
-          }).catch(() => []),
-          selectRows('listing_photos', {
-            select: 'public_url,angle,position,is_cover,caption',
-            filters: [{ column: 'listing_id', op: 'eq', value: localReservation.listingId }],
-            order: 'position.asc',
-            accessToken: token
-          }).catch(() => [])
-        ]);
-
-        let landlordRow: any = null;
-        const listerId = listingRows?.[0]?.lister_id || localReservation?.listerId;
-        if (listerId) {
-          const rows = await selectRows('profiles', {
-            select: 'id,full_name,phone,verification_status,role',
-            filters: [{ column: 'id', op: 'eq', value: listerId }],
-            accessToken: token
-          }).catch(() => []);
-          landlordRow = rows?.[0] || null;
-        }
-
-        if (!mounted) return;
-        const listingRecord = listingRows?.[0] || null;
-        setListing(listingRecord);
-        const photoUrls = (photoRows || []).map((p: any) => p.public_url).filter(Boolean);
-        setPhotos(photoUrls);
-        setLandlord(landlordRow);
-      } catch {
-        // ignore
-      }
-    }
-    loadFromLocal();
-    return () => {
-      mounted = false;
-    };
-  }, [booking, listing, localReservation, token]);
+  }, [user?.userId, token]);
 
   const mainPayment = useMemo(() => payments[0], [payments]);
   const nextPayment = useMemo(() => payments.find((p) => p.status !== 'paid'), [payments]);
 
   const leaseEndDate = useMemo(() => {
-    const moveIn = booking?.move_in_date || localReservation?.moveInDate;
-    const months = booking?.duration_months || localReservation?.months || 0;
+    const moveIn = booking?.move_in_date;
+    const months = booking?.duration_months || 0;
     if (!moveIn || !months) return null;
     const d = new Date(moveIn);
     d.setMonth(d.getMonth() + Number(months));
     return d;
-  }, [booking, localReservation]);
+  }, [booking]);
 
   const daysRemaining = useMemo(() => {
     if (!leaseEndDate) return null;
@@ -277,14 +199,14 @@ export default function MyRoomPage() {
   }, [leaseEndDate]);
 
   const leaseProgressPct = useMemo(() => {
-    const moveIn = booking?.move_in_date || localReservation?.moveInDate;
-    const months = booking?.duration_months || localReservation?.months || 0;
+    const moveIn = booking?.move_in_date;
+    const months = booking?.duration_months || 0;
     if (!moveIn || !months || !leaseEndDate) return 0;
     const start = new Date(moveIn).getTime();
     const end = leaseEndDate.getTime();
     const now = Date.now();
     return Math.min(100, Math.max(0, Math.round(((now - start) / (end - start)) * 100)));
-  }, [booking, localReservation, leaseEndDate]);
+  }, [booking, leaseEndDate]);
 
   if (!user?.userId) {
     return (
@@ -295,7 +217,7 @@ export default function MyRoomPage() {
     );
   }
 
-  if (!loading && !booking && !localReservation) {
+  if (loading) {
     return (
       <div className="container section" style={{ textAlign: 'center', padding: '3rem 1rem' }}>
         <h1 style={{ marginBottom: '0.6rem' }}>My room</h1>
@@ -318,13 +240,13 @@ export default function MyRoomPage() {
             Hi {user?.fullName?.split(' ')[0] || 'there'} — your room is confirmed
           </p>
           <h1 style={{ margin: '0.25rem 0 0', fontSize: '1.5rem', fontWeight: 800, color: '#fff' }}>
-            {listing?.title || localReservation?.title || 'Your reserved room'}
+            {listing?.title || 'Your reserved room'}
           </h1>
           <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', color: '#9FE1CB' }}>
             {[
-              listing?.address || localReservation?.address || listing?.ward || listing?.district,
+              listing?.street || listing?.ward || listing?.district,
               distanceLabel(listing) || null,
-              `Move-in: ${formatDate(booking?.move_in_date || localReservation?.moveInDate)}`
+              `Move-in: ${formatDate(booking?.move_in_date)}`
             ].filter(Boolean).join(' · ')}
           </p>
         </div>
@@ -393,7 +315,7 @@ export default function MyRoomPage() {
                     background: '#1D9E75', color: '#fff',
                     padding: '0.35rem 0.75rem', borderRadius: 999, fontSize: '0.82rem', fontWeight: 700
                   }}>
-                    {listing?.room_type || localReservation?.roomType || 'Room'}
+                    {listing?.room_type || 'Room'}
                   </span>
                 </div>
 
@@ -448,9 +370,9 @@ export default function MyRoomPage() {
                     <div style={{ background: '#1D9E75', width: `${leaseProgressPct}%`, height: '100%', borderRadius: 999 }} />
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.35rem' }}>
-                    <span style={{ fontSize: '0.78rem', color: 'var(--mid)' }}>{formatDate(booking?.move_in_date || localReservation?.moveInDate)}</span>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--mid)' }}>{formatDate(booking?.move_in_date)}</span>
                     <span style={{ fontSize: '0.78rem', color: '#1D9E75', fontWeight: 600 }}>
-                      {booking?.duration_months || localReservation?.months || 0} month lease
+                      {booking?.duration_months || 0} month lease
                     </span>
                     <span style={{ fontSize: '0.78rem', color: 'var(--mid)' }}>
                       {leaseEndDate ? formatDate(leaseEndDate.toISOString()) : '—'}
@@ -461,16 +383,16 @@ export default function MyRoomPage() {
                 <div className="card" style={{ padding: '0.9rem', borderRadius: 12 }}>
                   <p style={{ margin: '0 0 0.6rem', fontWeight: 700 }}>Room details</p>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: '0.5rem' }}>
-                    <InfoRow label="Type" value={listing?.room_type || localReservation?.roomType || '—'} />
+                    <InfoRow label="Type" value={listing?.room_type || '—'} />
                     <InfoRow label="Floor" value={listing?.floor || '—'} />
-                    <InfoRow label="Move-in" value={formatDate(booking?.move_in_date || localReservation?.moveInDate)} />
-                    <InfoRow label="Duration" value={`${booking?.duration_months || localReservation?.months || 0} months`} />
-                    <InfoRow label="Monthly rent" value={formatTZS(listing?.price_monthly || localReservation?.priceMonthly)} />
+                    <InfoRow label="Move-in" value={formatDate(booking?.move_in_date)} />
+                    <InfoRow label="Duration" value={`${booking?.duration_months || 0} months`} />
+                    <InfoRow label="Monthly rent" value={formatTZS(listing?.price_monthly)} />
                     <InfoRow label="Security deposit" value={formatTZS(listing?.security_deposit)} />
                     <InfoRow label="Utilities included" value={listing?.utilities_included ? 'Yes' : 'No'} />
-                    <InfoRow label="Near" value={listing?.near_universities?.[0] || localReservation?.nearUniversities?.[0] || '—'} />
+                    <InfoRow label="Near" value={listing?.near_universities?.[0] || '—'} />
                     <InfoRow label="District / Ward" value={[listing?.district, listing?.ward].filter(Boolean).join(' / ') || '—'} />
-                    <InfoRow label="Full address" value={listing?.address || localReservation?.address || '—'} />
+                    <InfoRow label="Full address" value={listing?.street || '—'} />
                   </div>
                 </div>
 
@@ -496,13 +418,13 @@ export default function MyRoomPage() {
                   }}>
                     <MapPin size={16} style={{ color: '#1D9E75', flexShrink: 0 }} />
                     <span style={{ fontSize: '0.88rem', color: '#085041' }}>
-                      {[listing?.address || listing?.ward, listing?.district].filter(Boolean).join(', ') || localReservation?.address || 'Dar es Salaam'}
+                      {[listing?.street || listing?.ward, listing?.district].filter(Boolean).join(', ') || 'Dar es Salaam'}
                     </span>
                   </div>
                   <button
                     type="button"
                     onClick={() => {
-                      const label = encodeURIComponent(listing?.address || listing?.ward || 'Dar es Salaam');
+                      const label = encodeURIComponent(listing?.street || listing?.ward || 'Dar es Salaam');
                       const url = `https://maps.google.com/?q=${listing?.lat ?? ''},${listing?.lng ?? ''}&query=${label}`;
                       if (navigator.share) {
                         navigator.share({ title: listing?.title || 'My room location', url }).catch(() => {});
@@ -583,10 +505,10 @@ export default function MyRoomPage() {
               <div className="card" style={{ padding: '1rem', borderRadius: 14, display: 'grid', gap: '0.9rem' }}>
                 <div className="card" style={{ padding: '0.9rem', borderRadius: 12 }}>
                   <p style={{ margin: 0, color: 'var(--mid)' }}>Payment summary</p>
-                  <Row label="Monthly rent" value={formatTZS(listing?.price_monthly || localReservation?.priceMonthly)} />
+                  <Row label="Monthly rent" value={formatTZS(listing?.price_monthly)} />
                   <Row label="Security deposit" value={formatTZS(listing?.security_deposit)} />
                   <Row label="Platform fee" value={formatTZS(5000)} />
-                  <Row label="Total paid" value={formatTZS(mainPayment?.amount || localReservation?.total || listing?.price_monthly)} bold />
+                  <Row label="Total paid" value={formatTZS(mainPayment?.amount || listing?.price_monthly)} bold />
                   <Row label="Booking reference" value={booking?.reference || mainPayment?.reference || '—'} />
                 </div>
                 <div className="card" style={{ padding: '0.9rem', borderRadius: 12 }}>
@@ -621,7 +543,7 @@ export default function MyRoomPage() {
                     <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--mid)', lineHeight: 1.6 }}>
                       Tenant: {user?.fullName || '—'}<br />
                       Landlord/Dalali: {landlord?.full_name || '—'}<br />
-                      Period: {formatDate(booking?.move_in_date || localReservation?.moveInDate)} – {leaseEndDate ? formatDate(leaseEndDate.toISOString()) : '—'}
+                      Period: {formatDate(booking?.move_in_date)} – {leaseEndDate ? formatDate(leaseEndDate.toISOString()) : '—'}
                     </p>
                   </div>
                   <p style={{ margin: '0 0 0.75rem', fontSize: '0.82rem', color: 'var(--mid)', lineHeight: 1.5 }}>

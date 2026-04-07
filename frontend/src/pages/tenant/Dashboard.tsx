@@ -47,16 +47,9 @@ export default function TenantDashboard() {
   const navigate = useNavigate();
 
   const activeStay = useMemo(() => {
-    // 1. Check for a real booking in DB (approved or completed)
-    const dbStay = bookings.find(b => b.status === 'approved' || b.status === 'completed');
-    if (dbStay) return dbStay;
-    // 2. Check for the local dummy reservation
-    const stored = localStorage.getItem(userId ? `myRoomReservation:${userId}` : 'myRoomReservation');
-    if (stored) {
-      try { return JSON.parse(stored); } catch { return null; }
-    }
-    return null;
-  }, [bookings, userId]);
+    // Check for a real booking in DB (approved or completed)
+    return bookings.find(b => b.status === 'approved' || b.status === 'completed') || null;
+  }, [bookings]);
 
   const completion = profileCompletion(profile as unknown as Record<string, unknown> | null);
   const activeInquiries = inquiries.filter((i) => i.status === 'pending').length;
