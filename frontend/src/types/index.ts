@@ -2,7 +2,7 @@
 // CampusStay TZ — Shared Type Definitions
 // ─────────────────────────────────────────────────────────────
 
-export type Role = 'student' | 'landlord' | 'dalali' | 'admin';
+export type Role = 'student' | 'landlord' | 'dalali' | 'admin' | 'lister';
 export type ListingStatus = 'active' | 'vacant' | 'paused' | 'removed';
 export type InquiryStatus = 'pending' | 'accepted' | 'declined' | 'booked';
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';

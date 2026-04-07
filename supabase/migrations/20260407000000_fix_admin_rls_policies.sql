@@ -62,23 +62,26 @@ CREATE POLICY "Admin reads all activity"
   WITH CHECK (public.is_admin(auth.uid()));
 
 -- ─── bookings ──────────────────────────────────────────────────
-CREATE POLICY IF NOT EXISTS "Admin manages all bookings"
+DROP POLICY IF EXISTS "Admin manages all bookings" ON public.bookings;
+CREATE POLICY "Admin manages all bookings"
   ON public.bookings FOR ALL
   USING (public.is_admin(auth.uid()))
   WITH CHECK (public.is_admin(auth.uid()));
 
 -- ─── conversations ─────────────────────────────────────────────
-CREATE POLICY IF NOT EXISTS "Admin manages all conversations"
+DROP POLICY IF EXISTS "Admin manages all conversations" ON public.conversations;
+CREATE POLICY "Admin manages all conversations"
   ON public.conversations FOR ALL
   USING (public.is_admin(auth.uid()))
   WITH CHECK (public.is_admin(auth.uid()));
 
 -- ─── messages ──────────────────────────────────────────────────
-CREATE POLICY IF NOT EXISTS "Admin manages all messages"
+DROP POLICY IF EXISTS "Admin manages all messages" ON public.messages;
+CREATE POLICY "Admin manages all messages"
   ON public.messages FOR ALL
   USING (public.is_admin(auth.uid()))
   WITH CHECK (public.is_admin(auth.uid()));
 
 -- ─── Enable realtime for profiles (so admin user list updates live) ─
-ALTER PUBLICATION supabase_realtime ADD TABLE IF NOT EXISTS public.profiles;
-ALTER PUBLICATION supabase_realtime ADD TABLE IF NOT EXISTS public.listings;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.listings;

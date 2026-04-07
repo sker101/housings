@@ -37,7 +37,7 @@ export default function AdminUsersPage() {
     setLoading(true);
     try {
       const rows = await selectRows('profiles', {
-        select: 'id,role,full_name,phone,id_verified,suspended,avg_rating,created_at',
+        select: 'id,role,lister_type,full_name,phone,id_verified,suspended,avg_rating,created_at',
         order: 'created_at.desc',
         limit: 500,
         accessToken: token,
@@ -120,15 +120,19 @@ export default function AdminUsersPage() {
   const counts: Record<RoleTab, number> = {
     all:      profiles.length,
     student:  profiles.filter((p) => p.role === 'student').length,
-    landlord: profiles.filter((p) => p.role === 'landlord').length,
-    dalali:   profiles.filter((p) => p.role === 'dalali').length,
+    landlord: profiles.filter((p) => p.role === 'lister' && p.lister_type !== 'dalali').length,
+    dalali:   profiles.filter((p) => p.role === 'lister' && p.lister_type === 'dalali').length,
     admin:    profiles.filter((p) => p.role === 'admin').length,
   };
 
   const filtered = profiles.filter((p) => {
     const matchTab =
       activeTab === 'all' ||
-      p.role === activeTab;
+      (activeTab === 'student'  && p.role === 'student') ||
+      (activeTab === 'landlord' && p.role === 'lister' && p.lister_type !== 'dalali') ||
+      (activeTab === 'dalali'   && p.role === 'lister' && p.lister_type === 'dalali') ||
+      (activeTab === 'admin'    && p.role === 'admin');
+    
     const q = search.trim().toLowerCase();
     const matchSearch = !q || p.full_name?.toLowerCase().includes(q) || p.phone?.toLowerCase().includes(q);
     return matchTab && matchSearch;
@@ -218,16 +222,14 @@ export default function AdminUsersPage() {
                   <td style={{ padding: '0.6rem 0.75rem', fontWeight: 600 }}>{p.full_name || '—'}</td>
                   <td style={{ padding: '0.6rem 0.75rem', color: 'var(--mid)' }}>{p.phone || '—'}</td>
                   <td style={{ padding: '0.6rem 0.75rem' }}>
-                    <select
-                      value={p.role}
-                      disabled={busyId === p.id}
-                      onChange={(e) => changeRole(p.id, e.target.value as Role)}
-                      style={{ fontSize: '0.8rem', padding: '0.2rem 0.4rem', borderRadius: 6, border: '1px solid var(--border)', background: '#fff', cursor: 'pointer' }}
-                    >
-                      {(['student', 'landlord', 'dalali', 'admin'] as Role[]).map((r) => (
-                        <option key={r} value={r}>{r}</option>
-                      ))}
-                    </select>
+                    <div style={{ fontWeight: 600, color: 'var(--jade)', fontSize: '0.75rem', textTransform: 'uppercase' }}>
+                      {p.role === 'student' ? 'Tenant' : p.role === 'admin' ? 'Admin' : (p.lister_type === 'dalali' ? 'Dalali' : 'Landlord')}
+                    </div>
+                    {p.role === 'lister' && p.lister_type && (
+                      <div style={{ fontSize: '0.65rem', color: 'var(--mid)', textTransform: 'capitalize' }}>
+                        {p.lister_type}
+                      </div>
+                    )}
                   </td>
                   <td style={{ padding: '0.6rem 0.75rem' }}>
                     <StatusPill variant={p.id_verified ? 'verified' : 'unverified'} size="sm" />

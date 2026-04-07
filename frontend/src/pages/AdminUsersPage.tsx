@@ -9,6 +9,7 @@ interface Profile {
   full_name: string;
   phone: string;
   role: 'student' | 'lister' | 'admin';
+  lister_type?: 'owner' | 'manager' | 'dalali';
   verification_status?: string;
   is_suspended: boolean;
   created_at: string;
@@ -36,12 +37,20 @@ export default function AdminUsersPage() {
     setIsLoading(true);
     try {
       const filters: any[] = [];
-      if (activeRole !== 'all') {
-        filters.push({ column: 'role', op: 'eq', value: activeRole });
+      if (activeRole === 'tenants') {
+        filters.push({ column: 'role', op: 'eq', value: 'student' });
+      } else if (activeRole === 'landlords') {
+        filters.push({ column: 'role', op: 'eq', value: 'lister' });
+        filters.push({ column: 'lister_type', op: 'neq', value: 'dalali' });
+      } else if (activeRole === 'dalalis') {
+        filters.push({ column: 'role', op: 'eq', value: 'lister' });
+        filters.push({ column: 'lister_type', op: 'eq', value: 'dalali' });
+      } else if (activeRole === 'admins') {
+        filters.push({ column: 'role', op: 'eq', value: 'admin' });
       }
 
       const data = await selectRows('profiles', {
-        select: 'id,full_name,phone,role,verification_status,is_suspended,created_at',
+        select: 'id,full_name,phone,role,lister_type,verification_status,is_suspended,created_at',
         filters: filters.length > 0 ? filters : undefined,
         or: searchQuery.trim()
           ? `full_name.ilike.%${searchQuery}%,phone.ilike.%${searchQuery}%`
@@ -116,7 +125,13 @@ export default function AdminUsersPage() {
     admin: '#ef4444',
   };
 
-  const roleTabs = ['all', 'student', 'lister', 'admin'];
+  const roleTabs = [
+    { id: 'all', label: 'All Users' },
+    { id: 'tenants', label: 'Tenants' },
+    { id: 'landlords', label: 'Landlords' },
+    { id: 'dalalis', label: 'Dalalis' },
+    { id: 'admins', label: 'Admins' }
+  ];
 
   return (
     <div style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto' }}>
@@ -144,13 +159,22 @@ export default function AdminUsersPage() {
           style={{ flex: '1 1 220px', padding: '0.65rem 1rem', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '0.95rem', fontFamily: 'inherit', minWidth: 180 }}
         />
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          {roleTabs.map((role) => (
+          {roleTabs.map((tab) => (
             <button
-              key={role}
-              onClick={() => setActiveRole(role)}
-              style={{ padding: '0.5rem 1rem', background: activeRole === role ? '#0d7a6e' : '#fff', color: activeRole === role ? '#fff' : '#1f2937', border: '1px solid #e5e7eb', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem' }}
+              key={tab.id}
+              onClick={() => setActiveRole(tab.id)}
+              style={{ 
+                padding: '0.5rem 1rem', 
+                background: activeRole === tab.id ? '#0d7a6e' : '#fff', 
+                color: activeRole === tab.id ? '#fff' : '#1f2937', 
+                border: '1px solid #e5e7eb', 
+                borderRadius: '6px', 
+                cursor: 'pointer', 
+                fontWeight: '600', 
+                fontSize: '0.9rem' 
+              }}
             >
-              {role.charAt(0).toUpperCase() + role.slice(1)}
+              {tab.label}
             </button>
           ))}
         </div>
@@ -189,9 +213,14 @@ export default function AdminUsersPage() {
                   </td>
                   <td style={{ padding: '0.85rem 1rem', fontSize: '0.9rem', color: '#6b7280' }}>{u.phone || '—'}</td>
                   <td style={{ padding: '0.85rem 1rem' }}>
-                    <span style={{ background: roleColors[u.role] || '#6b7280', color: '#fff', fontSize: '0.75rem', padding: '0.25rem 0.55rem', borderRadius: '4px', fontWeight: '700', display: 'inline-block' }}>
-                      {u.role?.toUpperCase()}
+                    <span style={{ background: roleColors[u.role] || '#6b7280', color: '#fff', fontSize: '0.75rem', padding: '0.15rem 0.45rem', borderRadius: '4px', fontWeight: '700', display: 'inline-block' }}>
+                      {u.role === 'student' ? 'TENANT' : u.role === 'lister' ? (u.lister_type === 'dalali' ? 'DALALI' : 'LANDLORD') : u.role?.toUpperCase()}
                     </span>
+                    {u.role === 'lister' && u.lister_type && (
+                      <div style={{ fontSize: '0.72rem', color: '#6b7280', marginTop: '0.1rem', fontStyle: 'italic' }}>
+                        {u.lister_type.charAt(0).toUpperCase() + u.lister_type.slice(1)}
+                      </div>
+                    )}
                   </td>
                   <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: u.verification_status === 'verified' ? '#059669' : u.verification_status === 'pending' ? '#d97706' : '#6b7280' }}>
                     {u.verification_status || '—'}

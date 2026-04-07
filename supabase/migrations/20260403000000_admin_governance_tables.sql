@@ -88,9 +88,9 @@ alter table system_config enable row level security;
 alter table banned_phones enable row level security;
 
 -- Create a security definer function to check if user is admin
-create or replace function is_admin(user_id uuid) returns boolean as $$
+create or replace function public.is_admin(target_user_id uuid default auth.uid()) returns boolean as $$
   select exists (
-    select 1 from profiles where id = user_id and role = 'admin'
+    select 1 from public.profiles where id = target_user_id and role = 'admin'
   );
 $$ language sql security definer;
 
