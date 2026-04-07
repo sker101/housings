@@ -89,17 +89,43 @@ export default function PayPage() {
         address: listing.street || listing.ward || listing.district || '',
         reference: `LOCAL-${Date.now()}`
       };
-      const booking = await insertRows('bookings', {
-        listing_id: listing.id,
-        tenant_id: user.userId,
-        lister_id: listing.lister_id,
-        move_in_date: reservation.moveInDate,
-        duration_months: months,
-        status: gateway === 'azampay' ? 'requested' : 'approved',
-        reference: reservation.reference
-      }, { accessToken: token });
+      // 1. Check if an active booking already exists to avoid unique constraint violations
+      const existing = await selectRows('bookings', {
+        select: 'id',
+        filters: [
+          { column: 'tenant_id', op: 'eq', value: user.userId },
+          { column: 'listing_id', op: 'eq', value: listing.id },
+          { column: 'status', op: 'in', value: '(requested,approved)' }
+        ],
+        limit: 1,
+        accessToken: token
+      });
 
-      const bookingId = booking?.[0]?.id;
+      let bookingId = existing?.[0]?.id;
+
+      if (!bookingId) {
+        const newBooking = await insertRows('bookings', {
+          listing_id: listing.id,
+          tenant_id: user.userId,
+          lister_id: listing.lister_id,
+          move_in_date: reservation.moveInDate,
+          duration_months: months,
+          status: gateway === 'azampay' ? 'requested' : 'approved',
+          reference: reservation.reference
+        }, { accessToken: token });
+        bookingId = newBooking?.[0]?.id;
+      } else {
+        const { updateRows } = await import('../lib/supabase');
+        // Update the existing booking reference if needed
+        await updateRows('bookings', { 
+            reference: reservation.reference,
+            move_in_date: reservation.moveInDate,
+            duration_months: months
+        }, { 
+            filters: [{ column: 'id', op: 'eq', value: bookingId }],
+            accessToken: token 
+        });
+      }
 
       if (gateway === 'azampay' && bookingId) {
         // Call AzamPay Edge Function
