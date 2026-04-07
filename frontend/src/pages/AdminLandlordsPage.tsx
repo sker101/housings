@@ -169,7 +169,11 @@ export default function AdminLandlordsPage() {
 
   const filteredProfiles = useMemo(() => {
     if (activeTab === 'all') return allProfiles;
-    return allProfiles.filter(p => (p.verification_status || 'pending').toLowerCase() === activeTab);
+    return allProfiles.filter(p => {
+      const s = (p.verification_status || 'pending').toLowerCase();
+      if (activeTab === 'pending') return s === 'pending' || s === 'unverified';
+      return s === activeTab;
+    });
   }, [allProfiles, activeTab]);
 
   const counts = useMemo(() => {
@@ -178,7 +182,7 @@ export default function AdminLandlordsPage() {
       const s = (p.verification_status || 'pending').toLowerCase();
       if (s === 'verified') base.verified++;
       else if (s === 'rejected') base.rejected++;
-      else base.pending++;
+      else base.pending++; // covers 'pending' and 'unverified'
     });
     return base;
   }, [allProfiles]);
