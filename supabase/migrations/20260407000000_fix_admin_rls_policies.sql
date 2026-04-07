@@ -11,6 +11,7 @@
 -- ─── profiles ─────────────────────────────────────────────────
 DROP POLICY IF EXISTS "Admin reads all profiles"   ON public.profiles;
 DROP POLICY IF EXISTS "Admin manages all profiles" ON public.profiles;
+DROP POLICY IF EXISTS "Admin full access profiles" ON public.profiles;
 
 CREATE POLICY "Admin full access profiles"
   ON public.profiles FOR ALL
@@ -83,5 +84,19 @@ CREATE POLICY "Admin manages all messages"
   WITH CHECK (public.is_admin(auth.uid()));
 
 -- ─── Enable realtime for profiles (so admin user list updates live) ─
-ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.listings;
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables 
+        WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'profiles'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables 
+        WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'listings'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.listings;
+    END IF;
+END $$;
