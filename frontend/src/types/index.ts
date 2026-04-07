@@ -6,6 +6,7 @@ export type Role = 'student' | 'landlord' | 'dalali' | 'admin' | 'lister';
 export type ListingStatus = 'active' | 'vacant' | 'paused' | 'removed';
 export type InquiryStatus = 'pending' | 'accepted' | 'declined' | 'booked';
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
+export type BookingStatus = 'requested' | 'approved' | 'declined' | 'cancelled' | 'completed';
 export type SubscriptionStatus = 'active' | 'cancelled' | 'past_due';
 
 export interface Profile {
@@ -70,6 +71,8 @@ export interface Booking {
   amount: number;
   payment_ref?: string;
   payment_status: PaymentStatus;
+  status?: BookingStatus;
+  lister_id?: string;
   move_in_date?: string;
   created_at: string;
   listing?: Partial<Listing>;

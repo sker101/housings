@@ -31,7 +31,7 @@ export function useBookings(
     try {
       const column = role === 'tenant' ? 'tenant_id' : 'host_id';
       const rows = await selectRows('bookings', {
-        select: 'id,inquiry_id,tenant_id,host_id,listing_id,amount,payment_ref,payment_status,move_in_date,created_at',
+        select: 'id,listing_id,tenant_id,lister_id,move_in_date,duration_months,status,created_at',
         filters: [{ column, op: 'eq', value: userId }],
         order: 'created_at.desc',
         accessToken,

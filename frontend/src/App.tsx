@@ -27,6 +27,7 @@ import BookingsPage      from './pages/BookingsPage';
 import ReviewsPage       from './pages/ReviewsPage';
 import NotificationsPage from './pages/NotificationsPage';
 import PayPage           from './pages/PayPage';
+import MyRoomPage        from './pages/MyRoomPage';
 
 // ── Landlord pages ────────────────────────────────────────────
 import LandlordDashboard     from './pages/landlord/Dashboard';
@@ -111,7 +112,7 @@ export default function App() {
           <Route path="/tenant/profile"   element={<ProtectedRoute roles={['student']}><ProfilePage /></ProtectedRoute>} />
           <Route path="/pay"              element={<ProtectedRoute roles={['student']}><PayPage /></ProtectedRoute>} />
           
-          <Route path="/my-room"          element={<Navigate to="/tenant/dashboard" replace />} />
+          <Route path="/my-room"          element={<ProtectedRoute roles={['student']}><MyRoomPage /></ProtectedRoute>} />
           <Route path="/saved"            element={<Navigate to="/tenant/saved" replace />} />
 
           {/* Landlord */}

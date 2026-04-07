@@ -1,5 +1,5 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import { useMemo } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Home, Search, Heart, MessageCircle, Calendar, User, BookOpen, Zap } from 'lucide-react';
 import DashboardLayout from '../../components/DashboardLayout';
 import { SkeletonCard } from '../../components/SkeletonCard';
@@ -10,7 +10,7 @@ import { useInquiries } from '../../hooks/useInquiries';
 import { useBookings } from '../../hooks/useBookings';
 import { useActivityLog } from '../../hooks/useActivityLog';
 import { profileCompletion, TZSFormat, formatDate } from '../../utils/format';
-import type { NavItem } from '../../types';
+import type { NavItem, Booking } from '../../types';
 
 const NAV: NavItem[] = [
   { label: 'Dashboard', href: '/tenant/dashboard',  icon: <Home size={16} /> },
@@ -44,11 +44,23 @@ export default function TenantDashboard() {
   const { inquiries, loading: inqLoading } = useInquiries('tenant', userId, token);
   const { bookings, loading: bookLoading } = useBookings('tenant', userId, token);
   const { events, loading: actLoading } = useActivityLog(userId, token);
+  const navigate = useNavigate();
+
+  const activeStay = useMemo(() => {
+    // 1. Check for a real booking in DB (approved or completed)
+    const dbStay = bookings.find(b => b.status === 'approved' || b.status === 'completed');
+    if (dbStay) return dbStay;
+    // 2. Check for the local dummy reservation
+    const stored = localStorage.getItem(userId ? `myRoomReservation:${userId}` : 'myRoomReservation');
+    if (stored) {
+      try { return JSON.parse(stored); } catch { return null; }
+    }
+    return null;
+  }, [bookings, userId]);
 
   const completion = profileCompletion(profile as unknown as Record<string, unknown> | null);
-
   const activeInquiries = inquiries.filter((i) => i.status === 'pending').length;
-  const activeBookings  = bookings.filter((b) => b.payment_status !== 'failed').length;
+  const activeBookings  = bookings.filter((b) => b.status === 'approved' || b.status === 'completed').length;
 
   return (
     <>
@@ -58,6 +70,45 @@ export default function TenantDashboard() {
         </h2>
         <p style={{ color: 'var(--mid)', fontSize: '0.88rem' }}>Here's what's happening with your housing search.</p>
       </div>
+
+      {activeStay && (
+        <div style={{
+          background: 'linear-gradient(135deg, #1D9E75 0%, #15805d 100%)',
+          borderRadius: 16,
+          padding: '1.25rem',
+          marginBottom: '1.5rem',
+          color: '#fff',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          boxShadow: '0 8px 24px -6px rgba(29, 158, 117, 0.3)',
+          transition: 'transform 0.2s ease',
+          cursor: 'pointer'
+        }} onClick={() => navigate('/my-room')}>
+          <div>
+            <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.9, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Your Active Stay
+            </p>
+            <h3 style={{ margin: '0.2rem 0 0', fontSize: '1.2rem', fontWeight: 800 }}>My living space</h3>
+            <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', opacity: 0.9 }}>
+              Move-in: {formatDate(activeStay.move_in_date)}
+            </p>
+          </div>
+          <Link to="/my-room" style={{
+            background: 'rgba(255,255,255,0.2)',
+            backdropFilter: 'blur(4px)',
+            color: '#fff',
+            padding: '0.6rem 1.2rem',
+            borderRadius: 10,
+            fontSize: '0.85rem',
+            fontWeight: 700,
+            textDecoration: 'none',
+            border: '1px solid rgba(255,255,255,0.3)'
+          }}>
+            Manage Room
+          </Link>
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '0.75rem', marginBottom: '1.5rem' }}>
         <KpiCard label="Saved Rooms"     value={savedListings.length}  sub="listings saved" />

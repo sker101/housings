@@ -54,6 +54,7 @@ const getNavItems = (role: string): NavItem[] => {
   return [
     { label: 'Dashboard', href: '/tenant/dashboard',  icon: <Home size={16} /> },
     { label: 'Search',    href: '/tenant/search',     icon: <Search size={16} /> },
+    { label: 'My Room',   href: '/my-room',           icon: <Building size={16} /> },
     { label: 'Saved',     href: '/tenant/saved',      icon: <Heart size={16} /> },
     { label: 'Messages',  href: '/messages',          icon: <MessageCircle size={16} /> },
     { label: 'Bookings',  href: '/bookings',          icon: <Calendar size={16} /> },

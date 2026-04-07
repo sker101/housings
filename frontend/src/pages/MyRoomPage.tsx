@@ -143,6 +143,7 @@ export default function MyRoomPage() {
         });
 
         const active = bookingRows?.[0];
+        // Fix for lister_id name mismatch if necessary - database says lister_id
         if (!active) {
           if (mounted) {
             setBooking(null);
@@ -644,9 +645,19 @@ export default function MyRoomPage() {
                 </div>
 
                 <div className="card" style={{ padding: '1rem', borderRadius: 14 }}>
-                  <p style={{ margin: '0 0 0.75rem', fontWeight: 700 }}>Emergency contacts</p>
-                  <Row label="Landlord/Dalali" value={landlord?.phone || '—'} />
-                  <Row label="CampusStay support" value="+255 800 000 000" />
+                  <p style={{ margin: '0 0 0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <ShieldCheck size={18} style={{ color: '#1D9E75' }} /> Emergency stats & contacts
+                  </p>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                    <div style={{ padding: '0.75rem', background: '#FEF2F2', borderRadius: 10 }}>
+                      <p style={{ margin: 0, fontSize: '0.75rem', color: '#991B1B' }}>Fire/Police</p>
+                      <strong style={{ fontSize: '1rem', color: '#991B1B' }}>112 / 999</strong>
+                    </div>
+                    <div style={{ padding: '0.75rem', background: '#F0F9FF', borderRadius: 10 }}>
+                      <p style={{ margin: 0, fontSize: '0.75rem', color: '#075985' }}>CS Support</p>
+                      <strong style={{ fontSize: '1rem', color: '#075985' }}>+255 800 000</strong>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
