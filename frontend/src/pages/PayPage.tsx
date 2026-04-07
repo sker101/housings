@@ -41,7 +41,7 @@ export default function PayPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-  const [gateway, setGateway] = useState<'selcom' | 'dpo'>('selcom');
+  const [gateway, setGateway] = useState<'selcom' | 'azampay'>('azampay');
 
   const total = useMemo(() => {
     const price = Number(listing?.price_monthly || 0);
@@ -89,17 +89,42 @@ export default function PayPage() {
         address: listing.street || listing.ward || listing.district || '',
         reference: `LOCAL-${Date.now()}`
       };
-      await insertRows('bookings', {
+      const booking = await insertRows('bookings', {
         listing_id: listing.id,
         tenant_id: user.userId,
         lister_id: listing.lister_id,
         move_in_date: reservation.moveInDate,
         duration_months: months,
-        status: 'approved',
+        status: gateway === 'azampay' ? 'requested' : 'approved',
         reference: reservation.reference
       }, { accessToken: token });
 
-      setNotice('Payment successful! Your reservation has been recorded globally.');
+      const bookingId = booking?.[0]?.id;
+
+      if (gateway === 'azampay' && bookingId) {
+        // Call AzamPay Edge Function
+        const { invokeFunction } = await import('../lib/supabase');
+        const azamResponse = await invokeFunction('azampay-checkout', {
+          bookingId,
+          amount: total,
+          name: user.fullName || 'CampusStay Tenant',
+          email: user.email,
+          phone: user.phone || '255700000000',
+          months
+        }, token);
+
+        if (azamResponse?.success && azamResponse?.data?.url) {
+           window.location.href = azamResponse.data.url;
+           return;
+        } else if (azamResponse?.checkout_url) {
+           // Handle mock/redirect
+           window.location.href = azamResponse.checkout_url;
+           return;
+        }
+        throw new Error(azamResponse?.error || 'Failed to initiate AzamPay checkout');
+      }
+
+      setNotice('Payment successful! Your reservation has been recorded.');
       navigate('/my-room');
     } catch (err: any) {
       setError(err.message || 'Unable to start payment. Please try again.');
@@ -146,19 +171,19 @@ export default function PayPage() {
             <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
               <button
                 type="button"
+                className={`btn btn--ghost ${gateway === 'azampay' ? 'is-active' : ''}`}
+                onClick={() => setGateway('azampay')}
+                style={{ minWidth: 120 }}
+              >
+                AzamPay (Sandbox)
+              </button>
+              <button
+                type="button"
                 className={`btn btn--ghost ${gateway === 'selcom' ? 'is-active' : ''}`}
                 onClick={() => setGateway('selcom')}
                 style={{ minWidth: 120 }}
               >
                 Selcom
-              </button>
-              <button
-                type="button"
-                className="btn btn--ghost"
-                disabled
-                style={{ minWidth: 120, opacity: 0.6 }}
-              >
-                DPO (coming soon)
               </button>
             </div>
           </div>
