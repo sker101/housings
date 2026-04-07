@@ -18,27 +18,32 @@ serve(async (req) => {
       throw new Error("Missing required fields: bookingId or amount")
     }
 
-    const AZAMPAY_APP_ID = Deno.env.get("AZAMPAY_APP_ID") || "MOCK_APP_ID"
-    const AZAMPAY_APP_SECRET = Deno.env.get("AZAMPAY_APP_SECRET") || "MOCK_APP_SECRET"
-    const AZAMPAY_VENDOR_ID = Deno.env.get("AZAMPAY_VENDOR_ID") || "MOCK_VENDOR_ID"
+    const AZAMPAY_CLIENT_ID = Deno.env.get("AZAMPAY_CLIENT_ID") || "MOCK_CLIENT_ID"
+    const AZAMPAY_CLIENT_SECRET = Deno.env.get("AZAMPAY_CLIENT_SECRET") || "MOCK_CLIENT_SECRET"
+    const AZAMPAY_TOKEN = Deno.env.get("AZAMPAY_TOKEN")
+    const AZAMPAY_APP_NAME = Deno.env.get("AZAMPAY_APP_NAME") || "CampusStay"
 
-    // 1. Get AzamPay Bearer Token
-    const authResponse = await fetch("https://authenticator-sandbox.azampay.co.tz/AppRegistration/GenerateToken", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        appName: "CampusStay",
-        clientId: AZAMPAY_APP_ID,
-        clientSecret: AZAMPAY_APP_SECRET,
-      }),
-    })
+    let token = AZAMPAY_TOKEN
 
-    const authData = await authResponse.json()
-    console.log("Auth Response:", authData)
-    
-    if (!authData.success) {
-      // In sandbox/mock if keys are missing, we might pretend it worked for UI dev
-      if (AZAMPAY_APP_ID === "MOCK_APP_ID") {
+    // 1. Get AzamPay Bearer Token (if not provided statically)
+    if (!token || token === "MOCK_TOKEN") {
+      const authResponse = await fetch("https://authenticator-sandbox.azampay.co.tz/AppRegistration/GenerateToken", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          appName: AZAMPAY_APP_NAME,
+          clientId: AZAMPAY_CLIENT_ID,
+          clientSecret: AZAMPAY_CLIENT_SECRET,
+        }),
+      })
+
+      const authData = await authResponse.json()
+      console.log("Auth Response:", authData)
+      
+      if (authData.success && authData.data?.accessToken) {
+        token = authData.data.accessToken
+      } else if (AZAMPAY_CLIENT_ID === "MOCK_CLIENT_ID") {
+         // Fallback for local dev/testing without keys
          return new Response(
            JSON.stringify({ 
              success: true, 
@@ -46,11 +51,10 @@ serve(async (req) => {
            }),
            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
          )
+      } else {
+        throw new Error(`AzamPay Auth Failed: ${authData.message || "Unknown error"}`)
       }
-      throw new Error(`AzamPay Auth Failed: ${authData.message || "Unknown error"}`)
     }
-
-    const token = authData.data.accessToken
 
     // 2. Initiate Checkout
     const checkoutResponse = await fetch("https://sandbox.azampay.co.tz/azampay/mno/checkout", {
@@ -66,11 +70,11 @@ serve(async (req) => {
         name: name || "CampusStay Tenant",
         phoneNumber: phone || "255700000000",
         email: email || "tenant@campusstay.co",
-        appName: "CampusStay",
+        appName: AZAMPAY_APP_NAME,
         redirectFail: `${req.headers.get("origin")}/my-room?payment=failed`,
         redirectSuccess: `${req.headers.get("origin")}/my-room?payment=success`,
-        vendorId: AZAMPAY_VENDOR_ID,
-        merchantMobileNumber: "255700000000", // Example merchant number
+        vendorId: AZAMPAY_CLIENT_ID, // Use Client ID as vendorId if not provided elsewhere
+        merchantMobileNumber: "255700000000", 
       }),
     })
 
