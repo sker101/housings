@@ -1,8 +1,8 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Home, Search, Heart, MessageCircle, Calendar, User, BookOpen, Zap } from 'lucide-react';
-import DashboardLayout from '../../components/DashboardLayout';
-import { SkeletonCard } from '../../components/SkeletonCard';
+import { useTranslation } from 'react-i18next';
+import { Heart, MessageCircle, Calendar, User, Zap, TrendingUp, Clock, ArrowRight, Sparkles, Search, MapPin } from 'lucide-react';
+import { LoadingSpinner, DashboardSkeleton } from '../../components/LoadingSpinner';
 import { StatusPill } from '../../components/StatusPill';
 import { useAuth } from '../../context/AuthContext';
 import { useListings } from '../../hooks/useListings';
@@ -10,35 +10,30 @@ import { useInquiries } from '../../hooks/useInquiries';
 import { useBookings } from '../../hooks/useBookings';
 import { useActivityLog } from '../../hooks/useActivityLog';
 import { profileCompletion, TZSFormat, formatDate } from '../../utils/format';
-import type { NavItem, Booking } from '../../types';
+import type { Booking } from '../../types';
 
-const NAV: NavItem[] = [
-  { label: 'Dashboard', href: '/tenant/dashboard',  icon: <Home size={16} /> },
-  { label: 'Search',    href: '/tenant/search',     icon: <Search size={16} /> },
-  { label: 'Saved',     href: '/tenant/saved',      icon: <Heart size={16} /> },
-  { label: 'Messages',  href: '/tenant/messages',   icon: <MessageCircle size={16} /> },
-  { label: 'Bookings',  href: '/tenant/bookings',   icon: <Calendar size={16} /> },
-  { label: 'Profile',   href: '/tenant/profile',    icon: <User size={16} /> },
-];
-
-function KpiCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
+function KpiCard({ label, value, sub, icon: Icon, color }: { label: string; value: string | number; sub?: string; icon: React.ElementType; color: string }) {
   return (
-    <div style={{
-      background: 'var(--surface)',
-      border: '1px solid var(--border)',
-      borderRadius: 14,
-      padding: '1rem',
-    }}>
-      <p style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--mid)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</p>
-      <p style={{ fontFamily: "'Syne', sans-serif", fontSize: '1.7rem', fontWeight: 800, color: 'var(--ink)', lineHeight: 1.15, margin: '0.25rem 0 0' }}>{value}</p>
-      {sub && <p style={{ fontSize: '0.78rem', color: 'var(--mid)', marginTop: '0.2rem' }}>{sub}</p>}
+    <div className="kpi-card" style={{ '--kpi-color': color } as React.CSSProperties}>
+      <div className="kpi-icon-wrapper"><Icon size={20} /></div>
+      <div className="kpi-content">
+        <p className="kpi-label">{label}</p>
+        <p className="kpi-value">{value}</p>
+        {sub && <p className="kpi-sub">{sub}</p>}
+      </div>
     </div>
   );
 }
 
 export default function TenantDashboard() {
   const { user, token, profile } = useAuth();
+  const { t } = useTranslation();
   const userId = user?.userId ?? null;
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    setIsVisible(true);
+  }, []);
 
   const { listings: savedListings, loading: savedLoading } = useListings(token, { limit: 3 });
   const { inquiries, loading: inqLoading } = useInquiries('tenant', userId, token);
@@ -47,143 +42,160 @@ export default function TenantDashboard() {
   const navigate = useNavigate();
 
   const activeStay = useMemo(() => {
-    // Check for a real booking in DB (approved or completed)
     return bookings.find(b => b.status === 'approved' || b.status === 'completed') || null;
   }, [bookings]);
 
   const completion = profileCompletion(profile as unknown as Record<string, unknown> | null);
   const activeInquiries = inquiries.filter((i) => i.status === 'pending').length;
-  const activeBookings  = bookings.filter((b) => b.status === 'approved' || b.status === 'completed').length;
+  const activeBookings = bookings.filter((b) => b.status === 'approved' || b.status === 'completed').length;
+
+  const firstName = user?.fullName?.split(' ')[0] ?? 'there';
 
   return (
-    <>
-      <div style={{ marginBottom: '1.25rem' }}>
-        <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: '1.3rem', color: 'var(--ink)' }}>
-          Welcome back, {user?.fullName?.split(' ')[0] ?? 'there'} 👋
-        </h2>
-        <p style={{ color: 'var(--mid)', fontSize: '0.88rem' }}>Here's what's happening with your housing search.</p>
+    <div className={`dashboard-container ${isVisible ? 'is-visible' : ''}`}>
+      {/* Welcome Section */}
+      <div className="dashboard-welcome" style={{ animationDelay: '0.05s' }}>
+        <div className="welcome-content">
+          <div className="welcome-badge">
+            <Sparkles size={14} />
+            <span>{t('studentDashboard.title', 'Student Dashboard')}</span>
+          </div>
+          <h1 className="welcome-title">
+            {t('studentDashboard.welcomeBack', 'Welcome back')}, {firstName} <span className="wave-emoji">👋</span>
+          </h1>
+          <p className="welcome-subtitle">{t('studentDashboard.subtitle', "Here's everything you need to find your perfect stay")}</p>
+        </div>
+        <div className="welcome-actions">
+          <Link to="/tenant/search" className="welcome-btn primary">
+            <Search size={18} />
+            {t('studentDashboard.findRooms', 'Find Rooms')}
+          </Link>
+        </div>
       </div>
 
+      {/* Active Stay Card */}
       {activeStay && (
-        <div style={{
-          background: 'linear-gradient(135deg, #1D9E75 0%, #15805d 100%)',
-          borderRadius: 16,
-          padding: '1.25rem',
-          marginBottom: '1.5rem',
-          color: '#fff',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          boxShadow: '0 8px 24px -6px rgba(29, 158, 117, 0.3)',
-          transition: 'transform 0.2s ease',
-          cursor: 'pointer'
-        }} onClick={() => navigate('/my-room')}>
-          <div>
-            <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.9, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Your Active Stay
-            </p>
-            <h3 style={{ margin: '0.2rem 0 0', fontSize: '1.2rem', fontWeight: 800 }}>My living space</h3>
-            <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', opacity: 0.9 }}>
-              Move-in: {formatDate(activeStay.move_in_date)}
-            </p>
+        <div className="active-stay-card" onClick={() => navigate('/my-room')} style={{ animationDelay: '0.1s' }}>
+          <div className="active-stay-content">
+            <div className="active-stay-badge">{t('studentDashboard.currentStay', 'Current Stay')}</div>
+            <h3 className="active-stay-title">{t('studentDashboard.myLivingSpace', 'My Living Space')}</h3>
+            <div className="active-stay-details">
+              <span className="active-stay-date">
+                <Calendar size={14} />
+                {t('studentDashboard.moveIn', 'Move-in')}: {formatDate(activeStay.move_in_date)}
+              </span>
+              <span className="active-stay-status">{t('studentDashboard.active', 'Active')}</span>
+            </div>
           </div>
-          <Link to="/my-room" style={{
-            background: 'rgba(255,255,255,0.2)',
-            backdropFilter: 'blur(4px)',
-            color: '#fff',
-            padding: '0.6rem 1.2rem',
-            borderRadius: 10,
-            fontSize: '0.85rem',
-            fontWeight: 700,
-            textDecoration: 'none',
-            border: '1px solid rgba(255,255,255,0.3)'
-          }}>
-            Manage Room
+          <Link to="/my-room" className="active-stay-btn">
+            {t('studentDashboard.manageRoom', 'Manage Room')}
+            <ArrowRight size={16} />
           </Link>
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '0.75rem', marginBottom: '1.5rem' }}>
-        <KpiCard label="Saved Rooms"     value={savedListings.length}  sub="listings saved" />
-        <KpiCard label="Open Inquiries"  value={activeInquiries}        sub="pending responses" />
-        <KpiCard label="Active Bookings" value={activeBookings}         sub="confirmed stays" />
-        <KpiCard label="Profile"         value={`${completion.percent}%`} sub="complete" />
+      {/* KPI Cards */}
+      <div className="kpi-grid">
+        <KpiCard label={t('studentDashboard.savedRooms', 'Saved Rooms')} value={savedListings.length} sub={t('studentDashboard.listingsSaved', 'listings saved')} icon={Heart} color="#ef4444" />
+        <KpiCard label={t('studentDashboard.openInquiries', 'Open Inquiries')} value={activeInquiries} sub={t('studentDashboard.pendingResponses', 'pending responses')} icon={MessageCircle} color="#f59e0b" />
+        <KpiCard label={t('studentDashboard.activeBookings', 'Active Bookings')} value={activeBookings} sub={t('studentDashboard.confirmedStays', 'confirmed stays')} icon={Calendar} color="#1D9E75" />
+        <KpiCard label={t('studentDashboard.profileCompletion', 'Profile Completion')} value={`${completion.percent}%`} sub={completion.percent === 100 ? t('studentDashboard.allDone', 'All done!') : t('studentDashboard.complete', 'complete')} icon={User} color="#10b981" />
       </div>
 
+      {/* Profile Completion */}
       {completion.percent < 100 && (
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '1rem', marginBottom: '1.25rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
-            <p style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--ink)' }}>Complete your profile</p>
-            <span style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--blue)' }}>{completion.percent}%</span>
+        <div className="profile-completion-card">
+          <div className="completion-header">
+            <div className="completion-title-group">
+              <TrendingUp size={20} className="completion-icon" />
+              <div>
+                <h3 className="completion-title">{t('studentDashboard.completeYourProfile', 'Complete your profile')}</h3>
+                <p className="completion-subtitle">{t('studentDashboard.completeProfileSubtitle', 'Finish setting up your profile to get better room recommendations')}</p>
+              </div>
+            </div>
+            <span className="completion-percent">{completion.percent}%</span>
           </div>
-          <div style={{ height: 6, background: 'var(--border)', borderRadius: 99, overflow: 'hidden', marginBottom: '0.7rem' }}>
-            <div style={{ height: '100%', width: `${completion.percent}%`, background: 'var(--blue)', borderRadius: 99, transition: 'width 0.4s ease' }} />
+          <div className="completion-progress">
+            <div className="completion-progress-bar" style={{ width: `${completion.percent}%` }} />
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+          <div className="completion-fields">
             {completion.fields.map((f) => (
-              <span key={f.key} style={{
-                fontSize: '0.76rem',
-                fontWeight: 600,
-                padding: '0.2rem 0.55rem',
-                borderRadius: 99,
-                background: f.done ? 'var(--jade-muted)' : 'var(--cream)',
-                color: f.done ? 'var(--jade)' : 'var(--mid)',
-              }}>
-                {f.done ? '✓ ' : ''}{f.label}
+              <span key={f.key} className={`completion-field ${f.done ? 'done' : 'pending'}`}>
+                {f.done ? <Sparkles size={12} /> : <Clock size={12} />}
+                {f.label}
               </span>
             ))}
           </div>
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.25rem' }}>
-        <section>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-            <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: '1rem' }}>Saved Rooms</h3>
-            <Link to="/tenant/saved" style={{ fontSize: '0.82rem', color: 'var(--blue)', fontWeight: 600 }}>View all →</Link>
+      {/* Main Content Grid */}
+      <div className="dashboard-grid">
+        {/* Saved Rooms Section */}
+        <section className="dashboard-section">
+          <div className="section-header">
+            <div className="section-title-group">
+              <div className="section-icon saved"><Heart size={18} /></div>
+              <h3 className="section-title">{t('studentDashboard.savedRoomsTitle', 'Saved Rooms')}</h3>
+            </div>
+            <Link to="/tenant/saved" className="section-link">{t('studentDashboard.viewAll', 'View all')} →</Link>
           </div>
           {savedLoading ? (
-            <div style={{ display: 'grid', gap: '0.6rem' }}><SkeletonCard variant="row" count={3} /></div>
+            <div className="saved-list" style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
+              <LoadingSpinner size="medium" text={t('common.loading', 'Loading...')} />
+            </div>
           ) : savedListings.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '1.5rem', background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--border)' }}>
-              <p style={{ color: 'var(--mid)', marginBottom: '0.6rem' }}>No saved rooms yet.</p>
-              <Link to="/tenant/search" className="btn btn--small">Find rooms</Link>
+            <div className="empty-state">
+              <div className="empty-icon">🏠</div>
+              <p className="empty-text">{t('studentDashboard.noSavedRooms', 'No saved rooms yet')}</p>
+              <Link to="/tenant/search" className="empty-btn">{t('studentDashboard.findRooms', 'Find rooms')}</Link>
             </div>
           ) : (
-            <div style={{ display: 'grid', gap: '0.6rem' }}>
+            <div className="saved-list">
               {savedListings.map((l) => (
-                <Link key={l.id} to={`/listings/${l.id}`} style={{ textDecoration: 'none' }}>
-                  <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
-                    <div>
-                      <p style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--ink)' }}>{l.title}</p>
-                      <p style={{ fontSize: '0.8rem', color: 'var(--mid)' }}>{l.area ?? l.district} · {TZSFormat(l.price)}/mo</p>
-                    </div>
-                    <StatusPill variant={l.status} size="sm" />
+                <Link key={l.id} to={`/listings/${l.id}`} className="saved-room-card">
+                  <div className="saved-room-image">
+                    <MapPin size={20} />
                   </div>
+                  <div className="saved-room-info">
+                    <p className="saved-room-title">{l.title}</p>
+                    <p className="saved-room-location">{l.area ?? l.district} · {TZSFormat(l.price)}/mo</p>
+                  </div>
+                  <StatusPill variant={l.status} size="sm" />
                 </Link>
               ))}
             </div>
           )}
         </section>
 
-        <section>
-          <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: '1rem', marginBottom: '0.75rem' }}>Recent Activity</h3>
+        {/* Recent Activity Section */}
+        <section className="dashboard-section">
+          <div className="section-header">
+            <div className="section-title-group">
+              <div className="section-icon activity"><Zap size={18} /></div>
+              <h3 className="section-title">{t('studentDashboard.recentActivity', 'Recent Activity')}</h3>
+            </div>
+          </div>
           {actLoading ? (
-            <div style={{ display: 'grid', gap: '0.75rem' }}><SkeletonCard variant="activity" count={5} /></div>
+            <div className="activity-list" style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
+              <LoadingSpinner size="medium" text={t('common.loading', 'Loading...')} />
+            </div>
           ) : events.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '1.5rem', background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--border)' }}>
-              <p style={{ color: 'var(--mid)' }}>No activity yet. Start by searching for a room!</p>
+            <div className="empty-state">
+              <div className="empty-icon">⚡</div>
+              <p className="empty-text">{t('studentDashboard.noActivity', 'No activity yet. Start by searching for a room!')}</p>
+              <Link to="/tenant/search" className="empty-btn">{t('studentDashboard.searchNow', 'Search now')}</Link>
             </div>
           ) : (
-            <div style={{ display: 'grid', gap: '0.65rem' }}>
+            <div className="activity-list">
               {events.map((ev) => (
-                <div key={ev.id} style={{ display: 'flex', gap: '0.6rem', alignItems: 'flex-start', padding: '0.7rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#e8eff8', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-                    <Zap size={13} style={{ color: 'var(--blue)' }} />
+                <div key={ev.id} className="activity-item">
+                  <div className="activity-icon-wrapper">
+                    <Zap size={14} />
                   </div>
-                  <div>
-                    <p style={{ fontSize: '0.86rem', fontWeight: 500, color: 'var(--ink)' }}>{ev.description}</p>
-                    <p style={{ fontSize: '0.76rem', color: 'var(--mid)', marginTop: '0.15rem' }}>{formatDate(ev.created_at)}</p>
+                  <div className="activity-content">
+                    <p className="activity-description">{ev.description}</p>
+                    <p className="activity-date">{formatDate(ev.created_at)}</p>
                   </div>
                 </div>
               ))}
@@ -191,6 +203,6 @@ export default function TenantDashboard() {
           )}
         </section>
       </div>
-    </>
+    </div>
   );
 }

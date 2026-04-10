@@ -97,7 +97,7 @@ export default function BookingsPage() {
                     <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
                         <Calendar size={48} color="#cbd5e1" style={{ marginBottom: '1rem' }} />
                         <p className="muted">{t('bookings.noBookings')}</p>
-                        <Link to="/search" className="btn btn--ghost" style={{ marginTop: '1rem' }}>
+                        <Link to="/tenant/search" className="btn btn--ghost" style={{ marginTop: '1rem' }}>
                             {t('bookings.browseNow')}
                         </Link>
                     </div>

@@ -317,5 +317,33 @@
         "greeting": "Hi",
         "networkError": "Unable to connect to the server. Please check your internet connection and try again.",
         "retry": "Retry"
+    },
+    "studentDashboard": {
+        "title": "Student Dashboard",
+        "welcomeBack": "Welcome back",
+        "subtitle": "Here's everything you need to find your perfect stay",
+        "findRooms": "Find Rooms",
+        "currentStay": "Current Stay",
+        "myLivingSpace": "My Living Space",
+        "moveIn": "Move-in",
+        "active": "Active",
+        "manageRoom": "Manage Room",
+        "savedRooms": "Saved Rooms",
+        "listingsSaved": "listings saved",
+        "openInquiries": "Open Inquiries",
+        "pendingResponses": "pending responses",
+        "activeBookings": "Active Bookings",
+        "confirmedStays": "confirmed stays",
+        "profileCompletion": "Profile Completion",
+        "allDone": "All done!",
+        "complete": "complete",
+        "completeYourProfile": "Complete your profile",
+        "completeProfileSubtitle": "Finish setting up your profile to get better room recommendations",
+        "savedRoomsTitle": "Saved Rooms",
+        "viewAll": "View all",
+        "noSavedRooms": "No saved rooms yet",
+        "recentActivity": "Recent Activity",
+        "noActivity": "No activity yet. Start by searching for a room!",
+        "searchNow": "Search now"
     }
 }

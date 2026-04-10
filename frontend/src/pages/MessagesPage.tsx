@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, useRef } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { MessageCircle, Inbox, Send } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { subscribeToTableChanges } from '../lib/realtime';
 import { insertRows, selectRows, updateRows } from '../lib/supabase';
@@ -369,8 +370,8 @@ export default function MessagesPage() {
           )
         );
       }
-    } catch (err) {
       setError(err.message);
+      setMessages([]);
     } finally {
       setUpdatingStatus(false);
     }
@@ -388,20 +389,117 @@ export default function MessagesPage() {
     return d.toLocaleDateString();
   };
 
+  // Helper to sanitize message content - replace UUIDs with placeholder
+  const sanitizeMessage = (body: string) => {
+    if (!body) return body;
+    // Replace UUID patterns with a placeholder
+    return body.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '[Property ID]');
+  };
+
   return (
     <>
-      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}} .msg-shell{display:flex;height:calc(100vh - 130px);min-height:500px;border:0.5px solid var(--border);border-radius:16px;overflow:hidden;background:#ffffff;margin:1.5rem} .mobile-back-btn{display:none;padding:6px 12px;margin-right:12px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:12px;font-weight:600;color:var(--ink);cursor:pointer} .conv-sidebar{width:260px;flex-shrink:0;border-right:0.5px solid var(--border);display:flex;flex-direction:column} .conv-sidebar-hdr{padding:14px 16px;border-bottom:0.5px solid var(--border)} .conv-sidebar-title{font-size:13px;font-weight:600;color:var(--ink)} .conv-sidebar-sub{font-size:11px;color:var(--mid);margin-top:2px} .conv-list{flex:1;overflow-y:auto} .conv-item{padding:12px 16px;border-bottom:0.5px solid var(--border);cursor:pointer;display:flex;gap:10px;align-items:flex-start;text-decoration:none} .conv-item:hover{background:var(--cream)} .conv-item.is-active{background:#EAF3DE} .conv-item.is-admin{background:#FEF2F1} .conv-item.is-admin.is-active{background:#FCEBEB} .conv-av{width:34px;height:34px;border-radius:50%;background:#EEEDFE;color:#3C3489;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0} .conv-av.admin{background:#FCEBEB;color:#791F1F} .conv-info{flex:1;min-width:0} .conv-name{font-size:12px;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .conv-name.admin{color:#791F1F} .conv-preview{font-size:11px;color:var(--mid);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .conv-meta{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0} .conv-time{font-size:10px;color:var(--mid)} .unread-dot{width:7px;height:7px;border-radius:50%;background:var(--jade)} .unread-dot.admin{background:#A32D2D} .status-pill{display:inline-flex;padding:1px 7px;border-radius:20px;font-size:10px;font-weight:500} .sp-open{background:#EAF3DE;color:#27500A} .sp-interested{background:#E6F1FB;color:#0C447C} .sp-booked{background:#EEEDFE;color:#3C3489} .sp-unavailable{background:#F1EFE8;color:#444441} .thread{flex:1;display:flex;flex-direction:column;min-width:0} .thread-hdr{padding:13px 18px;border-bottom:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:12px} .thread-title{font-size:13px;font-weight:600;color:var(--ink)} .thread-sub{font-size:11px;color:var(--mid);margin-top:2px;display:flex;align-items:center;gap:6px} .live-dot{width:6px;height:6px;border-radius:50%;background:#3B6D11;flex-shrink:0} .status-row{display:flex;align-items:center;gap:6px;flex-shrink:0} .status-row select{padding:4px 8px;border-radius:7px;border:0.5px solid var(--border);background:#fff;font-size:11px;color:var(--ink);outline:none} .status-upd-btn{padding:5px 12px;border-radius:7px;border:none;background:var(--jade);color:#fff;font-size:11px;font-weight:600;cursor:pointer} .msg-list{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;background:var(--cream)} .bubble{max-width:68%;padding:10px 13px;border-radius:12px;font-size:12px;line-height:1.5;display:flex;flex-direction:column} .bubble.theirs{background:#ffffff;border:0.5px solid var(--border);align-self:flex-start;border-radius:4px 12px 12px 12px} .bubble.mine{background:var(--jade);color:#ffffff;align-self:flex-end;border-radius:12px 4px 12px 12px} .bubble.is-admin{background:#FCEBEB;border:0.5px solid #F09595;align-self:flex-start;border-radius:4px 12px 12px 12px} .bubble-sender{font-size:10px;font-weight:500;color:var(--mid);margin-bottom:3px} .bubble-sender.admin-lbl{color:#791F1F;text-transform:uppercase;letter-spacing:.04em} .bubble-time{font-size:10px;color:var(--mid);margin-top:4px;display:block} .bubble-time.mine{color:rgba(255,255,255,0.6)} .compose{padding:12px 16px;border-top:0.5px solid var(--border);display:flex;gap:8px;align-items:flex-end;background:#ffffff} .compose textarea{flex:1;padding:8px 12px;border-radius:10px;border:0.5px solid var(--border);background:#fff;font-size:12px;resize:none;outline:none;line-height:1.5;height:40px;font-family:inherit} .send-btn{padding:8px 18px;border-radius:10px;border:none;background:var(--jade);color:#fff;font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0} .send-btn:disabled{opacity:0.6;cursor:not-allowed} .empty-thread{flex:1;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--mid)} @media(max-width:768px){.msg-shell{flex-direction:column;margin:0;height:calc(100vh - 80px);border:none;border-top:1px solid var(--border);border-radius:0} .conv-sidebar{width:100%;height:100%;border-right:none;border-bottom:none} .thread{display:none} .msg-shell.has-thread .conv-sidebar{display:none} .msg-shell.has-thread .thread{display:flex;height:100%} .mobile-back-btn{display:inline-block}}`}</style>
+      <style>{`
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+        @keyframes slideIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+        @keyframes bubblePop{0%{transform:scale(0.9);opacity:0}50%{transform:scale(1.02)}100%{transform:scale(1);opacity:1}}
+        .msg-shell{display:flex;height:calc(100vh - 130px);min-height:500px;border:1px solid #e5e7eb;border-radius:20px;overflow:hidden;background:#fff;margin:1.5rem;box-shadow:0 4px 20px rgba(0,0,0,0.08)}
+        .mobile-back-btn{display:none;padding:8px 14px;margin-right:12px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;font-size:13px;font-weight:600;color:#374151;cursor:pointer;transition:all 0.2s ease}
+        .mobile-back-btn:hover{background:#f3f4f6;border-color:#1D9E75;color:#1D9E75}
+        .conv-sidebar{width:320px;flex-shrink:0;border-right:1px solid #e5e7eb;display:flex;flex-direction:column;background:linear-gradient(180deg,#fff 0%,#f8fafc 100%)}
+        .conv-sidebar-hdr{padding:20px;border-bottom:1px solid #e5e7eb;background:linear-gradient(135deg,#1D9E75 0%,#15805d 100%);color:white}
+        .conv-sidebar-title{font-size:16px;font-weight:700;color:white;margin:0}
+        .conv-sidebar-sub{font-size:13px;color:rgba(255,255,255,0.85);margin-top:4px;font-weight:500}
+        .conv-list{flex:1;overflow-y:auto;padding:8px}
+        .empty-thread{display:flex;align-items:center;justify-content:center;height:100%;color:#9ca3af;font-size:15px;font-weight:500;background:linear-gradient(180deg,#f8fafc 0%,#f1f5f9 100%)}
+        /* Thread Header */
+        .thread-hdr{padding:18px 24px;border-bottom:1px solid #e5e7eb;background:white;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+        .thread-title{font-size:16px;font-weight:700;color:#111827;margin:0;line-height:1.3}
+        .thread-sub{font-size:12px;color:#6b7280;margin:8px 0 0;display:flex;align-items:center;gap:8px}
+        .status-row{display:flex;align-items:center;gap:8px}
+        .status-row select{padding:8px 12px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;font-size:12px;color:#374151;outline:none;cursor:pointer}
+        .status-upd-btn{padding:8px 16px;border-radius:8px;border:none;background:linear-gradient(135deg,#1D9E75 0%,#15805d 100%);color:white;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s ease;box-shadow:0 2px 8px rgba(29,158,117,0.3)}
+        .status-upd-btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 4px 12px rgba(29,158,117,0.4)}
+        .status-upd-btn:disabled{opacity:0.6;cursor:not-allowed}
+        .live-dot{width:8px;height:8px;border-radius:50%;background:#22c55e;animation:pulse 2s infinite}
+        .msg-list{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px;background:linear-gradient(180deg,#f8fafc 0%,#f0fdf4 50%,#f8fafc 100%)}
+        
+        /* Message Bubbles with High Contrast */
+        .bubble{max-width:75%;padding:14px 18px;border-radius:18px;position:relative;animation:bubblePop 0.3s ease-out;font-size:14px;line-height:1.5;word-wrap:break-word;box-shadow:0 2px 8px rgba(0,0,0,0.08)}
+        
+        /* My Messages - Green background with WHITE text */
+        .bubble.mine{align-self:flex-end;background:linear-gradient(135deg,#1D9E75 0%,#15805d 100%);color:white;border-bottom-right-radius:4px}
+        .bubble.mine .bubble-sender{color:rgba(255,255,255,0.85)}
+        .bubble.mine p{color:white;font-weight:500}
+        .bubble.mine .bubble-time{color:rgba(255,255,255,0.75);text-align:right}
+        
+        /* Their Messages - White background with BLACK/DARK text */
+        .bubble.theirs{align-self:flex-start;background:white;color:#1f2937;border:1px solid #e5e7eb;border-bottom-left-radius:4px}
+        .bubble.theirs .bubble-sender{color:#6b7280}
+        .bubble.theirs p{color:#111827;font-weight:500}
+        .bubble.theirs .bubble-time{color:#9ca3af}
+        
+        /* Admin Messages - Amber background with DARK text */
+        .bubble.is-admin{align-self:flex-start;background:linear-gradient(135deg,#fef3c7 0%,#fde68a 100%);color:#92400e;border:1px solid #fcd34d;border-bottom-left-radius:4px}
+        .bubble.is-admin .bubble-sender{color:#b45309;font-weight:700}
+        .bubble.is-admin p{color:#78350f;font-weight:500}
+        .bubble.is-admin .bubble-time{color:#b45309}
+        
+        .bubble-sender{font-size:12px;font-weight:600;margin-bottom:6px;display:block}
+        .bubble p{margin:0}
+        .bubble-time{font-size:11px;margin-top:8px;display:block;font-weight:500}
+        
+        /* Compose Area */
+        .compose{padding:16px 20px;background:white;border-top:1px solid #e5e7eb;display:flex;gap:12px;align-items:flex-end;box-shadow:0 -2px 10px rgba(0,0,0,0.03)}
+        .compose textarea{flex:1;padding:14px 18px;border:2px solid #e5e7eb;border-radius:16px;font-size:14px;resize:none;min-height:52px;max-height:140px;font-family:inherit;transition:all 0.2s ease;background:#f9fafb}
+        .compose textarea:focus{outline:none;border-color:#1D9E75;background:white;box-shadow:0 0 0 4px rgba(29,158,117,0.1)}
+        .compose textarea::placeholder{color:#9ca3af}
+        
+        /* Send Button */
+        .send-btn{padding:14px 24px;background:linear-gradient(135deg,#1D9E75 0%,#15805d 100%);color:white;border:none;border-radius:14px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s ease;box-shadow:0 4px 12px rgba(29,158,117,0.3);display:flex;align-items:center;gap:6px}
+        .send-btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 20px rgba(29,158,117,0.4)}
+        .send-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none}
 
-      <div className={`msg-shell ${threadId ? 'has-thread' : ''}`}>
-        <div className="conv-sidebar">
-          <div className="conv-sidebar-hdr">
-            <p className="conv-sidebar-title">Inquiries</p>
-            <p className="conv-sidebar-sub">
-              {conversations.length} conversations
-            </p>
-          </div>
-          <div className="conv-list">
-            {loading ? (
+        .conv-item{padding:16px;margin:4px 8px;border-radius:12px;cursor:pointer;display:flex;gap:12px;align-items:flex-start;text-decoration:none;transition:all 0.25s cubic-bezier(0.4,0,0.2,1);border:1px solid transparent}
+        .conv-item:hover{background:#f0fdf4;border-color:#bbf7d0;transform:translateX(4px);box-shadow:0 2px 8px rgba(29,158,117,0.1)}
+        .conv-item.is-active{background:linear-gradient(135deg,#dcfce7 0%,#bbf7d0 100%);border-color:#1D9E75;box-shadow:0 4px 12px rgba(29,158,117,0.15)}
+        .conv-item.is-admin{background:#fef2f2}
+        .conv-item.is-admin:hover{background:#fee2e2;border-color:#fecaca}
+        .conv-item.is-admin.is-active{background:linear-gradient(135deg,#fee2e2 0%,#fecaca 100%);border-color:#ef4444}
+        .conv-av{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#1D9E75 0%,#15805d 100%);color:white;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;box-shadow:0 2px 8px rgba(29,158,117,0.25);border:2px solid rgba(255,255,255,0.3)}
+        .conv-av.admin{background:linear-gradient(135deg,#ef4444 0%,#b91c1c 100%);box-shadow:0 2px 8px rgba(239,68,68,0.25)}
+        .conv-info{flex:1;min-width:0}
+        .conv-name{font-size:14px;font-weight:600;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0}
+        .conv-name.admin{color:#991b1b}
+        .conv-preview{font-size:13px;color:#6b7280;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4}
+        .conv-item.is-active .conv-preview{color:#15803d}
+        .conv-meta{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
+        .conv-time{font-size:12px;color:#9ca3af;font-weight:500}
+        .conv-item.is-active .conv-time{color:#1D9E75;font-weight:600}
+        .unread-dot{width:8px;height:8px;border-radius:50%;background:#1D9E75;box-shadow:0 0 0 2px rgba(29,158,117,0.2)}
+        .unread-dot.admin{background:#ef4444;box-shadow:0 0 0 2px rgba(239,68,68,0.2)}
+        .status-pill{display:inline-flex;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px}
+        .sp-open{background:#fef3c7;color:#92400e}
+        .sp-interested{background:#dcfce7;color:#166534}
+        .sp-booked{background:#dbeafe;color:#1e40af}
+        .sp-unavailable{background:#f3f4f6;color:#6b7280}
+        .thread{flex:1;display:flex;flex-direction:column;background:#f8fafc;min-width:0}
+      `}</style>
+
+        <div className="msg-shell">
+          {/* Sidebar */}
+          <div className="conv-sidebar">
+            <div className="conv-sidebar-hdr">
+              <p className="conv-sidebar-title">
+                <MessageCircle size={20} style={{ marginRight: '8px' }} />
+                Inquiries
+              </p>
+              <p className="conv-sidebar-sub">
+                {conversations.length} {conversations.length === 1 ? 'conversation' : 'conversations'}
+              </p>
+            </div>
+            <div className="conv-list">
+              {loading ? (
               Array.from({ length: 6 }).map((_, i) => (
                 <div
                   key={`conv-skel-${i}`}
@@ -423,8 +521,13 @@ export default function MessagesPage() {
                 const isActive = conv.id === threadId;
                 const displayName = conv.isAdmin
                   ? 'CampusStay Admin'
-                  : conv.otherProfile?.full_name || conv.listing?.title || 'Conversation';
-                const preview = conv.listing?.title || humanizeStatus(conv.inquiry_status);
+                  : conv.otherProfile?.full_name || 'Property Owner';
+                
+                // Check if title looks like a UUID (contains hex characters and dashes in UUID pattern)
+                const isUuid = conv.listing?.title && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(conv.listing?.title);
+                const preview = conv.listing?.title && !isUuid
+                  ? conv.listing?.title
+                  : humanizeStatus(conv.inquiry_status);
                 const statusClass = conv.inquiry_status || 'open';
                 const convClasses = [
                   'conv-item',
@@ -462,7 +565,12 @@ export default function MessagesPage() {
 
         <div className="thread">
           {!activeConversation ? (
-            <div className="empty-thread">Select a conversation to start messaging</div>
+            <div className="empty-thread">
+              <div style={{ textAlign: 'center' }}>
+                <Inbox size={64} style={{ color: '#1D9E75', opacity: 0.4, marginBottom: '16px' }} />
+                <p>Select a conversation to start messaging</p>
+              </div>
+            </div>
           ) : (
             <>
               <div className="thread-hdr">
@@ -470,11 +578,32 @@ export default function MessagesPage() {
                   ← Back
                 </button>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p className="thread-title" style={{ margin: 0 }}>
-                    {(activeConversation.listing?.title || 'Conversation') +
-                      ' — ' +
-                      (activeConversation.otherProfile?.full_name || '')}
-                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <p className="thread-title" style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#111827', lineHeight: '1.3' }}>
+                      {(() => {
+                        const isUuid = activeConversation.listing?.title && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(activeConversation.listing?.title);
+                        return activeConversation.listing?.title && !isUuid
+                          ? activeConversation.listing?.title
+                          : 'Property Inquiry';
+                      })()}
+                    </p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        color: '#6b7280',
+                        padding: '4px 12px',
+                        background: '#f3f4f6',
+                        borderRadius: '20px'
+                      }}>
+                        <span style={{ fontSize: '14px' }}>👤</span>
+                        {activeConversation.otherProfile?.full_name || 'Unknown'}
+                      </span>
+                    </div>
+                  </div>
                   <p className="thread-sub">
                     <span
                       className="live-dot"
@@ -525,7 +654,7 @@ export default function MessagesPage() {
                       {!mine && !adminMsg && m.senderProfile?.full_name ? (
                         <p className="bubble-sender">{m.senderProfile.full_name}</p>
                       ) : null}
-                      <p style={{ margin: 0 }}>{m.body}</p>
+                      <p style={{ margin: 0 }}>{sanitizeMessage(m.body)}</p>
                       <span className={`bubble-time${mine ? ' mine' : ''}`}>
                         {formatTimestamp(m.created_at)}
                         {mine ? (m.seen_at ? ' · Seen' : ' · Sent') : ''}
@@ -549,6 +678,7 @@ export default function MessagesPage() {
                   placeholder={t('dashboard.writeMessage')}
                 />
                 <button className="send-btn" type="submit" disabled={!messageBody.trim()}>
+                  <Send size={18} style={{ marginRight: '6px' }} />
                   {t('dashboard.sendBtn')}
                 </button>
               </form>

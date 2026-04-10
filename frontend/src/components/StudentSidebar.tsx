@@ -9,8 +9,8 @@ import {
 import { useAuth } from '../context/AuthContext';
 
 // ── Design tokens ──────────────────────────────────────────────────────────
-const TEAL = '#0d7a6e';
-const TEAL_L = '#e6f7f5';
+const TEAL = '#1D9E75';
+const TEAL_L = '#dcfce7';
 const CORAL = '#e8550a';
 const CORAL_L = '#fff1ec';
 const AMBER = '#c07a00';

@@ -317,5 +317,33 @@
         "greeting": "Habari",
         "networkError": "Imeshindikana kuunganishwa na seva. Tafadhali kagua intaneti yako.",
         "retry": "Jaribu Tena"
+    },
+    "studentDashboard": {
+        "title": "Dashibodi ya Mwanafunzi",
+        "welcomeBack": "Karibu tena",
+        "subtitle": "Hapa kuna kila kitu unachohitaji kupata makazi bora",
+        "findRooms": "Tafuta Vyumba",
+        "currentStay": "Makazi ya Sasa",
+        "myLivingSpace": "Nafasi Yangu",
+        "moveIn": "Kuhamia",
+        "active": "Hai",
+        "manageRoom": "Simamia Chumba",
+        "savedRooms": "Vyumba Vilivyohifadhiwa",
+        "listingsSaved": "nyumba zimehifadhiwa",
+        "openInquiries": "Maswali Yaliyofunguliwa",
+        "pendingResponses": "yanasubiri majibu",
+        "activeBookings": "Nafasi Zilizofungwa",
+        "confirmedStays": "makazi yalithibitishwa",
+        "profileCompletion": "Kukamilika kwa Wasifu",
+        "allDone": "Kamilika!",
+        "complete": "kukamilika",
+        "completeYourProfile": "Kamilisha wasifu wako",
+        "completeProfileSubtitle": "Kamilisha wasifu wako upate pendekezo bora la nyumba",
+        "savedRoomsTitle": "Vyumba Vilivyohifadhiwa",
+        "viewAll": "Tazama zote",
+        "noSavedRooms": "Hujahifadhi vyumba bado",
+        "recentActivity": "Shughuli za Hivi Karibuni",
+        "noActivity": "Hakuna shughuli bado. Anza kwa kutafuta chumba!",
+        "searchNow": "Tafuta sasa"
     }
 }

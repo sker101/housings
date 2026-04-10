@@ -21,7 +21,7 @@ type StatusVariant =
 
 const VARIANT_STYLES: Record<StatusVariant, { bg: string; color: string; label: string }> = {
   active:     { bg: 'var(--jade-muted)',   color: 'var(--jade)',  label: 'Active' },
-  vacant:     { bg: '#e8eff8',             color: 'var(--blue)',  label: 'Vacant' },
+  vacant:     { bg: '#e8f5e9',             color: '#15803d',      label: 'Vacant' },
   pending:    { bg: 'var(--amber-light)',  color: '#6b3a0a',      label: 'Pending' },
   booked:     { bg: '#e8f3ee',            color: '#0f5132',      label: 'Booked' },
   accepted:   { bg: 'var(--jade-muted)',   color: 'var(--jade)',  label: 'Accepted' },
@@ -32,7 +32,7 @@ const VARIANT_STYLES: Record<StatusVariant, { bg: string; color: string; label: 
   cancelled:  { bg: '#f3f4f6',            color: '#4b5563',      label: 'Cancelled' },
   past_due:   { bg: 'var(--amber-light)', color: '#6b3a0a',      label: 'Past Due' },
   failed:     { bg: 'var(--red-light)',   color: 'var(--red)',   label: 'Failed' },
-  refunded:   { bg: '#e8eff8',            color: 'var(--blue)',  label: 'Refunded' },
+  refunded:   { bg: '#e8f5e9',            color: '#15803d',      label: 'Refunded' },
   paused:     { bg: '#f3f4f6',            color: '#4b5563',      label: 'Paused' },
   removed:    { bg: 'var(--red-light)',   color: 'var(--red)',   label: 'Removed' },
   verified:   { bg: 'var(--jade-muted)',  color: 'var(--jade)',  label: 'Verified' },

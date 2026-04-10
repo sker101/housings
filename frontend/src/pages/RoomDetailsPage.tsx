@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { ArrowLeft } from 'lucide-react';
 import ListingCard from '../components/ListingCard';
 import ListingMap from '../components/ListingMap';
 import { useAuth } from '../context/AuthContext';
@@ -802,6 +803,43 @@ export default function RoomDetailsPage() {
 
   return (
     <div className="container section room-page">
+      {/* Back to search list button */}
+      <Link
+        to="/tenant/search"
+        className="back-to-search-btn"
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          padding: '0.75rem 1.25rem',
+          marginBottom: '1.5rem',
+          background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%)',
+          border: '1px solid rgba(29, 158, 117, 0.2)',
+          borderRadius: '12px',
+          color: '#1D9E75',
+          fontWeight: 600,
+          fontSize: '0.95rem',
+          textDecoration: 'none',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(29, 158, 117, 0.1)',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          position: 'relative',
+          overflow: 'hidden'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-2px)';
+          e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(29, 158, 117, 0.2), 0 0 20px rgba(29, 158, 117, 0.15)';
+          e.currentTarget.style.borderColor = 'rgba(29, 158, 117, 0.4)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(29, 158, 117, 0.1)';
+          e.currentTarget.style.borderColor = 'rgba(29, 158, 117, 0.2)';
+        }}
+      >
+        <ArrowLeft size={18} />
+        <span>Back to search list</span>
+      </Link>
+
       <section className="room-hero card">
         <div className="room-hero__gallery">
           <div

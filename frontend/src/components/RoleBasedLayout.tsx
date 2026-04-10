@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
-import { Bell, LogOut, Menu, Home, Search, Heart, MessageCircle, Calendar, User, Zap, Building, Users, FileText, AlertTriangle, Settings, ShieldAlert, Award } from 'lucide-react';
+import { Bell, LogOut, Menu, Home, Search, Heart, MessageCircle, Calendar, User, Zap, Building, Users, FileText, AlertTriangle, Settings, ShieldAlert, Award, Globe } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { RoleBadge } from './RoleBadge';
 import { initials } from '../utils/format';
@@ -66,7 +67,7 @@ const getAccentColor = (role: string) => {
   if (role === 'admin') return 'var(--red)';
   if (role === 'landlord') return 'var(--orange)';
   if (role === 'dalali') return 'var(--purple)';
-  return 'var(--blue)'; // Student
+  return '#1D9E75'; // Student - green
 };
 
 const getPageTitle = (pathname: string): string => {
@@ -76,6 +77,19 @@ const getPageTitle = (pathname: string): string => {
   const lastPart = parts[parts.length - 1];
   if (lastPart === 'dashboard' || lastPart === 'admin') return 'Dashboard';
   
+  // Check if this is a messages route with a UUID
+  if (parts[0] === 'messages' && parts.length > 1) {
+    // Check if the second part looks like a UUID
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(parts[1])) {
+      return 'My Messages';
+    }
+  }
+  
+  // Check if this is just /messages
+  if (parts[0] === 'messages' && parts.length === 1) {
+    return 'My Messages';
+  }
+  
   return lastPart.charAt(0).toUpperCase() + lastPart.slice(1).replace('-', ' ');
 };
 
@@ -83,7 +97,11 @@ export default function RoleBasedLayout() {
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const { i18n, t } = useTranslation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Default to English, get current language from i18n
+  const currentLanguage = i18n.language || 'en';
 
   // Default to student if user context is missing
   const activeRole = user?.role || 'student';
@@ -92,48 +110,39 @@ export default function RoleBasedLayout() {
   const pageTitle = getPageTitle(location.pathname);
   const userInitials = initials(user?.fullName ?? '');
 
+  // Ensure default language is English on mount
+  useEffect(() => {
+    if (!i18n.language || i18n.language === 'sw') {
+      i18n.changeLanguage('en');
+    }
+  }, [i18n]);
+
   const handleLogout = async () => {
     await logout();
     navigate('/auth/login');
   };
 
+  const toggleLanguage = () => {
+    const newLang = currentLanguage === 'en' ? 'sw' : 'en';
+    i18n.changeLanguage(newLang);
+  };
+
   const SidebarContent = () => (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* Logo */}
-      <div style={{ padding: '0.85rem 1rem', borderBottom: '1px solid var(--border)' }}>
-        <Link
-          to="/"
-          style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', textDecoration: 'none' }}
-        >
-          {/* Compact icon badge */}
-          <div style={{
-            width: 28,
-            height: 28,
-            borderRadius: 8,
-            background: accentColor,
-            display: 'grid',
-            placeItems: 'center',
-            color: '#fff',
-            fontSize: '0.72rem',
-            fontWeight: 900,
-            fontFamily: "'Syne', sans-serif",
-            flexShrink: 0,
-          }}>
-            CS
-          </div>
+      {/* Logo - No link, simplified text only */}
+      <div style={{ padding: '1.25rem 1rem', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <span style={{
             fontFamily: "'Syne', sans-serif",
             fontWeight: 800,
             color: 'var(--ink)',
-            fontSize: '0.92rem',
+            fontSize: '1.1rem',
             letterSpacing: '-0.02em',
             whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
           }}>
             Campus<span style={{ color: accentColor }}>Stay</span>
           </span>
-        </Link>
+        </div>
       </div>
 
       {/* User Info */}
@@ -355,6 +364,38 @@ export default function RoleBasedLayout() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            {/* Language Selector */}
+            <button
+              onClick={toggleLanguage}
+              aria-label="Change language"
+              title={currentLanguage === 'en' ? 'Switch to Swahili' : 'Switch to English'}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                padding: '0.4rem 0.6rem',
+                borderRadius: 20,
+                border: '1px solid var(--border)',
+                background: '#fff',
+                color: 'var(--mid)',
+                cursor: 'pointer',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = accentColor;
+                e.currentTarget.style.color = accentColor;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border)';
+                e.currentTarget.style.color = 'var(--mid)';
+              }}
+            >
+              <Globe size={14} />
+              <span style={{ textTransform: 'uppercase' }}>{currentLanguage}</span>
+            </button>
+            
             <Link
               to="/notifications"
               aria-label="Notifications"

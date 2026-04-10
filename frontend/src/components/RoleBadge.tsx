@@ -2,7 +2,7 @@ import React from 'react';
 import type { Role } from '../types';
 
 const ROLE_STYLES: Record<Role, { bg: string; color: string; label: string }> = {
-  student:  { bg: '#e8eff8',          color: 'var(--blue)',   label: 'Student' },
+  student:  { bg: '#dcfce7',          color: '#15803d',      label: 'Student' },
   landlord: { bg: 'var(--jade-muted)', color: 'var(--jade)', label: 'Landlord' },
   dalali:   { bg: '#f3e8ff',          color: '#7c3aed',       label: 'Dalali' },
   admin:    { bg: 'var(--red-light)', color: 'var(--red)',    label: 'Admin' },

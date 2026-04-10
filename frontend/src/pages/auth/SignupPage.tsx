@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, AlertCircle, Check } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, Check, UserPlus, Mail, Lock, Phone, GraduationCap, ArrowRight, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { friendlyError } from '../../utils/format';
 
@@ -35,6 +35,12 @@ export default function SignupPage() {
   const [preferredLanguage, setPreferredLanguage] = useState('en');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isVisible, setIsVisible] = useState(false);
+
+  // Trigger entrance animations
+  useEffect(() => {
+    setIsVisible(true);
+  }, []);
 
   const pwChecks = isValidPassword(password);
   const pwValid = pwChecks.length && pwChecks.number;
@@ -72,108 +78,117 @@ export default function SignupPage() {
     }
   };
 
-  const roles: { value: RoleOption; label: string; desc: string; emoji: string }[] = [
-    { value: 'student',  label: 'Student / Tenant', desc: 'Looking for a room near campus', emoji: '🎓' },
-    { value: 'landlord', label: 'Landlord',          desc: 'I own rooms and want to rent them out', emoji: '🏠' },
-    { value: 'dalali',   label: 'Dalali (Broker)',   desc: 'I list rooms on behalf of property owners', emoji: '🤝' },
+  const roles: { value: RoleOption; label: string; desc: string; icon: React.ReactNode }[] = [
+    { value: 'student',  label: 'Student / Tenant', desc: 'Looking for a room near campus', icon: <GraduationCap size={24} /> },
+    { value: 'landlord', label: 'Landlord',          desc: 'I own rooms and want to rent them out', icon: <span style={{ fontSize: '1.5rem' }}>🏠</span> },
+    { value: 'dalali',   label: 'Dalali (Broker)',   desc: 'I list rooms on behalf of property owners', icon: <span style={{ fontSize: '1.5rem' }}>🤝</span> },
   ];
 
   if (step === 'role') {
     return (
-      <div className="auth-page">
-        <div className="container narrow">
-          <div className="auth-shell">
-            <div className="auth-shell__intro">
-              <p className="auth-shell__eyebrow">CampusStay TZ</p>
-              <h1 style={{ fontSize: 'clamp(1.4rem, 4vw, 1.9rem)', marginTop: '0.4rem' }}>
-                Create your account
-              </h1>
-              <p>First, tell us how you plan to use CampusStay.</p>
-            </div>
+      <div className="signup-page">
+        {/* Animated Background Elements */}
+        <div className="signup-bg-shapes">
+          <div className="shape shape-1" />
+          <div className="shape shape-2" />
+          <div className="shape shape-3" />
+        </div>
 
-            <div className="card" style={{ display: 'grid', gap: '0.6rem' }}>
-              {roles.map((r) => (
+        <div className={`signup-wrapper ${isVisible ? 'is-visible' : ''}`}>
+          {/* Brand Header */}
+          <div className="signup-brand" style={{ animationDelay: '0.1s' }}>
+            <div className="signup-logo">
+              <UserPlus size={28} />
+            </div>
+            <h1 className="signup-title">Create Account</h1>
+            <p className="signup-subtitle">Choose how you want to use CampusStay</p>
+          </div>
+
+          {/* Role Selection Card */}
+          <div className="signup-card" style={{ animationDelay: '0.2s' }}>
+            <div className="signup-role-list">
+              {roles.map((r, index) => (
                 <button
                   key={r.value}
                   type="button"
+                  className={`signup-role-option ${selectedRole === r.value ? 'is-selected' : ''}`}
                   onClick={() => setSelectedRole(r.value)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.85rem',
-                    padding: '0.9rem 1rem',
-                    border: selectedRole === r.value
-                      ? '2px solid var(--jade)'
-                      : '2px solid var(--border)',
-                    borderRadius: 12,
-                    background: selectedRole === r.value ? 'var(--jade-muted)' : '#fff',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    transition: 'border 0.15s, background 0.15s',
-                  }}
+                  style={{ animationDelay: `${0.3 + index * 0.1}s` }}
                 >
-                  <span style={{ fontSize: '1.5rem' }}>{r.emoji}</span>
-                  <div>
-                    <p style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--ink)' }}>{r.label}</p>
-                    <p style={{ fontSize: '0.82rem', color: 'var(--mid)' }}>{r.desc}</p>
+                  <div className="signup-role-icon">{r.icon}</div>
+                  <div className="signup-role-info">
+                    <p className="signup-role-label">{r.label}</p>
+                    <p className="signup-role-desc">{r.desc}</p>
                   </div>
                   {selectedRole === r.value && (
-                    <Check size={16} style={{ color: 'var(--jade)', marginLeft: 'auto', flexShrink: 0 }} />
+                    <Check size={20} className="signup-role-check" />
                   )}
                 </button>
               ))}
-
-              <button
-                type="button"
-                className="btn"
-                onClick={() => setStep('form')}
-                style={{ marginTop: '0.25rem' }}
-              >
-                Continue
-              </button>
-
-              <div style={{ textAlign: 'center' }}>
-                <Link to="/auth/login" style={{ fontSize: '0.86rem', color: 'var(--jade)', fontWeight: 600 }}>
-                  Already have an account? Sign in
-                </Link>
-              </div>
             </div>
+
+            <button
+              type="button"
+              className="signup-submit"
+              onClick={() => setStep('form')}
+              style={{ animationDelay: '0.6s' }}
+            >
+              Continue <ArrowRight size={18} />
+            </button>
           </div>
+
+          {/* Sign In Link */}
+          <p className="signup-footer-text" style={{ animationDelay: '0.7s' }}>
+            Already have an account?{' '}
+            <Link to="/auth/login" className="signup-signin-link">
+              Sign in
+            </Link>
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="auth-page">
-      <div className="container narrow">
-        <div className="auth-shell">
-          <div className="auth-shell__intro">
-            <p className="auth-shell__eyebrow">CampusStay TZ — Sign up</p>
-            <h1 style={{ fontSize: 'clamp(1.3rem, 4vw, 1.8rem)', marginTop: '0.35rem' }}>
-              {selectedRole === 'student' ? 'Student account' :
-               selectedRole === 'dalali' ? 'Dalali account' : 'Landlord account'}
-            </h1>
-            <button
-              type="button"
-              onClick={() => setStep('role')}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'rgba(243,237,227,0.7)',
-                cursor: 'pointer',
-                fontSize: '0.82rem',
-                padding: 0,
-              }}
-            >
-              ← Change role
-            </button>
-          </div>
+    <div className="signup-page">
+      {/* Animated Background Elements */}
+      <div className="signup-bg-shapes">
+        <div className="shape shape-1" />
+        <div className="shape shape-2" />
+        <div className="shape shape-3" />
+      </div>
 
-          <div className="card auth-form-card">
-            <form onSubmit={handleSubmit}>
-              <label htmlFor="signup-name">
-                Full name
+      <div className={`signup-wrapper ${isVisible ? 'is-visible' : ''}`}>
+        {/* Back Button */}
+        <button
+          type="button"
+          className="signup-back-btn"
+          onClick={() => setStep('role')}
+          style={{ animationDelay: '0.1s' }}
+        >
+          <ArrowLeft size={18} /> Back to roles
+        </button>
+
+        {/* Brand Header */}
+        <div className="signup-brand" style={{ animationDelay: '0.1s' }}>
+          <div className="signup-logo">
+            <UserPlus size={28} />
+          </div>
+          <h1 className="signup-title">
+            {selectedRole === 'student' ? 'Student Account' :
+             selectedRole === 'dalali' ? 'Dalali Account' : 'Landlord Account'}
+          </h1>
+          <p className="signup-subtitle">Fill in your details to get started</p>
+        </div>
+
+        {/* Signup Form Card */}
+        <div className="signup-card" style={{ animationDelay: '0.2s' }}>
+          <form onSubmit={handleSubmit} className="signup-form">
+            {/* Full Name Field */}
+            <div className="signup-field" style={{ animationDelay: '0.3s' }}>
+              <label htmlFor="signup-name" className="signup-label">Full name</label>
+              <div className="signup-input-wrap">
+                <UserPlus size={18} className="signup-input-icon" />
                 <input
                   id="signup-name"
                   type="text"
@@ -181,11 +196,16 @@ export default function SignupPage() {
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="Amina Juma"
                   required
+                  className="signup-input"
                 />
-              </label>
+              </div>
+            </div>
 
-              <label htmlFor="signup-email">
-                Email address
+            {/* Email Field */}
+            <div className="signup-field" style={{ animationDelay: '0.35s' }}>
+              <label htmlFor="signup-email" className="signup-label">Email address</label>
+              <div className="signup-input-wrap">
+                <Mail size={18} className="signup-input-icon" />
                 <input
                   id="signup-email"
                   type="email"
@@ -194,99 +214,123 @@ export default function SignupPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="amina@example.com"
                   required
+                  className="signup-input"
                 />
-              </label>
+              </div>
+            </div>
 
-              <label htmlFor="signup-phone">
-                Phone number
+            {/* Phone Field */}
+            <div className="signup-field" style={{ animationDelay: '0.4s' }}>
+              <label htmlFor="signup-phone" className="signup-label">Phone number</label>
+              <div className="signup-input-wrap">
+                <Phone size={18} className="signup-input-icon" />
                 <input
                   id="signup-phone"
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="0712 345 678 or +255712345678"
+                  placeholder="0712345678 or +255712345678"
                   required
+                  className="signup-input"
                 />
-                {phone && !isValidPhone(phone) && (
-                  <span style={{ fontSize: '0.78rem', color: 'var(--red)', marginTop: '0.2rem' }}>
-                    Please enter a valid Tanzanian number
-                  </span>
-                )}
-              </label>
+              </div>
+              {phone && !isValidPhone(phone) && (
+                <span className="signup-field-error">Please enter a valid Tanzanian number</span>
+              )}
+            </div>
 
-              {selectedRole === 'student' && (
-                <label htmlFor="signup-uni">
-                  University (optional)
+            {/* University Field (only for students) */}
+            {selectedRole === 'student' && (
+              <div className="signup-field" style={{ animationDelay: '0.45s' }}>
+                <label htmlFor="signup-uni" className="signup-label">University (optional)</label>
+                <div className="signup-input-wrap">
+                  <GraduationCap size={18} className="signup-input-icon" />
                   <input
                     id="signup-uni"
                     type="text"
                     value={university}
                     onChange={(e) => setUniversity(e.target.value)}
                     placeholder="e.g. UDSM, ARDHI, MUHAS"
+                    className="signup-input"
                   />
-                </label>
-              )}
-
-              <label htmlFor="signup-password">
-                Password
-                <div className="password-field">
-                  <input
-                    id="signup-password"
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete="new-password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    required
-                  />
-                  <button
-                    type="button"
-                    className="password-toggle"
-                    onClick={() => setShowPassword((v) => !v)}
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  >
-                    {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                  </button>
                 </div>
-              </label>
+              </div>
+            )}
 
-              {password.length > 0 && (
-                <div className="password-checklist">
-                  <span className={pwChecks.length ? 'is-pass' : 'is-pending'}>
-                    {pwChecks.length ? '✓' : '○'} At least 8 characters
-                  </span>
-                  <span className={pwChecks.number ? 'is-pass' : 'is-pending'}>
-                    {pwChecks.number ? '✓' : '○'} Contains a number
-                  </span>
-                </div>
-              )}
-
-              {error && (
-                <p
-                  role="alert"
-                  style={{ color: 'var(--red)', fontSize: '0.86rem', display: 'flex', gap: '0.4rem', alignItems: 'center' }}
+            {/* Password Field */}
+            <div className="signup-field" style={{ animationDelay: '0.5s' }}>
+              <label htmlFor="signup-password" className="signup-label">Password</label>
+              <div className="signup-input-wrap">
+                <Lock size={18} className="signup-input-icon" />
+                <input
+                  id="signup-password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  className="signup-input"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  className="signup-toggle-password"
                 >
-                  <AlertCircle size={14} /> {error}
-                </p>
-              )}
-
-              <button
-                type="submit"
-                className="btn"
-                disabled={loading || !pwValid}
-                style={{ width: '100%' }}
-              >
-                {loading ? 'Creating account…' : 'Create account'}
-              </button>
-            </form>
-
-            <div style={{ textAlign: 'center', marginTop: '0.25rem' }}>
-              <Link to="/auth/login" style={{ fontSize: '0.86rem', color: 'var(--jade)', fontWeight: 600 }}>
-                Already have an account? Sign in
-              </Link>
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
-          </div>
+
+            {/* Password Checklist */}
+            {password.length > 0 && (
+              <div className="signup-password-checklist" style={{ animationDelay: '0.55s' }}>
+                <span className={pwChecks.length ? 'is-pass' : 'is-pending'}>
+                  {pwChecks.length ? '✓' : '○'} At least 8 characters
+                </span>
+                <span className={pwChecks.number ? 'is-pass' : 'is-pending'}>
+                  {pwChecks.number ? '✓' : '○'} Contains a number
+                </span>
+              </div>
+            )}
+
+            {/* Error Message */}
+            {error && (
+              <div className="signup-error" style={{ animationDelay: '0.55s' }}>
+                <AlertCircle size={16} />
+                <span>{error}</span>
+              </div>
+            )}
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={loading || !pwValid}
+              className="signup-submit"
+              style={{ animationDelay: '0.6s' }}
+            >
+              {loading ? (
+                <>
+                  <span className="signup-spinner" />
+                  Creating account…
+                </>
+              ) : (
+                <>
+                  Create account <ArrowRight size={18} />
+                </>
+              )}
+            </button>
+          </form>
         </div>
+
+        {/* Sign In Link */}
+        <p className="signup-footer-text" style={{ animationDelay: '0.7s' }}>
+          Already have an account?{' '}
+          <Link to="/auth/login" className="signup-signin-link">
+            Sign in
+          </Link>
+        </p>
       </div>
     </div>
   );

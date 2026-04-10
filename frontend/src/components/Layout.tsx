@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Link, NavLink, useLocation } from 'react-router-dom';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { APP_ROLE } from '../lib/roles';
@@ -7,10 +7,11 @@ import { selectRows, updateRows } from '../lib/supabase';
 import LandlordSidebar from './LandlordSidebar';
 import StudentSidebar from './StudentSidebar';
 import AdminSidebar from './AdminSidebar';
-import { Menu } from 'lucide-react';
+import Footer from './Footer';
+import { Menu, Globe, UserPlus, LogIn, HelpCircle, X, Home, User } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 
-export default function Layout({ children }) {
+export default function Layout({ children, hideSidebar = false, hideHeader = false, hideFooter = false }) {
   const { user, token, isAuthenticated, logout, networkError, setNetworkError } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifCount, setNotifCount] = useState(0);
@@ -23,6 +24,8 @@ export default function Layout({ children }) {
     location.pathname === '/reset-password' ||
     location.pathname.startsWith('/register/');
 
+  const isHomePage = location.pathname === '/';
+
   const [activeListings, setActiveListings] = useState(0);
   const [tenantCount, setTenantCount] = useState(0);
   const [savedCount, setSavedCount] = useState(0);
@@ -33,7 +36,9 @@ export default function Layout({ children }) {
   const [subscriptionTier, setSubscriptionTier] = useState('free');
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const hasSyncedLanguage = useRef(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleResize = () => {
@@ -47,7 +52,21 @@ export default function Layout({ children }) {
   // Close mobile drawer on route change
   useEffect(() => {
     setIsSidebarOpen(false);
+    setIsMenuOpen(false);
   }, [location.pathname, location.search]);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    }
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isMenuOpen]);
 
   const toggleLanguage = async () => {
     const nextLang = i18n.language.startsWith('en') ? 'sw' : 'en';
@@ -235,6 +254,8 @@ export default function Layout({ children }) {
     return () => { mounted = false; clearInterval(id); };
   }, [isAuthenticated, token, user?.userId, user?.role]);
 
+  const navigate = useNavigate();
+
   const topActionLink = (() => {
     if (!isAuthenticated) {
       return (
@@ -276,138 +297,462 @@ export default function Layout({ children }) {
         </div>
       ) : null}
 
-      <header className="topbar" style={{ display: 'flex', alignItems: 'center' }}>
-        {isAuthenticated && !isAuthPage ? (
-          <button
-            type="button"
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            style={{
-              padding: '0.5rem',
-              marginLeft: '0.5rem',
-              marginRight: '0',
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
+      {!hideHeader && <header className={`topbar ${isHomePage ? 'topbar--on-homepage' : ''}`} style={{ display: 'flex', alignItems: 'center', padding: 0 }}>
+        {/* Unified Header Design - Same for both logged in and logged out users */}
+        <div style={{
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0.75rem 1rem',
+          width: '100%'
+        }}>
+          {/* Left - Logo */}
+          <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
+            <span style={{
+              fontFamily: "'Inter', sans-serif",
+              fontWeight: 700,
+              fontSize: '1.4rem',
+              color: 'var(--ink)',
+              letterSpacing: '-0.02em'
+            }}>
+              Campus<span style={{ color: '#22c55e' }}>Stay</span>
+            </span>
+          </Link>
+
+          {/* Center - Shiny Badge (hidden on auth pages) */}
+          {!isAuthPage && (
+            <div style={{
+              position: 'relative',
+              background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 50%, #15803d 100%)',
+              borderRadius: '999px',
+              padding: '0.5rem 1.25rem',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              color: 'inherit',
-              flexShrink: 0,
-              borderRadius: '8px',
-              zIndex: 10
-            }}
-          >
-            <Menu size={22} />
-          </button>
-        ) : null}
-
-        <div className="topbar__inner" style={{ flex: 1, width: '100%' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <Link to="/" className="brand-link">
-              <span className="brand-mark">C</span>
-              <span className="brand-text">
-                CampusStay <em>TZ</em>
+              gap: '0.5rem',
+              boxShadow: '0 4px 15px rgba(34, 197, 94, 0.3), inset 0 1px 0 rgba(255,255,255,0.2)',
+              overflow: 'hidden'
+            }}>
+              {/* Shine animation overlay */}
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%)',
+                animation: 'shine 2.5s ease-in-out infinite'
+              }} />
+              <Home size={16} style={{ color: 'white', position: 'relative', zIndex: 1 }} />
+              <span style={{
+                color: 'white',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                fontFamily: "'Inter', sans-serif",
+                position: 'relative',
+                zIndex: 1
+              }}>
+                Find Your Perfect Home
               </span>
-            </Link>
-          </div>
+            </div>
+          )}
 
-          <nav className="topbar__nav">
-            {isAuthPage ? (
-              <>
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--small"
-                  onClick={toggleLanguage}
-                  title="Toggle Language"
-                >
-                  {i18n.language.startsWith('en') ? 'SW' : 'EN'}
-                </button>
-                <NavLink to="/">{t('nav.home')}</NavLink>
-                <NavLink to="/search">{t('nav.search')}</NavLink>
-                {!isAuthenticated ? (
-                  <NavLink to="/login" className={({ isActive }) => isActive ? 'is-active' : ''}>
-                    {t('nav.login')}
-                  </NavLink>
-                ) : null}
-              </>
-            ) : user?.role === APP_ROLE.LISTER ? (
-              <>
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--small"
-                  onClick={toggleLanguage}
-                  title="Toggle Language"
-                >
-                  {i18n.language.startsWith('en') ? 'SW' : 'EN'}
-                </button>
-                <NavLink to="/landlord" className={({ isActive }) => isActive ? 'is-active' : ''}>
-                  {t('nav.dashboard')}
-                </NavLink>
-                <NavLink to="/list-property" className="btn btn--small desktop-only">
-                  {t('nav.listProperty')}
-                </NavLink>
-                <button type="button" className="btn btn--ghost btn--small" onClick={logout}>
-                  {t('nav.logout')}
-                </button>
-              </>
-            ) : user?.role === APP_ROLE.ADMIN ? (
-              <>
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--small"
-                  onClick={toggleLanguage}
-                  title="Toggle Language"
-                >
-                  {i18n.language.startsWith('en') ? 'SW' : 'EN'}
-                </button>
-                <NavLink to="/admin" className={({ isActive }) => isActive ? 'is-active' : ''}>
-                  {t('nav.admin')}
-                </NavLink>
-                <button type="button" className="btn btn--ghost btn--small" onClick={logout}>
-                  {t('nav.logout')}
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--small"
-                  onClick={toggleLanguage}
-                  title="Toggle Language"
-                >
-                  {i18n.language.startsWith('en') ? 'SW' : 'EN'}
-                </button>
-                <NavLink to="/">{t('nav.home')}</NavLink>
-                <NavLink to="/search">{t('nav.search')}</NavLink>
-                {isAuthenticated ? (
-                  <NavLink to="/messages" className="nav-link-with-badge">
-                    {t('nav.messages')}
-                    {unreadCount > 0 ? (
-                      <span className="nav-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
-                    ) : null}
-                  </NavLink>
-                ) : null}
-                {isAuthenticated ? (
-                  <NavLink to="/profile" className="nav-profile-link">
-                    <span className="nav-avatar">
-                      {(user?.fullName || 'U').charAt(0).toUpperCase()}
-                    </span>
-                    <span className="nav-greeting">
-                      {t('layout.greeting')}, {user?.fullName?.split(' ')[0] || 'User'}
-                    </span>
-                  </NavLink>
-                ) : null}
-                {topActionLink}
-                {isAuthenticated ? (
-                  <button type="button" className="btn btn--ghost btn--small" onClick={logout}>
-                    {t('nav.logout')}
-                  </button>
-                ) : null}
-              </>
+          {/* Right - Actions */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            {/* Language Toggle */}
+            <button
+              type="button"
+              onClick={toggleLanguage}
+              title="Toggle Language"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '0.4rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--mid)',
+                borderRadius: '8px',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(34, 197, 94, 0.1)';
+                e.currentTarget.style.color = '#22c55e';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = 'var(--mid)';
+              }}
+            >
+              <Globe size={20} />
+            </button>
+
+            {/* Become Host - only show when not authenticated */}
+            {!isAuthenticated && (
+              <button
+                type="button"
+                onClick={() => navigate('/auth/signup')}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '0.85rem',
+                  fontWeight: 500,
+                  color: 'var(--ink)',
+                  fontFamily: "'Inter', sans-serif",
+                  transition: 'color 0.2s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.color = '#22c55e'}
+                onMouseLeave={(e) => e.currentTarget.style.color = 'var(--ink)'}
+              >
+                Become host
+              </button>
             )}
-          </nav>
+
+            {/* User Menu - show when authenticated */}
+            {isAuthenticated ? (
+              <div ref={menuRef} style={{ position: 'relative' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  style={{
+                    background: isMenuOpen ? 'rgba(34, 197, 94, 0.15)' : 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '0.5rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: isMenuOpen ? '#22c55e' : 'var(--ink)',
+                    borderRadius: '8px',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  {isMenuOpen ? <X size={22} /> : <Menu size={22} />}
+                </button>
+
+                {/* Dropdown Menu for Authenticated Users */}
+                <div style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 0.5rem)',
+                  right: 0,
+                  background: 'white',
+                  borderRadius: '12px',
+                  boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
+                  border: '1px solid rgba(0,0,0,0.08)',
+                  padding: '0.5rem',
+                  minWidth: '200px',
+                  opacity: isMenuOpen ? 1 : 0,
+                  visibility: isMenuOpen ? 'visible' : 'hidden',
+                  transform: isMenuOpen ? 'translateY(0)' : 'translateY(-10px)',
+                  transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                  zIndex: 100
+                }}>
+                  {/* User Info */}
+                  <div style={{
+                    padding: '0.75rem 1rem',
+                    borderBottom: '1px solid rgba(0,0,0,0.08)',
+                    marginBottom: '0.25rem'
+                  }}>
+                    <p style={{ margin: 0, fontWeight: 600, fontSize: '0.9rem' }}>
+                      {user?.fullName || 'User'}
+                    </p>
+                    <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--mid)' }}>
+                      {user?.role || 'Student'}
+                    </p>
+                  </div>
+
+                  {/* Menu Items */}
+                  <button
+                    onClick={() => { navigate('/profile'); setIsMenuOpen(false); }}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      padding: '0.75rem 1rem',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: 'transparent',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                      fontWeight: 500,
+                      color: 'var(--ink)',
+                      fontFamily: "'Inter', sans-serif",
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(34, 197, 94, 0.08)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <User size={18} style={{ color: '#22c55e' }} />
+                    Profile
+                  </button>
+
+                  <button
+                    onClick={() => { navigate('/messages'); setIsMenuOpen(false); }}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      padding: '0.75rem 1rem',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: 'transparent',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                      fontWeight: 500,
+                      color: 'var(--ink)',
+                      fontFamily: "'Inter', sans-serif",
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(34, 197, 94, 0.08)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <HelpCircle size={18} style={{ color: '#22c55e' }} />
+                    Messages
+                    {unreadCount > 0 && (
+                      <span style={{
+                        marginLeft: 'auto',
+                        background: '#ef4444',
+                        color: 'white',
+                        padding: '0.1rem 0.4rem',
+                        borderRadius: '999px',
+                        fontSize: '0.7rem',
+                        fontWeight: 600
+                      }}>
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </span>
+                    )}
+                  </button>
+
+                  {/* Role-specific dashboard link */}
+                  {user?.role === APP_ROLE.LISTER && (
+                    <button
+                      onClick={() => { navigate('/landlord/dashboard'); setIsMenuOpen(false); }}
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.75rem',
+                        padding: '0.75rem 1rem',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: 'transparent',
+                        cursor: 'pointer',
+                        fontSize: '0.9rem',
+                        fontWeight: 500,
+                        color: 'var(--ink)',
+                        fontFamily: "'Inter', sans-serif",
+                        transition: 'all 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(34, 197, 94, 0.08)'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <Home size={18} style={{ color: '#22c55e' }} />
+                      Dashboard
+                    </button>
+                  )}
+
+                  {user?.role === APP_ROLE.ADMIN && (
+                    <button
+                      onClick={() => { navigate('/admin'); setIsMenuOpen(false); }}
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.75rem',
+                        padding: '0.75rem 1rem',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: 'transparent',
+                        cursor: 'pointer',
+                        fontSize: '0.9rem',
+                        fontWeight: 500,
+                        color: 'var(--ink)',
+                        fontFamily: "'Inter', sans-serif",
+                        transition: 'all 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(34, 197, 94, 0.08)'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <Home size={18} style={{ color: '#22c55e' }} />
+                      Admin Panel
+                    </button>
+                  )}
+
+                  <div style={{ height: '1px', background: 'rgba(0,0,0,0.08)', margin: '0.4rem 0' }} />
+
+                  <button
+                    onClick={() => { navigate('/help'); setIsMenuOpen(false); }}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      padding: '0.75rem 1rem',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: 'transparent',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                      fontWeight: 500,
+                      color: 'var(--ink)',
+                      fontFamily: "'Inter', sans-serif",
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(34, 197, 94, 0.08)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <HelpCircle size={18} style={{ color: '#22c55e' }} />
+                    Help centre
+                  </button>
+
+                  <button
+                    onClick={() => { logout(); setIsMenuOpen(false); }}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      padding: '0.75rem 1rem',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: 'transparent',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                      fontWeight: 500,
+                      color: '#ef4444',
+                      fontFamily: "'Inter', sans-serif",
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <LogIn size={18} style={{ color: '#ef4444' }} />
+                    Log out
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* Hamburger Menu for Non-Authenticated Users */
+              <div ref={menuRef} style={{ position: 'relative' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  style={{
+                    background: isMenuOpen ? 'rgba(34, 197, 94, 0.15)' : 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '0.5rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: isMenuOpen ? '#22c55e' : 'var(--ink)',
+                    borderRadius: '8px',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  {isMenuOpen ? <X size={22} /> : <Menu size={22} />}
+                </button>
+
+                {/* Dropdown Menu for Non-Authenticated Users */}
+                <div style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 0.5rem)',
+                  right: 0,
+                  background: 'white',
+                  borderRadius: '12px',
+                  boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
+                  border: '1px solid rgba(0,0,0,0.08)',
+                  padding: '0.5rem',
+                  minWidth: '180px',
+                  opacity: isMenuOpen ? 1 : 0,
+                  visibility: isMenuOpen ? 'visible' : 'hidden',
+                  transform: isMenuOpen ? 'translateY(0)' : 'translateY(-10px)',
+                  transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                  zIndex: 100
+                }}>
+                  <button
+                    onClick={() => { navigate('/auth/login'); setIsMenuOpen(false); }}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      padding: '0.75rem 1rem',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: 'transparent',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                      fontWeight: 500,
+                      color: 'var(--ink)',
+                      fontFamily: "'Inter', sans-serif",
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(34, 197, 94, 0.08)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <LogIn size={18} style={{ color: '#22c55e' }} />
+                    Sign in
+                  </button>
+                  <button
+                    onClick={() => { navigate('/auth/signup'); setIsMenuOpen(false); }}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      padding: '0.75rem 1rem',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: 'transparent',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                      fontWeight: 500,
+                      color: 'var(--ink)',
+                      fontFamily: "'Inter', sans-serif",
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(34, 197, 94, 0.08)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <UserPlus size={18} style={{ color: '#22c55e' }} />
+                    Sign up
+                  </button>
+                  <div style={{ height: '1px', background: 'rgba(0,0,0,0.08)', margin: '0.4rem 0' }} />
+                  <button
+                    onClick={() => { navigate('/help'); setIsMenuOpen(false); }}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      padding: '0.75rem 1rem',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: 'transparent',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                      fontWeight: 500,
+                      color: 'var(--ink)',
+                      fontFamily: "'Inter', sans-serif",
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(34, 197, 94, 0.08)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <HelpCircle size={18} style={{ color: '#22c55e' }} />
+                    Help centre
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-      </header>
+      </header>}
 
       {networkError ? (
         <div style={{ background: '#cf222e', color: 'white', padding: '0.75rem', textAlign: 'center', fontSize: '0.9rem', position: 'sticky', top: '60px', zIndex: 90 }}>
@@ -423,7 +768,8 @@ export default function Layout({ children }) {
       ) : null}
 
       <div style={{ display: 'flex', minHeight: 'calc(100vh - 64px)', position: 'relative', width: '100%', maxWidth: '100vw' }}>
-        {isAuthenticated && !isAuthPage && user?.role === APP_ROLE.LISTER && !location.pathname.startsWith('/admin') ? (
+        {/* Sidebars - hidden on homepage or when hideSidebar is true */}
+        {!hideSidebar && isAuthenticated && !isAuthPage && !isHomePage && user?.role === APP_ROLE.LISTER && !location.pathname.startsWith('/admin') ? (
           <LandlordSidebar
             unreadMessages={unreadCount}
             unreadNotifs={notifCount}
@@ -438,7 +784,7 @@ export default function Layout({ children }) {
             onMobileDrawerClose={() => setIsSidebarOpen(false)}
           />
         ) : null}
-        {isAuthenticated && !isAuthPage && user?.role === APP_ROLE.STUDENT && !location.pathname.startsWith('/admin') ? (
+        {!hideSidebar && isAuthenticated && !isAuthPage && !isHomePage && user?.role === APP_ROLE.STUDENT && !location.pathname.startsWith('/admin') ? (
           <StudentSidebar
             unreadMessages={unreadCount}
             unreadNotifs={notifCount}
@@ -449,18 +795,23 @@ export default function Layout({ children }) {
             onMobileDrawerClose={() => setIsSidebarOpen(false)}
           />
         ) : null}
-        {isAuthenticated && !isAuthPage && user?.role === APP_ROLE.ADMIN ? (
+        {isAuthenticated && !isAuthPage && !isHomePage && user?.role === APP_ROLE.ADMIN ? (
           <AdminSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
         ) : null}
 
-        <main className="main-content" style={{ flex: 1, minWidth: 0, transition: 'all 0.3s ease' }}>
-          {children}
-        </main>
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
+          <main className="main-content" style={{ flex: 1, minWidth: 0, transition: 'all 0.3s ease', padding: isHomePage ? 0 : undefined }}>
+            {children}
+          </main>
+
+          {/* Footer on all pages unless hideFooter is true */}
+          {!hideFooter && <Footer />}
+        </div>
       </div>
 
 
-      {/* Admin Mobile Bottom Nav */}
-      {isAuthenticated && user?.role === APP_ROLE.ADMIN ? (
+      {/* Admin Mobile Bottom Nav - hidden on homepage */}
+      {isAuthenticated && !isHomePage && user?.role === APP_ROLE.ADMIN ? (
         <nav
           className="bottom-nav mobile-only"
           aria-label="Admin Navigation"

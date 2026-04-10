@@ -65,8 +65,13 @@ type AllRoles = 'student' | 'landlord' | 'dalali' | 'admin';
 const ALL: AllRoles[] = ['student', 'landlord', 'dalali', 'admin'];
 
 /** Wrap in public Layout for logged out / public pages */
-function PL({ children }: { children: React.ReactNode }) {
-  return <Layout>{children}</Layout>;
+function PL({ children, hideSidebar = false, hideHeader = false, hideFooter = false }: { children: React.ReactNode; hideSidebar?: boolean; hideHeader?: boolean; hideFooter?: boolean }) {
+  return <Layout hideSidebar={hideSidebar} hideHeader={hideHeader} hideFooter={hideFooter}>{children}</Layout>;
+}
+
+/** Room Details Layout - No sidebar/nav/footer for logged in users */
+function RoomDetailsLayout({ children }: { children: React.ReactNode }) {
+  return <Layout hideSidebar={true} hideHeader={true} hideFooter={true}>{children}</Layout>;
 }
 
 export default function App() {
@@ -78,14 +83,14 @@ export default function App() {
         {/* ── Public ──────────────────────────────────────── */}
         <Route path="/"              element={<PL><HomePage /></PL>} />
         <Route path="/listings"      element={<PL><SearchPage /></PL>} />
-        <Route path="/listings/:id"  element={<PL><RoomDetailsPage /></PL>} />
+        <Route path="/listings/:roomId" element={<RoomDetailsLayout><RoomDetailsPage /></RoomDetailsLayout>} />
         <Route path="/search"        element={<Navigate to="/listings" replace />} />
-        <Route path="/rooms/:roomId" element={<PL><RoomDetailsPage /></PL>} />
+        <Route path="/rooms/:roomId" element={<RoomDetailsLayout><RoomDetailsPage /></RoomDetailsLayout>} />
         <Route path="/reset-password"    element={<PL><ResetPasswordPage /></PL>} />
 
         {/* ── Auth ────────────────────────────────────────── */}
-        <Route path="/auth/login"        element={<LoginPage />} />
-        <Route path="/auth/signup"       element={<SignupPage />} />
+        <Route path="/auth/login"        element={<PL><LoginPage /></PL>} />
+        <Route path="/auth/signup"       element={<PL><SignupPage /></PL>} />
         <Route path="/login"             element={<Navigate to="/auth/login" replace />} />
         <Route path="/register/student"  element={<Navigate to="/auth/signup" replace />} />
         <Route path="/register/landlord" element={<Navigate to="/auth/signup" replace />} />
