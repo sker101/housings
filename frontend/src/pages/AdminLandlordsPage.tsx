@@ -75,7 +75,7 @@ export default function AdminLandlordsPage() {
   const [error, setError] = useState('');
   const [allProfiles, setAllProfiles] = useState<Profile[]>([]);
   const [listingsByLister, setListingsByLister] = useState<Record<string, Listing[]>>({});
-  const [photosByListing, setPhotosByListing] = useState<Record<string, string[]>>({});
+  const [, setPhotosByListing] = useState<Record<string, string[]>>({});
   
   const [activeTab, setActiveTab] = useState<'pending' | 'verified' | 'rejected' | 'all'>('pending');
   const [notifOpen, setNotifOpen] = useState(false);

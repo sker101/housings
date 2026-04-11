@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { selectRows, countRows } from '../lib/supabase';
-import { BookOpen, Download, Filter, Loader } from 'lucide-react';
+import { BookOpen, Download, Loader } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface AuditLog {

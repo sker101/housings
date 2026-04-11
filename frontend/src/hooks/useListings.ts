@@ -37,21 +37,27 @@ export function useListings(
       const filters: Array<{ column: string; op: string; value: unknown }> = [];
 
       if (filter.ownerId) {
-        filters.push({ column: 'owner_id', op: 'eq', value: filter.ownerId });
+        filters.push({ column: 'lister_id', op: 'eq', value: filter.ownerId });
       }
       if (filter.status) {
         filters.push({ column: 'status', op: 'eq', value: filter.status });
       }
 
       const rows = await selectRows('listings', {
-        select: 'id,owner_id,owner_role,title,description,price,area,district,ward,location,lat,lng,status,views,room_type,amenities,created_at',
+        select: 'id,lister_id,title,description,price_monthly,region,district,ward,street,lat,lng,status,room_type,amenities,vacancy_status,featured,promotion_level,created_at',
         filters,
         order: 'created_at.desc',
         limit: filter.limit ?? 100,
         accessToken,
       });
 
-      setListings(rows as Listing[]);
+      // Map backend columns back to frontend expected structure
+      const mappedListings = rows.map((r: any) => ({
+        ...r,
+        owner_id: r.lister_id,
+        price: r.price_monthly,
+      }));
+      setListings(mappedListings as Listing[]);
     } catch {
       setError('Could not load listings.');
     } finally {

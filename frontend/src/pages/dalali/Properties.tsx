@@ -1,22 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { LayoutDashboard, Building, PlusCircle, MessageSquare, DollarSign, CreditCard } from 'lucide-react';
-import DashboardLayout from '../../components/DashboardLayout';
+import { Building } from 'lucide-react';
 import { SkeletonCard } from '../../components/SkeletonCard';
 import { StatusPill } from '../../components/StatusPill';
 import { useAuth } from '../../context/AuthContext';
 import { useListings } from '../../hooks/useListings';
 import { TZSFormat } from '../../utils/format';
-import type { NavItem, ListingStatus } from '../../types';
-
-const NAV: NavItem[] = [
-  { label: 'Dashboard',    href: '/dalali/dashboard',      icon: <LayoutDashboard size={16} /> },
-  { label: 'Properties',   href: '/dalali/properties',     icon: <Building size={16} /> },
-  { label: 'Add Property', href: '/dalali/properties/new', icon: <PlusCircle size={16} /> },
-  { label: 'Inquiries',    href: '/dalali/inquiries',      icon: <MessageSquare size={16} /> },
-  { label: 'Earnings',     href: '/dalali/earnings',       icon: <DollarSign size={16} /> },
-  { label: 'Subscription', href: '/dalali/subscription',   icon: <CreditCard size={16} /> },
-];
+import type { ListingStatus } from '../../types';
 
 const STATUS_ORDER: ListingStatus[] = ['active', 'vacant', 'paused', 'removed'];
 

@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { LayoutDashboard, Building, PlusCircle, MessageSquare, DollarSign, CreditCard, Zap } from 'lucide-react';
-import DashboardLayout from '../../components/DashboardLayout';
+import { Zap } from 'lucide-react';
 import { SkeletonCard } from '../../components/SkeletonCard';
 import { StatusPill } from '../../components/StatusPill';
 import { InquiryCard } from '../../components/InquiryCard';
@@ -12,17 +11,8 @@ import { useBookings } from '../../hooks/useBookings';
 import { useActivityLog } from '../../hooks/useActivityLog';
 import { selectRows } from '../../lib/supabase';
 import { TZSFormat, formatRenewal, formatDate } from '../../utils/format';
-import type { NavItem, Subscription } from '../../types';
+import type { Subscription } from '../../types';
 import toast from 'react-hot-toast';
-
-const NAV: NavItem[] = [
-  { label: 'Dashboard',    href: '/dalali/dashboard',   icon: <LayoutDashboard size={16} /> },
-  { label: 'Properties',   href: '/dalali/properties',  icon: <Building size={16} /> },
-  { label: 'Add Property', href: '/dalali/properties/new', icon: <PlusCircle size={16} /> },
-  { label: 'Inquiries',    href: '/dalali/inquiries',   icon: <MessageSquare size={16} /> },
-  { label: 'Earnings',     href: '/dalali/earnings',    icon: <DollarSign size={16} /> },
-  { label: 'Subscription', href: '/dalali/subscription',icon: <CreditCard size={16} /> },
-];
 
 const COMMISSION_RATE = 0.05;
 
@@ -40,9 +30,9 @@ export default function DalaliDashboard() {
   const { user, token } = useAuth();
   const userId = user?.userId ?? null;
 
-  const { listings, loading: listLoading } = useListings(token, { ownerId: userId ?? undefined });
+  const { listings, loading: _listLoading } = useListings(token, { ownerId: userId ?? undefined });
   const { inquiries, loading: inqLoading, acceptInquiry, declineInquiry } = useInquiries('host', userId, token);
-  const { bookings, loading: bookLoading, monthlyIncome } = useBookings('host', userId, token);
+  const { bookings, loading: _bookLoading, monthlyIncome } = useBookings('host', userId, token);
   const { events, loading: actLoading } = useActivityLog(userId, token);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [subLoading, setSubLoading] = useState(true);

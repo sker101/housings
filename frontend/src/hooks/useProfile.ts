@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { selectRows, updateRows, upsertRows } from '../lib/supabase';
+import { selectRows, upsertRows } from '../lib/supabase';
 import type { Profile } from '../types';
 
 interface UseProfileResult {
@@ -7,7 +7,7 @@ interface UseProfileResult {
   loading: boolean;
   error: string | null;
   refreshProfile: () => Promise<void>;
-  updateProfile: (patch: Partial<Profile>) => Promise<void>;
+  updateProfile: (_patch: Partial<Profile>) => Promise<void>;
 }
 
 export function useProfile(userId: string | null, accessToken: string | null): UseProfileResult {
@@ -27,16 +27,23 @@ export function useProfile(userId: string | null, accessToken: string | null): U
     try {
       const rows = await selectRows('profiles', {
         select: [
-          'id', 'role', 'full_name', 'phone', 'occupation',
-          'id_verified', 'id_document_url', 'suspended', 'avg_rating',
-          'profile_photo_url', 'avatar_url', 'university', 'lister_type',
-          'verification_status', 'preferred_language', 'created_at',
+          'id', 'role', 'lister_type', 'full_name', 'phone', 'phone_verified',
+          'university', 'profile_photo_url', 'id_doc_url', 'is_suspended', 
+          'avg_rating', 'verification_status', 'preferred_language',
+          'created_at',
         ].join(','),
         filters: [{ column: 'id', op: 'eq', value: userId }],
         limit: 1,
         accessToken,
       });
-      setProfile((rows[0] as Profile) || null);
+      const profileRow = rows[0] as any;
+      if (profileRow) {
+        profileRow.suspended = profileRow.is_suspended;
+        profileRow.id_document_url = profileRow.id_doc_url;
+        setProfile(profileRow as Profile);
+      } else {
+        setProfile(null);
+      }
     } catch {
       setError('Could not load profile.');
     } finally {

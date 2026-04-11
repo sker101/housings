@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -205,7 +205,6 @@ function validateStep(step: number, values: any, files: any): string {
 }
 
 export default function ListPropertyPage() {
-  const navigate = useNavigate();
   const location = useLocation();
   const { t } = useTranslation();
   const { user, token } = useAuth();
@@ -230,7 +229,7 @@ export default function ListPropertyPage() {
   const [screeningResult, setScreeningResult] = useState<any>(null);
   const [gettingLocation, setGettingLocation] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [submittedListingId, setSubmittedListingId] = useState<string | null>(null);
+  const [, setSubmittedListingId] = useState<string | null>(null);
   const [draftsDisabled, setDraftsDisabled] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState(
     String(user?.landlordVerificationStatus || '').trim().toLowerCase()
@@ -451,7 +450,6 @@ export default function ListPropertyPage() {
     };
   }, [formValues, step, user?.userId, token, hasListerRole, loadingDraft]);
 
-  const currentError = validateStep(step, formValues, files);
   const progressPct = Math.round(((step + 1) / STEPS.length) * 100);
 
   const goNext = () => {
@@ -741,7 +739,7 @@ export default function ListPropertyPage() {
           console.warn('⚠️ Full photo records failed, trying Safe Mode...', photoErr.message);
           // Safe mode: remove columns not in initial seed
             const safePhotoRows = photoRows.map(p => {
-              const { position, caption, is_cover, ...rest } = p;
+              const { position: _position, caption: _caption, is_cover: _is_cover, ...rest } = p;
               return rest;
             });
             await insertRows('listing_photos', safePhotoRows, { accessToken });
@@ -1257,7 +1255,7 @@ export default function ListPropertyPage() {
           <div style={{ display: 'grid', gap: '1rem' }}>
             <p style={{ color: '#6B6B5A', fontSize: '0.9rem' }}>Upload 4-10 photos. First 4 are required: Bedroom, Kitchen, Bathroom, Outside.</p>
 
-            {PHOTO_SLOTS.map((slot, idx) => (
+            {PHOTO_SLOTS.map((slot) => (
               <div key={slot.key} style={{
                 border: files[slot.key] ? '2px solid #1D9E75' : '2px dashed #E5E5E0',
                 borderRadius: '10px',

@@ -1,22 +1,10 @@
 import React from 'react';
-import { LayoutDashboard, List, PlusCircle, Users, BarChart2, MessageSquare } from 'lucide-react';
-import DashboardLayout from '../../components/DashboardLayout';
+import { MessageSquare } from 'lucide-react';
 import { InquiryCard } from '../../components/InquiryCard';
 import { SkeletonCard } from '../../components/SkeletonCard';
 import { useAuth } from '../../context/AuthContext';
 import { useInquiries } from '../../hooks/useInquiries';
 import toast from 'react-hot-toast';
-import type { NavItem } from '../../types';
-
-const NAV: NavItem[] = [
-  { label: 'Dashboard',  href: '/landlord/dashboard',  icon: <LayoutDashboard size={16} /> },
-  { label: 'Listings',   href: '/landlord/listings',   icon: <List size={16} /> },
-  { label: 'Add Listing',href: '/landlord/listings/new',icon: <PlusCircle size={16} /> },
-  { label: 'Inquiries',  href: '/landlord/inquiries',  icon: <MessageSquare size={16} /> },
-  { label: 'Tenants',    href: '/landlord/tenants',    icon: <Users size={16} /> },
-  { label: 'Analytics',  href: '/landlord/analytics',  icon: <BarChart2 size={16} /> },
-];
-
 export default function LandlordInquiries() {
   const { user, token } = useAuth();
   const { inquiries, loading, acceptInquiry, declineInquiry } = useInquiries('host', user?.userId ?? null, token);

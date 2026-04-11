@@ -10,11 +10,10 @@ import {
   fetchSavedListingIds,
   toggleSavedListing
 } from '../lib/listings';
-import { SORT_OPTIONS, ROOM_TYPES } from '../lib/constants';
 import {
-  Search, MapPin, Users, Bed, Bath, Wifi, Car, Droplets, Utensils,
+  Search, Users, Bed, Bath, Wifi, Car, Droplets, Utensils,
   Dumbbell, Shirt, Shield, Snowflake, Flame, Waves, SlidersHorizontal,
-  X, Grid3X3, Map as MapIcon
+  X,
 } from 'lucide-react';
 
 // University options
@@ -65,14 +64,6 @@ const PRICE_RANGES = [
   { min: 200000, max: 350000, label: '200K - 350K' },
   { min: 350000, max: 500000, label: '350K - 500K' },
   { min: 500000, max: null, label: '500K+' },
-];
-
-// Property types
-const PROPERTY_TYPES = [
-  { value: 'hostel', label: 'Hostel' },
-  { value: 'apartment', label: 'Apartment' },
-  { value: 'house', label: 'House' },
-  { value: 'guesthouse', label: 'Guesthouse' },
 ];
 
 function getDistanceKm(lat1, lon1, lat2, lon2) {

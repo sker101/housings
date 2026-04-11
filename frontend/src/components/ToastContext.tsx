@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useState } from 'react';
+import React, { createContext, useCallback, useContext } from 'react';
 import toast from 'react-hot-toast';
 
 // ─────────────────────────────────────────────────────────────
@@ -8,7 +8,7 @@ import toast from 'react-hot-toast';
 type ToastVariant = 'success' | 'error' | 'info';
 
 interface ToastContextValue {
-  showToast: (message: string, variant?: ToastVariant) => void;
+  showToast: (_message: string, _variant?: ToastVariant) => void;
 }
 
 const ToastContext = createContext<ToastContextValue | null>(null);

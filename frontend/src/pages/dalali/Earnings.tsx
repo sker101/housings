@@ -1,22 +1,9 @@
 import React from 'react';
-import { LayoutDashboard, Building, PlusCircle, MessageSquare, DollarSign, CreditCard } from 'lucide-react';
-import DashboardLayout from '../../components/DashboardLayout';
 import { SkeletonCard } from '../../components/SkeletonCard';
 import { StatusPill } from '../../components/StatusPill';
 import { useAuth } from '../../context/AuthContext';
 import { useBookings } from '../../hooks/useBookings';
 import { TZSFormat, formatDate } from '../../utils/format';
-import type { NavItem } from '../../types';
-
-const NAV: NavItem[] = [
-  { label: 'Dashboard',    href: '/dalali/dashboard',      icon: <LayoutDashboard size={16} /> },
-  { label: 'Properties',   href: '/dalali/properties',     icon: <Building size={16} /> },
-  { label: 'Add Property', href: '/dalali/properties/new', icon: <PlusCircle size={16} /> },
-  { label: 'Inquiries',    href: '/dalali/inquiries',      icon: <MessageSquare size={16} /> },
-  { label: 'Earnings',     href: '/dalali/earnings',       icon: <DollarSign size={16} /> },
-  { label: 'Subscription', href: '/dalali/subscription',   icon: <CreditCard size={16} /> },
-];
-
 const COMMISSION_RATE = 0.05;
 
 export default function DalaliEarnings() {

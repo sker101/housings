@@ -28,16 +28,33 @@ export async function getProfile(
   try {
     const rows = await selectRows('profiles', {
       select: [
-        'id', 'role', 'full_name', 'phone', 'occupation',
-        'id_verified', 'id_document_url', 'suspended', 'avg_rating',
-        'profile_photo_url', 'avatar_url', 'university', 'lister_type',
-        'verification_status', 'preferred_language', 'created_at',
+        'id',
+        'role',
+        'full_name',
+        'phone',
+        'occupation',
+        'id_verified',
+        'id_doc_url',
+        'is_suspended',
+        'avg_rating',
+        'profile_photo_url',
+        'avatar_url',
+        'university',
+        'lister_type',
+        'verification_status',
+        'preferred_language',
+        'created_at',
       ].join(','),
       filters: [{ column: 'id', op: 'eq', value: userId }],
       limit: 1,
       accessToken,
     });
-    return (rows[0] as Profile) || null;
+    const row = rows[0] as Record<string, unknown> | undefined;
+    if (!row) return null;
+    const profile = row as unknown as Profile;
+    profile.suspended = Boolean(row.is_suspended);
+    profile.id_document_url = (row.id_doc_url as string) || profile.id_document_url;
+    return profile;
   } catch {
     return null;
   }

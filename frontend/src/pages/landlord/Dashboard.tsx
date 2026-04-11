@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { LayoutDashboard, List, PlusCircle, Users, BarChart2, MessageSquare, Zap, TrendingUp } from 'lucide-react';
-import DashboardLayout from '../../components/DashboardLayout';
+import { Zap } from 'lucide-react';
 import { SkeletonCard } from '../../components/SkeletonCard';
 import { StatusPill } from '../../components/StatusPill';
 import { InquiryCard } from '../../components/InquiryCard';
@@ -12,17 +11,6 @@ import { useBookings } from '../../hooks/useBookings';
 import { useActivityLog } from '../../hooks/useActivityLog';
 import { TZSFormat, formatDate } from '../../utils/format';
 import toast from 'react-hot-toast';
-import type { NavItem } from '../../types';
-
-const NAV: NavItem[] = [
-  { label: 'Dashboard',  href: '/landlord/dashboard',  icon: <LayoutDashboard size={16} /> },
-  { label: 'Listings',   href: '/landlord/listings',   icon: <List size={16} /> },
-  { label: 'Add Listing',href: '/landlord/listings/new',icon: <PlusCircle size={16} /> },
-  { label: 'Inquiries',  href: '/landlord/inquiries',  icon: <MessageSquare size={16} /> },
-  { label: 'Tenants',    href: '/landlord/tenants',    icon: <Users size={16} /> },
-  { label: 'Analytics',  href: '/landlord/analytics',  icon: <BarChart2 size={16} /> },
-];
-
 function KpiCard({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: string }) {
   return (
     <div style={{

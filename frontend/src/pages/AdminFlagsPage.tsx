@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { selectRows, updateRows, countRows } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { AlertTriangle, AlertCircle, Loader, CheckCircle, XCircle } from 'lucide-react';
+import { AlertCircle, Loader, CheckCircle, XCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 type FlagFilter = 'flagged' | 'approved' | 'rejected';

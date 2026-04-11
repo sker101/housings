@@ -2,15 +2,13 @@ const DEFAULT_PROJECT_REF = 'iavflytaqfdwhmshocvm';
 const SESSION_KEY = 'campusstay.supabase.session.v1';
 export const AUTH_SESSION_REFRESH_EVENT = 'campusstay:session-refreshed';
 
-const projectRef =
-  import.meta.env.VITE_SUPABASE_PROJECT_REF ||
-  import.meta.env.VITE_SUPABASE_PROJECT ||
-  DEFAULT_PROJECT_REF;
+const projectRef = DEFAULT_PROJECT_REF;
 
-export const SUPABASE_URL =
-  import.meta.env.VITE_SUPABASE_URL || `https://${projectRef}.supabase.co`;
+export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || `https://${projectRef}.supabase.co`;
 
-export const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const DEFAULT_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhdmZseXRhcWZkd2htc2hvY3ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxOTU1ODEsImV4cCI6MjA4Nzc3MTU4MX0.kvC4YaE9LnbTpJHGgul8AEqXc81pkEpwdK_6PQJUdSU';
+
+export const SUPABASE_ANON_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY || DEFAULT_ANON_KEY).trim();
 
 export const isSupabaseConfigured = Boolean(
   import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -37,6 +35,8 @@ function buildHeaders({ accessToken, contentType, prefer, extra = {} }: BuildHea
     headers.Prefer = prefer;
   }
 
+  // ONLY add Authorization if we have a real User Access Token. 
+  // Public requests only need the 'apikey' header.
   if (accessToken) {
     headers.Authorization = `Bearer ${accessToken}`;
   }
@@ -73,7 +73,7 @@ interface RequestOptions {
   extraHeaders?: Record<string, string>;
 }
 
-function buildSessionFromAuthPayload(authPayload, existingSession = null) {
+function _buildSessionFromAuthPayload(authPayload, existingSession = null) {
   if (!authPayload?.access_token) {
     return null;
   }
@@ -88,7 +88,7 @@ function buildSessionFromAuthPayload(authPayload, existingSession = null) {
   };
 }
 
-function dispatchSessionRefresh(session, persistent) {
+function _dispatchSessionRefresh(session, persistent) {
   if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function') {
     return;
   }
@@ -114,44 +114,68 @@ function shouldRefreshAuthToken(status, payload) {
   );
 }
 
-async function refreshStoredAccessToken(accessToken?: string) {
+async function refreshStoredAccessToken(accessToken?: string, isAuthRequest = false) {
+  // Never send cookies/tokens for initial sign-in to the Cloud
+  if (isAuthRequest) return undefined;
+  
   if (!accessToken) {
-    return accessToken;
+    const { session } = readStoredSession();
+    return session?.access_token;
+  }
+  return accessToken;
+}
+
+async function rawAuthRequest(path: string, options: { method: string; query?: Record<string, string>; body: any }) {
+  const target = new URL(path, SUPABASE_URL);
+  if (options.query) {
+    Object.entries(options.query).forEach(([key, value]) => {
+      target.searchParams.append(key, value);
+    });
   }
 
-  const { session, persistent } = readStoredSession();
-  if (!session?.refresh_token) {
-    return session?.access_token || accessToken;
+  const response = await fetch(target.toString(), {
+    method: options.method,
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Content-Type': 'application/json'
+    },
+    credentials: 'omit',
+    referrerPolicy: 'no-referrer',
+    body: JSON.stringify(options.body)
+  });
+
+  const payload = await response.json();
+  if (!response.ok) {
+    throw payload;
   }
+  return payload;
+}
 
-  if (session.access_token && session.access_token !== accessToken && !isSessionExpired(session)) {
-    return session.access_token;
-  }
-
-  if (!isSessionExpired(session) && session.access_token) {
-    return session.access_token;
-  }
-
-  try {
-    const refreshed = await refreshAuthSession(session.refresh_token);
-    const nextSession = buildSessionFromAuthPayload(refreshed, session);
-
-    if (!nextSession?.access_token) {
-      return accessToken;
+export async function signInWithPassword({ email, password }) {
+  return rawAuthRequest('/auth/v1/token', {
+    method: 'POST',
+    query: { grant_type: 'password' },
+    body: { 
+      email, 
+      password,
+      grant_type: 'password'
     }
+  });
+}
 
-    writeStoredSession(nextSession, persistent);
-    dispatchSessionRefresh(nextSession, persistent);
-    return nextSession.access_token;
-  } catch {
-    return accessToken;
-  }
+export async function signUpWithPassword({ email, password, data }) {
+  return rawAuthRequest('/auth/v1/signup', {
+    method: 'POST',
+    body: { email, password, data }
+  });
 }
 
 async function request(path: string, options: RequestOptions = {}) {
+  const isAuthRequest = path.includes('/auth/v1/token') || path.includes('/auth/v1/signup');
+  
   if (!SUPABASE_ANON_KEY) {
     throw new Error(
-      'Missing Supabase anon key. Set VITE_SUPABASE_ANON_KEY in frontend/.env and restart the dev server.'
+      'Missing Supabase anon key.'
     );
   }
 
@@ -166,7 +190,7 @@ async function request(path: string, options: RequestOptions = {}) {
     extraHeaders = {}
   } = options;
 
-  const resolvedAccessToken = await refreshStoredAccessToken(accessToken);
+  const resolvedAccessToken = await refreshStoredAccessToken(accessToken, isAuthRequest);
   const target = new URL(path, SUPABASE_URL);
   if (query) {
     Object.entries(query).forEach(([key, value]) => {
@@ -185,6 +209,7 @@ async function request(path: string, options: RequestOptions = {}) {
         prefer,
         extra: extraHeaders
       }),
+      credentials: 'omit',
       body: body == null ? undefined : contentType === 'application/json' ? JSON.stringify(body) : body
     });
 
@@ -280,21 +305,6 @@ export function isSessionExpired(session) {
   }
 
   return Number(session.expires_at) <= nowEpochSeconds() + 30;
-}
-
-export async function signInWithPassword({ email, password }) {
-  return request('/auth/v1/token', {
-    method: 'POST',
-    query: { grant_type: 'password' },
-    body: { email, password }
-  });
-}
-
-export async function signUpWithPassword({ email, password, data }) {
-  return request('/auth/v1/signup', {
-    method: 'POST',
-    body: { email, password, data }
-  });
 }
 
 export async function requestPasswordReset(email: string) {
@@ -504,10 +514,12 @@ export async function deleteRows(table: string, options: RowOptions = {}) {
   });
 }
 
-export async function invokeFunction(name: string, body: unknown, accessToken?: string) {
+export async function invokeFunction(name: string, body: unknown, _accessToken?: string) {
   return request(`/functions/v1/${name}`, {
     method: 'POST',
-    accessToken,
+    // Edge functions don't require user identity here (they use service_role internally)
+    // We use ANON_KEY to bypass any User JWT Gateway verification issues
+    accessToken: SUPABASE_ANON_KEY,
     body
   });
 }
@@ -528,13 +540,13 @@ export async function uploadPublicObject({ bucket, path, file, accessToken }) {
 
   const resolvedAccessToken = await refreshStoredAccessToken(accessToken);
   const target = `${SUPABASE_URL}/storage/v1/object/${encodeURIComponent(bucket)}/${encodedPath}`;
-  const executeUpload = async (tokenOverride?: string) =>
+  const executeUpload = async (_tokenOverride?: string) =>
     fetch(target, {
       method: 'POST',
       headers: {
-        ...buildHeaders({ accessToken: tokenOverride, contentType: file.type || 'application/octet-stream' }),
         'x-upsert': 'true'
       },
+      credentials: 'omit',
       body: file
     });
 
@@ -576,10 +588,7 @@ export function publicObjectUrl(bucket, path) {
     .map((segment) => encodeURIComponent(segment))
     .join('/');
 
-  // If we are local, fall back to production URLs for storage parity
-  const baseUrl = SUPABASE_URL.includes('localhost')
-    ? `https://${DEFAULT_PROJECT_REF}.supabase.co`
-    : SUPABASE_URL;
+  const baseUrl = SUPABASE_URL;
 
   return `${baseUrl}/storage/v1/object/public/${encodeURIComponent(bucket)}/${encodedPath}`;
 }

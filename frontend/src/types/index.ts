@@ -2,6 +2,8 @@
 // CampusStay TZ — Shared Type Definitions
 // ─────────────────────────────────────────────────────────────
 
+import type { ReactNode } from 'react';
+
 export type Role = 'student' | 'landlord' | 'dalali' | 'admin' | 'lister';
 export type ListingStatus = 'active' | 'vacant' | 'paused' | 'removed';
 export type InquiryStatus = 'pending' | 'accepted' | 'declined' | 'booked';
@@ -132,5 +134,5 @@ export interface AuthUser {
 export interface NavItem {
   label: string;
   href: string;
-  icon: React.ReactNode;
+  icon: ReactNode;
 }

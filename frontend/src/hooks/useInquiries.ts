@@ -7,8 +7,8 @@ interface UseInquiriesResult {
   loading: boolean;
   error: string | null;
   reload: () => Promise<void>;
-  acceptInquiry: (inquiryId: string) => Promise<void>;
-  declineInquiry: (inquiryId: string) => Promise<void>;
+  acceptInquiry: (_inquiryId: string) => Promise<void>;
+  declineInquiry: (_inquiryId: string) => Promise<void>;
 }
 
 export function useInquiries(

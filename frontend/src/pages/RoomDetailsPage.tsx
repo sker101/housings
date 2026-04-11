@@ -1022,7 +1022,17 @@ export default function RoomDetailsPage() {
                 Reserve / Pay
               </Link>
             ) : null}
-            <button type="button" className="btn btn--ghost" onClick={() => setOpenInquiry(true)}>
+            <button 
+              type="button" 
+              className="btn btn--ghost" 
+              onClick={() => {
+                if (!isAuthenticated) {
+                  navigate('/login', { state: { from: { pathname: `/rooms/${roomId}` } } });
+                  return;
+                }
+                setOpenInquiry(true);
+              }}
+            >
               {t('roomDetails.startChat')}
             </button>
             <button type="button" className="btn btn--ghost" onClick={handleShare}>
@@ -1303,7 +1313,6 @@ export default function RoomDetailsPage() {
           onClick={() => setOpenInquiry(false)}
           onKeyDown={(e) => e.key === 'Escape' && setOpenInquiry(false)}
         >
-          {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
           <article
             className="sheet"
             role="dialog"
@@ -1451,7 +1460,6 @@ export default function RoomDetailsPage() {
           onClick={() => setLightboxOpen(false)}
           onKeyDown={(e) => e.key === 'Escape' && setLightboxOpen(false)}
         >
-          {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
           <article
             className="room-lightbox__dialog"
             role="dialog"
@@ -1502,7 +1510,6 @@ export default function RoomDetailsPage() {
           onClick={() => setOpenReport(false)}
           onKeyDown={(e) => e.key === 'Escape' && setOpenReport(false)}
         >
-          {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
           <article
             className="sheet"
             role="dialog"

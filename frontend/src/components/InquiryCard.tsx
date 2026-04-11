@@ -7,8 +7,8 @@ import type { Inquiry } from '../types';
 interface InquiryCardProps {
   inquiry: Inquiry;
   view: 'tenant' | 'host';
-  onAccept?: (id: string) => Promise<void>;
-  onDecline?: (id: string) => Promise<void>;
+  onAccept?: (_id: string) => Promise<void>;
+  onDecline?: (_id: string) => Promise<void>;
 }
 
 export function InquiryCard({ inquiry, view, onAccept, onDecline }: InquiryCardProps) {

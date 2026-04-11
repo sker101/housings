@@ -1,22 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { LayoutDashboard, Building, PlusCircle, MessageSquare, DollarSign, CreditCard, CheckCircle } from 'lucide-react';
-import DashboardLayout from '../../components/DashboardLayout';
+import { CheckCircle } from 'lucide-react';
 import { SkeletonCard } from '../../components/SkeletonCard';
 import { StatusPill } from '../../components/StatusPill';
 import { useAuth } from '../../context/AuthContext';
 import { selectRows } from '../../lib/supabase';
 import { formatRenewal } from '../../utils/format';
-import type { NavItem, Subscription } from '../../types';
-
-const NAV: NavItem[] = [
-  { label: 'Dashboard',    href: '/dalali/dashboard',      icon: <LayoutDashboard size={16} /> },
-  { label: 'Properties',   href: '/dalali/properties',     icon: <Building size={16} /> },
-  { label: 'Add Property', href: '/dalali/properties/new', icon: <PlusCircle size={16} /> },
-  { label: 'Inquiries',    href: '/dalali/inquiries',      icon: <MessageSquare size={16} /> },
-  { label: 'Earnings',     href: '/dalali/earnings',       icon: <DollarSign size={16} /> },
-  { label: 'Subscription', href: '/dalali/subscription',   icon: <CreditCard size={16} /> },
-];
+import type { Subscription } from '../../types';
 
 const PLANS = [
   { id: 'basic',   name: 'Basic',      price: 'TZS 15,000/mo', features: ['Up to 5 properties', 'Basic inquiry inbox', 'Email support'] },
@@ -30,7 +19,11 @@ export default function DalaliSubscription() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user?.userId || !token) { setLoading(false); return; }
+    if (!user?.userId || !token) {
+      setSubscription(null);
+      setLoading(false);
+      return;
+    }
     selectRows('subscriptions', {
       select: 'id,user_id,plan,status,current_period_end,selcom_ref,created_at',
       filters: [{ column: 'user_id', op: 'eq', value: user.userId }],

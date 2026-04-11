@@ -1,20 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { Eye, EyeOff, AlertCircle, ArrowRight, ShieldCheck, Mail, Lock } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { checkRateLimit, recordFailure, clearRateLimit, RateLimitError } from '../../lib/rateLimit';
-import { friendlyError } from '../../utils/format';
-
-function dashboardForRole(role: string): string {
-  const r = String(role).toLowerCase();
-  if (r === 'admin') return '/admin';
-  if (r === 'lister' || r === 'landlord' || r === 'dalali') return '/list-property';
-  return '/tenant/dashboard';
-}
+import { recordFailure } from '../../lib/rateLimit';
+import { dashboardDefaultPath, deepLinkAllowed } from '../../lib/roles';
 
 export default function LoginPage() {
   const { login, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [params] = useSearchParams();
   const suspendedReason = params.get('reason') === 'suspended';
 
@@ -26,16 +20,13 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [isVisible, setIsVisible] = useState(false);
 
-  // Trigger entrance animations
   useEffect(() => {
     setIsVisible(true);
   }, []);
 
-  // Redirect if already logged in
   useEffect(() => {
-    if (isAuthenticated && user) {
-      navigate(dashboardForRole(user.role), { replace: true });
-    }
+    if (!isAuthenticated || !user) return;
+    navigate(dashboardDefaultPath(user.role), { replace: true });
   }, [isAuthenticated, user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -44,24 +35,24 @@ export default function LoginPage() {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    try {
-      checkRateLimit(normalizedEmail);
-    } catch (err) {
-      if (err instanceof RateLimitError) {
-        setError(err.message);
-        return;
-      }
-    }
-
     setLoading(true);
     try {
-      const result = await login({ email: normalizedEmail, password }, { rememberMe });
-      clearRateLimit(normalizedEmail);
-      const role = String((result as { role?: string })?.role || '').toLowerCase();
-      navigate(dashboardForRole(role), { replace: true });
-    } catch (err) {
+      const res = (await login(
+        { email: normalizedEmail, password },
+        { rememberMe }
+      )) as { role?: string };
+      const appRole = String(res.role || 'student');
+      const from = (location.state as { from?: { pathname?: string } } | null)?.from
+        ?.pathname;
+      if (from && deepLinkAllowed(from, appRole)) {
+        navigate(from, { replace: true });
+      } else {
+        navigate(dashboardDefaultPath(appRole), { replace: true });
+      }
+    } catch (err: unknown) {
       recordFailure(normalizedEmail);
-      setError(friendlyError(err));
+      const message = err instanceof Error ? err.message : 'Authentication failed';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -69,7 +60,6 @@ export default function LoginPage() {
 
   return (
     <div className="login-page">
-      {/* Animated Background Elements */}
       <div className="login-bg-shapes">
         <div className="shape shape-1" />
         <div className="shape shape-2" />
@@ -77,7 +67,6 @@ export default function LoginPage() {
       </div>
 
       <div className={`login-wrapper ${isVisible ? 'is-visible' : ''}`}>
-        {/* Brand Header */}
         <div className="login-brand" style={{ animationDelay: '0.1s' }}>
           <div className="login-logo">
             <ShieldCheck size={28} />
@@ -86,22 +75,20 @@ export default function LoginPage() {
           <p className="login-subtitle">Sign in to continue to your dashboard</p>
         </div>
 
-        {/* Suspended Alert */}
         {suspendedReason && (
           <div className="login-alert" style={{ animationDelay: '0.2s' }}>
             <AlertCircle size={20} />
             <div>
               <p className="login-alert-title">Account suspended</p>
-              <p className="login-alert-text">Your account has been suspended. Contact support if you believe this is an error.</p>
+              <p className="login-alert-text">
+                Your account has been suspended. Contact support if you believe this is an error.
+              </p>
             </div>
           </div>
         )}
 
-        {/* Login Card */}
         <div className="login-card" style={{ animationDelay: '0.2s' }}>
           <form onSubmit={handleSubmit} className="login-form">
-            
-            {/* Email Field */}
             <div className="login-field" style={{ animationDelay: '0.3s' }}>
               <label htmlFor="login-email" className="login-label">
                 Email address
@@ -121,7 +108,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Password Field */}
             <div className="login-field" style={{ animationDelay: '0.4s' }}>
               <div className="login-label-row">
                 <label htmlFor="login-password" className="login-label">
@@ -154,7 +140,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Remember Me */}
             <label className="login-remember" style={{ animationDelay: '0.5s' }}>
               <input
                 type="checkbox"
@@ -165,7 +150,6 @@ export default function LoginPage() {
               <span>Keep me signed in</span>
             </label>
 
-            {/* Error Message */}
             {error && (
               <div className="login-error" style={{ animationDelay: '0.5s' }}>
                 <AlertCircle size={16} />
@@ -173,7 +157,6 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* Submit Button */}
             <button
               type="submit"
               disabled={loading}
@@ -194,14 +177,29 @@ export default function LoginPage() {
           </form>
         </div>
 
-        {/* Sign Up Link */}
         <p className="login-footer-text" style={{ animationDelay: '0.7s' }}>
-          Don't have an account?{' '}
+          Don&apos;t have an account?{' '}
           <Link to="/auth/signup" className="login-signup-link">
             Create one now
           </Link>
         </p>
       </div>
+
+      <style>{`
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(15px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-4px); }
+          75% { transform: translateX(4px); }
+        }
+      `}</style>
     </div>
   );
 }

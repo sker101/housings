@@ -256,31 +256,6 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
 
   const navigate = useNavigate();
 
-  const topActionLink = (() => {
-    if (!isAuthenticated) {
-      return (
-        <NavLink to="/login" className="btn btn--small">
-          {t('nav.login')}
-        </NavLink>
-      );
-    }
-    if (user?.role === APP_ROLE.ADMIN) {
-      return (
-        <NavLink to="/admin" className="btn btn--small">
-          {t('nav.admin')}
-        </NavLink>
-      );
-    }
-    if (user?.role === APP_ROLE.LISTER) {
-      return (
-        <NavLink to="/landlord" className="btn btn--small">
-          {t('nav.dashboard')}
-        </NavLink>
-      );
-    }
-    return null;
-  })();
-
   return (
     <>
       <Toaster position="top-right" />

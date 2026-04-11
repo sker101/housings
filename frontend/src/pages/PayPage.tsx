@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
-import { selectRows, insertRows, SUPABASE_URL } from '../lib/supabase';
+import { selectRows, insertRows } from '../lib/supabase';
 
 export default function PayPage() {
   const location = useLocation();
+  const { token, user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const { t } = useTranslation();
-  const { token, user } = useAuth();
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: location } });
+    }
+  }, [isAuthenticated, navigate, location]);
 
   const state = location.state as {
     listingId?: string;
@@ -139,12 +142,20 @@ export default function PayPage() {
           months
         }, token);
 
-        if (azamResponse?.success && (azamResponse?.checkout_url || azamResponse?.data?.url || azamResponse?.url)) {
-           window.location.href = azamResponse.checkout_url || azamResponse.data?.url || azamResponse.url;
-           return;
-        } else if (azamResponse?.checkout_url) {
-           window.location.href = azamResponse.checkout_url;
-           return;
+        const dataUrl =
+          typeof azamResponse?.data === 'string' && /^https?:\/\//i.test(azamResponse.data.trim())
+            ? azamResponse.data.trim()
+            : azamResponse?.data?.url;
+        const redirectUrl =
+          azamResponse?.checkout_url || dataUrl || azamResponse?.url;
+
+        if (azamResponse?.success && redirectUrl) {
+          window.location.href = redirectUrl;
+          return;
+        }
+        if (redirectUrl) {
+          window.location.href = redirectUrl;
+          return;
         }
         
         console.error('AzamPay Response:', azamResponse);

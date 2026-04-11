@@ -132,7 +132,7 @@ export default function LandlordListingsPage() {
           accessToken: token
         });
         setListings((prev) => prev.filter(l => l.id !== listingId));
-      } catch (e) {
+      } catch (_e) {
         alert('Failed to delete listing due to active tenant records.');
       }
     } finally {

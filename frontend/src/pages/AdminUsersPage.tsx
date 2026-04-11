@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { selectRows, updateRows } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { Users, Download, Loader, AlertCircle, Eye, ShieldX, ShieldCheck } from 'lucide-react';
+import { Users, Download, Loader, ShieldX, ShieldCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface Profile {

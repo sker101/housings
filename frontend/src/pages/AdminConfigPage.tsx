@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { selectRows, updateRows, upsertRows } from '../lib/supabase';
+import { selectRows, upsertRows } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { Sliders, Save, AlertCircle, Loader } from 'lucide-react';
+import { Save, AlertCircle, Loader } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface ConfigItem {

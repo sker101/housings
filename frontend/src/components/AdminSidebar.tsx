@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Eye, Users, Lock, Building, Gavel, DollarSign, AlertTriangle,
   BarChart3, Settings, BookOpen, LogOut, X, Shield
@@ -29,8 +29,7 @@ interface AdminSidebarProps {
 }
 
 export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
-  const { user, logout } = useAuth();
-  const location = useLocation();
+  const { logout } = useAuth();
 
   const categories: NavCategory[] = [
     {
@@ -67,12 +66,6 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
       ]
     }
   ];
-
-  const isActive = (path: string) => {
-    if (path === '/admin') return location.pathname === '/admin';
-    if (path.includes('?')) return location.pathname === '/admin';
-    return location.pathname === path;
-  };
 
   const handleLogout = () => {
     onClose();

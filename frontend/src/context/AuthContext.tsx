@@ -10,10 +10,9 @@ import {
   signInWithPassword,
   signOut,
   signUpWithPassword,
-  upsertRows,
   writeStoredSession,
 } from '../lib/supabase';
-import { APP_ROLE, toAppRole } from '../lib/roles';
+import { APP_ROLE, appRoleFromProfile } from '../lib/roles';
 import type { Profile } from '../types';
 
 // ─────────────────────────────────────────────────────────────
@@ -41,15 +40,15 @@ interface AuthContextValue {
   loading: boolean;
   isAuthenticated: boolean;
   login: (
-    credentials: Record<string, string>,
-    options?: { rememberMe?: boolean }
+    _credentials: Record<string, string>,
+    _options?: { rememberMe?: boolean }
   ) => Promise<Record<string, unknown>>;
   logout: () => Promise<void>;
-  registerStudent: (payload: Record<string, string>) => Promise<Record<string, unknown>>;
-  registerLandlord: (payload: Record<string, string>) => Promise<Record<string, unknown>>;
+  registerStudent: (_payload: Record<string, string>) => Promise<Record<string, unknown>>;
+  registerLandlord: (_payload: Record<string, string>) => Promise<Record<string, unknown>>;
   refreshMe: () => Promise<AuthUser | null>;
   networkError: boolean;
-  setNetworkError: (v: boolean) => void;
+  setNetworkError: (_v: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -82,7 +81,7 @@ function buildCurrentUser(
   const sessionUser = session?.user as Record<string, unknown> | undefined;
   if (!sessionUser) return null;
 
-  const role = toAppRole(profile?.role);
+  const role = appRoleFromProfile(profile);
 
   return {
     userId: sessionUser.id as string,
@@ -307,29 +306,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           data: { full_name: payload.fullName.trim(), phone: payload.phone.trim(), role: 'student' },
         }) as Record<string, unknown>;
 
-        const accessToken = (response?.access_token as string) || null;
-        const userId = (response?.user as Record<string, string>)?.id;
-        if (userId) {
-          try {
-            await upsertRows(
-              'profiles',
-              {
-                id: userId,
-                role: 'student',
-                full_name: payload.fullName.trim(),
-                phone: payload.phone.trim(),
-                university: payload.university?.trim() || null,
-                phone_verified: false,
-                verification_status: 'unverified',
-                preferred_language: payload.preferredLanguage || 'en',
-              },
-              { onConflict: 'id', accessToken: accessToken || undefined }
-            );
-          } catch (profileError) {
-            if (accessToken) throw profileError;
-          }
-        }
-
+        // Profile is handled by DB trigger handle_new_user()
         const nextSession = buildSessionObject(response);
         if (nextSession) {
           await hydrateUser(nextSession, true, flowId);
@@ -360,29 +337,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           },
         }) as Record<string, unknown>;
 
-        const accessToken = (response?.access_token as string) || null;
-        const userId = (response?.user as Record<string, string>)?.id;
-        if (userId) {
-          try {
-            await upsertRows(
-              'profiles',
-              {
-                id: userId,
-                role: 'lister',
-                lister_type: payload.listerType || 'owner',
-                full_name: payload.fullName.trim(),
-                phone: payload.phone.trim(),
-                phone_verified: false,
-                verification_status: 'pending',
-                preferred_language: payload.preferredLanguage || 'en',
-              },
-              { onConflict: 'id', accessToken: accessToken || undefined }
-            );
-          } catch (profileError) {
-            if (accessToken) throw profileError;
-          }
-        }
-
+        // Profile is handled by DB trigger handle_new_user()
         const nextSession = buildSessionObject(response);
         if (nextSession) {
           await hydrateUser(nextSession, true, flowId);

@@ -142,7 +142,7 @@ export default function PaymentsPage() {
 
   useEffect(() => {
     loadPayments();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [user?.userId, token]);
 
   const markReceived = async (paymentId: string) => {

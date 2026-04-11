@@ -9,7 +9,6 @@ import {
 } from '../lib/listings';
 import {
   Search,
-  MapPin,
   Users,
   Bed,
   Bath,
@@ -23,16 +22,11 @@ import {
   Snowflake,
   Flame,
   Waves,
-  Star,
   Heart,
   ChevronLeft,
   ChevronRight,
   SlidersHorizontal,
-  X
 } from 'lucide-react';
-
-// University options
-const UNIVERSITY_OPTIONS = ['UDSM', 'ARDHI', 'MUHAS', 'IFM'];
 
 // Room type options
 const ROOM_TYPES = [

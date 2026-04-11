@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard, Building2, Inbox, Users, Wallet,
     Star, BarChart2, Bell, Settings, LogOut, Zap, X
@@ -83,9 +83,9 @@ export default function LandlordSidebar({
     activeListings = 0,
     pendingInquiries = 0,
     tenantCount = 0,
-    mtdEarnings = 0,
+    mtdEarnings: _mtdEarnings = 0,
     avgRating = 0,
-    unreadMessages = 0,
+    unreadMessages: _unreadMessages = 0,
     unreadNotifs = 0,
     occupancyRate = 0,
     subscriptionTier = 'free',
@@ -95,7 +95,6 @@ export default function LandlordSidebar({
 }: LandlordSidebarProps) {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
-    const location = useLocation();
     const [visible, setVisible] = useState(false);
     const tier = TIER_STYLE[subscriptionTier] ?? TIER_STYLE.free;
 

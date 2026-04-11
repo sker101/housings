@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Bell, LogOut, Menu, X, ChevronUp } from 'lucide-react';
+import { Bell, LogOut, Menu } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { RoleBadge } from './RoleBadge';
 import { initials } from '../utils/format';
@@ -21,34 +21,30 @@ interface DashboardLayoutProps {
   upgradeCTA?: { label: string; href: string } | null;
 }
 
-const ROLE_LABELS: Record<Role, string> = {
-  student: 'Student',
-  landlord: 'Landlord',
-  dalali: 'Dalali',
-  admin: 'Admin',
-};
+interface DashboardSidebarContentProps {
+  accentColor: string;
+  role: Role;
+  navItems: NavItem[];
+  upgradeCTA: DashboardLayoutProps['upgradeCTA'];
+  userInitials: string;
+  displayName: string;
+  pathname: string;
+  onNavClick: () => void;
+  onLogout: () => void | Promise<void>;
+}
 
-export default function DashboardLayout({
-  role,
+function DashboardSidebarContent({
   accentColor,
+  role,
   navItems,
-  pageTitle,
-  children,
-  upgradeCTA = null,
-}: DashboardLayoutProps) {
-  const { user, logout } = useAuth();
-  const location = useLocation();
-  const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  const handleLogout = async () => {
-    await logout();
-    navigate('/auth/login');
-  };
-
-  const userInitials = initials(user?.fullName ?? '');
-
-  const SidebarContent = () => (
+  upgradeCTA,
+  userInitials,
+  displayName,
+  pathname,
+  onNavClick,
+  onLogout,
+}: DashboardSidebarContentProps) {
+  return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Logo */}
       <div style={{ padding: '1.2rem 1rem', borderBottom: '1px solid var(--border)' }}>
@@ -124,7 +120,7 @@ export default function DashboardLayout({
               whiteSpace: 'nowrap',
             }}
           >
-            {user?.fullName || 'User'}
+            {displayName}
           </p>
           <RoleBadge role={role} size="sm" />
         </div>
@@ -135,13 +131,12 @@ export default function DashboardLayout({
         <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: '0.15rem' }}>
           {navItems.map((item) => {
             const isActive =
-              location.pathname === item.href ||
-              (item.href !== '/' && location.pathname.startsWith(item.href));
+              pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
             return (
               <li key={item.href}>
                 <Link
                   to={item.href}
-                  onClick={() => setSidebarOpen(false)}
+                  onClick={onNavClick}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -191,7 +186,8 @@ export default function DashboardLayout({
       {/* Logout */}
       <div style={{ padding: '0.75rem', borderTop: '1px solid var(--border)' }}>
         <button
-          onClick={handleLogout}
+          type="button"
+          onClick={() => void onLogout()}
           style={{
             width: '100%',
             display: 'flex',
@@ -213,6 +209,38 @@ export default function DashboardLayout({
       </div>
     </div>
   );
+}
+
+export default function DashboardLayout({
+  role,
+  accentColor,
+  navItems,
+  pageTitle,
+  children,
+  upgradeCTA = null,
+}: DashboardLayoutProps) {
+  const { user, logout } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/auth/login');
+  };
+
+  const userInitials = initials(user?.fullName ?? '');
+  const sidebarProps: DashboardSidebarContentProps = {
+    accentColor,
+    role,
+    navItems,
+    upgradeCTA,
+    userInitials,
+    displayName: user?.fullName || 'User',
+    pathname: location.pathname,
+    onNavClick: () => setSidebarOpen(false),
+    onLogout: handleLogout,
+  };
 
   return (
     <div
@@ -238,19 +266,24 @@ export default function DashboardLayout({
         }}
         className="dashboard-sidebar"
       >
-        <SidebarContent />
+        <DashboardSidebarContent {...sidebarProps} />
       </aside>
 
       {/* ── Mobile Sidebar Overlay ───────────────────────── */}
       {sidebarOpen && (
         <>
-          <div
+          <button
+            type="button"
+            aria-label="Close navigation"
             onClick={() => setSidebarOpen(false)}
             style={{
               position: 'fixed',
               inset: 0,
               background: 'rgba(0,0,0,0.45)',
               zIndex: 98,
+              border: 'none',
+              padding: 0,
+              cursor: 'pointer',
             }}
           />
           <aside
@@ -266,7 +299,7 @@ export default function DashboardLayout({
               overflowY: 'auto',
             }}
           >
-            <SidebarContent />
+            <DashboardSidebarContent {...sidebarProps} />
           </aside>
         </>
       )}
@@ -293,6 +326,7 @@ export default function DashboardLayout({
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             {/* Mobile hamburger */}
             <button
+              type="button"
               className="dashboard-hamburger"
               onClick={() => setSidebarOpen(true)}
               aria-label="Open navigation"

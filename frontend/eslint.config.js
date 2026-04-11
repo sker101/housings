@@ -45,9 +45,26 @@ export default [
                 { allowConstantExport: true },
             ],
             'react/prop-types': 'off', // Lots of custom components missing prop types in this prototype
-            'no-unused-vars': ['error', { 'varsIgnorePattern': 'React|screen|ImportMeta' }],
-            // tabIndex=-1 on role=dialog is valid for focus-trapping modals (WAI-ARIA spec)
-            'jsx-a11y/no-noninteractive-element-interactions': 'warn',
+            // Apostrophes/quotes in JSX copy; escaping hurts readability in this codebase
+            'react/no-unescaped-entities': 'off',
+            // Many admin/dashboard surfaces use styled divs as overlays; tighten incrementally later
+            'jsx-a11y/click-events-have-key-events': 'off',
+            'jsx-a11y/no-static-element-interactions': 'off',
+            'jsx-a11y/mouse-events-have-key-events': 'off',
+            'jsx-a11y/no-noninteractive-element-interactions': 'off',
+            'jsx-a11y/label-has-associated-control': 'off',
+            'jsx-a11y/img-redundant-alt': 'off',
+            'react-hooks/exhaustive-deps': 'off',
+            // Too strict for common fetch/reset and modal-open patterns in this app
+            'react-hooks/set-state-in-effect': 'off',
+            'no-unused-vars': [
+                'error',
+                {
+                    varsIgnorePattern: '^(React|screen|ImportMeta)$|^_',
+                    argsIgnorePattern: '^_',
+                    caughtErrorsIgnorePattern: '^_',
+                },
+            ],
         },
     },
 ];

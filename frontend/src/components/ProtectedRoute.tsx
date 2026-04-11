@@ -2,15 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getProfile } from '../lib/auth';
+import {
+  appRoleFromProfile,
+  dashboardDefaultPath,
+  normalizeForRouteGuard,
+} from '../lib/roles';
 import type { Role } from '../types';
-
-// Maps a DB role to the correct dashboard root path
-function dashboardRoot(role: string): string {
-  const r = String(role).toLowerCase();
-  if (r === 'admin') return '/admin';
-  if (r === 'lister' || r === 'landlord' || r === 'dalali') return '/list-property';
-  return '/tenant/dashboard';
-}
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -21,7 +18,7 @@ export default function ProtectedRoute({ children, roles }: ProtectedRouteProps)
   const { user, token, loading: authLoading } = useAuth();
   const location = useLocation();
 
-  const [serverRole, setServerRole] = useState<string | null>(null);
+  const [verifiedRouteRole, setVerifiedRouteRole] = useState<Role | null>(null);
   const [checking, setChecking] = useState(true);
   const [suspended, setSuspended] = useState(false);
 
@@ -35,7 +32,6 @@ export default function ProtectedRoute({ children, roles }: ProtectedRouteProps)
       }
 
       try {
-        // Always re-fetch profile server-side — never trust client state alone
         const profile = await getProfile(user.userId, token);
 
         if (cancelled) return;
@@ -46,10 +42,17 @@ export default function ProtectedRoute({ children, roles }: ProtectedRouteProps)
           return;
         }
 
-        setServerRole(profile?.role ?? user.role);
+        const routeRole = (
+          profile
+            ? normalizeForRouteGuard(appRoleFromProfile(profile))
+            : normalizeForRouteGuard(user.role)
+        ) as Role;
+
+        setVerifiedRouteRole(routeRole);
       } catch {
-        // Fallback to client-side role
-        if (!cancelled) setServerRole(user.role);
+        if (!cancelled) {
+          setVerifiedRouteRole(normalizeForRouteGuard(user.role) as Role);
+        }
       } finally {
         if (!cancelled) setChecking(false);
       }
@@ -59,18 +62,21 @@ export default function ProtectedRoute({ children, roles }: ProtectedRouteProps)
       verifyRole();
     }
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [user?.userId, token, authLoading, user?.role]);
 
-  // Still loading auth
   if (authLoading || checking) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'grid',
-        placeItems: 'center',
-        background: 'var(--paper)',
-      }}>
+      <div
+        style={{
+          minHeight: '100vh',
+          display: 'grid',
+          placeItems: 'center',
+          background: 'var(--paper)',
+        }}
+      >
         <div style={{ textAlign: 'center', color: 'var(--mid)' }}>
           <div
             style={{
@@ -90,29 +96,27 @@ export default function ProtectedRoute({ children, roles }: ProtectedRouteProps)
     );
   }
 
-  // Not logged in
   if (!user || !token) {
     return <Navigate to="/auth/login" state={{ from: location }} replace />;
   }
 
-  // Suspended
   if (suspended) {
     return <Navigate to="/auth/login?reason=suspended" replace />;
   }
 
-  // Normalize role for comparison
-  const effectiveRole = (serverRole || user.role).toLowerCase();
-  const normalizedEffective = (() => {
-    if (effectiveRole === 'lister' || effectiveRole === 'landlord') return 'landlord';
-    if (effectiveRole === 'dalali') return 'dalali';
-    if (effectiveRole === 'admin') return 'admin';
-    return 'student';
-  })() as Role;
+  const normalizedEffective = (verifiedRouteRole ||
+    (normalizeForRouteGuard(user.role) as Role)) as Role;
 
-  // Wrong role — redirect to correct dashboard
+  const isAdminRequired = roles.includes('admin');
+  const hasAdminRole = normalizedEffective === 'admin';
+
+  if (isAdminRequired && !hasAdminRole) {
+    const correct = dashboardDefaultPath(user.role);
+    return <Navigate to={correct} replace />;
+  }
+
   if (!roles.includes(normalizedEffective)) {
-    const correct = dashboardRoot(normalizedEffective);
-    // Avoid redirect loop
+    const correct = dashboardDefaultPath(user.role);
     if (location.pathname === correct) return <>{children}</>;
     return <Navigate to={correct} replace />;
   }

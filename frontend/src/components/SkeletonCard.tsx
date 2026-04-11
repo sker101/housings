@@ -18,6 +18,7 @@ function pulse(style: React.CSSProperties = {}): React.CSSProperties {
 function CardSkeleton() {
   return (
     <div
+      className="skeleton-card"
       style={{
         background: 'var(--surface)',
         border: '1px solid var(--border)',

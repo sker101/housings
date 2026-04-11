@@ -5,9 +5,8 @@ import {
   Flag, AlertTriangle, LayoutList, Clock, BadgeCheck, Trash2,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { invokeFunction, selectRows, updateRows } from '../lib/supabase';
+import { selectRows, updateRows } from '../lib/supabase';
 import { SkeletonCard } from '../components/SkeletonCard';
-import { StatusPill } from '../components/StatusPill';
 import { formatDate, TZSFormat } from '../utils/format';
 import toast from 'react-hot-toast';
 

@@ -1,22 +1,10 @@
 import React from 'react';
-import { LayoutDashboard, Building, PlusCircle, MessageSquare, DollarSign, CreditCard } from 'lucide-react';
-import DashboardLayout from '../../components/DashboardLayout';
+import { MessageSquare } from 'lucide-react';
 import { InquiryCard } from '../../components/InquiryCard';
 import { SkeletonCard } from '../../components/SkeletonCard';
 import { useAuth } from '../../context/AuthContext';
 import { useInquiries } from '../../hooks/useInquiries';
 import toast from 'react-hot-toast';
-import type { NavItem } from '../../types';
-
-const NAV: NavItem[] = [
-  { label: 'Dashboard',    href: '/dalali/dashboard',      icon: <LayoutDashboard size={16} /> },
-  { label: 'Properties',   href: '/dalali/properties',     icon: <Building size={16} /> },
-  { label: 'Add Property', href: '/dalali/properties/new', icon: <PlusCircle size={16} /> },
-  { label: 'Inquiries',    href: '/dalali/inquiries',      icon: <MessageSquare size={16} /> },
-  { label: 'Earnings',     href: '/dalali/earnings',       icon: <DollarSign size={16} /> },
-  { label: 'Subscription', href: '/dalali/subscription',   icon: <CreditCard size={16} /> },
-];
-
 export default function DalaliInquiries() {
   const { user, token } = useAuth();
   const { inquiries, loading, acceptInquiry, declineInquiry } = useInquiries('host', user?.userId ?? null, token);

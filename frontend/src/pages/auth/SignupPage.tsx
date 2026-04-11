@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, AlertCircle, Check, UserPlus, Mail, Lock, Phone, GraduationCap, ArrowRight, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { friendlyError } from '../../utils/format';
+import { APP_ROLE, dashboardDefaultPath } from '../../lib/roles';
 
 type RoleOption = 'student' | 'landlord' | 'dalali';
 
@@ -32,7 +33,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [university, setUniversity] = useState('');
-  const [preferredLanguage, setPreferredLanguage] = useState('en');
+  const [preferredLanguage] = useState('en');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isVisible, setIsVisible] = useState(false);
@@ -63,13 +64,12 @@ export default function SignupPage() {
     try {
       if (selectedRole === 'student') {
         await registerStudent({ fullName, email, phone, password, university, preferredLanguage });
-        navigate('/tenant/dashboard', { replace: true });
+        navigate(dashboardDefaultPath(APP_ROLE.STUDENT), { replace: true });
       } else {
-        // landlord and dalali both use registerLandlord for now;
-        // role stored in DB as 'lister' or 'dalali' per listerType
         const listerType = selectedRole === 'dalali' ? 'dalali' : 'owner';
         await registerLandlord({ fullName, email, phone, password, listerType, preferredLanguage });
-        navigate('/list-property', { replace: true });
+        const appRole = selectedRole === 'dalali' ? APP_ROLE.DALALI : APP_ROLE.LISTER;
+        navigate(dashboardDefaultPath(appRole), { replace: true });
       }
     } catch (err) {
       setError(friendlyError(err));

@@ -60,7 +60,7 @@ export default function AdminReportsPage() {
 
     useEffect(() => {
         loadReports();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+         
     }, [token, filter]);
 
     const act = async (reportId: string, status: 'upheld' | 'dismissed', adminNote = '') => {

@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { selectRows, updateRows, insertRows } from '../lib/supabase';
-import { Lock, X, AlertCircle, Loader, Phone, Mail, Check, ShieldX } from 'lucide-react';
+import { X, AlertCircle, Loader, Phone, Mail, Check, ShieldX } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface Profile {
@@ -30,7 +30,7 @@ export default function AdminAccessPage() {
   const [searchResults, setSearchResults] = useState<Profile[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<Profile | null>(null);
-  const [isViewMode, setIsViewMode] = useState(true);
+  const [, setIsViewMode] = useState(true);
   const [accountListings, setAccountListings] = useState<Listing[]>([]);
   const [isLoadingListings, setIsLoadingListings] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{ type: string; message: string } | null>(null);
@@ -50,9 +50,9 @@ export default function AdminAccessPage() {
       });
       // Map is_suspended to a status field for display
       setSearchResults(results.map((p: any) => ({ ...p, status: p.is_suspended ? 'suspended' : 'active' })));
-    } catch (error) {
+    } catch (err) {
       toast.error('Failed to search accounts');
-      console.error(error);
+      console.error(err);
     } finally {
       setIsSearching(false);
     }
@@ -71,7 +71,7 @@ export default function AdminAccessPage() {
           accessToken: token,
         });
         setAccountListings(listings);
-      } catch (error) {
+      } catch (_err) {
         toast.error('Failed to load listings');
       } finally {
         setIsLoadingListings(false);
@@ -89,8 +89,8 @@ export default function AdminAccessPage() {
         metadata: metadata || {},
         created_at: new Date().toISOString()
       });
-    } catch (error) {
-      console.error('Failed to log action:', error);
+    } catch (err) {
+      console.error('Failed to log action:', err);
     }
   };
 
@@ -110,7 +110,7 @@ export default function AdminAccessPage() {
       toast.success('Account suspended');
       setSelectedAccount({ ...selectedAccount, status: 'suspended' });
       setConfirmAction(null);
-    } catch (error) {
+    } catch (_err) {
       toast.error('Failed to suspend account');
     }
   };
@@ -131,7 +131,7 @@ export default function AdminAccessPage() {
       toast.success('Account unsuspended');
       setSelectedAccount({ ...selectedAccount, status: 'active' });
       setConfirmAction(null);
-    } catch (error) {
+    } catch (_err) {
       toast.error('Failed to unsuspend account');
     }
   };
@@ -154,7 +154,7 @@ export default function AdminAccessPage() {
 
       toast.success('Phone number banned');
       setConfirmAction(null);
-    } catch (error) {
+    } catch (_err) {
       toast.error('Failed to ban phone number');
     }
   };

@@ -84,7 +84,7 @@ export default function AdminClaimsPage() {
 
     useEffect(() => {
         loadClaims();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+         
     }, [token, filter]);
 
     const act = async (claimId: string, status: 'upheld' | 'dismissed', decision: string, credit: number = 0) => {

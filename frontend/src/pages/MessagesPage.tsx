@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useRef } from 'react';
-import { Link, useParams, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { MessageCircle, Inbox, Send } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -287,7 +287,7 @@ export default function MessagesPage() {
       mounted = false;
       unsubscribe();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [threadId, token, user?.userId]);
 
   const submitMessage = async (event) => {
@@ -370,7 +370,9 @@ export default function MessagesPage() {
           )
         );
       }
-      setError(err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Update failed';
+      setError(message);
       setMessages([]);
     } finally {
       setUpdatingStatus(false);

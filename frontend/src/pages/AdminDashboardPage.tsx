@@ -72,7 +72,8 @@ export default function AdminDashboardPage() {
           pendingClaims, settingsRows,
           recentListings,
           avgRatingRows,
-          paymentsList
+          paymentsList,
+          auditRecent,
         ] = await Promise.all([
           countRows('profiles', { accessToken: token }),
           countRows('listings', { accessToken: token }),
@@ -113,6 +114,12 @@ export default function AdminDashboardPage() {
 
           selectRows('reviews', { select: 'rating', limit: 500, accessToken: token }),
           selectRows('payments', { select: 'amount,status', limit: 1000, accessToken: token }).catch(() => []),
+          selectRows('admin_audit_log', {
+            select: 'action,target_type,created_at',
+            order: 'created_at.desc',
+            limit: 15,
+            accessToken: token,
+          }).catch(() => []),
         ]);
 
         if (!mounted) return;
@@ -144,8 +151,15 @@ export default function AdminDashboardPage() {
         });
 
         const successfulPayments = (paymentsList as any[]).filter(p => String(p.status).toLowerCase() === 'completed' || String(p.status).toLowerCase() === 'paid');
+        const failedPaymentsCount = (paymentsList as any[]).filter((p) => {
+          const s = String(p.status).toLowerCase();
+          return s === 'failed' || s === 'declined' || s === 'error' || s === 'cancelled';
+        }).length;
         const totalRevenue = successfulPayments.reduce((acc, p) => acc + Number(p.amount || 0), 0);
         const totalPaymentsCount = successfulPayments.length;
+        const paymentRowsTotal = (paymentsList as any[]).length;
+        const paymentSuccessRatePct =
+          paymentRowsTotal > 0 ? Math.round((totalPaymentsCount / paymentRowsTotal) * 100) : null;
 
         setStats({
           totalUsers, totalListings, totalBookings, totalReports,
@@ -157,6 +171,10 @@ export default function AdminDashboardPage() {
           suspendedUsers, pendingVerification, unreadNotifs,
           pendingClaims, avgRating, totalRevenue, totalPaymentsCount,
           listingsTrend,
+          auditRecent: auditRecent as any[],
+          failedPaymentsCount,
+          paymentSuccessRatePct,
+          paymentSampleSize: paymentRowsTotal,
 
           userRoleChart: [
             { name: 'Students', value: studentCount },
@@ -311,6 +329,63 @@ export default function AdminDashboardPage() {
             </BarChart>
           </ResponsiveContainer>
         )}
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', marginTop: '1.5rem' }}>
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '1.25rem' }}>
+            <p style={{ fontWeight: 700, marginBottom: '0.75rem', fontSize: '0.95rem' }}>Recent admin activity</p>
+            <p style={{ fontSize: '0.78rem', color: 'var(--muted)', marginBottom: '0.75rem' }}>Action types and targets only — no user PII.</p>
+            {(stats.auditRecent || []).length === 0 ? (
+              <p style={{ color: 'var(--muted)', fontSize: '0.88rem' }}>No audit entries yet.</p>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', fontSize: '0.82rem', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', color: 'var(--muted)' }}>
+                      <th style={{ padding: '0.35rem 0' }}>When</th>
+                      <th style={{ padding: '0.35rem 0' }}>Action</th>
+                      <th style={{ padding: '0.35rem 0' }}>Target</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(stats.auditRecent as any[]).map((row: any) => (
+                      <tr key={`${row.created_at}-${row.action}`} style={{ borderTop: '1px solid var(--border)' }}>
+                        <td style={{ padding: '0.45rem 0.25rem 0.45rem 0', whiteSpace: 'nowrap' }}>
+                          {row.created_at ? new Date(row.created_at).toLocaleString() : '—'}
+                        </td>
+                        <td style={{ padding: '0.45rem 0.25rem', fontWeight: 600 }}>{String(row.action || '—')}</td>
+                        <td style={{ padding: '0.45rem 0.25rem' }}>{String(row.target_type || '—')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <Link to="/admin/audit-log" style={{ display: 'inline-block', marginTop: '0.75rem', fontSize: '0.86rem', fontWeight: 600 }}>
+              Full audit log →
+            </Link>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <StatCard
+              label="Maintenance mode"
+              value={settings.maintenance_mode ? 'ON' : 'Off'}
+              sub={settings.maintenance_mode ? 'Users see SOS / emergency banner' : 'Normal operations'}
+              color={settings.maintenance_mode ? '#ef4444' : '#22c55e'}
+            />
+            <StatCard
+              label="Payments (sample)"
+              value={stats.paymentSuccessRatePct != null ? `${stats.paymentSuccessRatePct}%` : '—'}
+              sub={`${stats.failedPaymentsCount ?? 0} non-success in last ${stats.paymentSampleSize ?? 0} sampled rows`}
+              color={(stats.failedPaymentsCount ?? 0) > 0 ? '#f59e0b' : '#22c55e'}
+            />
+            <StatCard
+              label="Global announcement"
+              value={(settings.global_announcement || '').trim() ? 'Set' : 'Empty'}
+              sub="Banner text from system_settings"
+              color="#3b82f6"
+            />
+          </div>
+        </div>
       </>
     );
   }

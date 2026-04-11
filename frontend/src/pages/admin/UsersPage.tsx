@@ -8,7 +8,7 @@ import { StatusPill } from '../../components/StatusPill';
 import { useAuth } from '../../context/AuthContext';
 import { selectRows, updateRows, insertRows, SUPABASE_URL, SUPABASE_ANON_KEY } from '../../lib/supabase';
 import { formatDate, friendlyError } from '../../utils/format';
-import type { Profile, Role } from '../../types';
+import type { Profile } from '../../types';
 import toast from 'react-hot-toast';
 
 type AdminProfile = Profile & { email?: string };
@@ -114,8 +114,6 @@ export default function AdminUsersPage() {
   const handleVerifyId  = (id: string) => optimisticUpdate(id, { id_verified: true },  'verify_id',  'ID verified');
   const handleSuspend   = (id: string) => optimisticUpdate(id, { suspended: true },    'suspend',    'Account suspended');
   const handleUnsuspend = (id: string) => optimisticUpdate(id, { suspended: false },   'unsuspend',  'Account reinstated');
-  const changeRole = (id: string, newRole: Role) => optimisticUpdate(id, { role: newRole } as Partial<AdminProfile>, 'change_role', `Role changed to ${newRole}`);
-
   // ── Filtering ────────────────────────────────────────────────
   const counts: Record<RoleTab, number> = {
     all:      profiles.length,
