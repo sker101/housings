@@ -31,7 +31,9 @@ export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [university, setUniversity] = useState('');
   const [preferredLanguage] = useState('en');
   const [loading, setLoading] = useState(false);
@@ -52,6 +54,11 @@ export default function SignupPage() {
 
     if (!isValidPhone(phone)) {
       setError('Please enter a valid Tanzanian phone number (e.g. 0712345678 or +255712345678).');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
       return;
     }
 
@@ -283,6 +290,35 @@ export default function SignupPage() {
               </div>
             </div>
 
+            {/* Confirm Password Field */}
+            <div className="signup-field" style={{ animationDelay: '0.52s' }}>
+              <label htmlFor="signup-confirm-password" className="signup-label">Confirm password</label>
+              <div className="signup-input-wrap">
+                <Lock size={18} className="signup-input-icon" />
+                <input
+                  id="signup-confirm-password"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  className="signup-input"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword((v) => !v)}
+                  aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                  className="signup-toggle-password"
+                >
+                  {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              {confirmPassword && password !== confirmPassword && (
+                <span className="signup-field-error">Passwords do not match</span>
+              )}
+            </div>
+
             {/* Password Checklist */}
             {password.length > 0 && (
               <div className="signup-password-checklist" style={{ animationDelay: '0.55s' }}>
@@ -306,7 +342,7 @@ export default function SignupPage() {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={loading || !pwValid}
+              disabled={loading || !pwValid || password !== confirmPassword}
               className="signup-submit"
               style={{ animationDelay: '0.6s' }}
             >

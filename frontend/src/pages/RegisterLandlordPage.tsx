@@ -21,13 +21,19 @@ export default function RegisterLandlordPage() {
     email: '',
     phone: '',
     listerType: 'owner',
-    password: ''
+    password: '',
+    confirmPassword: ''
   });
   const [error, setError] = useState('');
 
   const onSubmit = async (event) => {
     event.preventDefault();
     setError('');
+
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords must match.');
+      return;
+    }
 
     try {
       await registerLandlord({ ...formData, preferredLanguage: i18n.language });
@@ -106,6 +112,19 @@ export default function RegisterLandlordPage() {
               value={formData.password}
               onChange={(event) =>
                 setFormData((prev) => ({ ...prev, password: event.target.value }))
+              }
+            />
+          </label>
+
+          <label>
+            {t('auth.confirmPassword') || 'Confirm Password'}
+            <input
+              type="password"
+              minLength={8}
+              required
+              value={formData.confirmPassword}
+              onChange={(event) =>
+                setFormData((prev) => ({ ...prev, confirmPassword: event.target.value }))
               }
             />
           </label>
