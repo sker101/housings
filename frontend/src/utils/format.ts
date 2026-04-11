@@ -57,21 +57,33 @@ export function initials(name: string | null | undefined): string {
 export function friendlyError(error: unknown): string {
   if (!error) return 'Something went wrong.';
 
-  const msg = String((error as { message?: string })?.message ?? error).toLowerCase();
+  let msg = '';
+  if (typeof error === 'string') {
+    msg = error;
+  } else if (error && typeof error === 'object') {
+    const e = error as Record<string, unknown>;
+    msg = String(e.message || e.msg || e.error_description || e.error || JSON.stringify(e));
+  } else {
+    msg = String(error);
+  }
 
-  if (msg.includes('23505')) return 'This record already exists.';
-  if (msg.includes('42501')) return "You don't have permission to do that.";
-  if (msg.includes('jwt expired') || msg.includes('invalid jwt') || msg.includes('expired'))
+  const lowMsg = msg.toLowerCase();
+
+  if (lowMsg.includes('23505') || lowMsg.includes('already registered') || lowMsg.includes('already exists')) 
+    return 'This email or account already exists. Try logging in instead.';
+  
+  if (lowMsg.includes('42501')) return "You don't have permission to do that.";
+  if (lowMsg.includes('jwt expired') || lowMsg.includes('invalid jwt') || lowMsg.includes('expired'))
     return 'Your session has expired. Please log in again.';
-  if (msg.includes('invalid login credentials') || msg.includes('invalid email or password'))
+  if (lowMsg.includes('invalid login credentials') || lowMsg.includes('invalid email or password'))
     return 'Incorrect email or password.';
-  if (msg.includes('network') || msg.includes('failed to fetch') || msg.includes('connection'))
+  if (lowMsg.includes('network') || lowMsg.includes('failed to fetch') || lowMsg.includes('connection'))
     return 'Connection failed — check your internet.';
-  if (msg.includes('email not confirmed'))
+  if (lowMsg.includes('email not confirmed'))
     return 'Please confirm your email address before logging in.';
 
-  // Fallback — never show raw DB strings in production, but we append for debugging now
-  return 'Something went wrong. Please try again. Error details: ' + msg.substring(0, 50);
+  // Fallback
+  return 'Something went wrong. ' + (msg.length > 100 ? msg.substring(0, 100) + '...' : msg);
 }
 
 /**
