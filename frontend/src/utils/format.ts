@@ -83,6 +83,11 @@ export function friendlyError(error: unknown): string {
     return 'Please confirm your email address before logging in.';
 
   // Fallback
+  // TRICK: If it's a database registration error, don't truncate, so we can see the internal debug info
+  if (lowMsg.includes('database error saving new user')) {
+    return msg;
+  }
+
   return 'Something went wrong. ' + (msg.length > 100 ? msg.substring(0, 100) + '...' : msg);
 }
 
