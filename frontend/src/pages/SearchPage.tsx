@@ -29,13 +29,12 @@ const ROOM_TYPE_OPTIONS = [
   { value: 'all', label: 'All types', icon: Bed },
   { value: 'single', label: 'Single room', icon: Bed },
   { value: 'shared', label: 'Shared room', icon: Users },
+  { value: 'bedsit', label: 'Bedsit', icon: Bed },
   { value: 'studio', label: 'Studio', icon: Bed },
   { value: 'apartment', label: 'Apartment', icon: Bath },
   { value: 'self_contained', label: 'Self contained', icon: Bath },
   { value: '1_bedroom', label: '1 Bedroom', icon: Bed },
   { value: '2_bedroom', label: '2 Bedroom', icon: Bed },
-  { value: 'guesthouse', label: 'Guesthouse', icon: Bed },
-  { value: 'sq', label: 'Servants Quarter', icon: Bed },
 ];
 
 // Amenity options with icons
@@ -310,10 +309,6 @@ export default function SearchPage() {
     (selectedGender ? 1 : 0) +
     (furnished ? 1 : 0) +
     (utilitiesIncluded ? 1 : 0);
-
-  const handleMarkerSelect = useCallback((listing: any) => {
-    navigate(`/rooms/${listing.id}`);
-  }, [navigate]);
 
   const handleToggleSave = async (listingId) => {
     if (!user?.userId || !token) {
@@ -667,7 +662,7 @@ export default function SearchPage() {
           <h2>Map View</h2>
           <ListingMap
             listings={mapListings}
-            onMarkerSelect={handleMarkerSelect}
+            onMarkerSelect={(listing) => navigate(`/rooms/${listing.id}`)}
           />
           {hasMore ? (
             <button type="button" className="btn btn--ghost btn--small" onClick={loadMore} disabled={loadingMore}>
