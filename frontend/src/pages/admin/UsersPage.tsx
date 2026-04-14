@@ -37,7 +37,7 @@ export default function AdminUsersPage() {
     setLoading(true);
     try {
       const rows = await selectRows('profiles', {
-        select: 'id,role,lister_type,full_name,phone,id_verified,suspended,avg_rating,created_at',
+        select: 'id,role,lister_type,full_name,phone,phone_verified,verification_status,subscription_plan,created_at',
         order: 'created_at.desc',
         limit: 500,
         accessToken: token,
@@ -111,9 +111,9 @@ export default function AdminUsersPage() {
     }
   };
 
-  const handleVerifyId  = (id: string) => optimisticUpdate(id, { id_verified: true },  'verify_id',  'ID verified');
-  const handleSuspend   = (id: string) => optimisticUpdate(id, { suspended: true },    'suspend',    'Account suspended');
-  const handleUnsuspend = (id: string) => optimisticUpdate(id, { suspended: false },   'unsuspend',  'Account reinstated');
+  const handleVerifyId  = (id: string) => optimisticUpdate(id, { verification_status: 'verified' } as any,  'verify_id',  'ID verified');
+  const handleSuspend   = (id: string) => optimisticUpdate(id, { verification_status: 'suspended' } as any,    'suspend',    'Account suspended');
+  const handleUnsuspend = (id: string) => optimisticUpdate(id, { verification_status: 'unverified' } as any,   'unsuspend',  'Account reinstated');
   // ── Filtering ────────────────────────────────────────────────
   const counts: Record<RoleTab, number> = {
     all:      profiles.length,
@@ -230,21 +230,21 @@ export default function AdminUsersPage() {
                     )}
                   </td>
                   <td style={{ padding: '0.6rem 0.75rem' }}>
-                    <StatusPill variant={p.id_verified ? 'verified' : 'unverified'} size="sm" />
+                    <StatusPill variant={p.verification_status === 'verified' ? 'verified' : 'unverified'} size="sm" />
                   </td>
                   <td style={{ padding: '0.6rem 0.75rem' }}>
-                    <StatusPill variant={p.suspended ? 'suspended' : 'active'} size="sm" />
+                    <StatusPill variant={p.verification_status === 'suspended' ? 'suspended' : 'active'} size="sm" />
                   </td>
                   <td style={{ padding: '0.6rem 0.75rem', color: 'var(--mid)', whiteSpace: 'nowrap' }}>{formatDate(p.created_at)}</td>
                   <td style={{ padding: '0.6rem 0.75rem' }}>
                     <div style={{ display: 'flex', gap: '0.35rem' }}>
-                      {!p.id_verified && (
+                      {p.verification_status !== 'verified' && p.verification_status !== 'suspended' && (
                         <button onClick={() => handleVerifyId(p.id)} disabled={busyId === p.id} title="Verify ID"
                           style={{ background: 'var(--jade-muted)', border: 'none', borderRadius: 6, padding: '0.3rem 0.5rem', cursor: 'pointer', color: 'var(--jade)' }}>
                           <CheckCircle size={13} />
                         </button>
                       )}
-                      {p.suspended ? (
+                      {p.verification_status === 'suspended' ? (
                         <button onClick={() => handleUnsuspend(p.id)} disabled={busyId === p.id} title="Reinstate"
                           style={{ background: 'var(--jade-muted)', border: 'none', borderRadius: 6, padding: '0.3rem 0.5rem', cursor: 'pointer', color: 'var(--jade)' }}>
                           <Shield size={13} />

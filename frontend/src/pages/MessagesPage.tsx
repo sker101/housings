@@ -5,6 +5,7 @@ import { MessageCircle, Inbox, Send } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { subscribeToTableChanges } from '../lib/realtime';
 import { insertRows, selectRows, updateRows } from '../lib/supabase';
+import { sanitizeInput } from '../utils/format';
 
 const INQUIRY_STATUS_OPTIONS = ['open', 'interested', 'unavailable', 'booked'];
 
@@ -303,7 +304,7 @@ export default function MessagesPage() {
         {
           conversation_id: threadId,
           sender_id: user.userId,
-          body: messageBody.trim()
+          body: sanitizeInput(messageBody)
         },
         { accessToken: token }
       );

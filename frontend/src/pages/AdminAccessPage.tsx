@@ -12,7 +12,7 @@ interface Profile {
   role: 'student' | 'lister' | 'admin';
   university?: string;
   status?: 'active' | 'suspended' | 'pending';
-  is_suspended?: boolean;
+  verification_status?: string;
   created_at: string;
   avatar_url?: string;
 }
@@ -44,12 +44,12 @@ export default function AdminAccessPage() {
     setIsSearching(true);
     try {
       const results = await selectRows('profiles', {
-        select: 'id,full_name,phone,role,verification_status,is_suspended,created_at',
+        select: 'id,full_name,phone,role,verification_status,created_at',
         or: `full_name.ilike.%${query}%,phone.ilike.%${query}%`,
         accessToken: token,
       });
-      // Map is_suspended to a status field for display
-      setSearchResults(results.map((p: any) => ({ ...p, status: p.is_suspended ? 'suspended' : 'active' })));
+      // Map verification_status to a status field for display
+      setSearchResults(results.map((p: any) => ({ ...p, status: p.verification_status === 'suspended' ? 'suspended' : 'active' })));
     } catch (err) {
       toast.error('Failed to search accounts');
       console.error(err);
@@ -98,7 +98,7 @@ export default function AdminAccessPage() {
     if (!selectedAccount || !token) return;
 
     try {
-      await updateRows('profiles', { is_suspended: true }, {
+      await updateRows('profiles', { verification_status: 'suspended' }, {
         filters: [{ column: 'id', op: 'eq', value: selectedAccount.id }],
         accessToken: token,
       });
@@ -119,7 +119,7 @@ export default function AdminAccessPage() {
     if (!selectedAccount || !token) return;
 
     try {
-      await updateRows('profiles', { is_suspended: false }, {
+      await updateRows('profiles', { verification_status: 'unverified' }, {
         filters: [{ column: 'id', op: 'eq', value: selectedAccount.id }],
         accessToken: token,
       });

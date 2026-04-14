@@ -50,8 +50,8 @@ export default function DalaliDashboard() {
       .finally(() => setSubLoading(false));
   }, [userId, token]);
 
-  const activeListings = listings.filter((l) => l.status === 'active').length;
-  const pendingInquiries = inquiries.filter((i) => i.status === 'pending');
+  const activeListings = listings.filter((l) => l.status === 'approved').length;
+  const pendingInquiries = inquiries.filter((i) => i.status === 'open');
   const paidAmount = bookings.filter((b) => b.payment_status === 'paid').reduce((s, b) => s + Number(b.amount ?? 0), 0);
   const totalCommission = paidAmount * COMMISSION_RATE;
 

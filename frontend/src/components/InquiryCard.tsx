@@ -68,7 +68,7 @@ export function InquiryCard({ inquiry, view, onAccept, onDecline }: InquiryCardP
       )}
 
       {/* Host actions */}
-      {view === 'host' && inquiry.status === 'pending' && (
+      {view === 'host' && inquiry.status === 'open' && (
         <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.2rem' }}>
           <button
             disabled={busy}

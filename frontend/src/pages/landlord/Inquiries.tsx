@@ -9,8 +9,8 @@ export default function LandlordInquiries() {
   const { user, token } = useAuth();
   const { inquiries, loading, acceptInquiry, declineInquiry } = useInquiries('host', user?.userId ?? null, token);
 
-  const pending  = inquiries.filter((i) => i.status === 'pending');
-  const rest     = inquiries.filter((i) => i.status !== 'pending');
+  const pending  = inquiries.filter((i) => i.status === 'open');
+  const rest     = inquiries.filter((i) => i.status !== 'open');
 
   const handleAccept = async (id: string) => {
     try { await acceptInquiry(id); toast.success('Inquiry accepted'); }

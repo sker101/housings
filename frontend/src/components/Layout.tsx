@@ -107,7 +107,7 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
         const [settingsRows, profileRows] = await Promise.all([
           selectRows('system_settings', {}),
           (isAuthenticated && user?.userId) ? selectRows('profiles', {
-            select: 'is_suspended',
+            select: 'verification_status',
             filters: [{ column: 'id', op: 'eq', value: user.userId }],
             accessToken: token
           }) : Promise.resolve([])
@@ -119,7 +119,7 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
           setSosMode(settingsMap['maintenance_mode'] === true);
           setAnnouncement(settingsMap['global_announcement'] || '');
 
-          if (profileRows.length > 0 && profileRows[0].is_suspended) {
+          if (profileRows.length > 0 && profileRows[0].verification_status === 'suspended') {
             logout(); // Force logout if suspended
           }
         }

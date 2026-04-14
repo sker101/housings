@@ -13,6 +13,7 @@ import {
   publicObjectUrl
 } from '../lib/supabase';
 import ListingMap from '../components/ListingMap';
+import { sanitizeInput } from '../utils/format';
 import imageCompression from 'browser-image-compression';
 import {
   DAR_DISTRICTS,
@@ -563,8 +564,8 @@ export default function ListPropertyPage() {
       // we fall back to a minimal payload that we know exists in all versions.
       const fullListingPayload = {
         lister_id: user.userId,
-        title: values.title.trim(),
-        description: values.description.trim(),
+        title: sanitizeInput(values.title),
+        description: sanitizeInput(values.description),
         room_type: values.roomType,
         gender_preference: values.genderPreference,
         price_monthly: Number(values.priceMonthly),
@@ -585,14 +586,14 @@ export default function ListPropertyPage() {
         region: values.region,
         district: values.district,
         ward: values.ward,
-        street: values.street.trim(),
+        street: sanitizeInput(values.street),
         lat: latNum,
         lng: lngNum,
         amenities: JSON.stringify(values.amenities),
-        house_rules: values.houseRules.trim(),
+        house_rules: sanitizeInput(values.houseRules),
         available_from: values.availableFrom,
         vacancy_status: 'available',
-        status: 'approved',
+        status: 'pending',
         featured: false,
         near_universities: values.university ? [values.university] : [],
         screening_passed: false
@@ -616,7 +617,7 @@ export default function ListPropertyPage() {
         house_rules: values.houseRules.trim(),
         available_from: values.availableFrom,
         vacancy_status: 'available',
-        status: 'approved',
+        status: 'pending',
         featured: false,
         near_universities: values.university ? [values.university] : []
       };

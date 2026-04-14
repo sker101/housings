@@ -35,12 +35,12 @@ export default function LandlordDashboard() {
   const { bookings, loading: bookLoading, monthlyIncome } = useBookings('host', userId, token);
   const { events, loading: actLoading } = useActivityLog(userId, token);
 
-  const activeListings = listings.filter((l) => l.status === 'active').length;
+  const activeListings = listings.filter((l) => l.status === 'approved').length;
   const occupancyRate = listings.length > 0
     ? Math.round((activeListings / listings.length) * 100)
     : 0;
-  const pendingInquiries = inquiries.filter((i) => i.status === 'pending');
-  const avgRating = Number(profile?.avg_rating ?? 0).toFixed(1);
+  const pendingInquiries = inquiries.filter((i) => i.status === 'open');
+  const avgRating = '0.0'; // avg_rating not yet implemented in schema
 
   const handleAccept = async (id: string) => {
     try { await acceptInquiry(id); toast.success('Inquiry accepted'); }

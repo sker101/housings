@@ -5,8 +5,8 @@
 import type { ReactNode } from 'react';
 
 export type Role = 'student' | 'landlord' | 'dalali' | 'admin' | 'lister';
-export type ListingStatus = 'active' | 'vacant' | 'paused' | 'removed';
-export type InquiryStatus = 'pending' | 'accepted' | 'declined' | 'booked';
+export type ListingStatus = 'draft' | 'pending' | 'approved' | 'rejected' | 'flagged' | 'suspended';
+export type InquiryStatus = 'open' | 'interested' | 'unavailable' | 'booked';
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
 export type BookingStatus = 'requested' | 'approved' | 'declined' | 'cancelled' | 'completed';
 export type SubscriptionStatus = 'active' | 'cancelled' | 'past_due';
@@ -14,20 +14,20 @@ export type SubscriptionStatus = 'active' | 'cancelled' | 'past_due';
 export interface Profile {
   id: string;
   role: Role;
+  lister_type?: string;
   full_name: string;
   phone: string;
+  phone_verified?: boolean;
   email?: string;
-  occupation?: string;
-  id_verified: boolean;
   id_document_url?: string;
+  selfie_url?: string;
   suspended: boolean;
-  avg_rating: number;
-  avatar_url?: string;
   profile_photo_url?: string;
   university?: string;
-  lister_type?: string;
   verification_status?: string;
+  subscription_plan?: string;
   preferred_language?: string;
+  commission_rate_pct?: number;
   created_at: string;
 }
 
@@ -56,7 +56,7 @@ export interface Inquiry {
   id: string;
   listing_id: string;
   tenant_id: string;
-  host_id: string;
+  lister_id: string;
   status: InquiryStatus;
   message: string;
   created_at: string;
@@ -66,16 +66,15 @@ export interface Inquiry {
 
 export interface Booking {
   id: string;
-  inquiry_id: string;
   tenant_id: string;
-  host_id: string;
+  lister_id: string;
   listing_id: string;
   amount: number;
-  payment_ref?: string;
+  reference?: string;
   payment_status: PaymentStatus;
   status?: BookingStatus;
-  lister_id?: string;
   move_in_date?: string;
+  duration_months?: number;
   created_at: string;
   listing?: Partial<Listing>;
   tenant?: Partial<Profile>;

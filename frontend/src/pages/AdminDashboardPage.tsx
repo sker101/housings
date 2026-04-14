@@ -101,7 +101,7 @@ export default function AdminDashboardPage() {
           countRows('bookings', { filters: [{ column: 'status', op: 'eq', value: 'approved' }], accessToken: token }),
           countRows('bookings', { filters: [{ column: 'status', op: 'eq', value: 'declined' }], accessToken: token }),
 
-          countRows('profiles', { filters: [{ column: 'is_suspended', op: 'eq', value: true }], accessToken: token }),
+          countRows('profiles', { filters: [{ column: 'verification_status', op: 'eq', value: 'suspended' }], accessToken: token }),
           countRows('profiles', { filters: [{ column: 'verification_status', op: 'eq', value: 'pending' }], accessToken: token }),
           countRows('notifications', { filters: [{ column: 'read_at', op: 'is', value: 'null' }], accessToken: token }),
           countRows('campuscover_claims', { filters: [{ column: 'status', op: 'eq', value: 'pending' }], accessToken: token }),
@@ -627,7 +627,7 @@ export default function AdminDashboardPage() {
 
   function renderQueueListers() {
     const key = 'listers';
-    if (!queueData[key]) { loadQueue(key, 'profiles', { select: 'id,full_name,phone,verification_status,lister_type,is_suspended,created_at', filters: [{ column: 'role', op: 'eq', value: 'lister' }], order: 'created_at.desc', limit: 100 }); }
+    if (!queueData[key]) { loadQueue(key, 'profiles', { select: 'id,full_name,phone,verification_status,lister_type,created_at', filters: [{ column: 'role', op: 'eq', value: 'lister' }], order: 'created_at.desc', limit: 100 }); }
     const rows = queueData[key] || [];
     return (
       <>
@@ -643,7 +643,7 @@ export default function AdminDashboardPage() {
                   <td>{r.phone || '—'}</td>
                   <td>{r.lister_type || '—'}</td>
                   <td><span style={{ color: r.verification_status === 'verified' ? '#22c55e' : r.verification_status === 'pending' ? '#f59e0b' : '#ef4444' }}>{r.verification_status}</span></td>
-                  <td>{r.is_suspended ? '🚫 Yes' : '✅ No'}</td>
+                  <td>{r.verification_status === 'suspended' ? '🚫 Yes' : '✅ No'}</td>
                   <td>{r.created_at ? new Date(r.created_at).toLocaleDateString() : '—'}</td>
                 </tr>
               ))}

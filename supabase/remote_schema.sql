@@ -302,22 +302,55 @@ CREATE OR REPLACE FUNCTION "public"."handle_new_auth_user"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
     AS $$
+declare
+  selected_role public.app_role;
+  selected_verification public.verification_status;
+  selected_lister_type public.lister_type;
 begin
+  -- Map the frontend role to the database enum
+  selected_role := CASE
+    WHEN (new.raw_user_meta_data ->> 'role') IN ('lister', 'landlord', 'dalali') THEN 'lister'::public.app_role
+    WHEN (new.raw_user_meta_data ->> 'role') = 'admin' THEN 'admin'::public.app_role
+    ELSE 'student'::public.app_role
+  END;
+
+  -- Listers start as 'pending' verification; students are 'unverified' (no verification needed)
+  selected_verification := CASE
+    WHEN selected_role = 'lister' THEN 'pending'::public.verification_status
+    ELSE 'unverified'::public.verification_status
+  END;
+
+  -- Map lister_type from metadata
+  selected_lister_type := CASE
+    WHEN (new.raw_user_meta_data ->> 'lister_type') IN ('owner', 'manager', 'dalali') THEN (new.raw_user_meta_data ->> 'lister_type')::public.lister_type
+    WHEN (new.raw_user_meta_data ->> 'role') = 'dalali' THEN 'dalali'::public.lister_type
+    WHEN selected_role = 'lister' THEN 'owner'::public.lister_type
+    ELSE NULL
+  END;
+
   insert into public.profiles (
     id,
     role,
+    lister_type,
     full_name,
     phone,
+    phone_verified,
     verification_status,
+    subscription_plan,
+    preferred_language,
     created_at,
     updated_at
   )
   values (
     new.id,
-    'student',
+    selected_role,
+    selected_lister_type,
     coalesce(new.raw_user_meta_data ->> 'full_name', split_part(new.email, '@', 1), 'New User'),
     nullif(new.raw_user_meta_data ->> 'phone', ''),
-    'unverified',
+    false,
+    selected_verification,
+    'free'::public.subscription_plan,
+    coalesce(new.raw_user_meta_data ->> 'preferred_language', 'en'),
     now(),
     now()
   )

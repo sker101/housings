@@ -514,12 +514,11 @@ export async function deleteRows(table: string, options: RowOptions = {}) {
   });
 }
 
-export async function invokeFunction(name: string, body: unknown, _accessToken?: string) {
+export async function invokeFunction(name: string, body: unknown, accessToken?: string) {
   return request(`/functions/v1/${name}`, {
     method: 'POST',
-    // Edge functions don't require user identity here (they use service_role internally)
-    // We use ANON_KEY to bypass any User JWT Gateway verification issues
-    accessToken: SUPABASE_ANON_KEY,
+    // Pass the user's access token so edge functions can identify the caller
+    accessToken: accessToken || undefined,
     body
   });
 }
@@ -540,10 +539,12 @@ export async function uploadPublicObject({ bucket, path, file, accessToken }) {
 
   const resolvedAccessToken = await refreshStoredAccessToken(accessToken);
   const target = `${SUPABASE_URL}/storage/v1/object/${encodeURIComponent(bucket)}/${encodedPath}`;
-  const executeUpload = async (_tokenOverride?: string) =>
+  const executeUpload = async (tokenOverride?: string) =>
     fetch(target, {
       method: 'POST',
       headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${tokenOverride || SUPABASE_ANON_KEY}`,
         'x-upsert': 'true'
       },
       credentials: 'omit',

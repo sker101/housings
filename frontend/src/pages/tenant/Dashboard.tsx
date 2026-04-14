@@ -114,7 +114,7 @@ export default function TenantDashboard() {
   }, [isPaymentSuccess, activeStay, retryCount]);
 
   const completion = profileCompletion(profile as unknown as Record<string, unknown> | null);
-  const activeInquiries = inquiries.filter((i) => i.status === 'pending').length;
+  const activeInquiries = inquiries.filter((i) => i.status === 'open').length;
   const activeBookings = bookings.filter(
     (b) => b.status === 'approved' || b.status === 'completed'
   ).length;

@@ -11,7 +11,6 @@ interface Profile {
   role: 'student' | 'lister' | 'admin';
   lister_type?: 'owner' | 'manager' | 'dalali';
   verification_status?: string;
-  is_suspended: boolean;
   created_at: string;
 }
 
@@ -50,7 +49,7 @@ export default function AdminUsersPage() {
       }
 
       const data = await selectRows('profiles', {
-        select: 'id,full_name,phone,role,lister_type,verification_status,is_suspended,created_at',
+        select: 'id,full_name,phone,role,lister_type,verification_status,created_at',
         filters: filters.length > 0 ? filters : undefined,
         or: searchQuery.trim()
           ? `full_name.ilike.%${searchQuery}%,phone.ilike.%${searchQuery}%`
@@ -71,11 +70,11 @@ export default function AdminUsersPage() {
   const suspendUser = async (userId: string) => {
     if (!token) return;
     try {
-      await updateRows('profiles', { is_suspended: true }, {
+      await updateRows('profiles', { verification_status: 'suspended' }, {
         filters: [{ column: 'id', op: 'eq', value: userId }],
         accessToken: token,
       });
-      setUsers(users.map(u => u.id === userId ? { ...u, is_suspended: true } : u));
+      setUsers(users.map(u => u.id === userId ? { ...u, verification_status: 'suspended' } : u));
       toast.success('User suspended');
     } catch {
       toast.error('Failed to suspend user');
@@ -85,11 +84,11 @@ export default function AdminUsersPage() {
   const unsuspendUser = async (userId: string) => {
     if (!token) return;
     try {
-      await updateRows('profiles', { is_suspended: false }, {
+      await updateRows('profiles', { verification_status: 'unverified' }, {
         filters: [{ column: 'id', op: 'eq', value: userId }],
         accessToken: token,
       });
-      setUsers(users.map(u => u.id === userId ? { ...u, is_suspended: false } : u));
+      setUsers(users.map(u => u.id === userId ? { ...u, verification_status: 'unverified' } : u));
       toast.success('User unsuspended');
     } catch {
       toast.error('Failed to unsuspend user');
@@ -103,7 +102,7 @@ export default function AdminUsersPage() {
       u.phone,
       u.role,
       u.verification_status || 'n/a',
-      u.is_suspended ? 'Yes' : 'No',
+      u.verification_status === 'suspended' ? 'Yes' : 'No',
       new Date(u.created_at).toLocaleDateString(),
     ]);
     const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
@@ -206,7 +205,7 @@ export default function AdminUsersPage() {
             </thead>
             <tbody>
               {users.map((u, idx) => (
-                <tr key={u.id} style={{ borderBottom: idx < users.length - 1 ? '1px solid #f3f4f6' : 'none', background: u.is_suspended ? '#fef9f9' : '#fff' }}>
+                <tr key={u.id} style={{ borderBottom: idx < users.length - 1 ? '1px solid #f3f4f6' : 'none', background: u.verification_status === 'suspended' ? '#fef9f9' : '#fff' }}>
                   <td style={{ padding: '0.85rem 1rem', fontSize: '0.9rem', fontWeight: '600' }}>
                     {u.full_name || '—'}
                     {u.id === currentUser?.userId && <span style={{ marginLeft: '0.5rem', fontSize: '0.72rem', background: '#d1fae5', color: '#065f46', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>You</span>}
@@ -226,8 +225,8 @@ export default function AdminUsersPage() {
                     {u.verification_status || '—'}
                   </td>
                   <td style={{ padding: '0.85rem 1rem' }}>
-                    <span style={{ background: u.is_suspended ? '#fef2f2' : '#f0fdf4', color: u.is_suspended ? '#ef4444' : '#22c55e', fontSize: '0.78rem', padding: '0.25rem 0.55rem', borderRadius: '4px', fontWeight: '700', display: 'inline-block' }}>
-                      {u.is_suspended ? 'SUSPENDED' : 'ACTIVE'}
+                    <span style={{ background: u.verification_status === 'suspended' ? '#fef2f2' : '#f0fdf4', color: u.verification_status === 'suspended' ? '#ef4444' : '#22c55e', fontSize: '0.78rem', padding: '0.25rem 0.55rem', borderRadius: '4px', fontWeight: '700', display: 'inline-block' }}>
+                      {u.verification_status === 'suspended' ? 'SUSPENDED' : 'ACTIVE'}
                     </span>
                   </td>
                   <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#6b7280', whiteSpace: 'nowrap' }}>
@@ -235,7 +234,7 @@ export default function AdminUsersPage() {
                   </td>
                   <td style={{ padding: '0.85rem 1rem' }}>
                     {u.id !== currentUser?.userId && u.role !== 'admin' && (
-                      u.is_suspended ? (
+                      u.verification_status === 'suspended' ? (
                         <button
                           onClick={() => unsuspendUser(u.id)}
                           title="Unsuspend"

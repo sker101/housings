@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { invokeFunction, selectRows, updateRows } from '../lib/supabase';
 import { humanizeRole } from '../lib/roles';
+import { sanitizeInput } from '../utils/format';
 
 function humanizeReason(value) {
   if (!value) {
@@ -110,10 +111,10 @@ export default function ProfilePage() {
       await updateRows(
         'profiles',
         {
-          full_name: form.fullName.trim(),
-          phone: nextPhone,
+          full_name: sanitizeInput(form.fullName),
+          phone: sanitizeInput(form.phone),
           phone_verified: phoneChanged ? false : phoneVerified,
-          university: form.university.trim() || null
+          university: sanitizeInput(form.university) || null
         },
         {
           filters: [{ column: 'id', op: 'eq', value: user.userId }],

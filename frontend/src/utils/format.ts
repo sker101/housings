@@ -3,6 +3,24 @@
 // ─────────────────────────────────────────────────────────────
 
 /**
+ * Sanitize user input to prevent XSS attacks.
+ * Strips HTML tags, script content, and dangerous patterns.
+ * Use this on all user-supplied text before sending to the database.
+ */
+export function sanitizeInput(value: string | null | undefined): string {
+  if (!value) return '';
+  return String(value)
+    // Remove HTML/script tags
+    .replace(/<[^>]*>/g, '')
+    // Remove javascript: protocol
+    .replace(/javascript\s*:/gi, '')
+    // Remove on* event handlers
+    .replace(/\bon\w+\s*=/gi, '')
+    // Trim whitespace
+    .trim();
+}
+
+/**
  * Format a number as Tanzanian Shillings.
  * e.g. TZSFormat(120000) → "TZS 120,000"
  */

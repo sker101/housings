@@ -30,18 +30,16 @@ export async function getProfile(
       select: [
         'id',
         'role',
+        'lister_type',
         'full_name',
         'phone',
-        'occupation',
-        'id_verified',
+        'phone_verified',
         'id_doc_url',
-        'is_suspended',
-        'avg_rating',
+        'selfie_url',
         'profile_photo_url',
-        'avatar_url',
         'university',
-        'lister_type',
         'verification_status',
+        'subscription_plan',
         'preferred_language',
         'created_at',
       ].join(','),
@@ -52,7 +50,7 @@ export async function getProfile(
     const row = rows[0] as Record<string, unknown> | undefined;
     if (!row) return null;
     const profile = row as unknown as Profile;
-    profile.suspended = Boolean(row.is_suspended);
+    profile.suspended = row.verification_status === 'suspended';
     profile.id_document_url = (row.id_doc_url as string) || profile.id_document_url;
     return profile;
   } catch {

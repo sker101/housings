@@ -28,9 +28,9 @@ export function useProfile(userId: string | null, accessToken: string | null): U
       const rows = await selectRows('profiles', {
         select: [
           'id', 'role', 'lister_type', 'full_name', 'phone', 'phone_verified',
-          'university', 'profile_photo_url', 'id_doc_url', 'is_suspended', 
-          'avg_rating', 'verification_status', 'preferred_language',
-          'created_at',
+          'university', 'profile_photo_url', 'id_doc_url', 'selfie_url',
+          'verification_status', 'subscription_plan', 'preferred_language',
+          'commission_rate_pct', 'created_at',
         ].join(','),
         filters: [{ column: 'id', op: 'eq', value: userId }],
         limit: 1,
@@ -38,7 +38,7 @@ export function useProfile(userId: string | null, accessToken: string | null): U
       });
       const profileRow = rows[0] as any;
       if (profileRow) {
-        profileRow.suspended = profileRow.is_suspended;
+        profileRow.suspended = profileRow.verification_status === 'suspended';
         profileRow.id_document_url = profileRow.id_doc_url;
         setProfile(profileRow as Profile);
       } else {

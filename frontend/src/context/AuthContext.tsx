@@ -110,9 +110,9 @@ async function fetchProfile(userId: string, accessToken: string): Promise<Profil
     const rows = await selectRows('profiles', {
       select: [
         'id', 'role', 'lister_type', 'full_name', 'phone', 'phone_verified',
-        'university', 'profile_photo_url', 'id_doc_url', 'is_suspended', 
-        'avg_rating', 'verification_status', 'preferred_language',
-        'created_at',
+        'university', 'profile_photo_url', 'id_doc_url', 'selfie_url',
+        'verification_status', 'subscription_plan', 'preferred_language',
+        'commission_rate_pct', 'created_at',
       ].join(','),
       filters: [{ column: 'id', op: 'eq', value: userId }],
       limit: 1,
@@ -121,10 +121,9 @@ async function fetchProfile(userId: string, accessToken: string): Promise<Profil
 
     const profile = rows[0] as any;
     if (profile) {
-      // Map back to expected types where necessary
-      profile.suspended = profile.is_suspended;
+      // Map verification_status to suspended flag
+      profile.suspended = profile.verification_status === 'suspended';
       profile.id_document_url = profile.id_doc_url;
-      // id_verified mapping not needed since it's not strongly typed in Profile, or just use verification_status
     }
 
     return (profile as Profile) || null;

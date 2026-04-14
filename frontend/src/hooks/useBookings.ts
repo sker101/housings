@@ -29,7 +29,7 @@ export function useBookings(
     setLoading(true);
     setError(null);
     try {
-      const column = role === 'tenant' ? 'tenant_id' : 'host_id';
+      const column = role === 'tenant' ? 'tenant_id' : 'lister_id';
       const rows = await selectRows('bookings', {
         select: 'id,listing_id,tenant_id,lister_id,move_in_date,duration_months,status,created_at',
         filters: [{ column, op: 'eq', value: userId }],

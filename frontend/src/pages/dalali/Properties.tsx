@@ -8,7 +8,7 @@ import { useListings } from '../../hooks/useListings';
 import { TZSFormat } from '../../utils/format';
 import type { ListingStatus } from '../../types';
 
-const STATUS_ORDER: ListingStatus[] = ['active', 'vacant', 'paused', 'removed'];
+const STATUS_ORDER: ListingStatus[] = ['approved', 'pending', 'rejected', 'flagged', 'suspended', 'draft'];
 
 export default function DalaliProperties() {
   const { user, token } = useAuth();
@@ -18,7 +18,7 @@ export default function DalaliProperties() {
   const grouped = STATUS_ORDER.reduce<Record<ListingStatus, typeof listings>>((acc, s) => {
     acc[s] = listings.filter((l) => l.status === s);
     return acc;
-  }, { active: [], vacant: [], paused: [], removed: [] });
+  }, { approved: [], pending: [], rejected: [], flagged: [], suspended: [], draft: [] });
 
   return (
     <>
