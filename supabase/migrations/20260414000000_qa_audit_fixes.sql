@@ -162,48 +162,21 @@ ALTER TABLE public.listing_drafts ADD CONSTRAINT listing_drafts_current_step_che
 -- ═══════════════════════════════════════════════════
 
 -- Add missing values to the listing_photo_angle enum
-DO $$
-BEGIN
-  -- Check and add missing enum values
-  IF NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumlabel = 'extra1' AND enumtypid = 'public.listing_photo_angle'::regtype) THEN
-    ALTER TYPE public.listing_photo_angle ADD VALUE IF NOT EXISTS 'extra1';
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumlabel = 'extra2' AND enumtypid = 'public.listing_photo_angle'::regtype) THEN
-    ALTER TYPE public.listing_photo_angle ADD VALUE IF NOT EXISTS 'extra2';
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumlabel = 'extra3' AND enumtypid = 'public.listing_photo_angle'::regtype) THEN
-    ALTER TYPE public.listing_photo_angle ADD VALUE IF NOT EXISTS 'extra3';
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumlabel = 'extra4' AND enumtypid = 'public.listing_photo_angle'::regtype) THEN
-    ALTER TYPE public.listing_photo_angle ADD VALUE IF NOT EXISTS 'extra4';
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumlabel = 'extra5' AND enumtypid = 'public.listing_photo_angle'::regtype) THEN
-    ALTER TYPE public.listing_photo_angle ADD VALUE IF NOT EXISTS 'extra5';
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumlabel = 'extra6' AND enumtypid = 'public.listing_photo_angle'::regtype) THEN
-    ALTER TYPE public.listing_photo_angle ADD VALUE IF NOT EXISTS 'extra6';
-  END IF;
-END
-$$;
+ALTER TYPE public.listing_photo_angle ADD VALUE IF NOT EXISTS 'extra1';
+ALTER TYPE public.listing_photo_angle ADD VALUE IF NOT EXISTS 'extra2';
+ALTER TYPE public.listing_photo_angle ADD VALUE IF NOT EXISTS 'extra3';
+ALTER TYPE public.listing_photo_angle ADD VALUE IF NOT EXISTS 'extra4';
+ALTER TYPE public.listing_photo_angle ADD VALUE IF NOT EXISTS 'extra5';
+ALTER TYPE public.listing_photo_angle ADD VALUE IF NOT EXISTS 'extra6';
 
 
 -- ═══════════════════════════════════════════════════
 -- 5. FIX: Add missing room_type enum values used by frontend
 -- ═══════════════════════════════════════════════════
 
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumlabel = 'self_contained' AND enumtypid = 'public.room_type'::regtype) THEN
-    ALTER TYPE public.room_type ADD VALUE IF NOT EXISTS 'self_contained';
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumlabel = '1_bedroom' AND enumtypid = 'public.room_type'::regtype) THEN
-    ALTER TYPE public.room_type ADD VALUE IF NOT EXISTS '1_bedroom';
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumlabel = '2_bedroom' AND enumtypid = 'public.room_type'::regtype) THEN
-    ALTER TYPE public.room_type ADD VALUE IF NOT EXISTS '2_bedroom';
-  END IF;
-END
-$$;
+ALTER TYPE public.room_type ADD VALUE IF NOT EXISTS 'self_contained';
+ALTER TYPE public.room_type ADD VALUE IF NOT EXISTS '1_bedroom';
+ALTER TYPE public.room_type ADD VALUE IF NOT EXISTS '2_bedroom';
 
 
 -- ═══════════════════════════════════════════════════
