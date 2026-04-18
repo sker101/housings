@@ -201,7 +201,7 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
     async function loadSidebarStats() {
       if (!isAuthenticated || !user?.userId || !token) return;
       try {
-        if (user.role === APP_ROLE.LISTER) {
+        if (user.role === APP_ROLE.LANDLORD) {
           const profileRows = await selectRows('profiles', {
             select: 'subscription_plan', filters: [{ column: 'id', op: 'eq', value: user.userId }],
             accessToken: token
@@ -232,7 +232,7 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
             const earnings = listingsRows.filter((r: any) => r.vacancy_status === 'occupied').reduce((sum: number, r: any) => sum + Number(r.price_monthly || 0), 0);
             setMtdEarnings(earnings);
           }
-        } else if (user.role === APP_ROLE.STUDENT) {
+        } else if (user.role === APP_ROLE.TENANT) {
           const savedRows = await selectRows('saved_listings', {
             select: 'id', filters: [{ column: 'user_id', op: 'eq', value: user.userId }], limit: 1000, accessToken: token
           });
@@ -367,7 +367,7 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
             {!isAuthenticated && (
               <button
                 type="button"
-                onClick={() => navigate('/auth/signup')}
+                onClick={() => navigate('/auth/signup?role=landlord')}
                 style={{
                   background: 'transparent',
                   border: 'none',
@@ -503,7 +503,7 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
                   </button>
 
                   {/* Role-specific dashboard link */}
-                  {user?.role === APP_ROLE.LISTER && (
+                  {user?.role === APP_ROLE.LANDLORD && (
                     <button
                       onClick={() => { navigate('/landlord/dashboard'); setIsMenuOpen(false); }}
                       style={{
@@ -744,7 +744,7 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
 
       <div style={{ display: 'flex', minHeight: 'calc(100vh - 64px)', position: 'relative', width: '100%', maxWidth: '100vw' }}>
         {/* Sidebars - hidden on homepage or when hideSidebar is true */}
-        {!hideSidebar && isAuthenticated && !isAuthPage && !isHomePage && user?.role === APP_ROLE.LISTER && !location.pathname.startsWith('/admin') ? (
+        {!hideSidebar && isAuthenticated && !isAuthPage && !isHomePage && user?.role === APP_ROLE.LANDLORD && !location.pathname.startsWith('/admin') ? (
           <LandlordSidebar
             unreadMessages={unreadCount}
             unreadNotifs={notifCount}
@@ -759,7 +759,7 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
             onMobileDrawerClose={() => setIsSidebarOpen(false)}
           />
         ) : null}
-        {!hideSidebar && isAuthenticated && !isAuthPage && !isHomePage && user?.role === APP_ROLE.STUDENT && !location.pathname.startsWith('/admin') ? (
+        {!hideSidebar && isAuthenticated && !isAuthPage && !isHomePage && user?.role === APP_ROLE.TENANT && !location.pathname.startsWith('/admin') ? (
           <StudentSidebar
             unreadMessages={unreadCount}
             unreadNotifs={notifCount}

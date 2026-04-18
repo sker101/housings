@@ -416,7 +416,7 @@ export default function RoomDetailsPage() {
     () => (listing?.id ? savedIds.has(listing.id) : false),
     [savedIds, listing?.id]
   );
-  const canReserveListing = !isAuthenticated || user?.role === APP_ROLE.STUDENT;
+  const canReserveListing = !isAuthenticated || user?.role === APP_ROLE.TENANT;
 
   const galleryPhotos = useMemo(() => {
     if (!listing) {

@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-hot-toast';
 
 export default function SignupPage() {
-  const [role, setRole] = useState<'tenant' | 'landlord' | 'property_manager' | null>(null);
-  const [step, setStep] = useState(1);
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const initialRole = searchParams.get('role') as 'tenant' | 'landlord' | 'property_manager' | null;
+
+  const [role, setRole] = useState<'tenant' | 'landlord' | 'property_manager' | null>(initialRole);
+  const [step, setStep] = useState(initialRole ? 1 : 1);
   const [formData, setFormData] = useState({
     fullName: '', phone: '', password: '', 
     tenantType: 'student', occupation: '', employerOrInstitution: '',
@@ -45,7 +49,7 @@ export default function SignupPage() {
             <p className="text-mid text-sm">Find and book verified rooms and apartments.</p>
           </button>
           <button onClick={() => { setRole('landlord'); setStep(1); }} className="p-6 border rounded-xl hover:border-jade hover:shadow-lg transition">
-            <h3 className="text-xl font-semibold mb-2">I have a property to list</h3>
+            <h3 className="text-xl font-semibold mb-2">Become a host</h3>
             <p className="text-mid text-sm">List your rooms and manage bookings directly.</p>
           </button>
           <button onClick={() => { setRole('property_manager'); setStep(1); }} className="p-6 border rounded-xl hover:border-jade hover:shadow-lg transition">

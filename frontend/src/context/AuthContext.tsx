@@ -93,7 +93,7 @@ function buildCurrentUser(
     phone: profile?.phone || (sessionUser.user_metadata as Record<string, string>)?.phone || '',
     phoneVerified: Boolean((profile as unknown as Record<string, unknown>)?.phone_verified),
     role,
-    roleRaw: profile?.role || (role === APP_ROLE.LISTER ? 'lister' : 'student'),
+    roleRaw: profile?.role || (role === APP_ROLE.LANDLORD ? 'landlord' : 'tenant'),
     listerType: (profile as unknown as Record<string, unknown>)?.lister_type as string || '',
     landlordVerificationStatus: normalizeVerificationStatus(
       (profile as unknown as Record<string, unknown>)?.verification_status
@@ -286,7 +286,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!nextSession) throw new Error('Unable to establish session');
 
         const nextUser = await hydrateUser(nextSession, options.rememberMe !== false, flowId);
-        return { ...response, role: nextUser?.role || APP_ROLE.STUDENT };
+        return { ...response, role: nextUser?.role || APP_ROLE.TENANT };
       } finally {
         if (isCurrentAuthFlow(flowId)) setLoading(false);
       }
@@ -302,7 +302,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const response = await signUpWithPassword({
           email: payload.email.trim().toLowerCase(),
           password: payload.password,
-          data: { full_name: payload.fullName.trim(), phone: payload.phone.trim(), role: 'student' },
+          data: { full_name: payload.fullName.trim(), phone: payload.phone.trim(), role: 'tenant' },
         }) as Record<string, unknown>;
 
         // Profile is handled by DB trigger handle_new_user()
@@ -312,7 +312,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else if (isCurrentAuthFlow(flowId)) {
           applySession(null, true);
         }
-        return { ...response, role: APP_ROLE.STUDENT };
+        return { ...response, role: APP_ROLE.TENANT };
       } finally {
         if (isCurrentAuthFlow(flowId)) setLoading(false);
       }
@@ -331,7 +331,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           data: {
             full_name: payload.fullName.trim(),
             phone: payload.phone.trim(),
-            role: 'lister',
+            role: 'landlord',
             lister_type: payload.listerType || 'owner',
           },
         }) as Record<string, unknown>;
@@ -343,7 +343,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else if (isCurrentAuthFlow(flowId)) {
           applySession(null, true);
         }
-        return { ...response, role: APP_ROLE.LISTER };
+        return { ...response, role: APP_ROLE.LANDLORD };
       } finally {
         if (isCurrentAuthFlow(flowId)) setLoading(false);
       }

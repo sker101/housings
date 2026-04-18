@@ -23,7 +23,7 @@ export default function BookingsPage() {
             try {
                 setLoading(true);
 
-                const column = user.role === APP_ROLE.LISTER ? 'lister_id' : 'tenant_id';
+                const column = user.role === APP_ROLE.LANDLORD ? 'lister_id' : 'tenant_id';
                 const rows = await selectRows('bookings', {
                     select: 'id,listing_id,tenant_id,lister_id,move_in_date,duration_months,status,created_at',
                     filters: [{ column, op: 'eq', value: user.userId }],
@@ -35,7 +35,7 @@ export default function BookingsPage() {
                 if (!mounted) return;
 
                 const listingIds = Array.from(new Set(rows.map(r => r.listing_id)));
-                const profileIds = Array.from(new Set(rows.map(r => user.role === APP_ROLE.LISTER ? r.tenant_id : r.lister_id)));
+                const profileIds = Array.from(new Set(rows.map(r => user.role === APP_ROLE.LANDLORD ? r.tenant_id : r.lister_id)));
 
                 const [listingRows, profileRows] = await Promise.all([
                     listingIds.length > 0 ? selectRows('listings', {
@@ -104,7 +104,7 @@ export default function BookingsPage() {
                 ) : (
                     bookings.map(b => {
                         const listing = listings[b.listing_id];
-                        const counterParty = profiles[user.role === APP_ROLE.LISTER ? b.tenant_id : b.lister_id];
+                        const counterParty = profiles[user.role === APP_ROLE.LANDLORD ? b.tenant_id : b.lister_id];
                         const statusStyle = getStatusStyle(b.status);
 
                         return (
@@ -123,7 +123,7 @@ export default function BookingsPage() {
 
                                     <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border)', fontSize: '0.9rem' }}>
                                         <p>
-                                            <strong>{user.role === APP_ROLE.LISTER ? t('bookings.tenant') : t('bookings.landlord')}:</strong> {counterParty?.full_name || t('common.unknownUser')}
+                                            <strong>{user.role === APP_ROLE.LANDLORD ? t('bookings.tenant') : t('bookings.landlord')}:</strong> {counterParty?.full_name || t('common.unknownUser')}
                                         </p>
                                     </div>
                                 </div>

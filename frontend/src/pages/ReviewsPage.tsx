@@ -44,7 +44,7 @@ export default function ReviewsPage() {
             accessToken: token
           });
 
-          if (user.role === APP_ROLE.STUDENT) {
+          if (user.role === APP_ROLE.TENANT) {
             try {
               const bookings = await fetchListingBookingsForUser({
                 listingId: listingQuery,
@@ -58,7 +58,7 @@ export default function ReviewsPage() {
               // Can't review
             }
           }
-        } else if (user.role === APP_ROLE.LISTER) {
+        } else if (user.role === APP_ROLE.LANDLORD) {
           const myListingRows = await selectRows('listings', {
             select: 'id,title',
             filters: [{ column: 'lister_id', op: 'eq', value: user.userId }],
@@ -91,7 +91,7 @@ export default function ReviewsPage() {
 
         if (!mounted) return;
 
-        if (reviewRows.length > 0 && user.role === APP_ROLE.LISTER) {
+        if (reviewRows.length > 0 && user.role === APP_ROLE.LANDLORD) {
           const uIds = Array.from(new Set(reviewRows.map((r) => r.tenant_id)));
           const userRows = await selectRows('profiles', {
             select: 'id,full_name',
@@ -195,14 +195,14 @@ export default function ReviewsPage() {
             <h1 style={{ fontSize: '1.3rem', fontWeight: 700, margin: 0 }}>
               {listingQuery
                 ? 'Listing reviews'
-                : user?.role === APP_ROLE.LISTER
+                : user?.role === APP_ROLE.LANDLORD
                   ? t('reviews.tenantReviews')
                   : t('reviews.myReviews')}
             </h1>
             <p style={{ fontSize: 12, color: 'var(--mid)', marginTop: 4 }}>
               {listingQuery
                 ? t('reviews.publicSubtitle', 'See what others have said about this property.')
-                : user?.role === APP_ROLE.LISTER
+                : user?.role === APP_ROLE.LANDLORD
                   ? t('reviews.landlordSubtitle')
                   : t('reviews.studentSubtitle')}
             </p>
@@ -280,7 +280,7 @@ export default function ReviewsPage() {
           </div>
         ) : null}
 
-        {user?.role === APP_ROLE.LISTER && totalReviews > 0 ? (
+        {user?.role === APP_ROLE.LANDLORD && totalReviews > 0 ? (
           <div className="rv-summary">
             <div className="sum-card">
               <div>
@@ -322,11 +322,11 @@ export default function ReviewsPage() {
                 <div className="rv-card-top">
                   <div>
                     <p className="rv-name" style={{ margin: 0 }}>
-                      {user?.role === APP_ROLE.LISTER
+                      {user?.role === APP_ROLE.LANDLORD
                         ? profiles[r.tenant_id]?.full_name || t('reviews.anonymousTenant')
                         : `${t('reviews.reviewFor')}: ${listings[r.listing_id]?.title || ''}`}
                     </p>
-                    {user?.role === APP_ROLE.LISTER ? (
+                    {user?.role === APP_ROLE.LANDLORD ? (
                       <p className="rv-listing" style={{ margin: 0 }}>
                         {listings[r.listing_id]?.title || ''}
                       </p>
@@ -353,7 +353,7 @@ export default function ReviewsPage() {
           </div>
         )}
 
-        {listingQuery && user && user.role === APP_ROLE.STUDENT && !canReview ? (
+        {listingQuery && user && user.role === APP_ROLE.TENANT && !canReview ? (
           <p style={{ fontSize: 12, color: 'var(--mid)', marginTop: '1.5rem' }}>
             You can only review this listing if you have an approved booking.
           </p>
