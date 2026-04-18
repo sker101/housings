@@ -39,13 +39,13 @@ import LandlordUpgradePage   from './pages/LandlordUpgradePage';
 import ListPropertyPage      from './pages/ListPropertyPage';
 import PaymentsPage          from './pages/PaymentsPage';
 
-// ── Dalali pages ──────────────────────────────────────────────
-import DalaliDashboard    from './pages/dalali/Dashboard';
-import DalaliProperties   from './pages/dalali/Properties';
-import DalaliNewProperty  from './pages/dalali/NewProperty';
-import DalaliInquiries    from './pages/dalali/Inquiries';
-import DalaliEarnings     from './pages/dalali/Earnings';
-import DalaliSubscription from './pages/dalali/Subscription';
+// ── Property Manager pages ────────────────────────────────────
+import ManagerDashboard    from './pages/manager/Dashboard';
+import ManagerProperties   from './pages/manager/Properties';
+import ManagerNewProperty  from './pages/manager/NewProperty';
+import ManagerInquiries    from './pages/manager/Inquiries';
+import ManagerEarnings     from './pages/manager/Earnings';
+import ManagerSubscription from './pages/manager/Subscription';
 
 // ── Admin pages ───────────────────────────────────────────────
 import AdminDashboardPage from './pages/AdminDashboardPage';
@@ -61,8 +61,8 @@ import AdminAuditPage     from './pages/AdminAuditPage';
 import AdminAuditLogPage  from './pages/AdminAuditLogPage';
 import AdminLandlordsPage from './pages/AdminLandlordsPage';
 
-type AllRoles = 'student' | 'landlord' | 'dalali' | 'admin';
-const ALL: AllRoles[] = ['student', 'landlord', 'dalali', 'admin'];
+type AllRoles = 'tenant' | 'landlord' | 'property_manager' | 'admin';
+const ALL: AllRoles[] = ['tenant', 'landlord', 'property_manager', 'admin'];
 
 /** Wrap in public Layout for logged out / public pages */
 function PL({ children, hideSidebar = false, hideHeader = false, hideFooter = false }: { children: React.ReactNode; hideSidebar?: boolean; hideHeader?: boolean; hideFooter?: boolean }) {
@@ -92,10 +92,9 @@ export default function App() {
         <Route path="/auth/login"        element={<PL><LoginPage /></PL>} />
         <Route path="/auth/signup"       element={<PL><SignupPage /></PL>} />
         <Route path="/login"             element={<Navigate to="/auth/login" replace />} />
-        <Route path="/register/student"  element={<Navigate to="/auth/signup" replace />} />
-        <Route path="/register/landlord" element={<Navigate to="/auth/signup" replace />} />
+        <Route path="/register"          element={<Navigate to="/auth/signup" replace />} />
 
-        {/* ── Authenticated Routes (RoleBasedLayout) ────── */}
+        {/* ── Authenticated Routes ────── */}
         <Route element={<RoleBasedLayout />}>
           
           {/* Shared multi-role */}
@@ -103,27 +102,23 @@ export default function App() {
           <Route path="/notifications"      element={<ProtectedRoute roles={ALL}><NotificationsPage /></ProtectedRoute>} />
           <Route path="/messages"           element={<ProtectedRoute roles={ALL}><MessagesPage /></ProtectedRoute>} />
           <Route path="/messages/:threadId" element={<ProtectedRoute roles={ALL}><MessagesPage /></ProtectedRoute>} />
-          <Route path="/bookings"           element={<ProtectedRoute roles={ALL}><BookingsPage /></ProtectedRoute>} />
-          <Route path="/reviews"            element={<ProtectedRoute roles={ALL}><ReviewsPage /></ProtectedRoute>} />
-          <Route path="/list-property"      element={<ProtectedRoute roles={['landlord', 'dalali']}><ListPropertyPage /></ProtectedRoute>} />
-          <Route path="/payments"           element={<ProtectedRoute roles={['landlord', 'dalali']}><PaymentsPage /></ProtectedRoute>} />
 
           {/* Tenant */}
-          <Route path="/tenant/dashboard" element={<ProtectedRoute roles={['student']}><TenantDashboard /></ProtectedRoute>} />
-          <Route path="/tenant/search"    element={<ProtectedRoute roles={['student']}><SearchPage /></ProtectedRoute>} />
-          <Route path="/tenant/saved"     element={<ProtectedRoute roles={['student']}><SavedListingsPage /></ProtectedRoute>} />
-          <Route path="/tenant/messages"  element={<ProtectedRoute roles={['student']}><MessagesPage /></ProtectedRoute>} />
-          <Route path="/tenant/bookings"  element={<ProtectedRoute roles={['student']}><BookingsPage /></ProtectedRoute>} />
-          <Route path="/tenant/profile"   element={<ProtectedRoute roles={['student']}><ProfilePage /></ProtectedRoute>} />
-          <Route path="/pay"              element={<ProtectedRoute roles={['student']}><PayPage /></ProtectedRoute>} />
+          <Route path="/tenant/dashboard" element={<ProtectedRoute roles={['tenant']}><TenantDashboard /></ProtectedRoute>} />
+          <Route path="/tenant/search"    element={<ProtectedRoute roles={['tenant']}><SearchPage /></ProtectedRoute>} />
+          <Route path="/tenant/saved"     element={<ProtectedRoute roles={['tenant']}><SavedListingsPage /></ProtectedRoute>} />
+          <Route path="/tenant/messages"  element={<ProtectedRoute roles={['tenant']}><MessagesPage /></ProtectedRoute>} />
+          <Route path="/tenant/bookings"  element={<ProtectedRoute roles={['tenant']}><BookingsPage /></ProtectedRoute>} />
+          <Route path="/tenant/profile"   element={<ProtectedRoute roles={['tenant']}><ProfilePage /></ProtectedRoute>} />
+          <Route path="/tenant/payments"  element={<ProtectedRoute roles={['tenant']}><PayPage /></ProtectedRoute>} />
+          <Route path="/tenant/reviews"   element={<ProtectedRoute roles={['tenant']}><ReviewsPage /></ProtectedRoute>} />
           
-          <Route path="/my-room"          element={<ProtectedRoute roles={['student']}><MyRoomPage /></ProtectedRoute>} />
-          <Route path="/saved"            element={<Navigate to="/tenant/saved" replace />} />
+          <Route path="/my-room"          element={<ProtectedRoute roles={['tenant']}><MyRoomPage /></ProtectedRoute>} />
 
           {/* Landlord */}
           <Route path="/landlord/dashboard" element={<ProtectedRoute roles={['landlord']}><LandlordDashboard /></ProtectedRoute>} />
-          <Route path="/landlord/listings"  element={<ProtectedRoute roles={['landlord']}><LandlordListingsPage /></ProtectedRoute>} />
-          <Route path="/landlord/listings/new" element={<ProtectedRoute roles={['landlord']}><ListPropertyPage /></ProtectedRoute>} />
+          <Route path="/landlord/properties" element={<ProtectedRoute roles={['landlord']}><LandlordListingsPage /></ProtectedRoute>} />
+          <Route path="/landlord/properties/new" element={<ProtectedRoute roles={['landlord']}><ListPropertyPage /></ProtectedRoute>} />
           <Route path="/landlord/inquiries" element={<ProtectedRoute roles={['landlord']}><LandlordInquiries /></ProtectedRoute>} />
           <Route path="/landlord/tenants"   element={<ProtectedRoute roles={['landlord']}><LandlordTenantsPage /></ProtectedRoute>} />
           <Route path="/landlord/analytics" element={<ProtectedRoute roles={['landlord']}><LandlordAnalyticsPage /></ProtectedRoute>} />
@@ -131,13 +126,14 @@ export default function App() {
           <Route path="/landlord/payments"  element={<ProtectedRoute roles={['landlord']}><PaymentsPage /></ProtectedRoute>} />
           <Route path="/landlord"           element={<Navigate to="/landlord/dashboard" replace />} />
 
-          {/* Dalali */}
-          <Route path="/dalali/dashboard"    element={<ProtectedRoute roles={['dalali']}><DalaliDashboard /></ProtectedRoute>} />
-          <Route path="/dalali/properties"   element={<ProtectedRoute roles={['dalali']}><DalaliProperties /></ProtectedRoute>} />
-          <Route path="/dalali/properties/new" element={<ProtectedRoute roles={['dalali']}><DalaliNewProperty /></ProtectedRoute>} />
-          <Route path="/dalali/inquiries"    element={<ProtectedRoute roles={['dalali']}><DalaliInquiries /></ProtectedRoute>} />
-          <Route path="/dalali/earnings"     element={<ProtectedRoute roles={['dalali']}><DalaliEarnings /></ProtectedRoute>} />
-          <Route path="/dalali/subscription" element={<ProtectedRoute roles={['dalali']}><DalaliSubscription /></ProtectedRoute>} />
+          {/* Property Manager */}
+          <Route path="/manager/dashboard"    element={<ProtectedRoute roles={['property_manager']}><ManagerDashboard /></ProtectedRoute>} />
+          <Route path="/manager/properties"   element={<ProtectedRoute roles={['property_manager']}><ManagerProperties /></ProtectedRoute>} />
+          <Route path="/manager/properties/new" element={<ProtectedRoute roles={['property_manager']}><ManagerNewProperty /></ProtectedRoute>} />
+          <Route path="/manager/inquiries"    element={<ProtectedRoute roles={['property_manager']}><ManagerInquiries /></ProtectedRoute>} />
+          <Route path="/manager/earnings"     element={<ProtectedRoute roles={['property_manager']}><ManagerEarnings /></ProtectedRoute>} />
+          <Route path="/manager/subscription" element={<ProtectedRoute roles={['property_manager']}><ManagerSubscription /></ProtectedRoute>} />
+          <Route path="/manager"              element={<Navigate to="/manager/dashboard" replace />} />
 
           {/* Admin */}
           <Route path="/admin"           element={<ProtectedRoute roles={['admin']}><AdminDashboardPage /></ProtectedRoute>} />
