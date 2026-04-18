@@ -118,7 +118,7 @@ export default function LandlordSidebar({
     // Grouped navigation
     const MANAGE_SECTION: NavItem[] = [
         { to: '/landlord', icon: <LayoutDashboard size={18} />, label: 'Dashboard' },
-        { to: '/landlord/listings', icon: <Building2 size={18} />, label: 'My Listings', meta: `${activeListings} Active` },
+        { to: '/landlord/properties', icon: <Building2 size={18} />, label: 'My Listings', meta: `${activeListings} Active` },
         { to: '/messages', icon: <Inbox size={18} />, label: 'Inquiries', badge: pendingInquiries, color: '#ef4444' },
         { to: '/landlord/tenants', icon: <Users size={18} />, label: 'My Tenants', meta: `${tenantCount} Total` },
         { to: '/landlord/payments', icon: <Wallet size={18} />, label: 'Payments' },
@@ -325,7 +325,7 @@ export default function LandlordSidebar({
     // ── Mobile bottom tab bar ────────────────────────────────────────────────
     const MOBILE_TABS = [
         { to: '/landlord', icon: <LayoutDashboard size={20} />, label: 'Dashboard', badge: 0 },
-        { to: '/landlord/listings', icon: <Building2 size={20} />, label: 'My Listings', badge: 0 },
+        { to: '/landlord/properties', icon: <Building2 size={20} />, label: 'My Listings', badge: 0 },
         { to: '/messages', icon: <Inbox size={20} />, label: 'Inquiries', badge: pendingInquiries },
         { to: '/landlord/payments', icon: <Wallet size={20} />, label: 'Payments', badge: 0 },
         { to: '/profile', icon: <Settings size={20} />, label: 'Account', badge: 0 },

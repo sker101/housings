@@ -124,7 +124,11 @@ export default function App() {
           <Route path="/landlord/analytics" element={<ProtectedRoute roles={['landlord']}><LandlordAnalyticsPage /></ProtectedRoute>} />
           <Route path="/landlord/upgrade"   element={<ProtectedRoute roles={['landlord']}><LandlordUpgradePage /></ProtectedRoute>} />
           <Route path="/landlord/payments"  element={<ProtectedRoute roles={['landlord']}><PaymentsPage /></ProtectedRoute>} />
-          <Route path="/landlord"           element={<Navigate to="/landlord/dashboard" replace />} />
+          {/* Redirect common alias URLs → canonical paths */}
+          <Route path="/landlord/listings"      element={<Navigate to="/landlord/properties" replace />} />
+          <Route path="/landlord/listings/new"  element={<Navigate to="/landlord/properties/new" replace />} />
+          <Route path="/landlord/list-property" element={<Navigate to="/landlord/properties/new" replace />} />
+          <Route path="/landlord"               element={<Navigate to="/landlord/dashboard" replace />} />
 
           {/* Property Manager */}
           <Route path="/manager/dashboard"    element={<ProtectedRoute roles={['property_manager']}><ManagerDashboard /></ProtectedRoute>} />
