@@ -9,7 +9,7 @@ export default function PayPage() {
   const navigate = useNavigate();
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate('/login', { state: { from: location } });
+      navigate('/auth/login', { state: { from: location } });
     }
   }, [isAuthenticated, navigate, location]);
 

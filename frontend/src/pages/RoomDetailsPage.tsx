@@ -1007,7 +1007,7 @@ export default function RoomDetailsPage() {
             </button>
             {canReserveListing ? (
               <Link
-                to="/pay"
+                to="/tenant/payments"
                 className="btn btn--large"
                 style={{ flex: 2, textAlign: 'center' }}
                 state={{
@@ -1016,7 +1016,8 @@ export default function RoomDetailsPage() {
                   title: listing.title,
                   availableFrom: listing.availableFrom,
                   coverPhoto: Array.isArray(listing?.photos) ? listing.photos[0] : null,
-                  address: listing.location || listing.district || listing.ward || ''
+                  address: listing.location || listing.district || listing.ward || '',
+                  listerId: listing.listerId,
                 }}
               >
                 Reserve / Pay
