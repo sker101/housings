@@ -106,7 +106,13 @@ serve(async (req) => {
          })
        }
  
-       // 2. Insert payment record
+       // 2. Mark the Listing as occupied
+       await supabase
+         .from("listings")
+         .update({ vacancy_status: "occupied" })
+         .eq("id", booking.listing_id)
+ 
+       // 3. Insert payment record
        const { error: paymentError } = await supabase
          .from("payment_records")
          .insert({

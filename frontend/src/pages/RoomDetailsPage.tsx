@@ -383,7 +383,7 @@ export default function RoomDetailsPage() {
     
     if (bookingsLoading) return null; 
     
-    if (existingBooking && ['approved', 'paid', 'confirmed'].includes(existingBooking.status) && existingBooking.tenantId === user.userId) return true;
+    if (existingBooking && ['requested', 'approved', 'paid', 'confirmed'].includes(existingBooking.status) && existingBooking.tenantId === user.userId) return true;
     
     return false;
   }, [listing, user?.userId, existingBooking, bookingsLoading]);

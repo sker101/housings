@@ -162,6 +162,12 @@ export default function PayPage() {
         throw new Error(azamResponse?.error || azamResponse?.message || 'Failed to initiate AzamPay checkout');
       }
 
+      const { updateRows } = await import('../lib/supabase');
+      await updateRows('listings', { vacancy_status: 'occupied' }, {
+        filters: [{ column: 'id', op: 'eq', value: listing.id }],
+        accessToken: token
+      });
+
       setNotice('Payment successful! Your reservation has been recorded.');
       navigate('/my-room');
     } catch (err: any) {

@@ -702,6 +702,38 @@ export default function MyRoomPage() {
                   <button type="button" className="btn btn--ghost btn--small" style={{ width: '100%' }} onClick={() => window.print()}>
                     Print / Save as PDF
                   </button>
+
+                  <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid #fee2e2' }}>
+                    <p style={{ fontSize: '0.85rem', color: '#b91c1c', marginBottom: '0.75rem', fontWeight: 600 }}>Termination</p>
+                    <button 
+                      type="button" 
+                      className="btn btn--ghost btn--small" 
+                      style={{ width: '100%', color: '#b91c1c', borderColor: '#fecaca' }}
+                      onClick={async () => {
+                        if (!booking?.id || !listing?.id || !token) return;
+                        if (!window.confirm('Are you sure you want to vacate this room? This will make the room available for others to book.')) return;
+                        
+                        try {
+                          const { updateRows } = await import('../lib/supabase');
+                          await Promise.all([
+                            updateRows('bookings', { status: 'completed' }, {
+                              filters: [{ column: 'id', op: 'eq', value: booking.id }],
+                              accessToken: token
+                            }),
+                            updateRows('listings', { vacancy_status: 'available' }, {
+                              filters: [{ column: 'id', op: 'eq', value: listing.id }],
+                              accessToken: token
+                            })
+                          ]);
+                          window.location.reload();
+                        } catch (err: any) {
+                          alert('Failed to vacate: ' + err.message);
+                        }
+                      }}
+                    >
+                      Vacate room
+                    </button>
+                  </div>
                 </div>
 
                 <div className="card" style={{ padding: '1rem', borderRadius: 14 }}>
