@@ -1,33 +1,28 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import 'leaflet/dist/leaflet.css';
+import * as LOriginal from 'leaflet';
 
-let leafletModule = null;
-
-async function loadLeaflet() {
-  if (leafletModule) {
-    return leafletModule;
-  }
-
-  const L = await import('leaflet');
-
-  // Fix Leaflet's default icon paths when bundled by Vite
-  delete L.Icon.Default.prototype._getIconUrl;
-  L.Icon.Default.mergeOptions({
-    iconRetinaUrl:
-      'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
+// Fix Leaflet's default icon paths when bundled by Vite (must run once)
+let iconFixed = false;
+function ensureIconsFixed() {
+  if (iconFixed) return;
+  iconFixed = true;
+  // @ts-ignore
+  delete LOriginal.Icon.Default.prototype._getIconUrl;
+  LOriginal.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+    iconUrl:       'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+    shadowUrl:     'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
   });
-
-  leafletModule = L;
-  return L;
 }
 
-function formatPrice(value) {
+const L = LOriginal;
+
+function formatPrice(value: any) {
   return `${new Intl.NumberFormat('en-TZ').format(Number(value || 0))} TZS`;
 }
 
-function escapeHtml(value) {
+function escapeHtml(value: any) {
   return String(value || '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -36,10 +31,9 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
-function normalizePoints(points) {
+function normalizePoints(points: any[]) {
   const lats = points.map((item) => Number(item.lat));
   const lngs = points.map((item) => Number(item.lng));
-
   const minLat = Math.min(...lats);
   const maxLat = Math.max(...lats);
   const minLng = Math.min(...lngs);
@@ -48,45 +42,51 @@ function normalizePoints(points) {
   return points.map((item) => {
     const lat = Number(item.lat);
     const lng = Number(item.lng);
-
     const x = maxLng === minLng ? 50 : ((lng - minLng) / (maxLng - minLng)) * 100;
     const y = maxLat === minLat ? 50 : (1 - (lat - minLat) / (maxLat - minLat)) * 100;
-
     return {
       ...item,
       normalizedX: Math.max(6, Math.min(94, x)),
-      normalizedY: Math.max(8, Math.min(92, y))
+      normalizedY: Math.max(8, Math.min(92, y)),
     };
   });
 }
 
-export default function ListingMap({ listings, onMarkerSelect }) {
-  const mapElementRef = useRef(null);
-  const mapInstanceRef = useRef(null);
-  const markerLayerRef = useRef(null);
+interface Listing {
+  id: string;
+  title: string;
+  lat?: any;
+  lng?: any;
+  priceMonthly?: any;
+  [key: string]: any;
+}
+
+interface ListingMapProps {
+  listings: Listing[];
+  onMarkerSelect?: (listing: Listing) => void;
+}
+
+export default function ListingMap({ listings, onMarkerSelect }: ListingMapProps) {
+  const mapElementRef = useRef<HTMLDivElement | null>(null);
+  const mapInstanceRef = useRef<any>(null);
+  const markerLayerRef = useRef<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   const validPoints = useMemo(
-    () =>
-      listings.filter(
-        (listing) =>
-          Number.isFinite(Number(listing.lat)) &&
-          Number.isFinite(Number(listing.lng))
-      ),
+    () => listings.filter(
+      (listing) => Number.isFinite(Number(listing.lat)) && Number.isFinite(Number(listing.lng))
+    ),
     [listings]
   );
+
   const fallbackPoints = useMemo(() => normalizePoints(validPoints), [validPoints]);
 
   useEffect(() => {
     let cancelled = false;
 
     async function initMap() {
-      if (!mapElementRef.current) {
-        return;
-      }
-
-      if (validPoints.length === 0) {
+      if (!mapElementRef.current || validPoints.length === 0) {
         setLoading(false);
         return;
       }
@@ -95,20 +95,17 @@ export default function ListingMap({ listings, onMarkerSelect }) {
       setError('');
 
       try {
-        const L = await loadLeaflet();
-        if (cancelled || !mapElementRef.current) {
-          return;
-        }
+        ensureIconsFixed();
 
         if (!mapInstanceRef.current) {
           mapInstanceRef.current = L.map(mapElementRef.current, {
             zoomControl: true,
-            scrollWheelZoom: false
+            scrollWheelZoom: false,
           });
 
           L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
-            attribution: '&copy; OpenStreetMap contributors'
+            attribution: '&copy; OpenStreetMap contributors',
           }).addTo(mapInstanceRef.current);
         }
 
@@ -117,7 +114,7 @@ export default function ListingMap({ listings, onMarkerSelect }) {
         }
 
         markerLayerRef.current = L.layerGroup();
-        const bounds = [];
+        const bounds: [number, number][] = [];
 
         validPoints.forEach((listing) => {
           const lat = Number(listing.lat);
@@ -126,9 +123,7 @@ export default function ListingMap({ listings, onMarkerSelect }) {
 
           const marker = L.marker([lat, lng]);
           marker.bindPopup(
-            `<strong>${escapeHtml(listing.title)}</strong><br/>${formatPrice(
-              listing.priceMonthly
-            )}/month`
+            `<strong>${escapeHtml(listing.title)}</strong><br/>${formatPrice(listing.priceMonthly)}/month`
           );
           marker.on('click', () => onMarkerSelect?.(listing));
           markerLayerRef.current.addLayer(marker);
@@ -139,35 +134,25 @@ export default function ListingMap({ listings, onMarkerSelect }) {
         if (bounds.length === 1) {
           mapInstanceRef.current.setView(bounds[0], 18);
         } else {
-          mapInstanceRef.current.fitBounds(bounds, {
-            padding: [28, 28],
-            maxZoom: 18
-          });
+          mapInstanceRef.current.fitBounds(bounds, { padding: [28, 28], maxZoom: 18 });
         }
 
         setTimeout(() => {
-          mapInstanceRef.current?.invalidateSize();
-        }, 100);
+          if (!cancelled) mapInstanceRef.current?.invalidateSize();
+        }, 150);
       } catch (mapError) {
         if (!cancelled) {
           setError(
-            mapError instanceof Error
-              ? mapError.message
-              : 'Unable to initialize map.'
+            mapError instanceof Error ? mapError.message : 'Unable to initialize map.'
           );
         }
       } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        if (!cancelled) setLoading(false);
       }
     }
 
     initMap();
-
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [validPoints, onMarkerSelect]);
 
   useEffect(
@@ -181,23 +166,28 @@ export default function ListingMap({ listings, onMarkerSelect }) {
   );
 
   if (validPoints.length === 0) {
-    return <p className="muted">No listing coordinates available for this result set.</p>;
+    return (
+      <div className="leaflet-map-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 240, background: '#f7f7f7', borderRadius: 16, border: '1px solid var(--border)' }}>
+        <p className="muted" style={{ textAlign: 'center', padding: '2rem' }}>
+          📍 No location coordinates available for these listings yet.
+        </p>
+      </div>
+    );
   }
 
   if (error) {
     return (
       <div className="leaflet-map-wrap">
-        <p className="muted map-loading">{error}</p>
+        <p className="muted map-loading" style={{ marginBottom: '0.5rem', color: 'var(--mid)', fontSize: '0.85rem' }}>
+          Map could not load — showing approximate position layout instead.
+        </p>
         <div className="map-fallback" role="region" aria-label="Listing map fallback">
           {fallbackPoints.map((listing) => (
             <button
               key={listing.id}
               type="button"
               className="map-fallback__marker"
-              style={{
-                left: `${listing.normalizedX}%`,
-                top: `${listing.normalizedY}%`
-              }}
+              style={{ left: `${listing.normalizedX}%`, top: `${listing.normalizedY}%` }}
               title={`${listing.title} • ${formatPrice(listing.priceMonthly)}/month`}
               onClick={() => onMarkerSelect?.(listing)}
             >
@@ -224,7 +214,9 @@ export default function ListingMap({ listings, onMarkerSelect }) {
   return (
     <div className="leaflet-map-wrap">
       <div ref={mapElementRef} className="leaflet-map" aria-label="Listing map" />
-      {loading ? <p className="muted map-loading map-loading--overlay">Loading map...</p> : null}
+      {loading && (
+        <p className="muted map-loading map-loading--overlay">Loading map…</p>
+      )}
     </div>
   );
 }
