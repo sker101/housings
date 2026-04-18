@@ -224,7 +224,7 @@ export default function MyRoomPage() {
     return (
       <div className="container section" style={{ textAlign: 'center', padding: '3rem 1rem' }}>
         <p className="muted">Please log in to view your room.</p>
-        <Link to="/login" className="btn">Login</Link>
+        <Link to="/auth/login" className="btn">Login</Link>
       </div>
     );
   }
@@ -249,7 +249,7 @@ export default function MyRoomPage() {
       <div className="container section" style={{ textAlign: 'center', padding: '3rem 1rem' }}>
         <h1 style={{ marginBottom: '0.6rem' }}>My room</h1>
         <p className="muted" style={{ marginBottom: '1.2rem' }}>You don&apos;t have an active booking yet.</p>
-        <Link to="/search" className="btn">Browse rooms</Link>
+        <Link to="/tenant/search" className="btn">Browse rooms</Link>
         {isPaymentSuccess && (
           <div style={{ marginTop: '1.5rem', background: '#eef6f3', padding: '1rem', borderRadius: 12 }}>
             <p style={{ color: '#085041', margin: 0, fontSize: '0.9rem' }}>

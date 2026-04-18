@@ -90,12 +90,12 @@ export default function StudentSidebar({
     };
 
     const NAV: NavItem[] = [
-        { to: '/search', icon: <Search size={18} />, label: t('sidebar.browseListings'), highlight: true },
-        { to: '/saved', icon: <Heart size={18} />, label: t('sidebar.savedListings'), meta: savedCount > 0 ? `${savedCount} ${t('sidebar.saved')}` : undefined },
-        { to: '/bookings', icon: <CalendarCheck size={18} />, label: t('sidebar.myBookings'), badge: activeBookings },
+        { to: '/tenant/search', icon: <Search size={18} />, label: t('sidebar.browseListings'), highlight: true },
+        { to: '/tenant/saved', icon: <Heart size={18} />, label: t('sidebar.savedListings'), meta: savedCount > 0 ? `${savedCount} ${t('sidebar.saved')}` : undefined },
+        { to: '/tenant/bookings', icon: <CalendarCheck size={18} />, label: t('sidebar.myBookings'), badge: activeBookings },
         { to: '/my-room', icon: <MapPin size={18} />, label: 'My room', highlight: false },
         { to: '/messages', icon: <MessageSquare size={18} />, label: t('sidebar.messages'), badge: unreadMessages },
-        { to: '/reviews', icon: <Star size={18} />, label: t('sidebar.myReviews') },
+        { to: '/tenant/reviews', icon: <Star size={18} />, label: t('sidebar.myReviews') },
         { to: '/notifications', icon: <Bell size={18} />, label: t('sidebar.notifications'), badge: unreadNotifs },
         { to: '/profile', icon: <Settings size={18} />, label: t('sidebar.accountSettings') },
     ];
@@ -263,7 +263,7 @@ export default function StudentSidebar({
                 <button
                     type="button"
                     title={isCollapsed ? 'Help & Support' : undefined}
-                    onClick={() => navigate('/search')}
+                    onClick={() => navigate('/tenant/search')}
                     style={{
                         display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'flex-start', gap: '0.5rem',
                         width: '100%', padding: isCollapsed ? '0.62rem 0' : '0.5rem 0.75rem',
@@ -304,8 +304,8 @@ export default function StudentSidebar({
 
     // ── Mobile bottom tab bar (4 key items) ─────────────────────────────────
     const MOBILE_TABS = [
-        { to: '/search', icon: <Search size={20} />, label: t('sidebar.browse'), badge: 0 },
-        { to: '/saved', icon: <Heart size={20} />, label: t('sidebar.saved'), badge: savedCount },
+        { to: '/tenant/search', icon: <Search size={20} />, label: t('sidebar.browse'), badge: 0 },
+        { to: '/tenant/saved', icon: <Heart size={20} />, label: t('sidebar.saved'), badge: savedCount },
         { to: '/messages', icon: <MessageSquare size={20} />, label: t('sidebar.chats'), badge: unreadMessages },
         { to: '/notifications', icon: <Bell size={20} />, label: t('sidebar.alerts'), badge: unreadNotifs },
         { to: '/profile', icon: <Settings size={20} />, label: t('sidebar.me'), badge: 0 },

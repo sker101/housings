@@ -115,8 +115,13 @@ export default function App() {
           <Route path="/tenant/profile"   element={<ProtectedRoute roles={['tenant']}><ProfilePage /></ProtectedRoute>} />
           <Route path="/tenant/payments"  element={<ProtectedRoute roles={['tenant']}><PayPage /></ProtectedRoute>} />
           <Route path="/tenant/reviews"   element={<ProtectedRoute roles={['tenant']}><ReviewsPage /></ProtectedRoute>} />
-          
           <Route path="/my-room"          element={<ProtectedRoute roles={['tenant']}><MyRoomPage /></ProtectedRoute>} />
+          {/* Shorthand aliases for tenant routes */}
+          <Route path="/saved"            element={<Navigate to="/tenant/saved" replace />} />
+          <Route path="/bookings"         element={<Navigate to="/tenant/bookings" replace />} />
+          <Route path="/reviews"          element={<Navigate to="/tenant/reviews" replace />} />
+          <Route path="/pay"              element={<Navigate to="/tenant/payments" replace />} />
+          <Route path="/tenant"           element={<Navigate to="/tenant/dashboard" replace />} />
 
           {/* Landlord */}
           <Route path="/landlord/dashboard" element={<ProtectedRoute roles={['landlord']}><LandlordDashboard /></ProtectedRoute>} />
