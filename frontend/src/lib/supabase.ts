@@ -114,6 +114,11 @@ function shouldRefreshAuthToken(status, payload) {
   );
 }
 
+function isUnsupportedJwtAlgorithm(payload) {
+  const message = normalizeErrorMessage(payload, '').toLowerCase();
+  return message.includes('es256') || message.includes('unsupported jwt algorithm');
+}
+
 async function refreshStoredAccessToken(accessToken?: string, isAuthRequest = false) {
   // Never send cookies/tokens for initial sign-in to the Cloud
   if (isAuthRequest) return undefined;
@@ -249,6 +254,11 @@ async function request(path: string, options: RequestOptions = {}) {
   }
 
   if (!response.ok) {
+    if (isUnsupportedJwtAlgorithm(payload)) {
+      throw new Error(
+        'Unsupported JWT algorithm ES256 — please sign out and sign back in to refresh your session.'
+      );
+    }
     throw new Error(normalizeErrorMessage(payload, `Supabase request failed (${response.status})`));
   }
 

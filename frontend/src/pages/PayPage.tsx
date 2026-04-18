@@ -165,7 +165,14 @@ export default function PayPage() {
       setNotice('Payment successful! Your reservation has been recorded.');
       navigate('/my-room');
     } catch (err: any) {
-      setError(err.message || 'Unable to start payment. Please try again.');
+      const msg = err.message || '';
+      if (msg.toLowerCase().includes('es256') || msg.toLowerCase().includes('unsupported jwt')) {
+        setError(
+          'Your session token needs to be refreshed. Please sign out and sign back in, then try again.'
+        );
+      } else {
+        setError(msg || 'Unable to start payment. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
