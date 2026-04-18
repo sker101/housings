@@ -16,7 +16,7 @@ const QUICK_LINKS = [
   { label: 'About Us', href: '/about' },
   { label: 'How It Works', href: '/how-it-works' },
   { label: 'Find a Room', href: '/search' },
-  { label: 'List Your Property', href: '/list-property' },
+  { label: 'List Your Property', href: '/landlord/properties/new' },
   { label: 'Pricing', href: '/pricing' },
   { label: 'Blog', href: '/blog' },
 ];

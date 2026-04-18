@@ -479,7 +479,7 @@ export default function LandlordDashboardPage() {
               <p style={{ fontWeight: 700, color: '#1D9E75', marginBottom: '0.2rem' }}>Post a new room</p>
               <p style={{ fontSize: '0.82rem', color: 'var(--mid)' }}>It takes about 5 minutes to go live</p>
             </div>
-            <Link to="/list-property" className="btn" style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
+            <Link to="/landlord/properties/new" className="btn" style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
               + List Property
             </Link>
           </div>

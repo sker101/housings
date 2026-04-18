@@ -146,8 +146,8 @@ export default function LoginPage() {
 
           <div className="auth-links">
             <Link to="/reset-password">Forgot password?</Link>
-            <Link to="/register/student">{t('auth.createStudent')}</Link>
-            <Link to="/register/landlord">{t('auth.createLister')}</Link>
+            <Link to="/auth/signup?role=tenant">{t('auth.createStudent')}</Link>
+            <Link to="/auth/signup?role=landlord">{t('auth.createLister')}</Link>
           </div>
         </article>
       </section>

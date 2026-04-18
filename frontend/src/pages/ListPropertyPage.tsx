@@ -799,7 +799,7 @@ export default function ListPropertyPage() {
         <section className="card">
           <h1>Lister Account Required</h1>
           <p>You need a lister account to post properties.</p>
-          <Link to="/register/landlord" className="btn">Register as Lister</Link>
+          <Link to="/auth/signup?role=landlord" className="btn">Register as Lister</Link>
         </section>
       </div>
     );

@@ -31,7 +31,7 @@ export function normalizeForRouteGuard(appRole: string): 'tenant' | 'landlord' |
 }
 
 export function dashboardDefaultPath(appRole: string): string {
-  if (appRole === APP_ROLE.ADMIN) return '/admin/dashboard';
+  if (appRole === APP_ROLE.ADMIN) return '/admin';
   if (appRole === APP_ROLE.PROPERTY_MANAGER) return '/manager/dashboard';
   if (appRole === APP_ROLE.LANDLORD) return '/landlord/dashboard';
   return '/tenant/dashboard';

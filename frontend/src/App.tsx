@@ -93,6 +93,9 @@ export default function App() {
         <Route path="/auth/signup"       element={<PL><SignupPage /></PL>} />
         <Route path="/login"             element={<Navigate to="/auth/login" replace />} />
         <Route path="/register"          element={<Navigate to="/auth/signup" replace />} />
+        {/* Legacy /list-property route — now lives under /landlord/properties/new */}
+        <Route path="/list-property"     element={<Navigate to="/landlord/properties/new" replace />} />
+        <Route path="/list-property/*"   element={<Navigate to="/landlord/properties/new" replace />} />
 
         {/* ── Authenticated Routes ────── */}
         <Route element={<RoleBasedLayout />}>
@@ -141,6 +144,7 @@ export default function App() {
 
           {/* Admin */}
           <Route path="/admin"           element={<ProtectedRoute roles={['admin']}><AdminDashboardPage /></ProtectedRoute>} />
+          <Route path="/admin/dashboard" element={<Navigate to="/admin" replace />} />
           <Route path="/admin/users"     element={<ProtectedRoute roles={['admin']}><AdminUsersPage /></ProtectedRoute>} />
           <Route path="/admin/listings"  element={<ProtectedRoute roles={['admin']}><AdminListingsPage /></ProtectedRoute>} />
           <Route path="/admin/payments"  element={<ProtectedRoute roles={['admin']}><PaymentsPage /></ProtectedRoute>} />

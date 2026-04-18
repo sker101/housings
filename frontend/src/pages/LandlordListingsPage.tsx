@@ -196,7 +196,7 @@ export default function LandlordListingsPage() {
               Manage properties, track views, and control availability
             </p>
           </div>
-          <Link to="/list-property" className="add-btn">
+          <Link to="/landlord/properties/new" className="add-btn">
             + Add listing
           </Link>
         </div>
@@ -270,7 +270,7 @@ export default function LandlordListingsPage() {
               No listings found.
               {listings.length === 0 ? (
                 <div style={{ marginTop: '1rem' }}>
-                  <Link to="/list-property" className="add-btn">Add your first listing</Link>
+                  <Link to="/landlord/properties/new" className="add-btn">Add your first listing</Link>
                 </div>
               ) : null}
             </div>
@@ -340,11 +340,11 @@ export default function LandlordListingsPage() {
                         <td>{l.bookingCount}</td>
                         <td>
                           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                            <Link to={`/list-property?edit=${l.id}`} className="act-btn">
+                            <Link to={`/landlord/properties/new?edit=${l.id}`} className="act-btn">
                               Edit
                             </Link>
                             {(l.status === 'flagged' || l.status === 'reported') && (
-                              <Link to={`/list-property?edit=${l.id}`} className="act-btn act-fix">
+                              <Link to={`/landlord/properties/new?edit=${l.id}`} className="act-btn act-fix">
                                 Fix &amp; relist
                               </Link>
                             )}

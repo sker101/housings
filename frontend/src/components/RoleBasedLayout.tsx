@@ -61,11 +61,11 @@ const getNavItems = (role: string): NavItem[] => {
 
   if (role === 'dalali') {
     return [
-      { label: 'Dashboard', href: '/dalali/dashboard', icon: <Home size={16} /> },
-      { label: 'Properties', href: '/dalali/properties', icon: <Building size={16} /> },
-      { label: 'Inquiries', href: '/dalali/inquiries', icon: <MessageCircle size={16} /> },
-      { label: 'Earnings', href: '/dalali/earnings', icon: <Zap size={16} /> },
-      { label: 'Subscription', href: '/dalali/subscription', icon: <Award size={16} /> },
+      { label: 'Dashboard', href: '/manager/dashboard', icon: <Home size={16} /> },
+      { label: 'Properties', href: '/manager/properties', icon: <Building size={16} /> },
+      { label: 'Inquiries', href: '/manager/inquiries', icon: <MessageCircle size={16} /> },
+      { label: 'Earnings', href: '/manager/earnings', icon: <Zap size={16} /> },
+      { label: 'Subscription', href: '/manager/subscription', icon: <Award size={16} /> },
       { label: 'Profile', href: '/profile', icon: <User size={16} /> },
     ];
   }

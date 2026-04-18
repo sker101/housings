@@ -27,7 +27,7 @@ export default function DalaliProperties() {
           <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: '1.3rem' }}>My Properties</h2>
           <p style={{ color: 'var(--mid)', fontSize: '0.86rem' }}>All listings you manage as a broker.</p>
         </div>
-        <Link to="/dalali/properties/new" className="btn btn--small">+ Add Property</Link>
+        <Link to="/manager/properties/new" className="btn btn--small">+ Add Property</Link>
       </div>
 
       {loading ? (
@@ -37,7 +37,7 @@ export default function DalaliProperties() {
           <Building size={40} style={{ color: 'var(--mid)', marginBottom: '0.75rem' }} />
           <p style={{ fontWeight: 600, color: 'var(--ink)', marginBottom: '0.35rem' }}>No properties yet</p>
           <p style={{ color: 'var(--mid)', fontSize: '0.86rem', marginBottom: '1rem' }}>Add your first property to start getting inquiries.</p>
-          <Link to="/dalali/properties/new" className="btn btn--small">Add Property</Link>
+          <Link to="/manager/properties/new" className="btn btn--small">Add Property</Link>
         </div>
       ) : (
         <div style={{ display: 'grid', gap: '1.5rem' }}>
