@@ -2056,6 +2056,17 @@ tbody td {
     display: none !important;
   }
 }
+
+/* "Find Your Perfect Home" badge — only visible on tablet/desktop */
+.desktop-badge-only {
+  display: none;
+}
+
+@media (min-width: 680px) {
+  .desktop-badge-only {
+    display: flex !important;
+  }
+}
 /* Phase 4b: SOS Emergency Styles */
 .sos-banner {
     background: #cf222e;

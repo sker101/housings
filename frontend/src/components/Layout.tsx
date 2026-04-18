@@ -295,26 +295,22 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
             </span>
           </Link>
 
-          {/* Center - Shiny Badge (hidden on auth pages) */}
+          {/* Center - Shiny Badge (hidden on auth pages and on mobile) */}
           {!isAuthPage && (
-            <div style={{
+            <div className="desktop-badge-only" style={{
               position: 'relative',
               background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 50%, #15803d 100%)',
               borderRadius: '999px',
               padding: '0.5rem 1.25rem',
-              display: 'flex',
               alignItems: 'center',
               gap: '0.5rem',
               boxShadow: '0 4px 15px rgba(34, 197, 94, 0.3), inset 0 1px 0 rgba(255,255,255,0.2)',
-              overflow: 'hidden'
+              overflow: 'hidden',
             }}>
               {/* Shine animation overlay */}
               <div style={{
                 position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
+                top: 0, left: 0, right: 0, bottom: 0,
                 background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%)',
                 animation: 'shine 2.5s ease-in-out infinite'
               }} />
@@ -325,7 +321,8 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
                 fontWeight: 600,
                 fontFamily: "'Inter', sans-serif",
                 position: 'relative',
-                zIndex: 1
+                zIndex: 1,
+                whiteSpace: 'nowrap',
               }}>
                 Find Your Perfect Home
               </span>
