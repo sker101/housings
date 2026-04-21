@@ -8,7 +8,7 @@ interface Profile {
   id: string;
   full_name: string;
   phone: string;
-  role: 'student' | 'lister' | 'admin';
+  role: 'tenant' | 'landlord' | 'property_manager' | 'admin';
   lister_type?: 'owner' | 'manager' | 'dalali';
   verification_status?: string;
   created_at: string;
@@ -37,13 +37,11 @@ export default function AdminUsersPage() {
     try {
       const filters: any[] = [];
       if (activeRole === 'tenants') {
-        filters.push({ column: 'role', op: 'eq', value: 'student' });
+        filters.push({ column: 'role', op: 'eq', value: 'tenant' });
       } else if (activeRole === 'landlords') {
-        filters.push({ column: 'role', op: 'eq', value: 'lister' });
-        filters.push({ column: 'lister_type', op: 'neq', value: 'dalali' });
+        filters.push({ column: 'role', op: 'eq', value: 'landlord' });
       } else if (activeRole === 'dalalis') {
-        filters.push({ column: 'role', op: 'eq', value: 'lister' });
-        filters.push({ column: 'lister_type', op: 'eq', value: 'dalali' });
+        filters.push({ column: 'role', op: 'eq', value: 'property_manager' });
       } else if (activeRole === 'admins') {
         filters.push({ column: 'role', op: 'eq', value: 'admin' });
       }
@@ -119,8 +117,9 @@ export default function AdminUsersPage() {
   };
 
   const roleColors: Record<string, string> = {
-    student: '#3b82f6',
-    lister: '#8b5cf6',
+    tenant: '#3b82f6',
+    landlord: '#8b5cf6',
+    property_manager: '#7c3aed',
     admin: '#ef4444',
   };
 
@@ -213,7 +212,7 @@ export default function AdminUsersPage() {
                   <td style={{ padding: '0.85rem 1rem', fontSize: '0.9rem', color: '#6b7280' }}>{u.phone || '—'}</td>
                   <td style={{ padding: '0.85rem 1rem' }}>
                     <span style={{ background: roleColors[u.role] || '#6b7280', color: '#fff', fontSize: '0.75rem', padding: '0.15rem 0.45rem', borderRadius: '4px', fontWeight: '700', display: 'inline-block' }}>
-                      {u.role === 'student' ? 'TENANT' : u.role === 'lister' ? (u.lister_type === 'dalali' ? 'DALALI' : 'LANDLORD') : u.role?.toUpperCase()}
+                      {u.role?.toUpperCase()}
                     </span>
                     {u.role === 'lister' && u.lister_type && (
                       <div style={{ fontSize: '0.72rem', color: '#6b7280', marginTop: '0.1rem', fontStyle: 'italic' }}>

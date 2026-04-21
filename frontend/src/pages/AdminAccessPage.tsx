@@ -9,7 +9,7 @@ interface Profile {
   full_name: string;
   email?: string;
   phone: string;
-  role: 'student' | 'lister' | 'admin';
+  role: 'tenant' | 'landlord' | 'property_manager' | 'admin';
   university?: string;
   status?: 'active' | 'suspended' | 'pending';
   verification_status?: string;
@@ -160,8 +160,8 @@ export default function AdminAccessPage() {
   };
 
   const roleColors: Record<string, string> = {
-    student: '#3b82f6',
-    dalali: '#8b5cf6',
+    tenant: '#3b82f6',
+    property_manager: '#7c3aed',
     landlord: '#ec4899',
     admin: '#ef4444'
   };

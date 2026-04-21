@@ -84,8 +84,9 @@ export default function AdminDashboardPage() {
           countRows('conversations', { accessToken: token }),
           countRows('campuscover_claims', { accessToken: token }),
 
-          countRows('profiles', { filters: [{ column: 'role', op: 'eq', value: 'student' }], accessToken: token }),
-          countRows('profiles', { filters: [{ column: 'role', op: 'eq', value: 'lister' }], accessToken: token }),
+          countRows('profiles', { filters: [{ column: 'role', op: 'eq', value: 'tenant' }], accessToken: token }),
+          countRows('profiles', { filters: [{ column: 'role', op: 'eq', value: 'landlord' }], accessToken: token }),
+          countRows('profiles', { filters: [{ column: 'role', op: 'eq', value: 'property_manager' }], accessToken: token }),
           countRows('profiles', { filters: [{ column: 'role', op: 'eq', value: 'admin' }], accessToken: token }),
 
           countRows('listings', { filters: [{ column: 'status', op: 'eq', value: 'pending' }], accessToken: token }),
@@ -164,7 +165,7 @@ export default function AdminDashboardPage() {
         setStats({
           totalUsers, totalListings, totalBookings, totalReports,
           totalReviews, totalNotifs, totalConvos, totalClaims,
-          studentCount, listerCount, adminCount,
+          tenantCount, landlordCount, managerCount, adminCount,
           pendingListings, approvedListings, rejectedListings, flaggedListings,
           pendingReports, upheldReports, dismissedReports,
           requestedBookings, approvedBookings, declinedBookings,
@@ -177,8 +178,8 @@ export default function AdminDashboardPage() {
           paymentSampleSize: paymentRowsTotal,
 
           userRoleChart: [
-            { name: 'Students', value: studentCount },
-            { name: 'Listers', value: listerCount },
+            { name: 'Tenants', value: tenantCount },
+            { name: 'Hosts', value: landlordCount + managerCount },
             { name: 'Admins', value: adminCount },
           ],
           listingStatusChart: [

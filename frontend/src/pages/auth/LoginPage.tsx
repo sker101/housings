@@ -41,7 +41,7 @@ export default function LoginPage() {
         { email: normalizedEmail, password },
         { rememberMe }
       )) as { role?: string };
-      const appRole = String(res.role || 'student');
+      const appRole = String(res.role || 'tenant');
       const from = (location.state as { from?: { pathname?: string } } | null)?.from
         ?.pathname;
       if (from && deepLinkAllowed(from, appRole)) {
