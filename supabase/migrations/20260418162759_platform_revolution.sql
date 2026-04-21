@@ -1,4 +1,29 @@
 -- ─────────────────────────────────────────
+-- RESET SCHEMA (Build from scratch)
+-- ─────────────────────────────────────────
+drop table if exists admin_audit_log cascade;
+drop table if exists content_flags cascade;
+drop table if exists system_config cascade;
+drop table if exists disputes cascade;
+drop table if exists reviews cascade;
+drop table if exists referrals cascade;
+drop table if exists payments cascade;
+drop table if exists bookings cascade;
+drop table if exists pre_bookings cascade;
+drop table if exists tenant_leases cascade;
+drop table if exists room_photos cascade;
+drop table if exists rooms cascade;
+drop table if exists property_documents cascade;
+drop table if exists properties cascade;
+drop table if exists manager_landlord_auth cascade;
+drop table if exists property_managers cascade;
+drop table if exists landlords cascade;
+drop table if exists tenants cascade;
+-- drop table if exists profiles cascade; -- Keep profiles if possible? No, user said "from scratch" but profiles is central.
+-- Actually, the user's prompt Part 1 includes "profiles" in the from-scratch list.
+drop table if exists profiles cascade;
+
+-- ─────────────────────────────────────────
 -- CORE IDENTITY
 -- ─────────────────────────────────────────
 
@@ -178,9 +203,7 @@ create table if not exists tenant_leases (
   landlord_id uuid references landlords(id),
   lease_start_date date not null,
   lease_end_date date not null,
-  days_remaining int generated always as (
-    greatest(0, (lease_end_date - current_date)::int)
-  ) stored,
+  days_remaining int, -- Updated via lease-tracker edge function or calculated on-the-fly
   move_out_confirmed boolean default false,
   renewal_decision text check (renewal_decision in ('renewing','leaving','undecided')),
   renewal_sms_sent boolean default false,
