@@ -7,6 +7,9 @@ interface ImportMetaEnv {
     readonly VITE_SUPABASE_URL: string;
     readonly VITE_SUPABASE_ANON_KEY: string;
     readonly VITE_DEV_API_PROXY_TARGET: string;
+    readonly VITE_MAPBOX_TOKEN: string;
+    readonly VITE_APP_NAME: string;
+    readonly VITE_PAYMENT_ENV: 'mock' | 'sandbox' | 'live';
 }
 
 interface ImportMeta {

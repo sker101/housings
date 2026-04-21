@@ -46,7 +46,7 @@ serve(async (req) => {
                 vendor_id: vendorId,
                 order_id: referenceId,
                 buyer_email: '',
-                buyer_name: 'CampusStay User',
+                buyer_name: 'iRent User',
                 buyer_phone: phone,
                 amount: amount,
                 currency: 'TZS',

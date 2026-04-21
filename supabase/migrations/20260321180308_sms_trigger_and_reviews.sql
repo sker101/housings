@@ -62,14 +62,14 @@ BEGIN
   -- Prepare message and recipient based on TG_OP and status
   IF TG_OP = 'INSERT' THEN
     -- Dalali notification
-    v_message := replace(replace('CampusStay: {tenant_name} amependa chumba chako ''{listing_title}''. Ingia kwenye app kukubali.', '{tenant_name}', COALESCE(v_tenant_name, 'Mteja')), '{listing_title}', COALESCE(v_listing_title, ''));
+    v_message := replace(replace('iRent: {tenant_name} amependa chumba chako ''{listing_title}''. Ingia kwenye app kukubali.', '{tenant_name}', COALESCE(v_tenant_name, 'Mteja')), '{listing_title}', COALESCE(v_listing_title, ''));
     v_recipient_phone := v_lister_phone;
   ELSIF TG_OP = 'UPDATE' AND OLD.status IS DISTINCT FROM NEW.status THEN
     IF NEW.status = 'approved' THEN
-      v_message := replace('CampusStay: Ombi lako la ''{listing_title}'' limekubaliwa! Wasiliana na mmiliki.', '{listing_title}', COALESCE(v_listing_title, ''));
+      v_message := replace('iRent: Ombi lako la ''{listing_title}'' limekubaliwa! Wasiliana na mmiliki.', '{listing_title}', COALESCE(v_listing_title, ''));
       v_recipient_phone := v_tenant_phone;
     ELSIF NEW.status = 'declined' THEN
-      v_message := replace('CampusStay: Ombi lako la ''{listing_title}'' haukukubaliwa. Endelea kutafuta kwenye CampusStay.', '{listing_title}', COALESCE(v_listing_title, ''));
+      v_message := replace('iRent: Ombi lako la ''{listing_title}'' haukukubaliwa. Endelea kutafuta kwenye iRent.', '{listing_title}', COALESCE(v_listing_title, ''));
       v_recipient_phone := v_tenant_phone;
     END IF;
   END IF;

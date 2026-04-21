@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// CampusStay TZ — Auth Helpers
+// iRent — Auth Helpers
 // Thin wrappers around supabase.ts so pages don't need to
 // import raw auth functions directly.
 // ─────────────────────────────────────────────────────────────

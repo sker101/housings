@@ -20,7 +20,7 @@ serve(async (req) => {
 
     const AZAMPAY_CLIENT_ID = Deno.env.get("AZAMPAY_CLIENT_ID") || "MOCK_CLIENT_ID"
     const AZAMPAY_CLIENT_SECRET = Deno.env.get("AZAMPAY_CLIENT_SECRET") || "MOCK_CLIENT_SECRET"
-    const AZAMPAY_APP_NAME = Deno.env.get("AZAMPAY_APP_NAME") || "CampusStayTz"
+    const AZAMPAY_APP_NAME = Deno.env.get("AZAMPAY_APP_NAME") || "iRent"
     /** Set to "production" when using live AzamPay credentials and checkout. */
     const AZAMPAY_ENV = (Deno.env.get("AZAMPAY_ENV") || "sandbox").toLowerCase()
     const isSandbox = AZAMPAY_ENV !== "production" && AZAMPAY_ENV !== "live"

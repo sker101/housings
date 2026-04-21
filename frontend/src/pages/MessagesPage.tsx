@@ -523,7 +523,7 @@ export default function MessagesPage() {
               conversations.map((conv: any) => {
                 const isActive = conv.id === threadId;
                 const displayName = conv.isAdmin
-                  ? 'CampusStay Admin'
+                  ? 'iRent Admin'
                   : conv.otherProfile?.full_name || 'Property Owner';
                 
                 // Check if title looks like a UUID (contains hex characters and dashes in UUID pattern)
@@ -653,7 +653,7 @@ export default function MessagesPage() {
 
                   return (
                     <div key={m.id} className={bubbleClass}>
-                      {adminMsg ? <p className="bubble-sender admin-lbl">CampusStay Admin</p> : null}
+                      {adminMsg ? <p className="bubble-sender admin-lbl">iRent Admin</p> : null}
                       {!mine && !adminMsg && m.senderProfile?.full_name ? (
                         <p className="bubble-sender">{m.senderProfile.full_name}</p>
                       ) : null}

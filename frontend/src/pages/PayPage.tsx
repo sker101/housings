@@ -92,7 +92,24 @@ export default function PayPage() {
         address: listing.street || listing.ward || listing.district || '',
         reference: `LOCAL-${Date.now()}`
       };
-      // 1. Check if an active booking already exists to avoid unique constraint violations
+      // 0. Ensure a profile exists for this tenant to satisfy foreign key constraints
+      const profileCheck = await selectRows('profiles', {
+        select: 'id',
+        filters: [{ column: 'id', op: 'eq', value: user.userId }],
+        limit: 1,
+        accessToken: token
+      });
+
+      if (!profileCheck || profileCheck.length === 0) {
+        console.log('Profile missing, creating lazy profile...');
+        await insertRows('profiles', {
+          id: user.userId,
+          full_name: user.fullName || user.email,
+          role: 'tenant',
+          verification_status: 'approved'
+        }, { accessToken: token });
+      }
+
       const existing = await selectRows('bookings', {
         select: 'id',
         filters: [
@@ -136,7 +153,7 @@ export default function PayPage() {
         const azamResponse = await invokeFunction('azampay-checkout', {
           bookingId,
           amount: total,
-          name: user.fullName || 'CampusStay Tenant',
+          name: user.fullName || 'iRent Tenant',
           email: user.email,
           phone: user.phone || '255700000000',
           months

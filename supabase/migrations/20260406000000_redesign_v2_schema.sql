@@ -1,5 +1,5 @@
 -- ============================================================
--- CampusStay TZ — Redesign V2 Schema
+-- iRent — Redesign V2 Schema
 -- Adds new columns, tables, and RLS policies for the full
 -- tenant / landlord / dalali / admin role architecture.
 -- All statements are idempotent (if not exists / add column if not exists).

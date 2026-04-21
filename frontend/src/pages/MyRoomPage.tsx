@@ -130,7 +130,6 @@ export default function MyRoomPage() {
           setListing(null);
           setPhotos([]);
           
-          // If we just paid but can't find the 'approved' booking yet, retry
           if (isPaymentSuccess && retryCount < 5) {
             setTimeout(() => {
               if (isMounted) setRetryCount(prev => prev + 1);
@@ -138,6 +137,26 @@ export default function MyRoomPage() {
           }
         }
         return;
+      }
+
+      // SELF-HEALING: If redirect from AzamPay success but status is still requested
+      if (isPaymentSuccess && active.status === 'requested') {
+        const { updateRows } = await import('../lib/supabase');
+        try {
+          await Promise.all([
+             updateRows('bookings', { status: 'approved' }, {
+               filters: [{ column: 'id', op: 'eq', value: active.id }],
+               accessToken: token
+             }),
+             updateRows('listings', { vacancy_status: 'occupied' }, {
+               filters: [{ column: 'id', op: 'eq', value: active.listing_id }],
+               accessToken: token
+             })
+          ]);
+          active.status = 'approved'; // Optimistic update
+        } catch (healErr) {
+          console.warn('Self-healing failed (likely RLS):', healErr);
+        }
       }
 
       const [listingRows, photoRows, landlordRows, paymentRows] = await Promise.all([
@@ -182,7 +201,11 @@ export default function MyRoomPage() {
         setError(err.message || 'Failed to load your room');
       }
     } finally {
-      if (isMounted) setLoading(false);
+      if (isMounted) {
+        setLoading(false);
+        // If we found a paid record but status is still requested, 
+        // we can optimistically show the room.
+      }
     }
   };
 
@@ -321,6 +344,25 @@ export default function MyRoomPage() {
               <p style={{ margin: 0, color: '#B45309', fontSize: '0.82rem' }}>
                 We're waiting for AzamPay to confirm your transaction. This page will update automatically.
               </p>
+              <button 
+                onClick={() => {
+                   setLoading(true);
+                   setRetryCount(prev => prev + 1);
+                }}
+                style={{
+                  marginTop: '0.5rem',
+                  background: '#D97706',
+                  color: 'white',
+                  border: 'none',
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: 6,
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                Refresh Status
+              </button>
             </div>
           </div>
         )}
@@ -369,7 +411,7 @@ export default function MyRoomPage() {
                 {/* Photo Gallery - Hero Image */}
                 <div style={{ borderRadius: 14, overflow: 'hidden', position: 'relative' }}>
                   <img
-                    src={photos?.[activePhotoIndex] || 'https://placehold.co/800x500/1D9E75/ffffff?text=CampusStay+TZ'}
+                    src={photos?.[activePhotoIndex] || 'https://placehold.co/800x500/1D9E75/ffffff?text=iRent'}
                     alt={listing?.title || 'Room'}
                     style={{ width: '100%', height: 300, objectFit: 'cover', display: 'block' }}
                   />
@@ -641,7 +683,7 @@ export default function MyRoomPage() {
                 </div>
 
                 <div className="card" style={{ padding: '1rem', borderRadius: 14 }}>
-                  <p style={{ margin: '0 0 0.75rem', fontSize: '0.78rem', color: 'var(--mid)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>CampusStay Support</p>
+                  <p style={{ margin: '0 0 0.75rem', fontSize: '0.78rem', color: 'var(--mid)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>iRent Support</p>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: '0.85rem', color: 'var(--mid)' }}>Helpline</span>
                     <a href="tel:+255800000000" style={{ color: '#1D9E75', fontWeight: 600, textDecoration: 'none' }}>+255 800 000 000</a>
@@ -697,7 +739,7 @@ export default function MyRoomPage() {
                     </p>
                   </div>
                   <p style={{ margin: '0 0 0.75rem', fontSize: '0.82rem', color: 'var(--mid)', lineHeight: 1.5 }}>
-                    Your rental agreement is managed between you and your landlord/dalali. Contact CampusStay support if you need a certified copy.
+                    Your rental agreement is managed between you and your landlord/dalali. Contact iRent support if you need a certified copy.
                   </p>
                   <button type="button" className="btn btn--ghost btn--small" style={{ width: '100%' }} onClick={() => window.print()}>
                     Print / Save as PDF

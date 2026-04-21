@@ -1,5 +1,5 @@
 import React from 'react';
-console.log('CampusStay TZ: Entry point main.tsx loaded');
+console.log('iRent: Entry point main.tsx loaded');
 
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
@@ -12,7 +12,7 @@ import './lib/i18n';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
-  console.error('CampusStay TZ: Fatal Error - #root element not found in DOM.');
+  console.error('iRent: Fatal Error - #root element not found in DOM.');
 } else {
   ReactDOM.createRoot(rootElement).render(
     <React.StrictMode>

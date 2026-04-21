@@ -1,5 +1,5 @@
 -- ============================================================
--- CampusStay TZ — Fix Schema Inconsistencies
+-- iRent — Fix Schema Inconsistencies
 -- Adds missing 'reference' columns to bookings and payment_records.
 -- ============================================================
 

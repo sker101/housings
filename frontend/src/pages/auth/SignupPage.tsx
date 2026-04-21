@@ -386,7 +386,7 @@ export default function SignupPage() {
           email: `${formData.phone}@campusstay.tz`,
         });
       }
-      toast.success('Account created! Welcome to CampusStay TZ 🎉');
+      toast.success('Account created! Welcome to iRent 🎉');
       navigate('/auth/login');
     } catch (err: any) {
       toast.error(err.message || 'Registration failed. Please try again.');
@@ -403,7 +403,7 @@ export default function SignupPage() {
       <div style={S.rolePickerPage}>
         <div style={S.rolePickerWrap}>
           <h1 style={S.rolePickerTitle}>
-            Join <span style={{ color: 'var(--jade-light)' }}>CampusStay TZ</span>
+            Join <span style={{ color: 'var(--jade-light)' }}>iRent</span>
           </h1>
           <p style={S.rolePickerSub}>
             Choose how you want to use the platform to get started.

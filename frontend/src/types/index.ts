@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// CampusStay TZ — Shared Type Definitions
+// iRent — Shared Type Definitions
 // ─────────────────────────────────────────────────────────────
 
 import type { ReactNode } from 'react';

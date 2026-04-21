@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// CampusStay TZ — Client-side Rate Limiter
+// iRent — Client-side Rate Limiter
 // Blocks login after 5 failed attempts within 15 minutes.
 // ─────────────────────────────────────────────────────────────
 

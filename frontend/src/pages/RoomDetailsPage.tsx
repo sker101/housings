@@ -555,7 +555,7 @@ export default function RoomDetailsPage() {
 
     const shareData = {
       title: listing.title,
-      text: `Check this listing on CampusStay TZ: ${listing.title}`,
+      text: `Check this listing on iRent: ${listing.title}`,
       url: window.location.href
     };
 

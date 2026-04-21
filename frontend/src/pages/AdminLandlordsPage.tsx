@@ -207,7 +207,7 @@ export default function AdminLandlordsPage() {
       if (profile?.phone) {
         await invokeFunction('send-sms', {
           to: profile.phone,
-          message: `CampusStay TZ: Hello ${profile.full_name}, your dalali account has been officially verified!`
+          message: `iRent: Hello ${profile.full_name}, your dalali account has been officially verified!`
         }, token).catch(() => null);
       }
 
@@ -240,7 +240,7 @@ export default function AdminLandlordsPage() {
       if (profile?.phone) {
         await invokeFunction('send-sms', {
           to: profile.phone,
-          message: `CampusStay TZ: Sorry ${profile.full_name}, your account verification was declined. Reason: ${rejectReason}`
+          message: `iRent: Sorry ${profile.full_name}, your account verification was declined. Reason: ${rejectReason}`
         }, token).catch(() => null);
       }
 

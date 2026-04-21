@@ -1,5 +1,5 @@
 -- ============================================================
--- CampusStay TZ — Fix Admin RLS Policies
+-- iRent — Fix Admin RLS Policies
 -- The previous policies checked (auth.jwt() ->> 'role') = 'admin'
 -- which always evaluates to FALSE for normal users (JWT role is
 -- 'authenticated', not 'admin').  We replace every broken admin

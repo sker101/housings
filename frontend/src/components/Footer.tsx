@@ -31,11 +31,11 @@ const SUPPORT_LINKS = [
 ];
 
 const SOCIAL_LINKS = [
-  { icon: Facebook, href: 'https://facebook.com/campusstay', label: 'Facebook' },
-  { icon: Twitter, href: 'https://twitter.com/campusstay', label: 'Twitter' },
-  { icon: Instagram, href: 'https://instagram.com/campusstay', label: 'Instagram' },
-  { icon: Linkedin, href: 'https://linkedin.com/company/campusstay', label: 'LinkedIn' },
-  { icon: Youtube, href: 'https://youtube.com/campusstay', label: 'YouTube' },
+  { icon: Facebook, href: 'https://facebook.com/irenttz', label: 'Facebook' },
+  { icon: Twitter, href: 'https://twitter.com/irenttz', label: 'Twitter' },
+  { icon: Instagram, href: 'https://instagram.com/irenttz', label: 'Instagram' },
+  { icon: Linkedin, href: 'https://linkedin.com/company/irenttz', label: 'LinkedIn' },
+  { icon: Youtube, href: 'https://youtube.com/irenttz', label: 'YouTube' },
 ];
 
 export default function Footer() {
@@ -53,7 +53,7 @@ export default function Footer() {
             <Link to="/" className="footer__logo">
               <Home size={28} style={{ color: '#166534' }} />
               <span>
-                Campus<span style={{ color: '#166534' }}>Stay</span>
+                i<span style={{ color: '#166534' }}>Rent</span>
               </span>
             </Link>
             <p className="footer__tagline">
@@ -63,7 +63,7 @@ export default function Footer() {
             <div className="footer__contact">
               <div className="footer__contact-item">
                 <Mail size={16} />
-                <span>support@campusstay.co.tz</span>
+                <span>support@irent.co.tz</span>
               </div>
               <div className="footer__contact-item">
                 <Phone size={16} />
@@ -129,7 +129,7 @@ export default function Footer() {
       <div className="footer__bottom">
         <div className="footer__bottom-inner">
           <p className="footer__copyright">
-            © {new Date().getFullYear()} CampusStay Tanzania. All rights reserved.
+            © {new Date().getFullYear()} iRent Tanzania. All rights reserved.
           </p>
           <div className="footer__bottom-links">
             <Link to="/terms">Terms</Link>

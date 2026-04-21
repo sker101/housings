@@ -1,6 +1,6 @@
 const DEFAULT_PROJECT_REF = 'iavflytaqfdwhmshocvm';
-const SESSION_KEY = 'campusstay.supabase.session.v1';
-export const AUTH_SESSION_REFRESH_EVENT = 'campusstay:session-refreshed';
+const SESSION_KEY = 'irent.supabase.session.v1';
+export const AUTH_SESSION_REFRESH_EVENT = 'irent:session-refreshed';
 
 const projectRef = DEFAULT_PROJECT_REF;
 

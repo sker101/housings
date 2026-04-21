@@ -291,7 +291,7 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
               color: 'var(--ink)',
               letterSpacing: '-0.02em'
             }}>
-              Campus<span style={{ color: '#22c55e' }}>Stay</span>
+              i<span style={{ color: '#22c55e' }}>Rent</span>
             </span>
           </Link>
 
