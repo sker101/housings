@@ -254,6 +254,28 @@ create table if not exists bookings (
 );
 
 -- ─────────────────────────────────────────
+-- ROOM INQUIRIES & CHATS
+-- ─────────────────────────────────────────
+
+create table if not exists room_inquiries (
+  id uuid primary key default gen_random_uuid(),
+  room_id uuid references rooms(id) on delete cascade,
+  tenant_id uuid references tenants(id) on delete cascade,
+  status text default 'open' check (status in ('open','negotiating','accepted','declined')),
+  last_message text,
+  created_at timestamptz default now()
+);
+
+create table if not exists chat_messages (
+  id uuid primary key default gen_random_uuid(),
+  inquiry_id uuid references room_inquiries(id) on delete cascade,
+  sender_id uuid references profiles(id),
+  body text not null,
+  is_read boolean default false,
+  created_at timestamptz default now()
+);
+
+-- ─────────────────────────────────────────
 -- PAYMENTS
 -- ─────────────────────────────────────────
 
@@ -400,6 +422,8 @@ alter table referrals enable row level security;
 alter table reviews enable row level security;
 alter table disputes enable row level security;
 alter table content_flags enable row level security;
+alter table room_inquiries enable row level security;
+alter table chat_messages enable row level security;
 alter table admin_audit_log enable row level security;
 
 -- Profiles: users see their own, admins see all
@@ -440,7 +464,7 @@ begin
     'tenants','landlords','property_managers','manager_landlord_auth',
     'properties','property_documents','rooms','room_photos','tenant_leases',
     'pre_bookings','bookings','payments','referrals','reviews','disputes',
-    'content_flags','system_config','admin_audit_log'
+    'content_flags','system_config','admin_audit_log','room_inquiries','chat_messages'
   ] loop
     execute format(
       'create policy "admin bypass %I" on %I for all using (
