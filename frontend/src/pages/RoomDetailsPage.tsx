@@ -625,12 +625,11 @@ export default function RoomDetailsPage() {
   };
 
   const averageRating = useMemo(() => {
-    if (reviews.length === 0) {
-      return 0;
-    }
-
-    const sum = reviews.reduce((acc, review) => acc + review.rating, 0);
-    return (sum / reviews.length).toFixed(1);
+    if (reviews.length === 0) return 0;
+    const validReviews = reviews.filter((r) => typeof r?.rating === 'number' && !isNaN(r.rating));
+    if (validReviews.length === 0) return 0;
+    const sum = validReviews.reduce((acc: number, review: any) => acc + review.rating, 0);
+    return (sum / validReviews.length).toFixed(1);
   }, [reviews]);
 
   const submitInquiry = async (event) => {

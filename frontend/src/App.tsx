@@ -2,6 +2,7 @@ import React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import ProtectedRoute from './components/ProtectedRoute';
+import PageErrorBoundary from './components/PageErrorBoundary';
 
 // ── Public pages ──────────────────────────────────────────────
 import Layout from './components/Layout';
@@ -83,9 +84,9 @@ export default function App() {
         {/* ── Public ──────────────────────────────────────── */}
         <Route path="/"              element={<PL><HomePage /></PL>} />
         <Route path="/listings"      element={<PL><SearchPage /></PL>} />
-        <Route path="/listings/:roomId" element={<RoomDetailsLayout><RoomDetailsPage /></RoomDetailsLayout>} />
+        <Route path="/listings/:roomId" element={<PageErrorBoundary><RoomDetailsLayout><RoomDetailsPage /></RoomDetailsLayout></PageErrorBoundary>} />
         <Route path="/search"        element={<Navigate to="/listings" replace />} />
-        <Route path="/rooms/:roomId" element={<RoomDetailsLayout><RoomDetailsPage /></RoomDetailsLayout>} />
+        <Route path="/rooms/:roomId" element={<PageErrorBoundary><RoomDetailsLayout><RoomDetailsPage /></RoomDetailsLayout></PageErrorBoundary>} />
         <Route path="/reset-password"    element={<PL><ResetPasswordPage /></PL>} />
 
         {/* ── Auth ────────────────────────────────────────── */}
