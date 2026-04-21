@@ -63,7 +63,7 @@ interface Listing {
 
 interface ListingMapProps {
   listings: Listing[];
-  onMarkerSelect?: (listing: Listing) => void;
+  onMarkerSelect?: (_listing: Listing) => void;
 }
 
 export default function ListingMap({ listings, onMarkerSelect }: ListingMapProps) {

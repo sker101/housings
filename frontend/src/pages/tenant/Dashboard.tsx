@@ -4,19 +4,17 @@
  * Features: Ward-based search, "Moving soon? List your room." CTA
  */
 
-import { useMemo, useState, useEffect, type ElementType, type CSSProperties } from 'react';
+import { useState, useEffect, type ElementType, type CSSProperties } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  Heart, MessageCircle, Calendar, User, Zap, TrendingUp, Clock,
+  Heart, Calendar, Zap, TrendingUp, Clock,
   ArrowRight, Sparkles, Search, MapPin, Gift, Home,
 } from 'lucide-react';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { StatusPill } from '../../components/StatusPill';
 import { useAuth } from '../../context/AuthContext';
 import { useListings } from '../../hooks/useListings';
-import { useInquiries } from '../../hooks/useInquiries';
-import { useBookings } from '../../hooks/useBookings';
 import { useActivityLog } from '../../hooks/useActivityLog';
 import { profileCompletion, TZSFormat, formatDate } from '../../utils/format';
 import { selectRows } from '../../lib/supabase';
@@ -72,8 +70,6 @@ export default function TenantDashboard() {
   useEffect(() => { setIsVisible(true); }, []);
 
   const { listings: savedListings, loading: savedLoading } = useListings(token, { limit: 3 });
-  const { inquiries } = useInquiries('tenant', userId, token);
-  const { bookings } = useBookings('tenant', userId, token);
   const { events, loading: actLoading } = useActivityLog(userId, token);
 
   // ── Fetch tenant record + active lease + referral earnings ──────
@@ -123,8 +119,6 @@ export default function TenantDashboard() {
   }, [isPaymentSuccess, activeLease, retryCount]);
 
   const completion     = profileCompletion(profile as unknown as Record<string, unknown> | null);
-  const activeInquiries = inquiries.filter(i => i.status === 'open').length;
-  const activeBookings  = bookings.filter(b => b.status === 'approved' || b.status === 'completed').length;
   const firstName       = user?.fullName?.split(' ')[0] ?? 'there';
 
   const daysLeft = activeLease?.days_remaining ?? null;

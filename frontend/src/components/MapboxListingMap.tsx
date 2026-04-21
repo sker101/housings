@@ -27,7 +27,7 @@ interface MapboxListingMapProps {
   rooms: MapRoom[];
   searchWard?: string;
   height?: string;
-  onRoomClick?: (roomId: string) => void;
+  onRoomClick?: (_roomId: string) => void;
 }
 
 /** Dar es Salaam ward → approximate [lng, lat] centre + zoom level */

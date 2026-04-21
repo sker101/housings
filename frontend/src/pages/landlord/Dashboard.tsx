@@ -6,14 +6,13 @@
 
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Zap, ShieldCheck, TrendingUp, Building2, AlertTriangle } from 'lucide-react';
+import { Zap, Building2, AlertTriangle } from 'lucide-react';
 import { SkeletonCard } from '../../components/SkeletonCard';
-import { StatusPill } from '../../components/StatusPill';
 import { InquiryCard } from '../../components/InquiryCard';
 import { useAuth } from '../../context/AuthContext';
 import { useListings } from '../../hooks/useListings';
 import { useInquiries } from '../../hooks/useInquiries';
-import { useBookings } from '../../hooks/useBookings';
+
 import { useActivityLog } from '../../hooks/useActivityLog';
 import { TZSFormat, formatDate } from '../../utils/format';
 import { selectRows } from '../../lib/supabase';
@@ -55,12 +54,10 @@ export default function LandlordDashboard() {
 
   const { listings, loading: listLoading } = useListings(token, { ownerId: userId ?? undefined });
   const { inquiries, loading: inqLoading, acceptInquiry, declineInquiry } = useInquiries('host', userId, token);
-  const { bookings, loading: bookLoading, monthlyIncome } = useBookings('host', userId, token);
   const { events, loading: actLoading } = useActivityLog(userId, token);
 
   const [leases, setLeases]               = useState<LeaseRow[]>([]);
   const [pendingDocs, setPendingDocs]     = useState(0);
-  const [landlordId, setLandlordId]       = useState<string | null>(null);
   const [totalRevenue, setTotalRevenue]   = useState(0);
 
   // ── Fetch landlord record + leases + pending docs ──────────────
@@ -77,7 +74,6 @@ export default function LandlordDashboard() {
         });
         if (!mounted || !landlords.length) return;
         const lId = (landlords[0] as {id:string}).id;
-        setLandlordId(lId);
 
         // Active leases
         const leaseRows = await selectRows('tenant_leases', {

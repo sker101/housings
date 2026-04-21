@@ -17,7 +17,7 @@ interface ExitListingModalProps {
   roomTitle: string;
   currentEndDate?: string;
   accessToken: string;
-  onSuccess: (newEndDate: string) => void;
+  onSuccess: (_newEndDate: string) => void;
   onClose: () => void;
 }
 
