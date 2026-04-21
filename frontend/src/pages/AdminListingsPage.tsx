@@ -262,7 +262,7 @@ export default function AdminListingsPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', minWidth: 780 }}>
             <thead>
               <tr style={{ background: 'var(--cream)' }}>
-                {['Title', 'Location', 'Price', 'Type', 'Lister', 'Status', 'Posted', 'Actions'].map((h) => (
+                {['Title', 'Location', 'Price', 'Type', 'Lister', 'Role', 'Status', 'Posted', 'Actions'].map((h) => (
                   <th key={h} style={{ textAlign: 'left', padding: '0.55rem 0.75rem', fontWeight: 700, color: 'var(--mid)', fontSize: '0.72rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
@@ -276,14 +276,20 @@ export default function AdminListingsPage() {
                   <td style={{ padding: '0.6rem 0.75rem', color: 'var(--mid)' }}>{l.room_type || '—'}</td>
                   <td style={{ padding: '0.6rem 0.75rem' }}>
                     <p style={{ fontWeight: 600, fontSize: '0.81rem' }}>{l.lister_name}</p>
-                    <p style={{ color: 'var(--mid)', fontSize: '0.76rem' }}>
-                      {l.lister_phone} 
-                      {l.lister_role && (
-                        <span style={{ marginLeft: '0.4rem', padding: '0.05rem 0.3rem', background: '#f5f3ff', color: '#7c3aed', borderRadius: 4, fontSize: '0.65rem', fontWeight: 700 }}>
-                          {l.lister_role === 'property_manager' ? 'PROJECT MANAGER' : l.lister_role.toUpperCase()}
-                        </span>
-                      )}
-                    </p>
+                    <p style={{ color: 'var(--mid)', fontSize: '0.76rem' }}>{l.lister_phone}</p>
+                  </td>
+                  <td style={{ padding: '0.6rem 0.75rem' }}>
+                    <span style={{ 
+                      padding: '0.15rem 0.45rem', 
+                      background: l.lister_role === 'property_manager' ? '#f5f3ff' : '#eff6ff', 
+                      color: l.lister_role === 'property_manager' ? '#7c3aed' : '#3b82f6', 
+                      borderRadius: 6, 
+                      fontSize: '0.72rem', 
+                      fontWeight: 700,
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {l.lister_role === 'property_manager' ? 'PROJECT MANAGER' : l.lister_role?.toUpperCase() || 'TENANT'}
+                    </span>
                   </td>
                   <td style={{ padding: '0.6rem 0.75rem' }}>
                     <span style={{
