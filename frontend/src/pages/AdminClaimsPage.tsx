@@ -106,7 +106,7 @@ export default function AdminClaimsPage() {
 
     const handleUphold = async (claim: any) => {
         const decision = window.prompt(
-            `Uphold CampusCover claim for "${claim.listing?.title || claim.listing_id}"?\n\nEnter your decision / resolution note:`
+            `Uphold iRent Shield claim for "${claim.listing?.title || claim.listing_id}"?\n\nEnter your decision / resolution note:`
         );
         if (decision === null) return;
 
@@ -129,7 +129,7 @@ export default function AdminClaimsPage() {
         <div className="container section">
             <div className="section__header">
                 <div>
-                    <h1>CampusCover Claims</h1>
+                    <h1>iRent Shield Claims</h1>
                     <p>Tenant protection claims — review and resolve within 48 hours.</p>
                 </div>
                 <Link to="/admin" className="btn btn--ghost btn--small">← Admin</Link>

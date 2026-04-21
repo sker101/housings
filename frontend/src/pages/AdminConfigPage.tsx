@@ -209,7 +209,9 @@ export default function AdminConfigPage() {
               >
                 <div>
                   <p style={{ fontWeight: '600', marginBottom: '0.25rem' }}>
-                    {item.key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                    {item.key === 'dalali_subscriptions_enabled' ? 'PM Subscriptions Enabled'
+                      : item.key === 'dalali_pro_monthly_tzs' ? 'PM Pro Monthly Price (TZS)'
+                      : item.key.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
                   </p>
                   <p style={{ fontSize: '0.85rem', color: '#6b7280' }}>{item.description}</p>
                 </div>
@@ -243,7 +245,8 @@ export default function AdminConfigPage() {
               >
                 <div>
                   <p style={{ fontWeight: '600', marginBottom: '0.25rem' }}>
-                    {item.key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                    {item.key === 'dalali_pro_monthly_tzs' ? 'PM Pro Monthly Price (TZS)'
+                      : item.key.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
                   </p>
                   <p style={{ fontSize: '0.85rem', color: '#6b7280' }}>{item.description}</p>
                 </div>

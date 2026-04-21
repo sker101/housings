@@ -637,11 +637,12 @@ label {
   gap: 0.65rem;
 }
 
-.leaflet-map-wrap {
+/* Map container — works with Mapbox GL */
+.map-wrap {
   position: relative;
 }
 
-.leaflet-map {
+.map-container {
   min-height: 360px;
   width: 100%;
   border-radius: 16px;
@@ -649,7 +650,7 @@ label {
   border: 1px solid var(--border);
 }
 
-.leaflet-map-wrap .map-loading {
+.map-wrap .map-loading {
   margin-bottom: 0.5rem;
 }
 
@@ -666,19 +667,6 @@ label {
   pointer-events: none;
 }
 
-.leaflet-map .leaflet-control-zoom a {
-  color: var(--ink);
-}
-
-.leaflet-map .leaflet-popup-content-wrapper,
-.leaflet-map .leaflet-popup-tip {
-  border: 1px solid var(--border);
-}
-
-.leaflet-map .leaflet-popup-content {
-  font-family: 'DM Sans', sans-serif;
-  color: #2f2a26;
-}
 
 .auth-page {
   min-height: calc(100vh - 136px);

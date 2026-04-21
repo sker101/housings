@@ -1093,6 +1093,52 @@ export default function RoomDetailsPage() {
           )}
         </article>
 
+        {/* ── Habitability & Infrastructure ─────────────────────────── */}
+        <article className="card room-section-card">
+          <h2>🏗️ Habitability & Infrastructure</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.75rem', marginTop: '0.5rem' }}>
+            {/* Water Pressure */}
+            <div style={{ background: '#f9fafb', borderRadius: 10, padding: '0.9rem 1rem', border: '1px solid #e5e7eb' }}>
+              <p style={{ margin: '0 0 0.3rem', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6b7280' }}>💧 Water Pressure</p>
+              <span style={{
+                display: 'inline-block', padding: '0.2rem 0.65rem', borderRadius: 99, fontWeight: 700, fontSize: '0.82rem',
+                background: listing?.water_pressure === 'high' ? '#dcfce7' : listing?.water_pressure === 'medium' ? '#fef9c3' : listing?.water_pressure === 'low' ? '#fee2e2' : '#f1f5f9',
+                color: listing?.water_pressure === 'high' ? '#166534' : listing?.water_pressure === 'medium' ? '#854d0e' : listing?.water_pressure === 'low' ? '#991b1b' : '#475569',
+              }}>
+                {listing?.water_pressure
+                  ? String(listing.water_pressure).charAt(0).toUpperCase() + String(listing.water_pressure).slice(1)
+                  : 'Not specified'}
+              </span>
+            </div>
+
+            {/* Power Backup */}
+            <div style={{ background: '#f9fafb', borderRadius: 10, padding: '0.9rem 1rem', border: '1px solid #e5e7eb' }}>
+              <p style={{ margin: '0 0 0.3rem', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6b7280' }}>⚡ Power Backup</p>
+              <span style={{
+                display: 'inline-block', padding: '0.2rem 0.65rem', borderRadius: 99, fontWeight: 700, fontSize: '0.82rem',
+                background: !listing?.power_backup || listing?.power_backup === 'none' ? '#fef2f2' : '#eff6ff',
+                color: !listing?.power_backup || listing?.power_backup === 'none' ? '#991b1b' : '#1e40af',
+              }}>
+                {listing?.power_backup
+                  ? String(listing.power_backup).replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())
+                  : 'Not specified'}
+              </span>
+            </div>
+
+            {/* Mobile Network */}
+            <div style={{ background: '#f9fafb', borderRadius: 10, padding: '0.9rem 1rem', border: '1px solid #e5e7eb' }}>
+              <p style={{ margin: '0 0 0.3rem', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6b7280' }}>📶 Mobile Network</p>
+              <span style={{
+                display: 'inline-block', padding: '0.2rem 0.65rem', borderRadius: 99, fontWeight: 700, fontSize: '0.82rem',
+                background: listing?.network_strength === '5G' || listing?.network_strength === '4G' ? '#dcfce7' : listing?.network_strength ? '#fef9c3' : '#f1f5f9',
+                color: listing?.network_strength === '5G' || listing?.network_strength === '4G' ? '#166534' : listing?.network_strength ? '#854d0e' : '#475569',
+              }}>
+                {listing?.network_strength || 'Not specified'}
+              </span>
+            </div>
+          </div>
+        </article>
+
         <article className="card room-section-card">
           <h2>{t('roomDetails.houseRules')}</h2>
           {houseRules.length > 0 ? (

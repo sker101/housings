@@ -2,23 +2,36 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import VerifiedBadge from './VerifiedBadge';
 
-function formatPrice(value) {
-  return `${new Intl.NumberFormat('en-TZ').format(Number(value || 0))} TZS`;
+function formatTZS(value: number | string | undefined) {
+  return new Intl.NumberFormat('sw-TZ', {
+    style: 'currency',
+    currency: 'TZS',
+    maximumFractionDigits: 0,
+  }).format(Number(value || 0));
 }
 
-function humanize(value) {
-  if (!value) {
-    return 'Not set';
-  }
-
+function humanize(value: string | undefined) {
+  if (!value) return 'Not set';
   return String(value)
     .replace(/_/g, ' ')
     .toLowerCase()
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-export default function ListingCard({ listing, onToggleSave, isSaved = false }) {
+function isComingSoon(status: string | undefined): boolean {
+  return status === 'available_soon' || status === 'listed_occupied';
+}
+
+export default function ListingCard({ listing, onToggleSave, isSaved = false }: {
+  listing: any;
+  onToggleSave?: (_id: string) => void;
+  isSaved?: boolean;
+}) {
   const { t } = useTranslation();
+  const serviceCharge = Number(listing.service_charge_tzs || listing.serviceChargeTzs || 0);
+  const baseRent = Number(listing.priceMonthly || 0);
+  const monthlyTotal = baseRent + serviceCharge;
+  const hasServiceCharge = serviceCharge > 0;
 
   return (
     <article className="listing-card">
@@ -29,13 +42,40 @@ export default function ListingCard({ listing, onToggleSave, isSaved = false }) 
           alt={listing.title}
           loading="lazy"
         />
+
+        {/* Base rent chip */}
         <span className="listing-card__chip listing-card__chip--price">
-          {formatPrice(listing.priceMonthly)}{t('listingCard.perMonth')}
+          {formatTZS(baseRent)}{t('listingCard.perMonth')}
         </span>
+
+        {/* Monthly total badge — shows when service charges apply */}
+        {hasServiceCharge && (
+          <span style={{
+            position: 'absolute', bottom: 40, left: 8,
+            background: 'rgba(22,101,52,0.92)', color: '#fff',
+            borderRadius: 8, padding: '3px 10px', fontSize: '0.72rem',
+            fontWeight: 700, backdropFilter: 'blur(4px)',
+          }}>
+            Total: {formatTZS(monthlyTotal)}/mo
+          </span>
+        )}
+
         {listing.verified ? <VerifiedBadge /> : null}
-        <span className={`listing-card__chip listing-card__chip--status status-${listing.vacancyStatus || 'available'}`}>
-          {humanize(listing.vacancyStatus || 'available')}
-        </span>
+
+        {/* Vacancy / Coming Soon status chip */}
+        {isComingSoon(listing.vacancyStatus) ? (
+          <span style={{
+            position: 'absolute', top: 8, left: 8,
+            background: '#f59e0b', color: '#fff',
+            borderRadius: 8, padding: '3px 10px', fontSize: '0.72rem', fontWeight: 700,
+          }}>
+            Coming Soon
+          </span>
+        ) : (
+          <span className={`listing-card__chip listing-card__chip--status status-${listing.vacancyStatus || 'available'}`}>
+            {humanize(listing.vacancyStatus || 'available')}
+          </span>
+        )}
       </Link>
 
       <div className="listing-card__content">
@@ -80,3 +120,4 @@ export default function ListingCard({ listing, onToggleSave, isSaved = false }) 
     </article>
   );
 }
+

@@ -98,6 +98,8 @@ export default function SearchPage() {
   const [utilitiesIncluded, setUtilitiesIncluded] = useState(false);
   const [viewMode, setViewMode] = useState('list');
   const [listings, setListings] = useState([]);
+  // Mapbox viewport bounds for viewport-sync filtering
+  const [mapBounds, setMapBounds] = useState<{ north: number; south: number; east: number; west: number } | null>(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [savedIds, setSavedIds] = useState(new Set());
@@ -280,7 +282,27 @@ export default function SearchPage() {
     return result;
   }, [listings, selectedUniversity]);
 
-  const mapListings = useMemo(() => processedListings.filter(l => l.lat && l.lng), [processedListings]);
+  const mapListings = useMemo(() => processedListings.filter((l: any) => l.lat && l.lng), [processedListings]);
+
+  // Viewport-synced subset — only rooms visible in current map bounds
+  const viewportListings = useMemo(() => {
+    if (!mapBounds) return mapListings;
+    return mapListings.filter((l: any) => {
+      const lat = Number(l.lat);
+      const lng = Number(l.lng);
+      return (
+        lat >= mapBounds.south && lat <= mapBounds.north &&
+        lng >= mapBounds.west  && lng <= mapBounds.east
+      );
+    });
+  }, [mapListings, mapBounds]);
+
+  const handleBoundsChange = useCallback(
+    (bounds: { north: number; south: number; east: number; west: number }) => {
+      setMapBounds(bounds);
+    },
+    []
+  );
 
   const clearFilters = () => {
     setSearchQuery('');
@@ -658,10 +680,9 @@ export default function SearchPage() {
       {error ? <p className="error-text">{error}</p> : null}
 
       {viewMode === 'map' ? (
-        <section className="card map-view">
-          <h2>Map View</h2>
+        <section style={{ position: 'relative' }}>
           <MapboxListingMap
-            rooms={mapListings.map((l: any) => ({
+            rooms={viewportListings.map((l: any) => ({
               id: l.id,
               latitude: Number(l.lat),
               longitude: Number(l.lng),
@@ -671,10 +692,24 @@ export default function SearchPage() {
               ward: l.ward
             }))}
             searchWard={searchQuery}
+            height="calc(100vh - 200px)"
             onRoomClick={(roomId) => navigate(`/rooms/${roomId}`)}
+            onBoundsChange={handleBoundsChange}
           />
+          {/* Viewport count badge */}
+          <div style={{
+            position: 'absolute', top: 12, left: 12, zIndex: 10,
+            background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(8px)',
+            borderRadius: 20, padding: '6px 14px', fontSize: '0.82rem',
+            fontWeight: 700, boxShadow: '0 2px 10px rgba(0,0,0,0.12)',
+            color: '#1e293b',
+          }}>
+            {viewportListings.length} of {mapListings.length} listings in view
+          </div>
           {hasMore ? (
-            <button type="button" className="btn btn--ghost btn--small" onClick={loadMore} disabled={loadingMore}>
+            <button type="button" className="btn btn--ghost btn--small"
+              style={{ position: 'absolute', bottom: 60, left: '50%', transform: 'translateX(-50%)', zIndex: 10 }}
+              onClick={loadMore} disabled={loadingMore}>
               {loadingMore ? t('search.loadingMore') : t('search.loadMoreMap')}
             </button>
           ) : null}

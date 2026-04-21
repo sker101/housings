@@ -1,55 +1,20 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import 'leaflet/dist/leaflet.css';
-import * as LOriginal from 'leaflet';
+/**
+ * ListingMap.tsx — iRent
+ * Single-listing detail map using Mapbox GL (replaces Leaflet).
+ * Shows one green pin with a popup. Used in RoomDetailsPage.
+ */
+import { useEffect, useMemo, useRef } from 'react';
+import mapboxgl from 'mapbox-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
 
-// Fix Leaflet's default icon paths when bundled by Vite (must run once)
-let iconFixed = false;
-function ensureIconsFixed() {
-  if (iconFixed) return;
-  iconFixed = true;
-  // @ts-ignore
-  delete LOriginal.Icon.Default.prototype._getIconUrl;
-  LOriginal.Icon.Default.mergeOptions({
-    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-    iconUrl:       'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-    shadowUrl:     'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  });
-}
-
-const L = LOriginal;
+mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN || '';
 
 function formatPrice(value: any) {
-  return `${new Intl.NumberFormat('en-TZ').format(Number(value || 0))} TZS`;
-}
-
-function escapeHtml(value: any) {
-  return String(value || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function normalizePoints(points: any[]) {
-  const lats = points.map((item) => Number(item.lat));
-  const lngs = points.map((item) => Number(item.lng));
-  const minLat = Math.min(...lats);
-  const maxLat = Math.max(...lats);
-  const minLng = Math.min(...lngs);
-  const maxLng = Math.max(...lngs);
-
-  return points.map((item) => {
-    const lat = Number(item.lat);
-    const lng = Number(item.lng);
-    const x = maxLng === minLng ? 50 : ((lng - minLng) / (maxLng - minLng)) * 100;
-    const y = maxLat === minLat ? 50 : (1 - (lat - minLat) / (maxLat - minLat)) * 100;
-    return {
-      ...item,
-      normalizedX: Math.max(6, Math.min(94, x)),
-      normalizedY: Math.max(8, Math.min(92, y)),
-    };
-  });
+  return new Intl.NumberFormat('sw-TZ', {
+    style: 'currency',
+    currency: 'TZS',
+    maximumFractionDigits: 0,
+  }).format(Number(value || 0));
 }
 
 interface Listing {
@@ -67,156 +32,128 @@ interface ListingMapProps {
 }
 
 export default function ListingMap({ listings, onMarkerSelect }: ListingMapProps) {
-  const mapElementRef = useRef<HTMLDivElement | null>(null);
-  const mapInstanceRef = useRef<any>(null);
-  const markerLayerRef = useRef<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const markersRef = useRef<mapboxgl.Marker[]>([]);
 
   const validPoints = useMemo(
-    () => listings.filter(
-      (listing) => Number.isFinite(Number(listing.lat)) && Number.isFinite(Number(listing.lng))
-    ),
+    () =>
+      listings.filter(
+        (l) => Number.isFinite(Number(l.lat)) && Number.isFinite(Number(l.lng))
+      ),
     [listings]
   );
 
-  const fallbackPoints = useMemo(() => normalizePoints(validPoints), [validPoints]);
-
+  // Wire global popup click handler
   useEffect(() => {
-    let cancelled = false;
+    if (!onMarkerSelect) return;
+    const handler = (e: Event) => {
+      const id = (e as CustomEvent<string>).detail;
+      const listing = listings.find((l) => l.id === id);
+      if (listing) onMarkerSelect(listing);
+    };
+    window.addEventListener('irent:map-marker-click', handler);
+    return () => window.removeEventListener('irent:map-marker-click', handler);
+  }, [listings, onMarkerSelect]);
 
-    async function initMap() {
-      if (!mapElementRef.current || validPoints.length === 0) {
-        setLoading(false);
-        return;
+  // Init map
+  useEffect(() => {
+    if (!containerRef.current || mapRef.current || validPoints.length === 0) return;
+
+    const first = validPoints[0];
+    const map = new mapboxgl.Map({
+      container: containerRef.current,
+      style: 'mapbox://styles/mapbox/light-v11',
+      center: [Number(first.lng), Number(first.lat)],
+      zoom: validPoints.length === 1 ? 15 : 13,
+      attributionControl: false,
+    });
+
+    map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
+    map.addControl(new mapboxgl.AttributionControl({ compact: true }), 'bottom-right');
+
+    map.on('load', () => {
+      // Place markers after map is ready
+      validPoints.forEach((listing) => {
+        const lat = Number(listing.lat);
+        const lng = Number(listing.lng);
+
+        // Custom pin element
+        const el = document.createElement('div');
+        el.style.cssText = `
+          width:36px;height:36px;cursor:pointer;
+          display:flex;align-items:center;justify-content:center;
+          filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+          transition:transform 0.15s ease;
+        `;
+        el.innerHTML = `
+          <svg width="36" height="36" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="18" cy="16" r="14" fill="#22c55e" stroke="white" stroke-width="2.5"/>
+            <path d="M18 34 L12 22 Q18 28 24 22 Z" fill="#22c55e"/>
+            <text x="18" y="21" text-anchor="middle" fill="white" font-size="13" font-weight="bold" font-family="Inter,sans-serif">✓</text>
+          </svg>
+        `;
+        el.addEventListener('mouseenter', () => { el.style.transform = 'scale(1.2)'; });
+        el.addEventListener('mouseleave', () => { el.style.transform = 'scale(1)'; });
+
+        const popup = new mapboxgl.Popup({ offset: 25, closeButton: false, maxWidth: '220px' })
+          .setHTML(`
+            <div style="font-family:'Inter',sans-serif;padding:4px 0">
+              <strong style="font-size:13px;color:#1e293b">${listing.title || 'Listing'}</strong>
+              <p style="margin:4px 0 0;font-size:14px;font-weight:700;color:#22c55e">
+                ${formatPrice(listing.priceMonthly)}<span style="font-weight:400;font-size:11px;color:#94a3b8">/mo</span>
+              </p>
+              <button
+                onclick="window.dispatchEvent(new CustomEvent('irent:map-marker-click',{detail:'${listing.id}'}))"
+                style="margin-top:8px;padding:6px 14px;background:#22c55e;color:white;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;width:100%"
+              >View Room</button>
+            </div>
+          `);
+
+        const marker = new mapboxgl.Marker(el)
+          .setLngLat([lng, lat])
+          .setPopup(popup)
+          .addTo(map);
+
+        markersRef.current.push(marker);
+      });
+
+      // Fit all markers if >1
+      if (validPoints.length > 1) {
+        const bounds = new mapboxgl.LngLatBounds();
+        validPoints.forEach((l) => bounds.extend([Number(l.lng), Number(l.lat)]));
+        map.fitBounds(bounds, { padding: 48, maxZoom: 16 });
       }
+    });
 
-      setLoading(true);
-      setError('');
+    mapRef.current = map;
 
-      try {
-        ensureIconsFixed();
-
-        if (!mapInstanceRef.current) {
-          mapInstanceRef.current = L.map(mapElementRef.current, {
-            zoomControl: true,
-            scrollWheelZoom: false,
-          });
-
-          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '&copy; OpenStreetMap contributors',
-          }).addTo(mapInstanceRef.current);
-        }
-
-        if (markerLayerRef.current) {
-          markerLayerRef.current.remove();
-        }
-
-        markerLayerRef.current = L.layerGroup();
-        const bounds: [number, number][] = [];
-
-        validPoints.forEach((listing) => {
-          const lat = Number(listing.lat);
-          const lng = Number(listing.lng);
-          bounds.push([lat, lng]);
-
-          const marker = L.marker([lat, lng]);
-          marker.bindPopup(
-            `<strong>${escapeHtml(listing.title)}</strong><br/>${formatPrice(listing.priceMonthly)}/month`
-          );
-          marker.on('click', () => onMarkerSelect?.(listing));
-          markerLayerRef.current.addLayer(marker);
-        });
-
-        markerLayerRef.current.addTo(mapInstanceRef.current);
-
-        if (bounds.length === 1) {
-          mapInstanceRef.current.setView(bounds[0], 18);
-        } else {
-          mapInstanceRef.current.fitBounds(bounds, { padding: [28, 28], maxZoom: 18 });
-        }
-
-        setTimeout(() => {
-          if (!cancelled) mapInstanceRef.current?.invalidateSize();
-        }, 150);
-      } catch (mapError) {
-        if (!cancelled) {
-          setError(
-            mapError instanceof Error ? mapError.message : 'Unable to initialize map.'
-          );
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    initMap();
-    return () => { cancelled = true; };
-  }, [validPoints, onMarkerSelect]);
-
-  useEffect(
-    () => () => {
-      markerLayerRef.current?.remove();
-      markerLayerRef.current = null;
-      mapInstanceRef.current?.remove();
-      mapInstanceRef.current = null;
-    },
-    []
-  );
+    return () => {
+      markersRef.current.forEach((m) => m.remove());
+      markersRef.current = [];
+      map.remove();
+      mapRef.current = null;
+    };
+  }, [validPoints]);
 
   if (validPoints.length === 0) {
     return (
-      <div className="leaflet-map-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 240, background: '#f7f7f7', borderRadius: 16, border: '1px solid var(--border)' }}>
-        <p className="muted" style={{ textAlign: 'center', padding: '2rem' }}>
-          📍 No location coordinates available for these listings yet.
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        minHeight: 240, background: '#f7f7f7', borderRadius: 16,
+        border: '1px solid var(--border)',
+      }}>
+        <p style={{ textAlign: 'center', padding: '2rem', color: 'var(--mid)' }}>
+          📍 No location coordinates available for this listing yet.
         </p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="leaflet-map-wrap">
-        <p className="muted map-loading" style={{ marginBottom: '0.5rem', color: 'var(--mid)', fontSize: '0.85rem' }}>
-          Map could not load — showing approximate position layout instead.
-        </p>
-        <div className="map-fallback" role="region" aria-label="Listing map fallback">
-          {fallbackPoints.map((listing) => (
-            <button
-              key={listing.id}
-              type="button"
-              className="map-fallback__marker"
-              style={{ left: `${listing.normalizedX}%`, top: `${listing.normalizedY}%` }}
-              title={`${listing.title} • ${formatPrice(listing.priceMonthly)}/month`}
-              onClick={() => onMarkerSelect?.(listing)}
-            >
-              ●
-            </button>
-          ))}
-        </div>
-        <div className="map-fallback__legend">
-          {fallbackPoints.slice(0, 6).map((listing) => (
-            <button
-              key={`legend-${listing.id}`}
-              type="button"
-              className="btn btn--ghost btn--small"
-              onClick={() => onMarkerSelect?.(listing)}
-            >
-              {listing.title}
-            </button>
-          ))}
-        </div>
       </div>
     );
   }
 
   return (
-    <div className="leaflet-map-wrap">
-      <div ref={mapElementRef} className="leaflet-map" aria-label="Listing map" />
-      {loading && (
-        <p className="muted map-loading map-loading--overlay">Loading map…</p>
-      )}
+    <div style={{ position: 'relative', borderRadius: 16, overflow: 'hidden', minHeight: 280 }}>
+      <div ref={containerRef} style={{ width: '100%', height: 320 }} />
     </div>
   );
 }
+

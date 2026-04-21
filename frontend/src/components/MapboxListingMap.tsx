@@ -28,6 +28,7 @@ interface MapboxListingMapProps {
   searchWard?: string;
   height?: string;
   onRoomClick?: (_roomId: string) => void;
+  onBoundsChange?: (_bounds: { north: number; south: number; east: number; west: number }) => void;
 }
 
 /** Dar es Salaam ward → approximate [lng, lat] centre + zoom level */
@@ -86,6 +87,7 @@ export default function MapboxListingMap({
   searchWard,
   height = '420px',
   onRoomClick,
+  onBoundsChange,
 }: MapboxListingMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef       = useRef<mapboxgl.Map | null>(null);
@@ -108,6 +110,21 @@ export default function MapboxListingMap({
     map.addControl(new mapboxgl.AttributionControl({ compact: true }), 'bottom-right');
 
     map.on('load', () => setMapLoaded(true));
+
+    // Fire bounds on every move so parent can filter listings to viewport
+    const fireBounds = () => {
+      if (!onBoundsChange) return;
+      const b = map.getBounds();
+      if (!b) return;
+      onBoundsChange({
+        north: b.getNorth(),
+        south: b.getSouth(),
+        east:  b.getEast(),
+        west:  b.getWest(),
+      });
+    };
+    map.on('moveend', fireBounds);
+    map.on('zoomend', fireBounds);
 
     mapRef.current = map;
     return () => {
