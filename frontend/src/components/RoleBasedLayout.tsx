@@ -144,7 +144,7 @@ function RoleBasedSidebarContent({
               whiteSpace: 'nowrap',
             }}
           >
-            Campus<span style={{ color: accentColor }}>Stay</span>
+            i<span style={{ color: accentColor }}>Rent</span>
           </span>
         </div>
       </div>
