@@ -2,11 +2,10 @@ import React from 'react';
 import type { Role } from '../types';
 
 const ROLE_STYLES: Record<Role, { bg: string; color: string; label: string }> = {
-  student:  { bg: '#dcfce7',          color: '#15803d',      label: 'Student' },
-  landlord: { bg: 'var(--jade-muted)', color: 'var(--jade)', label: 'Landlord' },
-  lister:   { bg: 'var(--jade-muted)', color: 'var(--jade)', label: 'Landlord' },
-  dalali:   { bg: '#f3e8ff',          color: '#7c3aed',       label: 'Dalali' },
-  admin:    { bg: 'var(--red-light)', color: 'var(--red)',    label: 'Admin' },
+  tenant:           { bg: '#dcfce7',          color: '#15803d',      label: 'Tenant' },
+  landlord:         { bg: 'var(--jade-muted)', color: 'var(--jade)', label: 'Landlord' },
+  property_manager: { bg: '#f3e8ff',          color: '#7c3aed',      label: 'Property Manager' },
+  admin:            { bg: 'var(--red-light)', color: 'var(--red)',   label: 'Admin' },
 };
 
 interface RoleBadgeProps {
@@ -17,10 +16,10 @@ interface RoleBadgeProps {
 export function RoleBadge({ role, size = 'md' }: RoleBadgeProps) {
   const normalizedRole = (() => {
     const r = String(role).toLowerCase();
-    if (r === 'lister' || r === 'landlord') return 'landlord';
-    if (r === 'dalali') return 'dalali';
+    if (r === 'landlord' || r === 'lister') return 'landlord';
+    if (r === 'property_manager' || r === 'manager' || r === 'dalali') return 'property_manager';
     if (r === 'admin') return 'admin';
-    return 'student';
+    return 'tenant';
   })() as Role;
 
   const style = ROLE_STYLES[normalizedRole];

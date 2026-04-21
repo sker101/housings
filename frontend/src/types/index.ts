@@ -4,7 +4,7 @@
 
 import type { ReactNode } from 'react';
 
-export type Role = 'student' | 'landlord' | 'dalali' | 'admin' | 'lister';
+export type Role = 'tenant' | 'landlord' | 'property_manager' | 'admin';
 export type ListingStatus = 'draft' | 'pending' | 'approved' | 'rejected' | 'flagged' | 'suspended';
 export type InquiryStatus = 'open' | 'interested' | 'unavailable' | 'booked';
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';

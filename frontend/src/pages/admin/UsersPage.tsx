@@ -13,14 +13,14 @@ import toast from 'react-hot-toast';
 
 type AdminProfile = Profile & { email?: string };
 
-type RoleTab = 'all' | 'student' | 'landlord' | 'dalali' | 'admin';
+type RoleTab = 'all' | 'tenant' | 'landlord' | 'property_manager' | 'admin';
 
 const TABS: { key: RoleTab; label: string; icon: React.ReactNode }[] = [
-  { key: 'all',      label: 'All',      icon: <Users size={14} /> },
-  { key: 'student',  label: 'Tenants',  icon: <GraduationCap size={14} /> },
-  { key: 'landlord', label: 'Landlords',icon: <Home size={14} /> },
-  { key: 'dalali',   label: 'Dalalis',  icon: <Handshake size={14} /> },
-  { key: 'admin',    label: 'Admins',   icon: <ShieldCheck size={14} /> },
+  { key: 'all',              label: 'All',      icon: <Users size={14} /> },
+  { key: 'tenant',           label: 'Tenants',  icon: <GraduationCap size={14} /> },
+  { key: 'landlord',         label: 'Landlords',icon: <Home size={14} /> },
+  { key: 'property_manager', label: 'Managers', icon: <Handshake size={14} /> },
+  { key: 'admin',            label: 'Admins',   icon: <ShieldCheck size={14} /> },
 ];
 
 export default function AdminUsersPage() {
@@ -116,20 +116,20 @@ export default function AdminUsersPage() {
   const handleUnsuspend = (id: string) => optimisticUpdate(id, { verification_status: 'unverified' } as any,   'unsuspend',  'Account reinstated');
   // ── Filtering ────────────────────────────────────────────────
   const counts: Record<RoleTab, number> = {
-    all:      profiles.length,
-    student:  profiles.filter((p) => p.role === 'student').length,
-    landlord: profiles.filter((p) => p.role === 'lister' && p.lister_type !== 'dalali').length,
-    dalali:   profiles.filter((p) => p.role === 'lister' && p.lister_type === 'dalali').length,
-    admin:    profiles.filter((p) => p.role === 'admin').length,
+    all:              profiles.length,
+    tenant:           profiles.filter((p) => p.role === 'tenant').length,
+    landlord:         profiles.filter((p) => p.role === 'landlord').length,
+    property_manager: profiles.filter((p) => p.role === 'property_manager').length,
+    admin:            profiles.filter((p) => p.role === 'admin').length,
   };
 
   const filtered = profiles.filter((p) => {
     const matchTab =
       activeTab === 'all' ||
-      (activeTab === 'student'  && p.role === 'student') ||
-      (activeTab === 'landlord' && p.role === 'lister' && p.lister_type !== 'dalali') ||
-      (activeTab === 'dalali'   && p.role === 'lister' && p.lister_type === 'dalali') ||
-      (activeTab === 'admin'    && p.role === 'admin');
+      (activeTab === 'tenant'           && p.role === 'tenant') ||
+      (activeTab === 'landlord'         && p.role === 'landlord') ||
+      (activeTab === 'property_manager' && p.role === 'property_manager') ||
+      (activeTab === 'admin'            && p.role === 'admin');
     
     const q = search.trim().toLowerCase();
     const matchSearch = !q || p.full_name?.toLowerCase().includes(q) || p.phone?.toLowerCase().includes(q);
@@ -221,13 +221,8 @@ export default function AdminUsersPage() {
                   <td style={{ padding: '0.6rem 0.75rem', color: 'var(--mid)' }}>{p.phone || '—'}</td>
                   <td style={{ padding: '0.6rem 0.75rem' }}>
                     <div style={{ fontWeight: 600, color: 'var(--jade)', fontSize: '0.75rem', textTransform: 'uppercase' }}>
-                      {p.role === 'student' ? 'Tenant' : p.role === 'admin' ? 'Admin' : (p.lister_type === 'dalali' ? 'Dalali' : 'Landlord')}
+                      {p.role === 'tenant' ? 'Tenant' : p.role === 'admin' ? 'Admin' : (p.role === 'property_manager' ? 'Property Manager' : 'Landlord')}
                     </div>
-                    {p.role === 'lister' && p.lister_type && (
-                      <div style={{ fontSize: '0.65rem', color: 'var(--mid)', textTransform: 'capitalize' }}>
-                        {p.lister_type}
-                      </div>
-                    )}
                   </td>
                   <td style={{ padding: '0.6rem 0.75rem' }}>
                     <StatusPill variant={p.verification_status === 'verified' ? 'verified' : 'unverified'} size="sm" />
