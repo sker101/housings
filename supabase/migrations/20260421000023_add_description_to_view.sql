@@ -1,4 +1,4 @@
--- Enhanced listings view for detail page compatibility
+-- Add missing columns to listings view
 DROP VIEW IF EXISTS public.listings;
 
 CREATE VIEW public.listings AS
@@ -29,7 +29,6 @@ SELECT
   'apartment'::text AS property_type,
   p.latitude,
   p.longitude,
-  r.is_furnished AS furnished,
   r.max_occupants,
   r.room_number
 FROM public.rooms r

@@ -11,7 +11,7 @@
         "dashboard": "Dashboard"
     },
     "home": {
-        "heroEyebrow": "Verified Student Housing",
+        "heroEyebrow": "Verified Tenant Housing",
         "heroTitle": "Find trusted rooms near campus in minutes.",
         "heroSubtitle": "Search, compare, and message verified listers around Dar es Salaam.",
         "searchPlaceholder": "Search by title, ward, district",
@@ -121,21 +121,21 @@
         "welcomeBack": "Welcome back",
         "signInTitle": "Sign in to iRent",
         "signInSubtitle": "Access verified listings, saved homes, and conversations in one place.",
-        "createStudent": "Create student account",
+        "createStudent": "Create tenant account",
         "createLister": "Create lister account",
         "alreadyHaveAccount": "I already have an account",
         "fullName": "Full name",
         "phone": "Phone number",
         "universityOptional": "University (optional)",
         "creatingAccount": "Creating account...",
-        "studentRegTitle": "Student Registration",
+        "studentRegTitle": "Tenant Registration",
         "studentRegSubtitle": "Create your account to save listings and message listers.",
         "listerRegTitle": "Lister Registration",
-        "listerRegSubtitle": "Register as an owner, manager, or dalali to submit verified listings.",
+        "listerRegSubtitle": "Register as an owner, manager, or project manager to submit verified listings.",
         "listerType": "Lister type",
         "owner": "Property Owner",
         "manager": "Property Manager",
-        "dalali": "Dalali / Agent"
+        "dalali": "Project Manager / PM"
     },
     "dashboard": {
         "profile": "Profile",
@@ -319,7 +319,7 @@
         "retry": "Retry"
     },
     "studentDashboard": {
-        "title": "Student Dashboard",
+        "title": "Tenant Dashboard",
         "welcomeBack": "Welcome back",
         "subtitle": "Here's everything you need to find your perfect stay",
         "findRooms": "Find Rooms",

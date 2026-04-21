@@ -35,10 +35,10 @@ interface NavItem {
 const getNavItems = (role: string): NavItem[] => {
   if (role === 'admin') {
     return [
-      { label: 'Overview', href: '/admin', icon: <Home size={16} /> },
-      { label: 'Users', href: '/admin/users', icon: <Users size={16} /> },
+      { label: 'Dashboard', href: '/admin', icon: <Home size={16} /> },
+      { label: 'All Users', href: '/admin/users', icon: <Users size={16} /> },
       { label: 'Listings', href: '/admin/listings', icon: <Building size={16} /> },
-      { label: 'Landlords', href: '/admin/landlords', icon: <User size={16} /> },
+      { label: 'Hosts & PMs', href: '/admin/landlords', icon: <User size={16} /> },
       { label: 'Reports', href: '/admin/reports', icon: <AlertTriangle size={16} /> },
       { label: 'Disputes', href: '/admin/disputes', icon: <ShieldAlert size={16} /> },
       { label: 'Claims', href: '/admin/claims', icon: <Award size={16} /> },
@@ -59,7 +59,7 @@ const getNavItems = (role: string): NavItem[] => {
     ];
   }
 
-  if (role === 'dalali') {
+  if (role === 'property_manager') {
     return [
       { label: 'Dashboard', href: '/manager/dashboard', icon: <Home size={16} /> },
       { label: 'Properties', href: '/manager/properties', icon: <Building size={16} /> },
@@ -84,7 +84,7 @@ const getNavItems = (role: string): NavItem[] => {
 const getAccentColor = (role: string) => {
   if (role === 'admin') return 'var(--red)';
   if (role === 'landlord' || role === 'lister') return 'var(--orange)';
-  if (role === 'dalali') return 'var(--purple)';
+  if (role === 'property_manager' || role === 'dalali') return 'var(--purple)';
   return '#1D9E75';
 };
 

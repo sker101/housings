@@ -201,13 +201,13 @@ export default function AdminLandlordsPage() {
         user_id: id,
         type: 'system',
         title: 'Account Verified! ✅',
-        body: 'Congratulations! Your dalali account has been verified.',
+        body: 'Congratulations! Your project manager account has been verified.',
       }, { accessToken: token }).catch(() => null);
 
       if (profile?.phone) {
         await invokeFunction('send-sms', {
           to: profile.phone,
-          message: `iRent: Hello ${profile.full_name}, your dalali account has been officially verified!`
+          message: `iRent: Hello ${profile.full_name}, your project manager account has been officially verified!`
         }, token).catch(() => null);
       }
 
@@ -261,9 +261,9 @@ export default function AdminLandlordsPage() {
     <div className="container section" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ marginBottom: '2rem' }}>
-          <h1 style={{ margin: 0, fontSize: '2rem', color: '#1A1A2E' }}>Dalali Verification</h1>
-          <p style={{ margin: '0.5rem 0 0', color: '#6B6B5A' }}>
-            Verify dalali profiles to enable their listing submission privileges. Verification is now mandatory for all listers.
+          <h1 style={{ margin: 0, fontSize: '2rem', color: '#1A1A2E' }}>Project Manager Verification</h1>
+          <p style={{ color: 'var(--mid)', marginTop: '0.25rem', fontSize: '1rem', maxWidth: 600 }}>
+            Verify project manager profiles to enable their listing submission privileges. Verification is now mandatory for all listers.
           </p>
         </div>
         <div style={{ position: 'relative' }}>
@@ -299,7 +299,7 @@ export default function AdminLandlordsPage() {
         ))}
       </div>
 
-      {loading ? <p className="muted">Loading dalalis...</p> : (
+      {loading ? <p className="muted">Loading project managers...</p> : (
         <div style={{ display: 'grid', gap: '0.6rem' }}>
           {filteredProfiles.map(p => (
             <div key={p.id} className="card" style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', padding: '0.8rem' }}>
@@ -333,7 +333,7 @@ export default function AdminLandlordsPage() {
         <div className="sheet-backdrop" style={{ alignItems: 'center' }} onClick={() => setPreviewProfileId(null)}>
           <article className="sheet" style={{ maxWidth: 600, maxHeight: '85vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-              <h2 style={{ margin: 0 }}>Dalali Inspection</h2>
+              <h2 style={{ margin: 0 }}>Project Manager Inspection</h2>
               <button className="btn btn--ghost" onClick={() => setPreviewProfileId(null)}>✕</button>
             </div>
             
@@ -375,7 +375,7 @@ export default function AdminLandlordsPage() {
       {rejectTarget && (
         <div className="sheet-backdrop" style={{ alignItems: 'center' }} onClick={() => setRejectTarget(null)}>
           <article className="sheet" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
-            <h3>Reject Dalali</h3>
+            <h3>Reject Project Manager</h3>
             <p className="muted" style={{ fontSize: '0.9rem' }}>Reason for rejection (sent via SMS):</p>
             <textarea 
               style={{ width: '100%', minHeight: 80, padding: '0.5rem', borderRadius: 8, border: '1px solid var(--border)', marginTop: '0.5rem' }}

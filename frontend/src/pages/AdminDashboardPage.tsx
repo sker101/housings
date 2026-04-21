@@ -64,13 +64,13 @@ export default function AdminDashboardPage() {
         const [
           totalUsers, totalListings, totalBookings, totalReports,
           totalReviews, totalNotifs, totalConvos, totalClaims,
-          studentCount, listerCount, adminCount,
+          tenantCount, landlordCount, managerCount, adminCount,
           pendingListings, approvedListings, rejectedListings, flaggedListings,
           pendingReports, upheldReports, dismissedReports,
           requestedBookings, approvedBookings, declinedBookings,
           suspendedUsers, pendingVerification, unreadNotifs,
           pendingClaims, settingsRows,
-          recentListings,
+          recentListings, recentBookings, recentReports,
           avgRatingRows,
           paymentsList,
           auditRecent,
@@ -127,12 +127,14 @@ export default function AdminDashboardPage() {
 
         // Parse settings
         const sObj: any = {};
-        (settingsRows as any[]).forEach((r) => { sObj[r.key] = r.value; });
+        if (Array.isArray(settingsRows)) {
+          settingsRows.forEach((r: any) => { if (r && r.key) sObj[r.key] = r.value; });
+        }
         setSettings({ maintenance_mode: !!sObj.maintenance_mode, global_announcement: sObj.global_announcement || '' });
         setAnnouncementText(sObj.global_announcement || '');
 
         // Avg rating
-        const allRatings = (avgRatingRows as any[]).map((r) => Number(r.rating)).filter((x) => x > 0);
+        const allRatings = Array.isArray(avgRatingRows) ? avgRatingRows.map((r: any) => Number(r.rating)).filter((x) => x > 0) : [];
         const avgRating = allRatings.length ? (allRatings.reduce((a, b) => a + b, 0) / allRatings.length).toFixed(2) : '—';
 
         // Listings trend (last 7 days by day)
@@ -141,10 +143,10 @@ export default function AdminDashboardPage() {
           const dayStart = new Date(now - (6 - i) * 86400000);
           dayStart.setHours(0, 0, 0, 0);
           const dayEnd = new Date(dayStart.getTime() + 86400000);
-          const count = (recentListings as any[]).filter((l) => {
+          const count = Array.isArray(recentListings) ? recentListings.filter((l) => {
             const d = new Date(l.created_at);
             return d >= dayStart && d < dayEnd;
-          }).length;
+          }).length : 0;
           return {
             day: dayStart.toLocaleDateString(undefined, { weekday: 'short' }),
             count,
@@ -277,10 +279,10 @@ export default function AdminDashboardPage() {
     function renderOverview() {
       return (
         <>
-          <SectionHeader title="📊 Platform Overview" sub="Live snapshot of all key platform metrics." />
+          <SectionHeader title="📊 iRent Platform Performance" sub="Live snapshot of all key platform metrics." />
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
             <Link to="/admin/landlords" className="btn btn--ghost btn--small" style={{ border: '1px solid var(--border)' }}>
-              Verify dalali accounts
+              Verify project manager accounts
             </Link>
             <Link to="/admin/listings" className="btn btn--ghost btn--small" style={{ border: '1px solid var(--border)' }}>
               Moderate listings
@@ -301,7 +303,7 @@ export default function AdminDashboardPage() {
           {chartCard('Users by Role',
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
-                <Pie data={stats.userRoleChart} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} label>
+                <Pie data={stats.userRoleChart || []} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} label>
                   {(stats.userRoleChart || []).map((_: any, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                 </Pie>
                 <Legend /><Tooltip />
@@ -397,9 +399,9 @@ export default function AdminDashboardPage() {
         <SectionHeader title="👥 User Statistics" sub="Breakdown of all registered platform users." />
         <div style={gridStyle}>
           <StatCard label="Total Users" value={stats.totalUsers} color="#3b82f6" />
-          <StatCard label="Students" value={stats.studentCount} color="#22c55e" />
-          <StatCard label="Listers / Dalalis" value={stats.listerCount} color="#f59e0b" />
-          <StatCard label="Admins" value={stats.adminCount} color="#8b5cf6" />
+          <StatCard label="Tenants" value={stats.tenantCount} color="#22c55e" />
+          <StatCard label="Landlords" value={stats.landlordCount} color="#f59e0b" />
+          <StatCard label="Project Managers" value={stats.managerCount} color="#8b5cf6" />
           <StatCard label="Suspended" value={stats.suspendedUsers} color="#ef4444" />
           <StatCard label="Pending Verification" value={stats.pendingVerification} color="#f97316" />
         </div>
@@ -541,8 +543,8 @@ export default function AdminDashboardPage() {
               style={{ width: '100%' }}
             >
               <option value="ALL">All Users</option>
-              <option value="STUDENT">Students Only</option>
-              <option value="LISTER">Landlords/Dalalis Only</option>
+              <option value="TENANT">Tenants Only</option>
+              <option value="LISTER">Hosts & PMs Only</option>
             </select>
           </label>
           <label style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginBottom: '1rem' }}>
@@ -632,7 +634,7 @@ export default function AdminDashboardPage() {
     const rows = queueData[key] || [];
     return (
       <>
-        <SectionHeader title="👤 Listers Queue" sub="All registered landlords and dalalis." />
+        <SectionHeader title="👤 Listers Queue" sub="All registered landlords and project managers." />
         {queueLoading[key] ? <p className="muted">Loading…</p> : null}
         <div className="card table-wrap">
           <table>
@@ -722,7 +724,7 @@ export default function AdminDashboardPage() {
     const STATUS_COLOR: Record<string, string> = { pending: '#f59e0b', upheld: '#22c55e', dismissed: '#ef4444', disputed: '#8b5cf6' };
     return (
       <>
-        <SectionHeader title="🛡 Claims Queue" sub="CampusCover tenant protection claims." />
+        <SectionHeader title="🛡 Claims Queue" sub="iRent Shield tenant protection claims." />
         {queueLoading[key] ? <p className="muted">Loading…</p> : null}
         <div className="card table-wrap">
           <table>

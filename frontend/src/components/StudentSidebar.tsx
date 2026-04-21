@@ -250,7 +250,7 @@ export default function StudentSidebar({
                 <div style={{ margin: '0 0.75rem', padding: '0.85rem 1rem', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 12, opacity: isCollapsed ? 0 : 1, transition: 'opacity 0.2s' }}>
                     <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.2rem' }}>
                         <Shield size={16} style={{ color: '#16a34a', flexShrink: 0, marginTop: 2 }} />
-                        <p style={{ fontWeight: 700, fontSize: '0.82rem', color: '#14532d' }}>CampusCover Protected</p>
+                        <p style={{ fontWeight: 700, fontSize: '0.82rem', color: '#14532d' }}>iRent Shield Protected</p>
                     </div>
                     <p style={{ fontSize: '0.73rem', color: '#166534', lineHeight: 1.4 }}>
                         You&apos;re covered under our tenant protection program.

@@ -112,27 +112,11 @@ export default function AdminListingsPage() {
     setListings((prev) => prev.map((l) => l.id === id ? { ...l, status: newStatus } : l));
 
     try {
-      // Map moderation action to underlying properties table columns
-      const propertyUpdates: Record<string, any> = {};
-      if (action === 'approve') {
-        propertyUpdates.verification_status = 'verified';
-        propertyUpdates.status = 'active';
-      } else if (action === 'reject') {
-        propertyUpdates.verification_status = 'unverified';
-        if (reason) propertyUpdates.rejection_reason = reason;
-      } else if (action === 'flag') {
-        propertyUpdates.status = 'flagged';
-      } else if (action === 'unflag') {
-        propertyUpdates.status = 'active';
-      } else if (action === 'remove') {
-        propertyUpdates.status = 'inactive';
-      }
-
-      const listing = listings.find(l => l.id === id);
-      if (!listing) throw new Error('Listing not found locally');
-
-      await updateRows('properties', propertyUpdates, {
-        filters: [{ column: 'id', op: 'eq', value: listing.property_id }],
+      await updateRows('listings', {
+        status: newStatus,
+        ...(reason ? { rejection_reason: reason } : {}),
+      }, {
+        filters: [{ column: 'id', op: 'eq', value: id }],
         accessToken: token,
       });
       toast.success(`Listing ${action}d successfully`);

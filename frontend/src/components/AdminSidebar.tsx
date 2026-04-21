@@ -44,8 +44,8 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
       items: [
         { label: 'All Users', icon: <Users size={16} />, path: '/admin/users' },
         { label: 'Access Accounts', icon: <Lock size={16} />, path: '/admin/access' },
-        { label: 'Landlords & Dalalis', icon: <Building size={16} />, path: '/admin/landlords' },
-        { label: 'Students', icon: <Users size={16} />, path: '/admin/students' }
+        { label: 'Hosts & PMs', icon: <Building size={16} />, path: '/admin/landlords' },
+        { label: 'Tenants', icon: <Users size={16} />, path: '/admin/students' }
       ]
     },
     {
@@ -124,7 +124,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
               justifyContent: 'space-between',
               alignItems: 'center'
             }}>
-              <h2 style={{ fontWeight: '700', fontSize: '1rem', margin: 0 }}>Admin Menu</h2>
+              <h2 style={{ fontWeight: '700', fontSize: '1rem', margin: 0 }}>iRent Admin</h2>
               <button
                 onClick={onClose}
                 type="button"

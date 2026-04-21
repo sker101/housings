@@ -66,7 +66,7 @@ function DashboardSidebarContent({
               fontFamily: "'Syne', sans-serif",
             }}
           >
-            CS
+            iR
           </div>
           <span
             style={{
@@ -76,7 +76,7 @@ function DashboardSidebarContent({
               fontSize: '1rem',
             }}
           >
-            Campus<span style={{ color: accentColor }}>Stay</span>
+            i<span style={{ color: accentColor }}>Rent</span>
           </span>
         </Link>
       </div>

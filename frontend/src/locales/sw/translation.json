@@ -11,8 +11,8 @@
         "dashboard": "Dashibodi"
     },
     "home": {
-        "heroEyebrow": "Makazi Halisi ya Wanafunzi",
-        "heroTitle": "Tafuta vyumba vya kuaminika karibu na chuoni kwa dakika.",
+        "heroEyebrow": "Makazi Halisi ya Wapangaji",
+        "heroTitle": "Tafuta vyumba vya kuaminika karibu nawe kwa dakika.",
         "heroSubtitle": "Tafuta, linganisha, na utume ujumbe kwa wapangishaji halisi kote Dar es Salaam.",
         "searchPlaceholder": "Tafuta kwa mtaa, kata au wilaya",
         "searchBtn": "Tafuta",
@@ -121,21 +121,21 @@
         "welcomeBack": "Karibu tena",
         "signInTitle": "Ingia kwenye iRent",
         "signInSubtitle": "Fikia nyumba zilizothibitishwa, zilizohifadhiwa, na mazungumzo sehemu moja.",
-        "createStudent": "Fungua akaunti ya mwanafunzi",
+        "createStudent": "Fungua akaunti ya mpangaji",
         "createLister": "Fungua akaunti ya mpangishaji",
         "alreadyHaveAccount": "Tayari nina akaunti",
         "fullName": "Jina kamili",
         "phone": "Namba ya Simu",
         "universityOptional": "Chuo kikuu (hiari)",
         "creatingAccount": "Inafungua akaunti...",
-        "studentRegTitle": "Usajili wa Mwanafunzi",
+        "studentRegTitle": "Usajili wa Mpangaji",
         "studentRegSubtitle": "Fungua akaunti yako ili kuhifadhi nyumba na kutuma ujumbe.",
         "listerRegTitle": "Usajili wa Mpangishaji",
-        "listerRegSubtitle": "Jisajili kama mmiliki, meneja, au dalali ili kupangisha nyumba.",
+        "listerRegSubtitle": "Jisajili kama mmiliki, meneja, au meneja miradi ili kupangisha nyumba.",
         "listerType": "Aina ya mpangishaji",
         "owner": "Mmiliki wa Nyumba",
         "manager": "Meneja wa Nyumba",
-        "dalali": "Dalali / Wakala"
+        "dalali": "Meneja Miradi (PM)"
     },
     "dashboard": {
         "profile": "Wasifu",
@@ -319,7 +319,7 @@
         "retry": "Jaribu Tena"
     },
     "studentDashboard": {
-        "title": "Dashibodi ya Mwanafunzi",
+        "title": "Dashibodi ya Mpangaji",
         "welcomeBack": "Karibu tena",
         "subtitle": "Hapa kuna kila kitu unachohitaji kupata makazi bora",
         "findRooms": "Tafuta Vyumba",
