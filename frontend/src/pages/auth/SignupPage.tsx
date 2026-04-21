@@ -378,12 +378,12 @@ export default function SignupPage() {
     setLoading(true);
     try {
       if (role === 'tenant') {
-        await registerStudent({ ...formData, email: `${formData.phone}@campusstay.tz` });
+        await registerStudent({ ...formData, email: `${formData.phone}@irent.co.tz` });
       } else {
         await registerLandlord({
           ...formData,
           listerType: role === 'property_manager' ? 'dalali' : 'owner',
-          email: `${formData.phone}@campusstay.tz`,
+          email: `${formData.phone}@irent.co.tz`,
         });
       }
       toast.success('Account created! Welcome to iRent 🎉');

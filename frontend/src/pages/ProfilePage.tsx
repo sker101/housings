@@ -232,7 +232,7 @@ export default function ProfilePage() {
       await logout();
       navigate('/');
     } catch (err: any) {
-      setError(err.message || 'Failed to delete account. Please contact support@campusstaytz.com.');
+      setError(err.message || 'Failed to delete account. Please contact support@irent.co.tz.');
     } finally {
       setDeletingAccount(false);
     }
