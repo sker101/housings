@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import ListingMap from '../components/ListingMap';
+import MapboxListingMap from '../components/MapboxListingMap';
 import ListingCard from '../components/ListingCard';
 import { useAuth } from '../context/AuthContext';
 import { LoadingSpinner } from '../components/LoadingSpinner';
@@ -280,7 +280,7 @@ export default function SearchPage() {
     return result;
   }, [listings, selectedUniversity]);
 
-  const mapListings = useMemo(() => processedListings, [processedListings]);
+  const mapListings = useMemo(() => processedListings.filter(l => l.lat && l.lng), [processedListings]);
 
   const clearFilters = () => {
     setSearchQuery('');
@@ -660,9 +660,18 @@ export default function SearchPage() {
       {viewMode === 'map' ? (
         <section className="card map-view">
           <h2>Map View</h2>
-          <ListingMap
-            listings={mapListings}
-            onMarkerSelect={(listing) => navigate(`/rooms/${listing.id}`)}
+          <MapboxListingMap
+            rooms={mapListings.map((l: any) => ({
+              id: l.id,
+              latitude: Number(l.lat),
+              longitude: Number(l.lng),
+              title: l.title,
+              price_tzs: Number(l.priceMonthly),
+              availability_status: l.vacancyStatus || 'available',
+              ward: l.ward
+            }))}
+            searchWard={searchQuery}
+            onRoomClick={(roomId) => navigate(`/rooms/${roomId}`)}
           />
           {hasMore ? (
             <button type="button" className="btn btn--ghost btn--small" onClick={loadMore} disabled={loadingMore}>
