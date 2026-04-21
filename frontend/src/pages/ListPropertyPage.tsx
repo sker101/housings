@@ -945,7 +945,7 @@ export default function ListPropertyPage() {
               <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '0.4rem', color: '#1A1A2E' }}>Lister Type</div>
               <select {...register('listerType')} style={{ width: '100%', padding: '0.6rem', border: '1px solid #E5E5E0', borderRadius: '8px' }}>
                 <option value="owner">Property Owner</option>
-                <option value="manager">Property Manager</option>
+                <option value="manager">Project Manager</option>
                 <option value="dalali">Dalali (Broker)</option>
               </select>
             </label>

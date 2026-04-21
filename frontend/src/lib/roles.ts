@@ -50,6 +50,6 @@ export function deepLinkAllowed(pathname: string, appRole: string): boolean {
 export function humanizeRole(appRole: string): string {
   if (appRole === APP_ROLE.ADMIN) return 'Admin';
   if (appRole === APP_ROLE.LANDLORD) return 'Landlord';
-  if (appRole === APP_ROLE.PROPERTY_MANAGER) return 'Property Manager';
+  if (appRole === APP_ROLE.PROPERTY_MANAGER) return 'Project Manager';
   return 'Tenant';
 }

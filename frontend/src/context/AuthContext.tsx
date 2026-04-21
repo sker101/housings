@@ -302,7 +302,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const response = await signUpWithPassword({
           email: payload.email.trim().toLowerCase(),
           password: payload.password,
-          data: { full_name: payload.fullName.trim(), phone: payload.phone.trim(), role: 'tenant' },
+          data: { 
+            full_name: payload.fullName.trim(), 
+            phone: payload.phone.trim(), 
+            role: 'tenant' 
+          },
         }) as Record<string, unknown>;
 
         // Profile is handled by DB trigger handle_new_user()
@@ -331,7 +335,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           data: {
             full_name: payload.fullName.trim(),
             phone: payload.phone.trim(),
-            role: 'landlord',
+            role: payload.role || 'landlord',
             lister_type: payload.listerType || 'owner',
           },
         }) as Record<string, unknown>;

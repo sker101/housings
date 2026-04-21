@@ -23,6 +23,7 @@ const STATUS_TABS: { key: StatusTab; label: string; icon: React.ReactNode }[] = 
 
 interface Listing {
   id: string;
+  property_id: string;
   title: string;
   region: string;
   district: string;
@@ -34,6 +35,7 @@ interface Listing {
   lister_id: string;
   lister_name?: string;
   lister_phone?: string;
+  lister_role?: string;
   rejection_reason?: string;
   created_at: string;
   views?: number;
@@ -57,7 +59,7 @@ export default function AdminListingsPage() {
     setLoading(true);
     try {
       const rows = await selectRows('listings', {
-        select: 'id,title,region,district,ward,street,price_monthly,status,room_type,lister_id,rejection_reason,created_at,views',
+        select: 'id,property_id,title,region,district,ward,street,price_monthly,status,room_type,lister_id,rejection_reason,created_at,views',
         order: 'created_at.desc',
         limit: 300,
         accessToken: token,
@@ -69,7 +71,7 @@ export default function AdminListingsPage() {
       if (listerIds.length > 0) {
         try {
           const profiles = await selectRows('profiles', {
-            select: 'id,full_name,phone',
+            select: 'id,full_name,phone,role',
             filters: [{ column: 'id', op: 'in', value: `(${listerIds.join(',')})` }],
             accessToken: token,
           });
@@ -81,6 +83,7 @@ export default function AdminListingsPage() {
         ...r,
         lister_name: profileMap[r.lister_id]?.full_name || '—',
         lister_phone: profileMap[r.lister_id]?.phone || '—',
+        lister_role: profileMap[r.lister_id]?.role || '—',
       }));
 
       setListings(enriched);
@@ -109,11 +112,27 @@ export default function AdminListingsPage() {
     setListings((prev) => prev.map((l) => l.id === id ? { ...l, status: newStatus } : l));
 
     try {
-      await updateRows('listings', {
-        status: newStatus,
-        ...(reason ? { rejection_reason: reason } : {}),
-      }, {
-        filters: [{ column: 'id', op: 'eq', value: id }],
+      // Map moderation action to underlying properties table columns
+      const propertyUpdates: Record<string, any> = {};
+      if (action === 'approve') {
+        propertyUpdates.verification_status = 'verified';
+        propertyUpdates.status = 'active';
+      } else if (action === 'reject') {
+        propertyUpdates.verification_status = 'unverified';
+        if (reason) propertyUpdates.rejection_reason = reason;
+      } else if (action === 'flag') {
+        propertyUpdates.status = 'flagged';
+      } else if (action === 'unflag') {
+        propertyUpdates.status = 'active';
+      } else if (action === 'remove') {
+        propertyUpdates.status = 'inactive';
+      }
+
+      const listing = listings.find(l => l.id === id);
+      if (!listing) throw new Error('Listing not found locally');
+
+      await updateRows('properties', propertyUpdates, {
+        filters: [{ column: 'id', op: 'eq', value: listing.property_id }],
         accessToken: token,
       });
       toast.success(`Listing ${action}d successfully`);
@@ -257,7 +276,14 @@ export default function AdminListingsPage() {
                   <td style={{ padding: '0.6rem 0.75rem', color: 'var(--mid)' }}>{l.room_type || '—'}</td>
                   <td style={{ padding: '0.6rem 0.75rem' }}>
                     <p style={{ fontWeight: 600, fontSize: '0.81rem' }}>{l.lister_name}</p>
-                    <p style={{ color: 'var(--mid)', fontSize: '0.76rem' }}>{l.lister_phone}</p>
+                    <p style={{ color: 'var(--mid)', fontSize: '0.76rem' }}>
+                      {l.lister_phone} 
+                      {l.lister_role && (
+                        <span style={{ marginLeft: '0.4rem', padding: '0.05rem 0.3rem', background: '#f5f3ff', color: '#7c3aed', borderRadius: 4, fontSize: '0.65rem', fontWeight: 700 }}>
+                          {l.lister_role === 'property_manager' ? 'PROJECT MANAGER' : l.lister_role.toUpperCase()}
+                        </span>
+                      )}
+                    </p>
                   </td>
                   <td style={{ padding: '0.6rem 0.75rem' }}>
                     <span style={{

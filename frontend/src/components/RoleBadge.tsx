@@ -4,7 +4,7 @@ import type { Role } from '../types';
 const ROLE_STYLES: Record<Role, { bg: string; color: string; label: string }> = {
   tenant:           { bg: '#dcfce7',          color: '#15803d',      label: 'Tenant' },
   landlord:         { bg: 'var(--jade-muted)', color: 'var(--jade)', label: 'Landlord' },
-  property_manager: { bg: '#f3e8ff',          color: '#7c3aed',      label: 'Property Manager' },
+  property_manager: { bg: '#f3e8ff',          color: '#7c3aed',      label: 'Project Manager' },
   admin:            { bg: 'var(--red-light)', color: 'var(--red)',   label: 'Admin' },
 };
 

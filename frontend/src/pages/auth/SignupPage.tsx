@@ -382,6 +382,7 @@ export default function SignupPage() {
       } else {
         await registerLandlord({
           ...formData,
+          role,
           listerType: role === 'property_manager' ? 'dalali' : 'owner',
           email: `${formData.phone}@irent.co.tz`,
         });
@@ -430,7 +431,7 @@ export default function SignupPage() {
               icon={<Building2 size={28} />}
               iconColor="#7c3aed"
               iconBg="#f5f3ff"
-              title="I manage properties"
+              title="I'm a Project Manager (Dalali)"
               desc="Professional tools to manage listings on behalf of multiple owners."
               onClick={() => setRole('property_manager')}
             />
