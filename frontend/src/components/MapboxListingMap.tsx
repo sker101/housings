@@ -182,7 +182,7 @@ export default function MapboxListingMap({
       el.addEventListener('mouseenter', () => { el.style.transform = 'scale(1.2)'; });
       el.addEventListener('mouseleave', () => { el.style.transform = 'scale(1)'; });
 
-      const popup = new mapboxgl.Popup({ offset: 25, closeButton: false, maxWidth: '240px' })
+      const popup = new mapboxgl.Popup({ offset: [0, -36], closeButton: false, maxWidth: '240px' })
         .setHTML(`
           <div style="font-family:'Inter',sans-serif;padding:4px 0">
             <strong style="font-size:13px;color:#1e293b">${room.title}${comingSoonBadge(room.availability_status)}</strong>
@@ -195,7 +195,7 @@ export default function MapboxListingMap({
           </div>
         `);
 
-      const marker = new mapboxgl.Marker(el)
+      const marker = new mapboxgl.Marker({ element: el, anchor: 'bottom' })
         .setLngLat([room.longitude, room.latitude])
         .setPopup(popup)
         .addTo(mapRef.current!);

@@ -96,7 +96,7 @@ export default function ListingMap({ listings, onMarkerSelect }: ListingMapProps
         el.addEventListener('mouseenter', () => { el.style.transform = 'scale(1.2)'; });
         el.addEventListener('mouseleave', () => { el.style.transform = 'scale(1)'; });
 
-        const popup = new mapboxgl.Popup({ offset: 25, closeButton: false, maxWidth: '220px' })
+        const popup = new mapboxgl.Popup({ offset: [0, -36], closeButton: false, maxWidth: '220px' })
           .setHTML(`
             <div style="font-family:'Inter',sans-serif;padding:4px 0">
               <strong style="font-size:13px;color:#1e293b">${listing.title || 'Listing'}</strong>
@@ -110,7 +110,7 @@ export default function ListingMap({ listings, onMarkerSelect }: ListingMapProps
             </div>
           `);
 
-        const marker = new mapboxgl.Marker(el)
+        const marker = new mapboxgl.Marker({ element: el, anchor: 'bottom' })
           .setLngLat([lng, lat])
           .setPopup(popup)
           .addTo(map);
