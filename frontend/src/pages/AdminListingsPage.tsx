@@ -67,7 +67,7 @@ export default function AdminListingsPage() {
 
       // Enrich with lister profile in one separate batch
       const listerIds = [...new Set((rows as any[]).map((r) => r.lister_id).filter(Boolean))];
-      let profileMap: Record<string, { full_name: string; phone: string }> = {};
+      let profileMap: Record<string, { full_name: string; phone: string; role?: string }> = {};
       if (listerIds.length > 0) {
         try {
           const profiles = await selectRows('profiles', {

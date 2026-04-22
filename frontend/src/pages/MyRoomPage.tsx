@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ShieldCheck, MapPin, Share2, FileText } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { selectRows } from '../lib/supabase';
+import { selectRows, insertRows } from '../lib/supabase';
 
 const PRIMARY = '#1D9E75';
 
@@ -292,18 +292,8 @@ export default function MyRoomPage() {
 
   return (
     <div className="container section">
-      {/* TEMP DIAGNOSTIC PANEL */}
-      <div style={{
-        background: '#fff2f2', border: '2px dashed #f44336', padding: '1rem', marginBottom: '1.5rem',
-        borderRadius: 12, fontSize: '0.8rem', fontFamily: 'monospace'
-      }}>
-        <p style={{ margin: 0, color: '#f44336', fontWeight: 700 }}>⚠️ DIAGNOSTIC MODE ACTIVE</p>
-        <div>User ID: {user?.userId || 'NULL'}</div>
-        <div>Booking ID: {booking?.id || 'NULL'}</div>
-        <div>Listing ID: {booking?.listing_id || 'NULL'}</div>
-        <div>Listing Loaded: {listing ? 'YES' : 'NO'}</div>
-        <div>Status: {booking?.status}</div>
-      </div>
+
+      {/* ── Room Header & Content ── */}
 
       <div style={{ width: '100%', maxWidth: 900 }}>
 
@@ -615,13 +605,27 @@ export default function MyRoomPage() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
                       const label = encodeURIComponent(listing?.street || listing?.ward || 'Dar es Salaam');
                       const url = `https://maps.google.com/?q=${listing?.lat ?? ''},${listing?.lng ?? ''}&query=${label}`;
+                      let shareType: 'native' | 'link' = 'link';
                       if (navigator.share) {
-                        navigator.share({ title: listing?.title || 'My room location', url }).catch(() => {});
+                        shareType = 'native';
+                        try {
+                          await navigator.share({ title: listing?.title || 'My room location', url });
+                        } catch { /* user cancelled */ }
                       } else {
                         window.open(url, '_blank');
+                      }
+                      // Track the share in DB
+                      try {
+                        await insertRows('location_shares', {
+                          tenant_id: user?.userId,
+                          listing_id: listing?.id || booking?.listing_id,
+                          share_type: shareType,
+                        }, { accessToken: token });
+                      } catch (shareErr) {
+                        console.warn('Could not record share:', shareErr);
                       }
                     }}
                     style={{
@@ -632,6 +636,59 @@ export default function MyRoomPage() {
                     }}
                   >
                     <Share2 size={14} /> Share location with friends
+                  </button>
+
+                  {/* WhatsApp share shortcut */}
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const label = listing?.street || listing?.ward || 'Dar es Salaam';
+                      const mapsUrl = `https://maps.google.com/?q=${listing?.lat ?? ''},${listing?.lng ?? ''}`;
+                      const text = encodeURIComponent(`📍 My room at ${listing?.title || 'iRent'}: ${label}\n${mapsUrl}`);
+                      window.open(`https://wa.me/?text=${text}`, '_blank');
+                      try {
+                        await insertRows('location_shares', {
+                          tenant_id: user?.userId,
+                          listing_id: listing?.id || booking?.listing_id,
+                          share_type: 'whatsapp',
+                        }, { accessToken: token });
+                      } catch { /* ignore */ }
+                    }}
+                    style={{
+                      width: '100%', background: '#25D366', border: 'none',
+                      borderRadius: 10, padding: '0.6rem', fontSize: '0.88rem', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                      color: '#fff', fontWeight: 600, marginTop: '0.4rem'
+                    }}
+                  >
+                    Share via WhatsApp
+                  </button>
+                </div>
+
+                {/* ── Referral Card ── */}
+                <div className="card" style={{ padding: '0.9rem', borderRadius: 12, background: 'linear-gradient(135deg, #f0fdf4, #ecfdf5)', border: '1.5px solid #86efac' }}>
+                  <p style={{ margin: '0 0 0.4rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>🎁 Refer a friend to iRent</p>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: '#166534', lineHeight: 1.5 }}>
+                    Share your referral link with friends. When they book a room, you earn <strong>TZS 5,000</strong> in rewards!
+                  </p>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const referralLink = `${window.location.origin}/auth/signup?ref=${user?.userId?.slice(0, 8)}`;
+                      if (navigator.clipboard) {
+                        await navigator.clipboard.writeText(referralLink);
+                        alert('Referral link copied!');
+                      } else {
+                        prompt('Copy your referral link:', referralLink);
+                      }
+                    }}
+                    style={{
+                      marginTop: '0.6rem', background: '#16a34a', color: '#fff', border: 'none',
+                      borderRadius: 8, padding: '0.5rem 1rem', fontSize: '0.85rem', fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Copy referral link
                   </button>
                 </div>
               </div>

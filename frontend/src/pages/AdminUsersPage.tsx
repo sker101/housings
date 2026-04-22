@@ -214,7 +214,7 @@ export default function AdminUsersPage() {
                     <span style={{ background: roleColors[u.role] || '#6b7280', color: '#fff', fontSize: '0.75rem', padding: '0.15rem 0.45rem', borderRadius: '4px', fontWeight: '700', display: 'inline-block' }}>
                       {u.role?.toUpperCase()}
                     </span>
-                    {u.role === 'lister' && u.lister_type && (
+                    {u.role === 'landlord' && u.lister_type && (
                       <div style={{ fontSize: '0.72rem', color: '#6b7280', marginTop: '0.1rem', fontStyle: 'italic' }}>
                         {u.lister_type.charAt(0).toUpperCase() + u.lister_type.slice(1)}
                       </div>

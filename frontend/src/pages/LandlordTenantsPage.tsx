@@ -3,92 +3,254 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { selectRows } from '../lib/supabase';
 
+type ListingRow = {
+  id: string;
+  title?: string;
+  room_type?: string;
+  price_monthly?: number;
+};
+
+type ProfileRow = {
+  id: string;
+  full_name?: string;
+  phone?: string;
+};
+
+type LegacyBookingRow = {
+  id: string;
+  tenant_id?: string;
+  listing_id?: string;
+  move_in_date?: string;
+  duration_months?: number;
+  contact_preference?: string;
+  message?: string;
+};
+
+type ModernBookingRow = {
+  id: string;
+  tenant_id?: string;
+  room_id?: string;
+  move_in_date?: string;
+  months_duration?: number;
+  notes?: string;
+  tenant?: {
+    profile?: {
+      id?: string;
+      full_name?: string;
+      phone?: string;
+    } | Array<{
+      id?: string;
+      full_name?: string;
+      phone?: string;
+    }>;
+  } | Array<{
+    profile?: {
+      id?: string;
+      full_name?: string;
+      phone?: string;
+    } | Array<{
+      id?: string;
+      full_name?: string;
+      phone?: string;
+    }>;
+  }>;
+};
+
+type TenantRow = {
+  id: string;
+  move_in_date?: string;
+  duration_months?: number;
+  contact_preference?: string | null;
+  message?: string | null;
+  profile?: ProfileRow | null;
+  listing?: ListingRow | null;
+};
+
+function uniqueIds(values: Array<string | undefined | null>) {
+  return Array.from(new Set(values.filter(Boolean) as string[]));
+}
+
+function inFilterValue(ids: string[]) {
+  return `(${ids.join(',')})`;
+}
+
+function extractTenantProfile(tenant: ModernBookingRow['tenant']): ProfileRow | null {
+  const tenantRow = Array.isArray(tenant) ? tenant[0] : tenant;
+  const profile = Array.isArray(tenantRow?.profile) ? tenantRow?.profile[0] : tenantRow?.profile;
+  if (!profile) return null;
+  return {
+    id: profile.id || '',
+    full_name: profile.full_name,
+    phone: profile.phone,
+  };
+}
+
+function formatMoveInDate(value?: string) {
+  if (!value) return '—';
+  try {
+    return new Date(value).toLocaleDateString('en-TZ', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  } catch {
+    return value;
+  }
+}
+
 export default function LandlordTenantsPage() {
   const { user, token } = useAuth();
 
-  const [tenants, setTenants] = useState<any[]>([]);
+  const [tenants, setTenants] = useState<TenantRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
     let mounted = true;
+
     async function load() {
-      if (!user?.userId || !token) return;
+      if (!user?.userId || !token) {
+        if (mounted) setLoading(false);
+        return;
+      }
+
       setLoading(true);
+      setError('');
+
       try {
-        // Fetch approved bookings
-        const bookingRows = await selectRows('bookings', {
-          select: 'id,tenant_id,listing_id,move_in_date,duration_months,contact_preference,message',
-          filters: [
-            { column: 'lister_id', op: 'eq', value: user.userId },
-            { column: 'status', op: 'eq', value: 'approved' }
-          ],
-          order: 'move_in_date.desc',
-          accessToken: token
-        });
+        let normalizedTenants: TenantRow[] = [];
 
-        if (!mounted) return;
+        const landlordRows = await selectRows('landlords', {
+          select: 'id',
+          filters: [{ column: 'profile_id', op: 'eq', value: user.userId }],
+          limit: 5,
+          accessToken: token,
+        }).catch(() => []);
 
-        if (bookingRows.length === 0) {
-          setTenants([]);
-          return;
+        const landlordIds = uniqueIds((landlordRows as Array<{ id?: string }>).map((row) => row.id));
+
+        if (landlordIds.length > 0) {
+          try {
+            const modernBookingRows = await selectRows('bookings', {
+              select: 'id,tenant_id,room_id,move_in_date,months_duration,notes,tenant:tenants(profile:profiles(id,full_name,phone))',
+              filters: [
+                landlordIds.length === 1
+                  ? { column: 'landlord_id', op: 'eq', value: landlordIds[0] }
+                  : { column: 'landlord_id', op: 'in', value: inFilterValue(landlordIds) },
+                { column: 'status', op: 'in', value: '(confirmed,completed)' },
+              ],
+              order: 'move_in_date.desc',
+              limit: 500,
+              accessToken: token,
+            });
+
+            const listingIds = uniqueIds((modernBookingRows as ModernBookingRow[]).map((row) => row.room_id));
+            const listingRows = listingIds.length
+              ? await selectRows('listings', {
+                  select: 'id,title,room_type,price_monthly',
+                  filters: [{ column: 'id', op: 'in', value: inFilterValue(listingIds) }],
+                  accessToken: token,
+                }).catch(() => [])
+              : [];
+            const listingMap = new Map((listingRows as ListingRow[]).map((row) => [row.id, row]));
+
+            normalizedTenants = (modernBookingRows as ModernBookingRow[]).map((row) => ({
+              id: row.id,
+              move_in_date: row.move_in_date,
+              duration_months: row.months_duration,
+              contact_preference: null,
+              message: row.notes || null,
+              profile: extractTenantProfile(row.tenant),
+              listing: row.room_id ? listingMap.get(row.room_id) || null : null,
+            }));
+          } catch (err) {
+            console.warn('LandlordTenantsPage: modern tenant query failed, trying legacy fallback.', err);
+          }
         }
 
-        const tenantIds = Array.from(new Set(bookingRows.map((b) => b.tenant_id)));
-        const listingIds = Array.from(new Set(bookingRows.map((b) => b.listing_id)));
+        if (normalizedTenants.length === 0) {
+          const legacyBookingRows = await selectRows('bookings', {
+            select: 'id,tenant_id,listing_id,move_in_date,duration_months,contact_preference,message',
+            filters: [
+              { column: 'lister_id', op: 'eq', value: user.userId },
+              { column: 'status', op: 'eq', value: 'approved' },
+            ],
+            order: 'move_in_date.desc',
+            accessToken: token,
+          }).catch(() => []);
 
-        const [profileRows, listingRows] = await Promise.all([
-          selectRows('profiles', {
-            select: 'id,full_name,phone',
-            filters: [{ column: 'id', op: 'in', value: `(${tenantIds.join(',')})` }],
-            accessToken: token
-          }),
-          selectRows('listings', {
-            select: 'id,title,room_type,price_monthly',
-            filters: [{ column: 'id', op: 'in', value: `(${listingIds.join(',')})` }],
-            accessToken: token
-          })
-        ]);
+          const tenantIds = uniqueIds((legacyBookingRows as LegacyBookingRow[]).map((row) => row.tenant_id));
+          const listingIds = uniqueIds((legacyBookingRows as LegacyBookingRow[]).map((row) => row.listing_id));
 
-        const profileMap = new Map(profileRows.map((p) => [p.id, p]));
-        const listingMap = new Map(listingRows.map((l) => [l.id, l]));
+          const [profileRows, listingRows] = await Promise.all([
+            tenantIds.length
+              ? selectRows('profiles', {
+                  select: 'id,full_name,phone',
+                  filters: [{ column: 'id', op: 'in', value: inFilterValue(tenantIds) }],
+                  accessToken: token,
+                }).catch(() => [])
+              : Promise.resolve([]),
+            listingIds.length
+              ? selectRows('listings', {
+                  select: 'id,title,room_type,price_monthly',
+                  filters: [{ column: 'id', op: 'in', value: inFilterValue(listingIds) }],
+                  accessToken: token,
+                }).catch(() => [])
+              : Promise.resolve([]),
+          ]);
 
-        const enriched = bookingRows.map((b) => ({
-          ...b,
-          profile: profileMap.get(b.tenant_id),
-          listing: listingMap.get(b.listing_id)
-        }));
+          const profileMap = new Map((profileRows as ProfileRow[]).map((row) => [row.id, row]));
+          const listingMap = new Map((listingRows as ListingRow[]).map((row) => [row.id, row]));
 
-        setTenants(enriched);
-      } catch (err: any) {
-        if (mounted) setError(err.message);
+          normalizedTenants = (legacyBookingRows as LegacyBookingRow[]).map((row) => ({
+            id: row.id,
+            move_in_date: row.move_in_date,
+            duration_months: row.duration_months,
+            contact_preference: row.contact_preference || null,
+            message: row.message || null,
+            profile: row.tenant_id ? profileMap.get(row.tenant_id) || null : null,
+            listing: row.listing_id ? listingMap.get(row.listing_id) || null : null,
+          }));
+        }
+
+        if (!mounted) return;
+        setTenants(normalizedTenants);
+      } catch (err) {
+        console.error('LandlordTenantsPage: failed to load tenants.', err);
+        if (mounted) {
+          setError('We could not load tenants right now. Please refresh and try again.');
+          setTenants([]);
+        }
       } finally {
         if (mounted) setLoading(false);
       }
     }
+
     load();
+
     return () => {
       mounted = false;
     };
   }, [user?.userId, token]);
 
   const totalMonthlyRent = tenants.reduce(
-    (sum, t) => sum + Number(t.listing?.price_monthly || 0),
+    (sum, tenant) => sum + Number(tenant.listing?.price_monthly || 0),
     0
   );
-  const avgDuration =
-    tenants.length > 0
-      ? (
-          tenants.reduce((sum, t) => sum + Number(t.duration_months || 0), 0) /
-          tenants.length
-        ).toFixed(1)
-      : '—';
+
+  const durationValues = tenants
+    .map((tenant) => Number(tenant.duration_months))
+    .filter((value) => Number.isFinite(value) && value > 0);
+
+  const avgDuration = durationValues.length > 0
+    ? (durationValues.reduce((sum, value) => sum + value, 0) / durationValues.length).toFixed(1)
+    : '—';
 
   const initials = (name?: string) => {
     if (!name) return '?';
     return name
       .split(/\s+/)
-      .map((n) => n[0])
+      .map((part) => part[0])
       .join('')
       .slice(0, 2)
       .toUpperCase();
@@ -104,7 +266,7 @@ export default function LandlordTenantsPage() {
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'flex-start',
-            marginBottom: '1.5rem'
+            marginBottom: '1.5rem',
           }}
         >
           <div>
@@ -121,14 +283,14 @@ export default function LandlordTenantsPage() {
 
         <div className="kpi-strip">
           {loading ? (
-            Array.from({ length: 3 }).map((_, i) => (
+            Array.from({ length: 3 }).map((_, index) => (
               <div
-                key={`kpi-skel-${i}`}
+                key={`kpi-skel-${index}`}
                 style={{
                   height: 72,
                   borderRadius: 12,
                   background: 'var(--cream)',
-                  animation: 'pulse 1.5s ease-in-out infinite'
+                  animation: 'pulse 1.5s ease-in-out infinite',
                 }}
               />
             ))
@@ -157,14 +319,14 @@ export default function LandlordTenantsPage() {
 
         {loading ? (
           <div className="tn-grid">
-            {Array.from({ length: 3 }).map((_, i) => (
+            {Array.from({ length: 3 }).map((_, index) => (
               <div
-                key={`tn-skel-${i}`}
+                key={`tn-skel-${index}`}
                 style={{
                   height: 220,
                   borderRadius: 16,
                   background: 'var(--cream)',
-                  animation: 'pulse 1.5s ease-in-out infinite'
+                  animation: 'pulse 1.5s ease-in-out infinite',
                 }}
               />
             ))}
@@ -175,16 +337,16 @@ export default function LandlordTenantsPage() {
           </div>
         ) : (
           <div className="tn-grid">
-            {tenants.map((t) => (
-              <div key={t.id} className="tn-card">
+            {tenants.map((tenant) => (
+              <div key={tenant.id} className="tn-card">
                 <div className="tn-card-top">
-                  <div className="tn-av">{initials(t.profile?.full_name || '?')}</div>
+                  <div className="tn-av">{initials(tenant.profile?.full_name || '?')}</div>
                   <div style={{ minWidth: 0 }}>
                     <p className="tn-name" style={{ margin: 0 }}>
-                      {t.profile?.full_name || 'Unknown'}
+                      {tenant.profile?.full_name || 'Unknown'}
                     </p>
                     <p className="tn-listing" style={{ margin: 0 }}>
-                      {(t.listing?.room_type || t.listing?.title || '—') + ' · ' + (t.listing?.title || 'listing')}
+                      {(tenant.listing?.room_type || tenant.listing?.title || '—') + ' · ' + (tenant.listing?.title || 'listing')}
                     </p>
                   </div>
                 </div>
@@ -192,24 +354,20 @@ export default function LandlordTenantsPage() {
                 <div className="tn-rows">
                   <div className="tn-row">
                     <span className="tn-row-lbl">Move-in</span>
-                    <span>
-                      {new Date(t.move_in_date).toLocaleDateString('en-TZ', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric'
-                      })}
-                    </span>
+                    <span>{formatMoveInDate(tenant.move_in_date)}</span>
                   </div>
                   <div className="tn-row">
                     <span className="tn-row-lbl">Duration</span>
                     <span>
-                      {t.duration_months} month{t.duration_months !== 1 ? 's' : ''}
+                      {tenant.duration_months
+                        ? `${tenant.duration_months} month${tenant.duration_months !== 1 ? 's' : ''}`
+                        : '—'}
                     </span>
                   </div>
                   <div className="tn-row">
                     <span className="tn-row-lbl">Rent</span>
                     <span style={{ fontWeight: 600, color: '#27500A' }}>
-                      TZS {new Intl.NumberFormat('sw-TZ').format(t.listing?.price_monthly || 0)}/mo
+                      TZS {new Intl.NumberFormat('sw-TZ').format(tenant.listing?.price_monthly || 0)}/mo
                     </span>
                   </div>
                   <div className="tn-row">
@@ -217,15 +375,15 @@ export default function LandlordTenantsPage() {
                     <span
                       className="tn-pill"
                       style={
-                        t.contact_preference === 'whatsapp'
+                        tenant.contact_preference === 'whatsapp'
                           ? { background: '#EAF3DE', color: '#27500A' }
-                          : t.contact_preference === 'phone'
+                          : tenant.contact_preference === 'phone'
                             ? { background: '#E6F1FB', color: '#0C447C' }
                             : { background: '#F1EFE8', color: '#444441' }
                       }
                     >
-                      {t.contact_preference
-                        ? t.contact_preference.charAt(0).toUpperCase() + t.contact_preference.slice(1)
+                      {tenant.contact_preference
+                        ? tenant.contact_preference.charAt(0).toUpperCase() + tenant.contact_preference.slice(1)
                         : '—'}
                     </span>
                   </div>
@@ -235,8 +393,8 @@ export default function LandlordTenantsPage() {
                   <Link to="/messages" className="tn-btn tn-btn-msg">
                     Message
                   </Link>
-                  {t.profile?.phone ? (
-                    <a href={`tel:${t.profile.phone}`} className="tn-btn">
+                  {tenant.profile?.phone ? (
+                    <a href={`tel:${tenant.profile.phone}`} className="tn-btn">
                       Call
                     </a>
                   ) : null}

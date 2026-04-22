@@ -74,6 +74,8 @@ export default function AdminDashboardPage() {
           avgRatingRows,
           paymentsList,
           auditRecent,
+          totalLocationShares,
+          totalReferrals,
         ] = await Promise.all([
           countRows('profiles', { accessToken: token }),
           countRows('listings', { accessToken: token }),
@@ -121,6 +123,8 @@ export default function AdminDashboardPage() {
             limit: 15,
             accessToken: token,
           }).catch(() => []),
+          countRows('location_shares', { accessToken: token }),
+          countRows('landlord_referrals', { accessToken: token }),
         ]);
 
         if (!mounted) return;
@@ -167,6 +171,7 @@ export default function AdminDashboardPage() {
         setStats({
           totalUsers, totalListings, totalBookings, totalReports,
           totalReviews, totalNotifs, totalConvos, totalClaims,
+          totalLocationShares, totalReferrals,
           tenantCount, landlordCount, managerCount, adminCount,
           pendingListings, approvedListings, rejectedListings, flaggedListings,
           pendingReports, upheldReports, dismissedReports,
@@ -293,11 +298,13 @@ export default function AdminDashboardPage() {
             <StatCard label="Total Listings" value={stats.totalListings} color="#22c55e" />
             <StatCard label="Total Bookings" value={stats.totalBookings} color="#f59e0b" />
             <StatCard label="Reports" value={stats.totalReports} color="#ef4444" />
-          <StatCard label="Reviews" value={stats.totalReviews} color="#8b5cf6" sub={`Avg rating: ${stats.avgRating}`} />
-          <StatCard label="Payments" value={stats.totalPaymentsCount} color="#06b6d4" />
-          <StatCard label="Revenue" value={`${Number(stats.totalRevenue || 0).toLocaleString()} TZS`} color="#10b981" />
-          <StatCard label="Claims" value={stats.totalClaims} color="#f97316" sub={`${stats.pendingClaims} pending`} />
-        </div>
+            <StatCard label="Location Shares" value={stats.totalLocationShares} color="#06b6d4" sub="Properties shared externally" />
+            <StatCard label="Referrals" value={stats.totalReferrals} color="#f59e0b" sub="Tenant-to-tenant referrals" />
+            <StatCard label="Reviews" value={stats.totalReviews} color="#8b5cf6" sub={`Avg rating: ${stats.avgRating}`} />
+            <StatCard label="Payments" value={stats.totalPaymentsCount} color="#06b6d4" />
+            <StatCard label="Revenue" value={`${Number(stats.totalRevenue || 0).toLocaleString()} TZS`} color="#10b981" />
+            <StatCard label="Claims" value={stats.totalClaims} color="#f97316" sub={`${stats.pendingClaims} pending`} />
+          </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
           {chartCard('Users by Role',

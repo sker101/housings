@@ -63,13 +63,7 @@ export default function LandlordAnalyticsPage() {
         let saveRows: any[] = [];
 
         if (listingIds.length > 0) {
-          const [bRows, sRows] = await Promise.all([
-            selectRows('bookings', {
-              select: 'id,listing_id,status',
-              filters: [{ column: 'listing_id', op: 'in', value: `(${listingIds.join(',')})` }],
-              limit: 500,
-              accessToken: token
-            }),
+          const [sRows] = await Promise.all([
             selectRows('saved_listings', {
               select: 'listing_id',
               filters: [{ column: 'listing_id', op: 'in', value: `(${listingIds.join(',')})` }],
@@ -77,8 +71,29 @@ export default function LandlordAnalyticsPage() {
               accessToken: token
             })
           ]);
-          bookingRows = bRows;
           saveRows = sRows;
+
+          try {
+            bookingRows = await selectRows('bookings', {
+              select: 'id,room_id,status',
+              filters: [{ column: 'room_id', op: 'in', value: `(${listingIds.join(',')})` }],
+              limit: 500,
+              accessToken: token
+            });
+          } catch (err) {
+            console.warn('LandlordAnalyticsPage: modern bookings query failed, trying legacy fallback.', err);
+            bookingRows = await selectRows('bookings', {
+              select: 'id,listing_id,status',
+              filters: [{ column: 'listing_id', op: 'in', value: `(${listingIds.join(',')})` }],
+              limit: 500,
+              accessToken: token
+            }).catch(() => []);
+          }
+
+          bookingRows = bookingRows.map((row: any) => ({
+            ...row,
+            listingKey: row.room_id || row.listing_id
+          }));
         }
 
         if (!mounted) return;
@@ -124,7 +139,7 @@ export default function LandlordAnalyticsPage() {
         const tableData = listingRows.map((l) => {
           const views = Number(l.view_count) || 0;
           const saves = savesMap[l.id] || 0;
-          const bookings = bookingRows.filter((b) => b.listing_id === l.id).length;
+          const bookings = bookingRows.filter((b) => b.listingKey === l.id).length;
           const conversionRate = views > 0 ? ((bookings / views) * 100).toFixed(1) : '0.0';
           return { id: l.id, title: l.title, views, saves, bookings, conversionRate };
         });

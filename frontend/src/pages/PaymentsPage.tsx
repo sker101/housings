@@ -1,9 +1,114 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { APP_ROLE } from '../lib/roles';
 import { selectRows, updateRows } from '../lib/supabase';
 
-function formatDate(value) {
+type ListingRow = {
+  id: string;
+  title?: string;
+  price_monthly?: number;
+};
+
+type ProfileRow = {
+  id: string;
+  full_name?: string;
+  commission_rate_pct?: number;
+};
+
+type LegacyBookingRow = {
+  id: string;
+  listing_id?: string;
+  tenant_id?: string;
+  lister_id?: string;
+  move_in_date?: string;
+  duration_months?: number;
+  status?: string;
+  reference?: string;
+  created_at?: string;
+};
+
+type ModernBookingRow = {
+  id: string;
+  tenant_id?: string;
+  room_id?: string;
+  property_id?: string;
+  landlord_id?: string;
+  move_in_date?: string;
+  months_duration?: number;
+  status?: string;
+  reference?: string;
+  created_at?: string;
+  tenant?: {
+    profile?: {
+      id?: string;
+      full_name?: string;
+    } | Array<{ id?: string; full_name?: string }>;
+  } | Array<{
+    profile?: {
+      id?: string;
+      full_name?: string;
+    } | Array<{ id?: string; full_name?: string }>;
+  }>;
+};
+
+type LegacyPaymentRow = {
+  id: string;
+  booking_id?: string;
+  amount?: number;
+  due_date?: string;
+  status?: string;
+  paid_at?: string;
+  created_at?: string;
+};
+
+type ModernPaymentRow = {
+  id: string;
+  booking_id?: string;
+  tenant_id?: string;
+  amount_tzs?: number;
+  payment_type?: string;
+  payment_method?: string;
+  status?: string;
+  paid_at?: string;
+  created_at?: string;
+};
+
+type TenantSummary = {
+  id?: string;
+  full_name?: string;
+};
+
+type NormalizedBooking = {
+  id: string;
+  listing_id: string;
+  tenant_lookup_id?: string;
+  move_in_date?: string;
+  duration_months?: number;
+  status?: string;
+  reference?: string;
+  created_at?: string;
+  schema: 'legacy' | 'modern';
+  tenant?: TenantSummary | null;
+};
+
+type PaymentRecord = {
+  id: string;
+  booking_id?: string;
+  amount: number;
+  due_date?: string;
+  status?: string;
+  paid_at?: string;
+  created_at?: string;
+  payment_type?: string;
+  payment_method?: string;
+  source: 'payment_records' | 'payments';
+  listing?: ListingRow | null;
+  tenant?: TenantSummary | null;
+  booking?: NormalizedBooking | null;
+};
+
+function formatDate(value?: string) {
   if (!value) return '—';
   try {
     return new Date(value).toLocaleDateString();
@@ -12,39 +117,52 @@ function formatDate(value) {
   }
 }
 
-function formatMoney(value) {
+function formatMoney(value?: number) {
   return `TZS ${new Intl.NumberFormat('sw-TZ').format(Number(value || 0))}`;
 }
 
-function statusChip(status: string) {
-  const colors: Record<string, string> = {
-    pending: '#c47900',
-    paid: '#1a7f37',
-    late: '#cf222e',
-    overdue: '#cf222e'
-  };
-  return (
-    <span
-      style={{
-        display: 'inline-block',
-        padding: '2px 10px',
-        borderRadius: '12px',
-        background: colors[status] ? `${colors[status]}22` : '#eee',
-        color: colors[status] || '#666',
-        fontWeight: 600,
-        fontSize: '0.8rem',
-        textTransform: 'capitalize'
-      }}
-    >
-      {status}
-    </span>
-  );
+function uniqueIds(values: Array<string | undefined | null>) {
+  return Array.from(new Set(values.filter(Boolean) as string[]));
 }
-void statusChip;
+
+function inFilterValue(ids: string[]) {
+  return `(${ids.join(',')})`;
+}
+
+function extractTenantProfile(tenant: ModernBookingRow['tenant']): TenantSummary | null {
+  const tenantRow = Array.isArray(tenant) ? tenant[0] : tenant;
+  const profile = Array.isArray(tenantRow?.profile) ? tenantRow?.profile[0] : tenantRow?.profile;
+  if (!profile) return null;
+  return {
+    id: profile.id,
+    full_name: profile.full_name,
+  };
+}
+
+function isPaidStatus(status?: string) {
+  const normalized = String(status || '').toLowerCase();
+  return normalized === 'paid' || normalized === 'completed';
+}
+
+function isOutstandingStatus(status?: string) {
+  const normalized = String(status || '').toLowerCase();
+  return normalized === 'pending' || normalized === 'late' || normalized === 'overdue' || normalized === 'processing';
+}
+
+function displayStatus(status?: string) {
+  const normalized = String(status || '').toLowerCase();
+  if (normalized === 'completed') return 'Paid';
+  if (normalized === 'paid') return 'Paid';
+  if (normalized === 'processing') return 'Processing';
+  if (normalized === 'refunded') return 'Refunded';
+  if (normalized === 'failed') return 'Failed';
+  if (!normalized) return '—';
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+}
 
 export default function PaymentsPage() {
   const { user, token } = useAuth();
-  const [records, setRecords] = useState<any[]>([]);
+  const [records, setRecords] = useState<PaymentRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [markingId, setMarkingId] = useState<string | null>(null);
@@ -56,85 +174,149 @@ export default function PaymentsPage() {
       setLoading(false);
       return;
     }
+
     setLoading(true);
     setError('');
+
     try {
-      // Fetch lister's bookings
-      const bookings = await selectRows('bookings', {
-        select: 'id,listing_id,tenant_id,move_in_date,duration_months,status',
-        filters: [{ column: 'lister_id', op: 'eq', value: user.userId }],
-        order: 'created_at.desc',
-        limit: 200,
-        accessToken: token
-      });
+      const isAdmin = user.role === APP_ROLE.ADMIN;
 
-      if (bookings.length === 0) {
-        setRecords([]);
-        setLoading(false);
-        return;
-      }
-
-      // Fetch payment records for those bookings
-      const bookingIds = bookings.map((b) => b.id);
-      const payments = await selectRows('payment_records', {
-        select: 'id,booking_id,amount,due_date,status,paid_at',
-        filters: [{ column: 'booking_id', op: 'in', value: `(${bookingIds.join(',')})` }],
-        order: 'due_date.asc',
-        accessToken: token
-      });
-
-      // Merge info
-      const bookingMap = new Map(bookings.map((b) => [b.id, b]));
-
-      // Fetch listing titles
-      const listingIds = Array.from(new Set(bookings.map((b) => b.listing_id)));
-      const listings = await selectRows('listings', {
-        select: 'id,title,price_monthly',
-        filters: [{ column: 'id', op: 'in', value: `(${listingIds.join(',')})` }],
-        accessToken: token
-      });
-      const listingMap = new Map(listings.map((l) => [l.id, l]));
-
-      // Fetch tenant names
-      const tenantIds = Array.from(new Set(bookings.map((b) => b.tenant_id)));
-      const tenants = await selectRows('profiles', {
-        select: 'id,full_name,commission_rate_pct',
-        filters: [{ column: 'id', op: 'in', value: `(${tenantIds.join(',')})` }],
-        accessToken: token
-      });
-      const tenantMap = new Map(tenants.map((t) => [t.id, t]));
-
+      // Get commission rate from profile
       const profileRows = await selectRows('profiles', {
         select: 'commission_rate_pct',
         filters: [{ column: 'id', op: 'eq', value: user.userId }],
-        accessToken: token
-      });
-      const rate = profileRows?.[0]?.commission_rate_pct || 0;
-      setCommissionPct(rate);
+        limit: 1,
+        accessToken: token,
+      }).catch(() => []);
+      const rate = Number(profileRows?.[0]?.commission_rate_pct || 0);
+      setCommissionPct(isAdmin ? 0 : rate);
 
-      const enriched = payments.map((p) => {
-        const booking = bookingMap.get((p as any).booking_id) as any;
+      // ── Fetch bookings using actual schema columns ──
+      // bookings table: id, listing_id, tenant_id, lister_id, move_in_date,
+      //   duration_months, status, reference, created_at
+      const bookingRows = await selectRows('bookings', {
+        select: 'id,listing_id,tenant_id,lister_id,move_in_date,duration_months,status,reference,created_at',
+        filters: isAdmin ? [] : [{ column: 'lister_id', op: 'eq', value: user.userId }],
+        order: 'created_at.desc',
+        limit: 500,
+        accessToken: token,
+      });
+
+      const bookings: NormalizedBooking[] = (bookingRows as LegacyBookingRow[]).map((row) => ({
+        id: row.id,
+        listing_id: row.listing_id || '',
+        tenant_lookup_id: row.tenant_id,
+        move_in_date: row.move_in_date,
+        duration_months: row.duration_months,
+        status: row.status,
+        reference: row.reference,
+        created_at: row.created_at,
+        schema: 'legacy' as const,
+        tenant: null,
+      })).filter((row) => row.listing_id);
+
+      // ── Fetch payment_records for these bookings ──
+      const bookingIds = uniqueIds(bookings.map((booking) => booking.id));
+      const paymentRecordRows = bookingIds.length
+        ? await selectRows('payment_records', {
+            select: 'id,booking_id,amount,due_date,status,paid_at,created_at',
+            filters: [{ column: 'booking_id', op: 'in', value: inFilterValue(bookingIds) }],
+            order: 'due_date.asc',
+            accessToken: token,
+          }).catch((err) => {
+            console.warn('PaymentsPage: payment_records query failed.', err);
+            return [];
+          })
+        : [];
+
+      // ── Fetch listing details ──
+      const listingIds = uniqueIds(bookings.map((booking) => booking.listing_id));
+      const listingRows = listingIds.length
+        ? await selectRows('listings', {
+            select: 'id,title,price_monthly',
+            filters: [{ column: 'id', op: 'in', value: inFilterValue(listingIds) }],
+            accessToken: token,
+          }).catch(() => [])
+        : [];
+      const listingMap = new Map((listingRows as ListingRow[]).map((row) => [row.id, row]));
+
+      // ── Fetch tenant profiles ──
+      const tenantIds = uniqueIds(bookings.map((booking) => booking.tenant_lookup_id));
+      const tenantProfiles = tenantIds.length
+        ? await selectRows('profiles', {
+            select: 'id,full_name',
+            filters: [{ column: 'id', op: 'in', value: inFilterValue(tenantIds) }],
+            accessToken: token,
+          }).catch(() => [])
+        : [];
+      const tenantProfileMap = new Map((tenantProfiles as ProfileRow[]).map((row) => [row.id, row]));
+
+      const bookingMap = new Map(bookings.map((booking) => [booking.id, booking]));
+
+      const resolveTenant = (booking?: NormalizedBooking | null) => {
+        if (!booking) return null;
+        return booking.tenant_lookup_id ? tenantProfileMap.get(booking.tenant_lookup_id) || null : null;
+      };
+
+      // ── Build payment records list ──
+      const chosenPayments = (paymentRecordRows as LegacyPaymentRow[]).map((row) => ({
+        id: row.id,
+        booking_id: row.booking_id,
+        amount: Number(row.amount || 0),
+        due_date: row.due_date,
+        status: row.status,
+        paid_at: row.paid_at,
+        created_at: row.created_at,
+        source: 'payment_records' as const,
+      }));
+
+      // If no payment_records exist, generate synthetic records from bookings
+      const allPayments: typeof chosenPayments = chosenPayments.length > 0
+        ? chosenPayments
+        : bookings
+            .filter((b) => b.status === 'approved' || b.status === 'completed')
+            .map((b) => {
+              const listing = listingMap.get(b.listing_id);
+              return {
+                id: `synth-${b.id}`,
+                booking_id: b.id,
+                amount: Number(listing?.price_monthly || 0) * (b.duration_months || 1),
+                due_date: b.move_in_date,
+                status: b.status === 'completed' ? 'paid' : 'pending',
+                paid_at: b.status === 'completed' ? b.created_at : undefined,
+                created_at: b.created_at,
+                source: 'payment_records' as const,
+              };
+            });
+
+      const enrichedRecords: PaymentRecord[] = allPayments.map((payment) => {
+        const booking = payment.booking_id ? bookingMap.get(payment.booking_id) || null : null;
+        const tenant = resolveTenant(booking);
         return {
-          ...p,
-          listing: booking ? listingMap.get(booking.listing_id) : null,
-          tenant: booking ? tenantMap.get(booking.tenant_id) : null,
-          booking
+          ...payment,
+          listing: booking ? listingMap.get(booking.listing_id) || null : null,
+          tenant,
+          booking,
         };
       });
 
-      const approved = bookings
-        .filter((b) => b.status === 'approved')
-        .map((b) => {
-          const listing: any = listingMap.get(b.listing_id);
-          const tenant = tenantMap.get(b.tenant_id);
+      const activeStatuses = new Set(['approved', 'completed', 'confirmed']);
+      const enrichedBookings = bookings
+        .filter((booking) => activeStatuses.has(String(booking.status || '').toLowerCase()))
+        .map((booking) => {
+          const listing = listingMap.get(booking.listing_id) || null;
+          const tenant = resolveTenant(booking);
           const commission = listing ? (Number(listing.price_monthly || 0) * rate) / 100 : 0;
-          return { ...b, listing, tenant, commission };
+          return { ...booking, listing, tenant, commission };
         });
 
-      setRecords(enriched);
-      setApprovedBookings(approved);
+      setRecords(enrichedRecords);
+      setApprovedBookings(enrichedBookings);
     } catch (err: any) {
-      setError(err.message);
+      console.error('PaymentsPage: failed to load payments.', err);
+      setError('We could not load payments right now. Please refresh and try again.');
+      setRecords([]);
+      setApprovedBookings([]);
     } finally {
       setLoading(false);
     }
@@ -142,49 +324,55 @@ export default function PaymentsPage() {
 
   useEffect(() => {
     loadPayments();
-     
-  }, [user?.userId, token]);
+  }, [user?.userId, token, user?.role]);
 
-  const markReceived = async (paymentId: string) => {
-    setMarkingId(paymentId);
+  const markReceived = async (record: PaymentRecord) => {
+    if (record.source !== 'payment_records') return;
+
+    setMarkingId(record.id);
     setError('');
+
     try {
       await updateRows(
         'payment_records',
         { status: 'paid', paid_at: new Date().toISOString() },
-        { filters: [{ column: 'id', op: 'eq', value: paymentId }], accessToken: token }
+        { filters: [{ column: 'id', op: 'eq', value: record.id }], accessToken: token }
       );
+
       setRecords((prev) =>
-        prev.map((r) =>
-          r.id === paymentId ? { ...r, status: 'paid', paid_at: new Date().toISOString() } : r
+        prev.map((row) =>
+          row.id === record.id ? { ...row, status: 'paid', paid_at: new Date().toISOString() } : row
         )
       );
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      console.error('PaymentsPage: failed to mark payment record as received.', err);
+      setError('We could not update that payment record. Please try again.');
     } finally {
       setMarkingId(null);
     }
   };
 
   const totalOutstanding = records
-    .filter((r) => r.status === 'pending' || r.status === 'late')
-    .reduce((sum, r) => sum + Number(r.amount || 0), 0);
+    .filter((record) => isOutstandingStatus(record.status))
+    .reduce((sum, record) => sum + Number(record.amount || 0), 0);
 
   const totalReceived = records
-    .filter((r) => r.status === 'paid')
-    .reduce((sum, r) => sum + Number(r.amount || 0), 0);
+    .filter((record) => isPaidStatus(record.status))
+    .reduce((sum, record) => sum + Number(record.amount || 0), 0);
 
-  const monthlyCommissions = approvedBookings.reduce((sum, b) => sum + (b.commission || 0), 0);
+  const monthlyCommissions = approvedBookings.reduce((sum, booking) => sum + Number(booking.commission || 0), 0);
 
   const initials = (name?: string) => {
     if (!name) return '?';
     return name
       .split(/\s+/)
-      .map((n) => n[0])
+      .map((part) => part[0])
       .join('')
       .slice(0, 2)
       .toUpperCase();
   };
+
+  const backHref = user?.role === APP_ROLE.ADMIN ? '/admin' : '/landlord';
 
   return (
     <>
@@ -199,7 +387,7 @@ export default function PaymentsPage() {
             </p>
           </div>
           <Link
-            to="/landlord"
+            to={backHref}
             style={{
               padding: '8px 16px',
               borderRadius: 10,
@@ -208,7 +396,7 @@ export default function PaymentsPage() {
               fontSize: 13,
               fontWeight: 500,
               color: 'var(--ink)',
-              textDecoration: 'none'
+              textDecoration: 'none',
             }}
           >
             ← Back to dashboard
@@ -218,42 +406,42 @@ export default function PaymentsPage() {
         {error ? <p className="error-text" style={{ marginTop: '-0.5rem' }}>{error}</p> : null}
 
         <div className="kpi-strip">
-          {loading
-            ? Array.from({ length: 4 }).map((_, i) => (
-                <div
-                  key={`kpi-skel-${i}`}
-                  style={{
-                    height: 80,
-                    borderRadius: 14,
-                    background: 'var(--cream)',
-                    animation: 'pulse 1.5s ease-in-out infinite'
-                  }}
-                />
-              ))
-            : (
-              <>
-                <div className="kpi-card">
-                  <div className="kpi-label">Total received</div>
-                  <div className="kpi-value" style={{ color: '#1a7f37' }}>{formatMoney(totalReceived)}</div>
-                  <div className="kpi-sub">All time collected</div>
-                </div>
-                <div className="kpi-card">
-                  <div className="kpi-label">Outstanding</div>
-                  <div className="kpi-value" style={{ color: '#cf222e' }}>{formatMoney(totalOutstanding)}</div>
-                  <div className="kpi-sub">Pending + overdue</div>
-                </div>
-                  <div className="kpi-card">
-                  <div className="kpi-label">Commission rate</div>
-                  <div className="kpi-value" style={{ color: 'var(--jade)' }}>{commissionPct}%</div>
-                  <div className="kpi-sub">Your platform rate</div>
-                </div>
-                <div className="kpi-card">
-                  <div className="kpi-label">Monthly commissions</div>
-                  <div className="kpi-value" style={{ color: 'var(--jade)' }}>{formatMoney(monthlyCommissions)}</div>
-                  <div className="kpi-sub">From active tenants</div>
-                </div>
-              </>
-            )}
+          {loading ? (
+            Array.from({ length: 4 }).map((_, index) => (
+              <div
+                key={`kpi-skel-${index}`}
+                style={{
+                  height: 80,
+                  borderRadius: 14,
+                  background: 'var(--cream)',
+                  animation: 'pulse 1.5s ease-in-out infinite',
+                }}
+              />
+            ))
+          ) : (
+            <>
+              <div className="kpi-card">
+                <div className="kpi-label">Total received</div>
+                <div className="kpi-value" style={{ color: '#1a7f37' }}>{formatMoney(totalReceived)}</div>
+                <div className="kpi-sub">All time collected</div>
+              </div>
+              <div className="kpi-card">
+                <div className="kpi-label">Outstanding</div>
+                <div className="kpi-value" style={{ color: '#cf222e' }}>{formatMoney(totalOutstanding)}</div>
+                <div className="kpi-sub">Pending + overdue</div>
+              </div>
+              <div className="kpi-card">
+                <div className="kpi-label">Commission rate</div>
+                <div className="kpi-value" style={{ color: 'var(--jade)' }}>{commissionPct}%</div>
+                <div className="kpi-sub">Your platform rate</div>
+              </div>
+              <div className="kpi-card">
+                <div className="kpi-label">Monthly commissions</div>
+                <div className="kpi-value" style={{ color: 'var(--jade)' }}>{formatMoney(monthlyCommissions)}</div>
+                <div className="kpi-sub">From active tenants</div>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="section-card">
@@ -270,7 +458,7 @@ export default function PaymentsPage() {
             </div>
           ) : records.length === 0 ? (
             <div className="empty-state">
-              No payment records yet — they are created automatically when you approve a booking.
+              No payment records yet. They will appear here once bookings and payments are created.
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
@@ -280,55 +468,66 @@ export default function PaymentsPage() {
                     <th>Tenant</th>
                     <th>Property</th>
                     <th>Amount</th>
-                    <th>Due Date</th>
+                    <th>Date</th>
                     <th>Status</th>
                     <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {records.map((r) => {
-                    const statusText = String(r.status || '');
-                    const isOverdue = r.status !== 'paid' && r.due_date && new Date(r.due_date) < new Date();
+                  {records.map((record) => {
+                    const rawStatus = String(record.status || '');
+                    const normalizedStatus = rawStatus.toLowerCase();
+                    const isOverdue = record.source === 'payment_records'
+                      && normalizedStatus !== 'paid'
+                      && Boolean(record.due_date)
+                      && new Date(record.due_date as string) < new Date();
+
                     let pillBg = '#fff8ec';
                     let pillColor = '#c47900';
-                    if (statusText === 'paid') {
+
+                    if (isPaidStatus(record.status)) {
                       pillBg = '#f0faf4';
                       pillColor = '#1a7f37';
-                    } else if (statusText === 'late' || statusText === 'overdue' || isOverdue) {
+                    } else if (normalizedStatus === 'failed' || normalizedStatus === 'refunded' || normalizedStatus === 'late' || normalizedStatus === 'overdue' || isOverdue) {
                       pillBg = '#fef2f2';
                       pillColor = '#cf222e';
                     }
+
                     return (
-                      <tr key={r.id}>
+                      <tr key={record.id}>
                         <td>
                           <div className="tenant-cell">
-                            <div className="avatar">{initials(r.tenant?.full_name)}</div>
-                            <span>{r.tenant?.full_name || '—'}</span>
+                            <div className="avatar">{initials(record.tenant?.full_name)}</div>
+                            <span>{record.tenant?.full_name || 'Tenant'}</span>
                           </div>
                         </td>
-                        <td style={{ fontWeight: 500 }}>{r.listing?.title || '—'}</td>
-                        <td style={{ fontWeight: 600 }}>{formatMoney(r.amount)}</td>
+                        <td style={{ fontWeight: 500 }}>{record.listing?.title || '—'}</td>
+                        <td style={{ fontWeight: 600 }}>{formatMoney(record.amount)}</td>
                         <td style={{ color: isOverdue ? '#cf222e' : 'var(--ink)', fontWeight: isOverdue ? 500 : 400 }}>
-                          {formatDate(r.due_date)}
+                          {formatDate(record.due_date || record.created_at)}
                         </td>
                         <td>
                           <span className="status-pill" style={{ background: pillBg, color: pillColor }}>
                             <span className="status-dot" style={{ background: pillColor }} />
-                            {statusText ? statusText.charAt(0).toUpperCase() + statusText.slice(1) : '—'}
+                            {displayStatus(record.status)}
                           </span>
                         </td>
                         <td>
-                          {r.status !== 'paid' ? (
+                          {record.source === 'payment_records' && !isPaidStatus(record.status) ? (
                             <button
                               className="mark-btn"
-                              disabled={markingId === r.id}
-                              onClick={() => markReceived(r.id)}
+                              disabled={markingId === record.id}
+                              onClick={() => markReceived(record)}
                             >
-                              {markingId === r.id ? 'Saving…' : '✓ Mark received'}
+                              {markingId === record.id ? 'Saving…' : '✓ Mark received'}
                             </button>
+                          ) : isPaidStatus(record.status) ? (
+                            <span style={{ fontSize: 11, color: 'var(--mid)' }}>
+                              Received {formatDate(record.paid_at)}
+                            </span>
                           ) : (
                             <span style={{ fontSize: 11, color: 'var(--mid)' }}>
-                              Received {formatDate(r.paid_at)}
+                              {[record.payment_type, record.payment_method].filter(Boolean).join(' · ') || 'Awaiting payment'}
                             </span>
                           )}
                         </td>
@@ -351,22 +550,22 @@ export default function PaymentsPage() {
 
           {approvedBookings.length === 0 ? (
             <div className="empty-state">
-              No approved bookings yet — approve a booking request to start tracking commissions.
+              No approved bookings yet. Commissions will appear here once a tenant is confirmed.
             </div>
           ) : (
             <>
-              {approvedBookings.map((b) => (
-                <div key={b.id} className="comm-row">
+              {approvedBookings.map((booking: any) => (
+                <div key={booking.id} className="comm-row">
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <span style={{ fontSize: 13, fontWeight: 500 }}>{b.tenant?.full_name || '—'}</span>
-                    <span style={{ fontSize: 11, color: 'var(--mid)' }}>{b.listing?.title || '—'}</span>
+                    <span style={{ fontSize: 13, fontWeight: 500 }}>{booking.tenant?.full_name || 'Tenant'}</span>
+                    <span style={{ fontSize: 11, color: 'var(--mid)' }}>{booking.listing?.title || '—'}</span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
                     <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--jade)' }}>
-                      {formatMoney(b.commission)}
+                      {formatMoney(booking.commission)}
                     </span>
                     <span style={{ fontSize: 11, color: 'var(--mid)' }}>
-                      of TZS {new Intl.NumberFormat('sw-TZ').format(Number(b.listing?.price_monthly || 0))}/mo
+                      of TZS {new Intl.NumberFormat('sw-TZ').format(Number(booking.listing?.price_monthly || 0))}/mo
                     </span>
                   </div>
                 </div>
@@ -377,7 +576,7 @@ export default function PaymentsPage() {
                   padding: '14px 20px',
                   display: 'flex',
                   justifyContent: 'space-between',
-                  alignItems: 'center'
+                  alignItems: 'center',
                 }}
               >
                 <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>

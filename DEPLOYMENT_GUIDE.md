@@ -1,4 +1,4 @@
-# Deployment Guide - CampusStay TZ
+# Deployment Guide - iRent
 
 **Status**: ✅ Ready for Production Deployment  
 **Commit**: `e60fde4` on main branch  
@@ -132,7 +132,7 @@ WHERE table_name = 'listing_photos'
 curl -I https://your-vercel-url.vercel.app
 
 # 2. Test home page loads
-# - Should see CampusStay logo
+# - Should see iRent logo
 # - Should see search bar
 # - Should see featured listings
 
@@ -260,7 +260,7 @@ If migration caused issues:
 
 ```bash
 # Check website is up
-curl -I https://campusstay.example.com
+curl -I https://housings-pied.vercel.app
 
 # Check Supabase API is responding
 # Log in → check dashboard loads
@@ -373,7 +373,7 @@ vercel --prod
 vercel list
 
 # View logs
-vercel logs campusstay.example.com
+vercel logs housings-pied.vercel.app
 ```
 
 ---
@@ -384,7 +384,7 @@ vercel logs campusstay.example.com
 
 1. Post deployment message to team:
    ```
-   ✅ CampusStay TZ deployed to production
+   ✅ iRent deployed to production
    
    - 13 new listing fields (security_deposit, floor, furnished, etc.)
    - 7-step listing form with auto-draft
@@ -392,7 +392,7 @@ vercel logs campusstay.example.com
    - Occupied listings hidden from search
    - Full documentation: FRONTEND_BACKEND_INTEGRATION.md
    
-   URL: https://campusstay.example.com
+   URL: https://housings-pied.vercel.app
    Commit: e60fde4
    ```
 
@@ -402,7 +402,7 @@ vercel logs campusstay.example.com
 
 ### Celebrate! 🎉
 
-Deployment complete. The updated CampusStay TZ is now live with:
+Deployment complete. The updated iRent platform is now live with:
 - ✅ Complete listing schema overhaul
 - ✅ 7-step property listing form
 - ✅ Enhanced photo management with ordering

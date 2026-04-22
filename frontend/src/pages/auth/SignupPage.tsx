@@ -408,7 +408,8 @@ export default function SignupPage() {
     return true;
   };
 
-  const handleContinue = () => {
+  const handleContinue = (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
     if (!validateStepOne()) {
       return;
     }
@@ -418,6 +419,11 @@ export default function SignupPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (step === 1) {
+      handleContinue();
+      return;
+    }
 
     if (!validateStepOne()) {
       setStep(1);

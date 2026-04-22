@@ -1,6 +1,6 @@
-# CampusStay TZ
+# iRent
 
-CampusStay TZ is now running as a Supabase-first React app aligned to the redesign specification in `campusstay-redesign.html`.
+iRent is a Supabase-first React property rental marketplace for Tanzania, aligned to the redesign specification in `campusstay-redesign.html`.
 
 ## Current Direction
 - Frontend: React + Vite + TypeScript (`frontend/`)
@@ -33,7 +33,7 @@ CampusStay TZ is now running as a Supabase-first React app aligned to the redesi
 2. `git add -A && git commit -m "..."` 
 3. `git push origin main`
 4. Wait 3-5 minutes for Vercel build
-5. Check deployment at https://campusstay-deploy.vercel.app (or your Vercel URL)
+5. Check deployment at https://housings-pied.vercel.app (or your Vercel URL)
 
 ## Required Environment
 Create `frontend/.env` from `frontend/.env.example`:
@@ -154,6 +154,6 @@ Edge functions added:
 - **End-to-End Tests**: Browser automation tests for the main submission/booking flows.
 
 ## Notes
-- Keep `campusstay-redesign.html` unchanged; it is the reference specification.
+- Keep `campusstay-redesign.html` unchanged; it is the original reference specification.
 - If RLS policies are strict, ensure anon/authenticated policies match the route behavior above.
 

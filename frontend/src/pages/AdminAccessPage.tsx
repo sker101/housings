@@ -62,7 +62,7 @@ export default function AdminAccessPage() {
     setSelectedAccount(profile);
     setIsViewMode(true);
 
-    if (profile.role === 'lister') {
+    if (profile.role === 'landlord' || profile.role === 'property_manager') {
       setIsLoadingListings(true);
       try {
         const listings = await selectRows('listings', {
@@ -408,7 +408,7 @@ export default function AdminAccessPage() {
               </div>
 
               {/* Listings (Dalalis/Landlords) */}
-              {selectedAccount.role === 'lister' && (
+              {(selectedAccount.role === 'landlord' || selectedAccount.role === 'property_manager') && (
                 <div>
                   <h3 style={{ fontSize: '0.9rem', fontWeight: '700', textTransform: 'uppercase', color: '#6b7280', marginBottom: '1rem' }}>
                     Listings ({accountListings.length})

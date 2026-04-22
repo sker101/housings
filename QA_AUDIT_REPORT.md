@@ -1,4 +1,4 @@
-# CampusStay TZ — QA Audit & Security Hardening Report
+# iRent — QA Audit & Security Hardening Report
 
 **Date:** 2026-04-14  
 **Auditor:** Automated QA System  
@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-A comprehensive end-to-end QA audit and security hardening exercise was performed on the CampusStay TZ property rental marketplace. The audit identified **17 bugs** and **6 security vulnerabilities** across the codebase. All identified issues have been fixed with corresponding code changes and a database migration.
+A comprehensive end-to-end QA audit and security hardening exercise was performed on the iRent property rental marketplace. The audit identified **17 bugs** and **6 security vulnerabilities** across the codebase. All identified issues have been fixed with corresponding code changes and a database migration.
 
 > **IMPORTANT:** The migration file `supabase/migrations/20260414000000_qa_audit_fixes.sql` **must be applied** to the production database for these fixes to take effect.
 

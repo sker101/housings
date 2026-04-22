@@ -1,4 +1,4 @@
-# CampusStay Frontend-Backend Integration Documentation
+# iRent Frontend-Backend Integration Documentation
 
 **Date**: March 31, 2026  
 **Status**: ✅ Complete & Verified  
