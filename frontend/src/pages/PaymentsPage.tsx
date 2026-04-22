@@ -28,29 +28,7 @@ type LegacyBookingRow = {
   created_at?: string;
 };
 
-type ModernBookingRow = {
-  id: string;
-  tenant_id?: string;
-  room_id?: string;
-  property_id?: string;
-  landlord_id?: string;
-  move_in_date?: string;
-  months_duration?: number;
-  status?: string;
-  reference?: string;
-  created_at?: string;
-  tenant?: {
-    profile?: {
-      id?: string;
-      full_name?: string;
-    } | Array<{ id?: string; full_name?: string }>;
-  } | Array<{
-    profile?: {
-      id?: string;
-      full_name?: string;
-    } | Array<{ id?: string; full_name?: string }>;
-  }>;
-};
+
 
 type LegacyPaymentRow = {
   id: string;
@@ -62,17 +40,7 @@ type LegacyPaymentRow = {
   created_at?: string;
 };
 
-type ModernPaymentRow = {
-  id: string;
-  booking_id?: string;
-  tenant_id?: string;
-  amount_tzs?: number;
-  payment_type?: string;
-  payment_method?: string;
-  status?: string;
-  paid_at?: string;
-  created_at?: string;
-};
+
 
 type TenantSummary = {
   id?: string;
@@ -129,15 +97,7 @@ function inFilterValue(ids: string[]) {
   return `(${ids.join(',')})`;
 }
 
-function extractTenantProfile(tenant: ModernBookingRow['tenant']): TenantSummary | null {
-  const tenantRow = Array.isArray(tenant) ? tenant[0] : tenant;
-  const profile = Array.isArray(tenantRow?.profile) ? tenantRow?.profile[0] : tenantRow?.profile;
-  if (!profile) return null;
-  return {
-    id: profile.id,
-    full_name: profile.full_name,
-  };
-}
+
 
 function isPaidStatus(status?: string) {
   const normalized = String(status || '').toLowerCase();

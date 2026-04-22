@@ -70,7 +70,7 @@ export default function AdminDashboardPage() {
           requestedBookings, approvedBookings, declinedBookings,
           suspendedUsers, pendingVerification, unreadNotifs,
           pendingClaims, settingsRows,
-          recentListings, recentBookings, recentReports,
+          recentListings, _recentBookings, _recentReports,
           avgRatingRows,
           paymentsList,
           auditRecent,

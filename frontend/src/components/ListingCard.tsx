@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+
 import VerifiedBadge from './VerifiedBadge';
 
 function formatTZS(value: number | string | undefined) {
@@ -22,12 +22,9 @@ function isComingSoon(status: string | undefined): boolean {
   return status === 'available_soon' || status === 'listed_occupied';
 }
 
-export default function ListingCard({ listing, onToggleSave, isSaved = false }: {
+export default function ListingCard({ listing }: {
   listing: any;
-  onToggleSave?: (_id: string) => void;
-  isSaved?: boolean;
 }) {
-  const { t } = useTranslation();
   const serviceCharge = Number(listing.service_charge_tzs || listing.serviceChargeTzs || 0);
   const baseRent = Number(listing.priceMonthly || 0);
   const monthlyTotal = baseRent + serviceCharge;
