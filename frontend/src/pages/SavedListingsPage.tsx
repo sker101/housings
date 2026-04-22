@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ListingCard from '../components/ListingCard';
 import { useAuth } from '../context/AuthContext';
-import { fetchSavedListings, toggleSavedListing } from '../lib/listings';
+import { fetchSavedListings } from '../lib/listings';
 
 export default function SavedListingsPage() {
   const { user, token } = useAuth();
@@ -48,24 +48,6 @@ export default function SavedListingsPage() {
     };
   }, [user?.userId, token]);
 
-  const handleToggleSave = async (listingId) => {
-    if (!user?.userId || !token) {
-      return;
-    }
-
-    try {
-      await toggleSavedListing({
-        tenantId: user.userId,
-        listingId,
-        accessToken: token
-      });
-
-      setItems((prev) => prev.filter((item) => item.listing.id !== listingId));
-    } catch (err) {
-      setError(err.message);
-    }
-  };
-
   return (
     <div className="container section">
       <div className="section__header">
@@ -89,8 +71,6 @@ export default function SavedListingsPage() {
           <ListingCard
             key={item.listing.id}
             listing={item.listing}
-            onToggleSave={handleToggleSave}
-            isSaved
           />
         ))}
       </div>

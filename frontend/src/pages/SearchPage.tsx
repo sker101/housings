@@ -6,9 +6,7 @@ import ListingCard from '../components/ListingCard';
 import { useAuth } from '../context/AuthContext';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import {
-  fetchApprovedListings,
-  fetchSavedListingIds,
-  toggleSavedListing
+  fetchApprovedListings
 } from '../lib/listings';
 import {
   Search, Users, Bed, Bath, Wifi, Car, Droplets, Utensils,
@@ -82,7 +80,7 @@ const PAGE_SIZE = 24;
 export default function SearchPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user, token } = useAuth();
+  const { token } = useAuth();
   const { t } = useTranslation();
 
   // Filter states - matching homepage style
@@ -102,7 +100,6 @@ export default function SearchPage() {
   const [mapBounds, setMapBounds] = useState<{ north: number; south: number; east: number; west: number } | null>(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
-  const [savedIds, setSavedIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
@@ -224,33 +221,7 @@ export default function SearchPage() {
     };
   }, [hasMore, loadMore, loading, loadingMore, viewMode]);
 
-  useEffect(() => {
-    let mounted = true;
 
-    async function loadSaved() {
-      if (!user?.userId || !token) {
-        setSavedIds(new Set());
-        return;
-      }
-
-      try {
-        const ids = await fetchSavedListingIds(user.userId, token);
-        if (mounted) {
-          setSavedIds(new Set(ids));
-        }
-      } catch {
-        if (mounted) {
-          setSavedIds(new Set());
-        }
-      }
-    }
-
-    loadSaved();
-
-    return () => {
-      mounted = false;
-    };
-  }, [user?.userId, token]);
 
   const resultCountLabel = useMemo(() => {
     if (loading) {
@@ -332,32 +303,7 @@ export default function SearchPage() {
     (furnished ? 1 : 0) +
     (utilitiesIncluded ? 1 : 0);
 
-  const handleToggleSave = async (listingId) => {
-    if (!user?.userId || !token) {
-      setError(t('search.loginToSave'));
-      return;
-    }
 
-    try {
-      const nextSaved = await toggleSavedListing({
-        tenantId: user.userId,
-        listingId,
-        accessToken: token
-      });
-
-      setSavedIds((prev) => {
-        const next = new Set(prev);
-        if (nextSaved) {
-          next.add(listingId);
-        } else {
-          next.delete(listingId);
-        }
-        return next;
-      });
-    } catch (err) {
-      setError(err.message);
-    }
-  };
 
   return (
     <div className="container section">
@@ -735,8 +681,6 @@ export default function SearchPage() {
                 <ListingCard
                   key={listing.id}
                   listing={listing}
-                  onToggleSave={handleToggleSave}
-                  isSaved={savedIds.has(listing.id)}
                 />
               ))
             )}

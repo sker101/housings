@@ -1230,8 +1230,6 @@ export default function RoomDetailsPage() {
               <ListingCard
                 key={item.id}
                 listing={item}
-                onToggleSave={(id) => handleToggleSave(id)}
-                isSaved={savedIds.has(item.id)}
               />
             ))}
           </div>
