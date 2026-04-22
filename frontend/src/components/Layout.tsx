@@ -234,7 +234,7 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
           }
         } else if (user.role === APP_ROLE.TENANT) {
           const savedRows = await selectRows('saved_listings', {
-            select: 'id', filters: [{ column: 'user_id', op: 'eq', value: user.userId }], limit: 1000, accessToken: token
+            select: 'listing_id', filters: [{ column: 'tenant_id', op: 'eq', value: user.userId }], limit: 1000, accessToken: token
           });
           const bookingsRows = await selectRows('bookings', {
             select: 'id', filters: [{ column: 'tenant_id', op: 'eq', value: user.userId }, { column: 'status', op: 'eq', value: 'approved' }],
