@@ -1167,7 +1167,7 @@ export default function RoomDetailsPage() {
           </div>
         </article>
 
-        <article className="room-section-card" style={{ padding: '2rem 0', border: 'none', background: 'transparent' }}>
+        <article className="room-section-card" style={{ padding: '2rem 0', border: 'none', background: 'transparent', gridColumn: '1 / -1' }}>
           <div style={{ padding: '0 1.5rem' }}>
             <h2>{t('roomDetails.location')}</h2>
             <p>{listing.location}</p>
