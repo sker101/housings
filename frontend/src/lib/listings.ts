@@ -3,7 +3,8 @@ import {
   insertRows,
   selectRows,
   upsertRows,
-  updateRows
+  updateRows,
+  rpc
 } from './supabase';
 
 function toLocation(row) {
@@ -176,32 +177,45 @@ export async function fetchApprovedListings(filters: Record<string, any> = {}, a
 }
 
 export async function fetchListingById(listingId, accessToken) {
-  const rows = await selectRows('listings', {
-    select:
-      'id,lister_id,title,description,room_type,gender_preference,price_monthly,security_deposit,utilities_included,floor,total_rooms,furnished,property_type,owner_name,owner_phone,whatsapp_number,min_lease_months,payment_schedule,late_fee_policy,video_tour_url,accessibility_notes,region,district,ward,street,lat,lng,amenities,house_rules,available_from,vacancy_status,status,rejection_reason,featured,near_universities,view_count,created_at',
-    filters: [{ column: 'id', op: 'eq', value: listingId }],
-    limit: 1,
-    accessToken
-  });
-
-  if (rows.length === 0) {
-    throw new Error('Listing not found');
-  }
-
-  const listingRow = rows[0];
-  const photoMap = await fetchPhotosForListings([listingRow.id], accessToken);
-
+  let listingRow;
   let listerProfile = null;
-  if (listingRow.lister_id) {
-    const profiles = await selectRows('profiles', {
-      select: 'id,full_name,verification_status,profile_photo_url,created_at',
-      filters: [{ column: 'id', op: 'eq', value: listingRow.lister_id }],
+
+  try {
+    const result = await rpc('get_listing_with_contact', { p_listing_id: listingId }, accessToken);
+    if (result && result.listing) {
+      listingRow = result.listing;
+      listerProfile = result.listerProfile;
+    } else {
+      throw new Error('Listing not found');
+    }
+  } catch (err) {
+    console.warn('RPC failed, falling back to selectRows', err);
+    const rows = await selectRows('listings', {
+      select:
+        'id,lister_id,title,description,room_type,gender_preference,price_monthly,security_deposit,utilities_included,floor,total_rooms,furnished,property_type,owner_name,owner_phone,whatsapp_number,min_lease_months,payment_schedule,late_fee_policy,video_tour_url,accessibility_notes,region,district,ward,street,lat,lng,amenities,house_rules,available_from,vacancy_status,status,rejection_reason,featured,near_universities,view_count,created_at',
+      filters: [{ column: 'id', op: 'eq', value: listingId }],
       limit: 1,
       accessToken
     });
 
-    listerProfile = profiles[0] || null;
+    if (rows.length === 0) {
+      throw new Error('Listing not found');
+    }
+
+    listingRow = rows[0];
+
+    if (listingRow.lister_id) {
+      const profiles = await selectRows('profiles', {
+        select: 'id,full_name,verification_status,profile_photo_url,created_at,phone',
+        filters: [{ column: 'id', op: 'eq', value: listingRow.lister_id }],
+        limit: 1,
+        accessToken
+      });
+      listerProfile = profiles[0] || null;
+    }
   }
+
+  const photoMap = await fetchPhotosForListings([listingRow.id], accessToken);
 
   return {
     listing: mapListingRow(listingRow, photoMap.get(listingRow.id) || []),

@@ -400,11 +400,8 @@ export default function RoomDetailsPage() {
         emoji: amenityEmoji(key),
         enabled: Boolean(enabled)
       }))
-      .sort((a, b) => {
-        // Enabled items first
-        if (a.enabled !== b.enabled) return b.enabled ? 1 : -1;
-        return a.label.localeCompare(b.label);
-      });
+      .filter((item) => item.enabled)
+      .sort((a, b) => a.label.localeCompare(b.label));
   }, [listing?.amenities]);
 
   const houseRules = useMemo(
@@ -859,7 +856,7 @@ export default function RoomDetailsPage() {
               />
             </button>
             <div className="room-hero__image-meta">
-              <span className="room-photo-angle">{humanize(activePhoto?.angle || 'main')}</span>
+              <span className="room-photo-angle">{activePhoto?.caption || humanize(activePhoto?.angle || 'main').replace(/\d+/g, '').trim()}</span>
               <span className="room-photo-count">
                 {activePhotoIndex + 1}/{galleryPhotos.length}
               </span>
@@ -906,7 +903,7 @@ export default function RoomDetailsPage() {
                 onClick={() => setActivePhotoIndex(index)}
               >
                 <img src={photo.public_url} alt={photo.angle || 'Listing photo'} loading="lazy" />
-                <span className="room-thumb__label">{humanize(photo.angle || 'photo')}</span>
+                <span className="room-thumb__label">{photo.caption || humanize(photo.angle || 'photo').replace(/\d+/g, '').trim()}</span>
               </button>
             ))}
           </div>
@@ -928,13 +925,6 @@ export default function RoomDetailsPage() {
           </div>
           <p className="room-hero__location">{listing.location}</p>
           <p className="room-price">{formatPrice(listing.priceMonthly)}</p>
-
-          <div className="room-chip-row">
-            <span className="room-chip">{humanize(listing.roomType)}</span>
-            <span className="room-chip">{humanize(listing.genderPreference)}</span>
-            <span className="room-chip">{humanize(listing.vacancyStatus)}</span>
-            <span className="room-chip">{t('roomDetails.availableFrom', { date: formatDate(listing.availableFrom) })}</span>
-          </div>
 
           <p>{listing.description}</p>
 
@@ -975,6 +965,14 @@ export default function RoomDetailsPage() {
                 <strong>WhatsApp:</strong> {listing.whatsappNumber}
               </p>
             )}
+            {(!listerProfile?.phone && !listing?.whatsappNumber) && (
+              <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: '#F9FAFB', borderRadius: '8px', display: 'flex', gap: '0.5rem', alignItems: 'flex-start', border: '1px solid #E5E7EB' }}>
+                <span style={{ fontSize: '1rem' }}>🔒</span>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: '#6B7280', lineHeight: 1.4 }}>
+                  Pay to reserve this room to view landlord contact details.
+                </p>
+              </div>
+            )}
           </section>
 
           {listing?.listerType === 'dalali' && (listing?.ownerName || listing?.ownerPhone) ? (
@@ -989,6 +987,14 @@ export default function RoomDetailsPage() {
                 <p style={{ margin: '0', fontSize: '0.9rem' }}>
                   <strong>Phone:</strong> {listing.ownerPhone}
                 </p>
+              )}
+              {(!listing?.ownerPhone) && (
+                <div style={{ marginTop: '0.5rem', padding: '0.75rem', background: '#F9FAFB', borderRadius: '8px', display: 'flex', gap: '0.5rem', alignItems: 'flex-start', border: '1px solid #E5E7EB' }}>
+                  <span style={{ fontSize: '1rem' }}>🔒</span>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: '#6B7280', lineHeight: 1.4 }}>
+                    Pay to reserve this room to view owner contact details.
+                  </p>
+                </div>
               )}
               <p style={{ margin: '0.5rem 0 0', fontSize: '0.85rem', color: '#6B6B5A' }}>
                 (Listed by {listerProfile?.full_name || 'agent'})
@@ -1092,51 +1098,7 @@ export default function RoomDetailsPage() {
           )}
         </article>
 
-        {/* ── Habitability & Infrastructure ─────────────────────────── */}
-        <article className="card room-section-card">
-          <h2>🏗️ Habitability & Infrastructure</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.75rem', marginTop: '0.5rem' }}>
-            {/* Water Pressure */}
-            <div style={{ background: '#f9fafb', borderRadius: 10, padding: '0.9rem 1rem', border: '1px solid #e5e7eb' }}>
-              <p style={{ margin: '0 0 0.3rem', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6b7280' }}>💧 Water Pressure</p>
-              <span style={{
-                display: 'inline-block', padding: '0.2rem 0.65rem', borderRadius: 99, fontWeight: 700, fontSize: '0.82rem',
-                background: listing?.water_pressure === 'high' ? '#dcfce7' : listing?.water_pressure === 'medium' ? '#fef9c3' : listing?.water_pressure === 'low' ? '#fee2e2' : '#f1f5f9',
-                color: listing?.water_pressure === 'high' ? '#166534' : listing?.water_pressure === 'medium' ? '#854d0e' : listing?.water_pressure === 'low' ? '#991b1b' : '#475569',
-              }}>
-                {listing?.water_pressure
-                  ? String(listing.water_pressure).charAt(0).toUpperCase() + String(listing.water_pressure).slice(1)
-                  : 'Not specified'}
-              </span>
-            </div>
-
-            {/* Power Backup */}
-            <div style={{ background: '#f9fafb', borderRadius: 10, padding: '0.9rem 1rem', border: '1px solid #e5e7eb' }}>
-              <p style={{ margin: '0 0 0.3rem', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6b7280' }}>⚡ Power Backup</p>
-              <span style={{
-                display: 'inline-block', padding: '0.2rem 0.65rem', borderRadius: 99, fontWeight: 700, fontSize: '0.82rem',
-                background: !listing?.power_backup || listing?.power_backup === 'none' ? '#fef2f2' : '#eff6ff',
-                color: !listing?.power_backup || listing?.power_backup === 'none' ? '#991b1b' : '#1e40af',
-              }}>
-                {listing?.power_backup
-                  ? String(listing.power_backup).replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())
-                  : 'Not specified'}
-              </span>
-            </div>
-
-            {/* Mobile Network */}
-            <div style={{ background: '#f9fafb', borderRadius: 10, padding: '0.9rem 1rem', border: '1px solid #e5e7eb' }}>
-              <p style={{ margin: '0 0 0.3rem', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6b7280' }}>📶 Mobile Network</p>
-              <span style={{
-                display: 'inline-block', padding: '0.2rem 0.65rem', borderRadius: 99, fontWeight: 700, fontSize: '0.82rem',
-                background: listing?.network_strength === '5G' || listing?.network_strength === '4G' ? '#dcfce7' : listing?.network_strength ? '#fef9c3' : '#f1f5f9',
-                color: listing?.network_strength === '5G' || listing?.network_strength === '4G' ? '#166534' : listing?.network_strength ? '#854d0e' : '#475569',
-              }}>
-                {listing?.network_strength || 'Not specified'}
-              </span>
-            </div>
-          </div>
-        </article>
+        {/* Habitability section removed as per Task 4 */}
 
         <article className="card room-section-card">
           <h2>{t('roomDetails.houseRules')}</h2>
@@ -1189,10 +1151,12 @@ export default function RoomDetailsPage() {
           </div>
         </article>
 
-        <article className="card room-section-card">
-          <h2>{t('roomDetails.location')}</h2>
-          <p>{listing.location}</p>
-          <div className="room-location-map">
+        <article className="room-section-card" style={{ padding: '2rem 0', border: 'none', background: 'transparent' }}>
+          <div style={{ padding: '0 1.5rem' }}>
+            <h2>{t('roomDetails.location')}</h2>
+            <p>{listing.location}</p>
+          </div>
+          <div className="room-location-map-full">
             <ListingMap listings={[listing]} onMarkerSelect={() => { }} />
           </div>
           {nearestUniversity ? (

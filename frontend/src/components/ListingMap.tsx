@@ -63,7 +63,7 @@ export default function ListingMap({ listings, onMarkerSelect }: ListingMapProps
     const first = validPoints[0];
     const map = new mapboxgl.Map({
       container: containerRef.current,
-      style: 'mapbox://styles/mapbox/light-v11',
+      style: 'mapbox://styles/mapbox/satellite-streets-v12',
       center: [Number(first.lng), Number(first.lat)],
       zoom: validPoints.length === 1 ? 15 : 13,
       attributionControl: false,
@@ -151,8 +151,8 @@ export default function ListingMap({ listings, onMarkerSelect }: ListingMapProps
   }
 
   return (
-    <div style={{ position: 'relative', borderRadius: 16, overflow: 'hidden', minHeight: 280 }}>
-      <div ref={containerRef} style={{ width: '100%', height: 320 }} />
+    <div style={{ position: 'relative', overflow: 'hidden' }}>
+      <div ref={containerRef} className="listing-map-container" style={{ width: '100%' }} />
     </div>
   );
 }

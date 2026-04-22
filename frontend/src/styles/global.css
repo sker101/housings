@@ -434,17 +434,16 @@ label {
 
 .listing-grid {
   display: grid;
-  gap: 0.86rem;
-  grid-template-columns: 1fr;
+  gap: 1.5rem 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
 }
 
 .listing-card {
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  overflow: hidden;
-  background: var(--surface);
-  box-shadow: var(--shadow-soft);
-  display: grid;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
 }
 
 .listing-card__image-wrap {
@@ -1682,9 +1681,6 @@ tbody td {
     justify-content: center;
   }
 
-  .listing-grid {
-    grid-template-columns: 1fr;
-  }
 
   .room-page {
     padding: 0 0.4rem;
@@ -1709,9 +1705,6 @@ tbody td {
     padding: 3.6rem 1rem 3rem;
   }
 
-  .listing-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
 
   .room-hero {
     grid-template-columns: 1fr 1fr;
@@ -4695,5 +4688,17 @@ tbody td {
   
   .footer__main-inner {
     grid-template-columns: 1fr;
+  }
+}
+
+.room-location-map-full {
+  margin-top: 1rem;
+}
+.room-location-map-full .listing-map-container {
+  height: 420px;
+}
+@media (max-width: 768px) {
+  .room-location-map-full .listing-map-container {
+    height: 260px;
   }
 }

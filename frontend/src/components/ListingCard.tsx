@@ -34,35 +34,17 @@ export default function ListingCard({ listing, onToggleSave, isSaved = false }: 
   const hasServiceCharge = serviceCharge > 0;
 
   return (
-    <article className="listing-card">
-      <Link to={`/rooms/${listing.id}`} className="listing-card__image-wrap">
+    <Link to={`/rooms/${listing.id}`} className="listing-card" style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}>
+      <div className="listing-card__image-wrap" style={{ position: 'relative', width: '100%', aspectRatio: '4/3', borderRadius: '12px', overflow: 'hidden', marginBottom: '0.75rem' }}>
         <img
           className="listing-card__image"
           src={listing.imageUrl}
           alt={listing.title}
           loading="lazy"
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
         />
-
-        {/* Base rent chip */}
-        <span className="listing-card__chip listing-card__chip--price">
-          {formatTZS(baseRent)}{t('listingCard.perMonth')}
-        </span>
-
-        {/* Monthly total badge — shows when service charges apply */}
-        {hasServiceCharge && (
-          <span style={{
-            position: 'absolute', bottom: 40, left: 8,
-            background: 'rgba(22,101,52,0.92)', color: '#fff',
-            borderRadius: 8, padding: '3px 10px', fontSize: '0.72rem',
-            fontWeight: 700, backdropFilter: 'blur(4px)',
-          }}>
-            Total: {formatTZS(monthlyTotal)}/mo
-          </span>
-        )}
-
         {listing.verified ? <VerifiedBadge /> : null}
 
-        {/* Vacancy / Coming Soon status chip */}
         {isComingSoon(listing.vacancyStatus) ? (
           <span style={{
             position: 'absolute', top: 8, left: 8,
@@ -72,52 +54,28 @@ export default function ListingCard({ listing, onToggleSave, isSaved = false }: 
             Coming Soon
           </span>
         ) : (
-          <span className={`listing-card__chip listing-card__chip--status status-${listing.vacancyStatus || 'available'}`}>
+          <span className={`listing-card__chip listing-card__chip--status status-${listing.vacancyStatus || 'available'}`} style={{ position: 'absolute', top: 8, left: 8, padding: '3px 10px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: 700 }}>
             {humanize(listing.vacancyStatus || 'available')}
           </span>
         )}
-      </Link>
+      </div>
 
-      <div className="listing-card__content">
-        <div>
-          <h3>{listing.title}</h3>
-          <p className="listing-card__address">{listing.location}</p>
-        </div>
+      <div className="listing-card__content" style={{ padding: '0 0.25rem' }}>
+        <h3 style={{ margin: '0 0 0.2rem', fontSize: '1rem', fontWeight: 600, color: '#1a1a2e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {listing.title}
+        </h3>
+        <p className="listing-card__address" style={{ margin: '0 0 0.3rem', fontSize: '0.85rem', color: '#6b6b5a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {listing.location}
+        </p>
 
-        <div className="listing-card__meta">
-          <span>{humanize(listing.roomType)}</span>
-          <span>{humanize(listing.genderPreference)}</span>
-          {listing.distanceStr && (
-            <span style={{ color: 'var(--jade)', fontWeight: 'bold' }}>📍 {listing.distanceStr}</span>
-          )}
-          {listing.avgRating ? (
-            <span className="listing-card__rating" title={`${listing.avgRating}/5 stars`}>
-              {'★'.repeat(Math.round(Number(listing.avgRating)))}{'☆'.repeat(5 - Math.round(Number(listing.avgRating)))}
-              <span className="listing-card__rating-score"> {Number(listing.avgRating).toFixed(1)}</span>
-            </span>
-          ) : null}
-        </div>
-
-        <div className="listing-card__actions">
-          <Link
-            to={`/rooms/${listing.id}`}
-            className="listing-card__action listing-card__action-link"
-          >
-            {t('listingCard.viewDetails')}
-          </Link>
-
-          {onToggleSave ? (
-            <button
-              type="button"
-              className={`listing-card__save ${isSaved ? 'is-saved' : ''}`}
-              onClick={() => onToggleSave(listing.id)}
-            >
-              {isSaved ? t('listingCard.saved') : t('listingCard.save')}
-            </button>
-          ) : null}
+        <div style={{ marginTop: '0.4rem', display: 'flex', alignItems: 'baseline', gap: '0.3rem' }}>
+          <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#1a1a2e' }}>
+            {formatTZS(hasServiceCharge ? monthlyTotal : baseRent)}
+          </span>
+          <span style={{ fontSize: '0.85rem', color: '#1a1a2e' }}>/ month</span>
         </div>
       </div>
-    </article>
+    </Link>
   );
 }
 
