@@ -43,15 +43,13 @@ export default function ListingCard({ listing }: {
         {listing.verified ? <VerifiedBadge /> : null}
 
         {isComingSoon(listing.vacancyStatus) ? (
-          <span style={{
-            position: 'absolute', top: 8, left: 8,
+          <span className="listing-card__chip" style={{
             background: '#f59e0b', color: '#fff',
-            borderRadius: 8, padding: '3px 10px', fontSize: '0.72rem', fontWeight: 700,
           }}>
             Coming Soon
           </span>
         ) : (
-          <span className={`listing-card__chip listing-card__chip--status status-${listing.vacancyStatus || 'available'}`} style={{ position: 'absolute', top: 8, left: 8, padding: '3px 10px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: 700 }}>
+          <span className={`listing-card__chip status-${listing.vacancyStatus || 'available'}`}>
             {humanize(listing.vacancyStatus || 'available')}
           </span>
         )}

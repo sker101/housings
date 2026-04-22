@@ -415,6 +415,17 @@ export default function RoomDetailsPage() {
   );
   const canReserveListing = !isAuthenticated || user?.role === APP_ROLE.TENANT;
 
+  // Contact info is only visible to:
+  // 1. The listing owner (landlord/dalali who posted it)
+  // 2. Users who have a paid/confirmed/approved booking for this listing
+  const hasPaidBooking = useMemo(() => {
+    // Listing owner always sees contact info
+    if (user?.userId && listing?.listerId && user.userId === listing.listerId) return true;
+    // Check if user has a paid booking
+    if (existingBooking && ['paid', 'confirmed', 'approved'].includes(existingBooking.status)) return true;
+    return false;
+  }, [user?.userId, listing?.listerId, existingBooking]);
+
   const galleryPhotos = useMemo(() => {
     if (!listing) {
       return [];
@@ -955,47 +966,52 @@ export default function RoomDetailsPage() {
               <span>{listerListingCount === 1 ? t('roomDetails.approvedListings', { count: listerListingCount }) : t('roomDetails.approvedListingsPlural', { count: listerListingCount })}</span>
               <span>{t('roomDetails.respondsViaChat')}</span>
             </div>
-            {listerProfile?.phone && (
-              <p style={{ margin: '0.5rem 0 0', fontSize: '0.9rem' }}>
-                <strong>Phone:</strong> {listerProfile.phone}
-              </p>
-            )}
-            {listing?.whatsappNumber && (
-              <p style={{ margin: '0.3rem 0 0', fontSize: '0.9rem' }}>
-                <strong>WhatsApp:</strong> {listing.whatsappNumber}
-              </p>
-            )}
-            {(!listerProfile?.phone && !listing?.whatsappNumber) && (
-              <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: '#F9FAFB', borderRadius: '8px', display: 'flex', gap: '0.5rem', alignItems: 'flex-start', border: '1px solid #E5E7EB' }}>
-                <span style={{ fontSize: '1rem' }}>🔒</span>
-                <p style={{ margin: 0, fontSize: '0.85rem', color: '#6B7280', lineHeight: 1.4 }}>
-                  Pay to reserve this room to view landlord contact details.
-                </p>
+            {hasPaidBooking ? (
+              <>
+                {listerProfile?.phone && (
+                  <p style={{ margin: '0.5rem 0 0', fontSize: '0.9rem' }}>
+                    <strong>Phone:</strong> {listerProfile.phone}
+                  </p>
+                )}
+                {listing?.whatsappNumber && (
+                  <p style={{ margin: '0.3rem 0 0', fontSize: '0.9rem' }}>
+                    <strong>WhatsApp:</strong> {listing.whatsappNumber}
+                  </p>
+                )}
+              </>
+            ) : (
+              <div style={{ marginTop: '0.75rem', padding: '0.75rem 1rem', background: 'linear-gradient(135deg, #FEF3C7, #F9FAFB)', borderRadius: '10px', display: 'flex', gap: '0.6rem', alignItems: 'center', border: '1px solid #E5E7EB' }}>
+                <span style={{ fontSize: '1.2rem' }}>🔒</span>
+                <div>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: '#374151', fontWeight: 600, lineHeight: 1.4 }}>
+                    Contact details are hidden
+                  </p>
+                  <p style={{ margin: '0.15rem 0 0', fontSize: '0.8rem', color: '#6B7280', lineHeight: 1.4 }}>
+                    Reserve / pay for this room to unlock landlord phone &amp; WhatsApp.
+                  </p>
+                </div>
               </div>
             )}
           </section>
 
-          {listing?.listerType === 'dalali' && (listing?.ownerName || listing?.ownerPhone) ? (
+          {listing?.listerType === 'dalali' && listing?.ownerName ? (
             <section className="card" style={{ marginTop: '1rem', padding: '1.5rem', border: '1px solid #E5E5E0' }}>
               <h3 style={{ margin: '0 0 1rem' }}>Property Owner</h3>
-              {listing?.ownerName && (
-                <p style={{ margin: '0 0 0.5rem' }}>
-                  <strong>{listing.ownerName}</strong>
-                </p>
-              )}
-              {listing?.ownerPhone && (
+              <p style={{ margin: '0 0 0.5rem' }}>
+                <strong>{listing.ownerName}</strong>
+              </p>
+              {hasPaidBooking && listing?.ownerPhone ? (
                 <p style={{ margin: '0', fontSize: '0.9rem' }}>
                   <strong>Phone:</strong> {listing.ownerPhone}
                 </p>
-              )}
-              {(!listing?.ownerPhone) && (
-                <div style={{ marginTop: '0.5rem', padding: '0.75rem', background: '#F9FAFB', borderRadius: '8px', display: 'flex', gap: '0.5rem', alignItems: 'flex-start', border: '1px solid #E5E7EB' }}>
-                  <span style={{ fontSize: '1rem' }}>🔒</span>
-                  <p style={{ margin: 0, fontSize: '0.85rem', color: '#6B7280', lineHeight: 1.4 }}>
-                    Pay to reserve this room to view owner contact details.
+              ) : !hasPaidBooking ? (
+                <div style={{ marginTop: '0.5rem', padding: '0.75rem 1rem', background: 'linear-gradient(135deg, #FEF3C7, #F9FAFB)', borderRadius: '10px', display: 'flex', gap: '0.6rem', alignItems: 'center', border: '1px solid #E5E7EB' }}>
+                  <span style={{ fontSize: '1.1rem' }}>🔒</span>
+                  <p style={{ margin: 0, fontSize: '0.8rem', color: '#6B7280', lineHeight: 1.4 }}>
+                    Reserve / pay to view owner contact details.
                   </p>
                 </div>
-              )}
+              ) : null}
               <p style={{ margin: '0.5rem 0 0', fontSize: '0.85rem', color: '#6B6B5A' }}>
                 (Listed by {listerProfile?.full_name || 'agent'})
               </p>
