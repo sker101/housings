@@ -301,7 +301,16 @@ const S = {
 };
 
 /* ─── Reusable field component ─── */
-function Field({ label, type = 'text', value, onChange, placeholder, required }: any) {
+function Field({
+  label,
+  type = 'text',
+  value,
+  onChange,
+  placeholder,
+  required,
+  name,
+  autoComplete,
+}: any) {
   const [focused, setFocused] = useState(false);
   const [showPw, setShowPw] = useState(false);
   const isPw = type === 'password';
@@ -312,9 +321,12 @@ function Field({ label, type = 'text', value, onChange, placeholder, required }:
       <label style={S.label}>{label}{required && <span style={{ color: 'var(--red)', marginLeft: '2px' }}>*</span>}</label>
       <div style={isPw ? S.passwordWrap : undefined}>
         <input
+          name={name}
           type={inputType}
           value={value}
           onChange={onChange}
+          onInput={onChange}
+          autoComplete={autoComplete}
           placeholder={placeholder}
           required={required}
           style={{ ...S.input, ...(focused ? S.inputFocus : {}) }}
@@ -373,8 +385,45 @@ export default function SignupPage() {
   const set = (key: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setFormData(prev => ({ ...prev, [key]: e.target.value }));
 
+  const validateStepOne = () => {
+    const fullName = formData.fullName.trim();
+    const phone = formData.phone.trim();
+    const password = formData.password;
+
+    if (!fullName) {
+      toast.error('Please enter your full name.');
+      return false;
+    }
+
+    if (!phone) {
+      toast.error('Please enter your phone number.');
+      return false;
+    }
+
+    if (password.length < 8) {
+      toast.error('Password must be at least 8 characters.');
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleContinue = () => {
+    if (!validateStepOne()) {
+      return;
+    }
+
+    setStep(2);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!validateStepOne()) {
+      setStep(1);
+      return;
+    }
+
     setLoading(true);
     try {
       if (role === 'tenant') {
@@ -498,9 +547,35 @@ export default function SignupPage() {
                 <>
                   <p style={S.sectionTitle}>Basic Information</p>
 
-                  <Field label="Full Name" required value={formData.fullName} onChange={set('fullName')} placeholder="e.g. Amina Rashidi" />
-                  <Field label="Phone Number" type="tel" required value={formData.phone} onChange={set('phone')} placeholder="07XXXXXXXX" />
-                  <Field label="Password" type="password" required value={formData.password} onChange={set('password')} placeholder="At least 8 characters" />
+                  <Field
+                    label="Full Name"
+                    required
+                    value={formData.fullName}
+                    onChange={set('fullName')}
+                    placeholder="e.g. Amina Rashidi"
+                    name="fullName"
+                    autoComplete="name"
+                  />
+                  <Field
+                    label="Phone Number"
+                    type="tel"
+                    required
+                    value={formData.phone}
+                    onChange={set('phone')}
+                    placeholder="07XXXXXXXX"
+                    name="phone"
+                    autoComplete="tel"
+                  />
+                  <Field
+                    label="Password"
+                    type="password"
+                    required
+                    value={formData.password}
+                    onChange={set('password')}
+                    placeholder="At least 8 characters"
+                    name="password"
+                    autoComplete="new-password"
+                  />
 
                   {role === 'property_manager' && (
                     <div style={S.infoBox('var(--blue)', 'var(--blue-light)', '#bfdbfe')}>
@@ -510,8 +585,8 @@ export default function SignupPage() {
                   )}
 
                   <PrimaryBtn
-                    onClick={() => setStep(2)}
-                    disabled={!formData.fullName.trim() || !formData.phone.trim() || formData.password.length < 6}
+                    onClick={handleContinue}
+                    disabled={loading}
                   >
                     Continue <ArrowRight size={17} />
                   </PrimaryBtn>
