@@ -1251,15 +1251,32 @@ export default function RoomDetailsPage() {
           </div>
         ) : null}
 
-        {!relatedLoading && relatedListings.length > 0 ? (
+        {!relatedLoading && relatedListings.filter(r => r.vacancyStatus !== 'available_soon' && r.vacancyStatus !== 'listed_occupied').length > 0 ? (
           <div className="room-related-grid">
-            {relatedListings.map((item) => (
+            {relatedListings.filter(r => r.vacancyStatus !== 'available_soon' && r.vacancyStatus !== 'listed_occupied').map((item) => (
               <ListingCard
                 key={item.id}
                 listing={item}
               />
             ))}
           </div>
+        ) : null}
+
+        {!relatedLoading && relatedListings.filter(r => r.vacancyStatus === 'available_soon' || r.vacancyStatus === 'listed_occupied').length > 0 ? (
+          <>
+            {relatedListings.filter(r => r.vacancyStatus !== 'available_soon' && r.vacancyStatus !== 'listed_occupied').length > 0 && (
+              <hr style={{ margin: '1.5rem 0', border: 'none', borderTop: '1px solid var(--border)' }} />
+            )}
+            <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', color: 'var(--ink)' }}>Coming Soon</h3>
+            <div className="room-related-grid">
+              {relatedListings.filter(r => r.vacancyStatus === 'available_soon' || r.vacancyStatus === 'listed_occupied').map((item) => (
+                <ListingCard
+                  key={item.id}
+                  listing={item}
+                />
+              ))}
+            </div>
+          </>
         ) : null}
 
         {!relatedLoading && relatedListings.length === 0 ? (

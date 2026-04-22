@@ -1166,8 +1166,26 @@ label {
 }
 
 .room-related-grid {
-  display: grid;
-  gap: 0.7rem;
+  display: flex;
+  overflow-x: auto;
+  gap: 1rem;
+  padding-bottom: 0.5rem;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+.room-related-grid > * {
+  flex: 0 0 calc(100% - 2rem);
+  scroll-snap-align: start;
+}
+@media (min-width: 550px) {
+  .room-related-grid > * {
+    flex: 0 0 calc(50% - 1rem);
+  }
+}
+@media (min-width: 950px) {
+  .room-related-grid > * {
+    flex: 0 0 calc(33.333% - 1rem);
+  }
 }
 
 .room-message-templates {
@@ -1725,9 +1743,6 @@ tbody td {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
-  .room-related-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
 
   .metric-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
