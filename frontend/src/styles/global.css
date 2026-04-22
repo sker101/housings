@@ -2542,14 +2542,28 @@ tbody td {
 }
 
 .room-grid {
-  display: grid;
-  grid-template-columns: repeat(1, 1fr);
-  gap: 2rem 1.5rem;
+  display: flex;
+  overflow-x: auto;
+  gap: 1rem;
+  padding-bottom: 1.5rem;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.room-grid > * {
+  flex: 0 0 calc(85% - 1rem);
+  scroll-snap-align: start;
 }
 
 @media (min-width: 550px) {
   .room-grid {
+    display: grid;
     grid-template-columns: repeat(2, 1fr);
+    overflow-x: visible;
+    padding-bottom: 0;
+  }
+  .room-grid > * {
+    flex: none;
   }
 }
 

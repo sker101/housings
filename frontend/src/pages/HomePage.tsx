@@ -398,6 +398,97 @@ export default function HomePage() {
     (furnished ? 1 : 0) +
     (utilitiesIncluded ? 1 : 0);
 
+  const renderListingCard = (listing: Listing) => {
+    const currentImageIndex = imageIndices[listing.id] || 0;
+    const photos = listing.photos?.length > 0
+      ? listing.photos.map(p => p.public_url)
+      : [listing.imageUrl];
+    const currentImage = photos[currentImageIndex];
+
+    return (
+      <div
+        key={listing.id}
+        className="room-card"
+        onClick={() => navigate(`/listings/${listing.id}`)}
+      >
+        <div className="room-card__image-wrapper">
+          <img
+            src={currentImage}
+            alt={listing.title}
+            className="room-card__image"
+            loading="lazy"
+          />
+
+          {listing.featured && (
+            <span className="room-card__badge room-card__badge--featured">
+              Featured
+            </span>
+          )}
+
+          <button
+            className={`room-card__save-btn ${savedIds.has(listing.id) ? 'is-saved' : ''}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleToggleSave(listing.id);
+            }}
+          >
+            <Heart
+              size={24}
+              fill={savedIds.has(listing.id) ? '#ef4444' : 'none'}
+              strokeWidth={savedIds.has(listing.id) ? 0 : 2}
+            />
+          </button>
+
+          {photos.length > 1 && (
+            <>
+              <button
+                className="room-card__nav-btn room-card__nav-btn--prev"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  prevImage(listing.id, photos.length);
+                }}
+              >
+                <ChevronLeft size={18} />
+              </button>
+              <button
+                className="room-card__nav-btn room-card__nav-btn--next"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  nextImage(listing.id, photos.length);
+                }}
+              >
+                <ChevronRight size={18} />
+              </button>
+              <div className="room-card__dots">
+                {photos.map((_, idx) => (
+                  <span
+                    key={idx}
+                    className={`room-card__dot ${idx === currentImageIndex ? 'is-active' : ''}`}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="room-card__content">
+          <div className="room-card__header">
+            <span className="room-card__location">
+              {listing.district || listing.ward}, {listing.region}
+            </span>
+          </div>
+          <div className="room-card__price">
+            <span className="room-card__price-value">TSh {formatPrice(listing.priceMonthly)}</span>
+            <span className="room-card__price-unit">/month</span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const availableListings = filteredListings.filter(l => (l as any).vacancyStatus !== 'available_soon' && (l as any).vacancyStatus !== 'listed_occupied');
+  const comingSoonListings = filteredListings.filter(l => (l as any).vacancyStatus === 'available_soon' || (l as any).vacancyStatus === 'listed_occupied');
+
   return (
     <div style={{ minHeight: '100vh', position: 'relative' }}>
       {/* Background Image - Fixed behind everything */}
@@ -663,102 +754,24 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* Room Grid */}
-          {!loading && filteredListings.length > 0 && (
+          {/* Room Grid - Available */}
+          {!loading && availableListings.length > 0 && (
             <div className="room-grid">
-              {filteredListings.map((listing) => {
-                const currentImageIndex = imageIndices[listing.id] || 0;
-                const photos = listing.photos?.length > 0
-                  ? listing.photos.map(p => p.public_url)
-                  : [listing.imageUrl];
-                const currentImage = photos[currentImageIndex];
-
-                return (
-                  <div
-                    key={listing.id}
-                    className="room-card"
-                    onClick={() => navigate(`/listings/${listing.id}`)}
-                  >
-                    {/* Image Container */}
-                    <div className="room-card__image-wrapper">
-                      <img
-                        src={currentImage}
-                        alt={listing.title}
-                        className="room-card__image"
-                        loading="lazy"
-                      />
-
-                      {/* Badges */}
-                      {listing.featured && (
-                        <span className="room-card__badge room-card__badge--featured">
-                          Featured
-                        </span>
-                      )}
-
-                      {/* Save Button */}
-                      <button
-                        className={`room-card__save-btn ${savedIds.has(listing.id) ? 'is-saved' : ''}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleSave(listing.id);
-                        }}
-                      >
-                        <Heart
-                          size={24}
-                          fill={savedIds.has(listing.id) ? '#ef4444' : 'none'}
-                          strokeWidth={savedIds.has(listing.id) ? 0 : 2}
-                        />
-                      </button>
-
-                      {/* Image Navigation */}
-                      {photos.length > 1 && (
-                        <>
-                          <button
-                            className="room-card__nav-btn room-card__nav-btn--prev"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              prevImage(listing.id, photos.length);
-                            }}
-                          >
-                            <ChevronLeft size={18} />
-                          </button>
-                          <button
-                            className="room-card__nav-btn room-card__nav-btn--next"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              nextImage(listing.id, photos.length);
-                            }}
-                          >
-                            <ChevronRight size={18} />
-                          </button>
-                          <div className="room-card__dots">
-                            {photos.map((_, idx) => (
-                              <span
-                                key={idx}
-                                className={`room-card__dot ${idx === currentImageIndex ? 'is-active' : ''}`}
-                              />
-                            ))}
-                          </div>
-                        </>
-                      )}
-                    </div>
-
-                    {/* Content - Simplified: Location and Price only */}
-                    <div className="room-card__content">
-                      <div className="room-card__header">
-                        <span className="room-card__location">
-                          {listing.district || listing.ward}, {listing.region}
-                        </span>
-                      </div>
-                      <div className="room-card__price">
-                        <span className="room-card__price-value">TSh {formatPrice(listing.priceMonthly)}</span>
-                        <span className="room-card__price-unit">/month</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+              {availableListings.map(renderListingCard)}
             </div>
+          )}
+
+          {/* Room Grid - Coming Soon */}
+          {!loading && comingSoonListings.length > 0 && (
+            <>
+              {availableListings.length > 0 && (
+                <hr style={{ margin: '1.5rem 0', border: 'none', borderTop: '1px solid var(--border)' }} />
+              )}
+              <h3 style={{ fontSize: '1.25rem', marginBottom: '1rem', color: 'var(--ink)' }}>Coming Soon</h3>
+              <div className="room-grid">
+                {comingSoonListings.map(renderListingCard)}
+              </div>
+            </>
           )}
         </div>
       </section>
