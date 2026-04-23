@@ -847,7 +847,11 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
           </main>
 
           {/* Footer on all pages unless hideFooter is true */}
-          {!hideFooter && <Footer />}
+          {!hideFooter && (
+            <div className="footer-wrapper" style={isMobileOrTablet ? { display: 'none' } : undefined}>
+              <Footer />
+            </div>
+          )}
         </div>
       </div>
 
