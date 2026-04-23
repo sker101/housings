@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import MapboxListingMap from '../components/MapboxListingMap';
 import ListingCard from '../components/ListingCard';
 import { useAuth } from '../context/AuthContext';
-import { LoadingSpinner } from '../components/LoadingSpinner';
+
 import {
   fetchApprovedListings
 } from '../lib/listings';
@@ -662,29 +662,59 @@ export default function SearchPage() {
         </section>
       ) : (
         <>
-          <div className="listing-grid">
-            {loading ? (
-              <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'center', padding: '4rem 2rem' }}>
-                <LoadingSpinner size="large" text={t('search.searching', 'Searching...')} />
+          {(() => {
+            const availableListings = processedListings.filter((l: any) => l.vacancyStatus !== 'available_soon' && l.vacancyStatus !== 'listed_occupied');
+            const comingSoonListings = processedListings.filter((l: any) => l.vacancyStatus === 'available_soon' || l.vacancyStatus === 'listed_occupied');
+
+            return (
+              <div className="room-grid-section__inner" style={{ padding: '0 1rem' }}>
+                {loading ? (
+                  <div className="room-grid">
+                    {[...Array(8)].map((_, i) => (
+                      <div key={i} className="room-skeleton">
+                        <div className="room-skeleton__image" />
+                        <div className="room-skeleton__text room-skeleton__text--short" />
+                        <div className="room-skeleton__text room-skeleton__text--shorter" />
+                      </div>
+                    ))}
+                  </div>
+                ) : processedListings.length === 0 ? (
+                  <div className="room-grid-empty">
+                    <h3 className="room-grid-empty__title">{t('search.noResults', 'No homes found')}</h3>
+                    <p className="room-grid-empty__text">
+                      No available rooms match your filters. Rooms that have already been rented are hidden automatically.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Available Listings */}
+                    {availableListings.length > 0 && (
+                      <div className="room-grid">
+                        {availableListings.map((listing: any) => (
+                          <ListingCard key={listing.id} listing={listing} />
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Coming Soon Listings */}
+                    {comingSoonListings.length > 0 && (
+                      <>
+                        {availableListings.length > 0 && (
+                          <hr style={{ margin: '2rem 0 1.5rem', border: 'none', borderTop: '1px solid var(--border)' }} />
+                        )}
+                        <h3 style={{ fontSize: '1.25rem', marginBottom: '1rem', color: 'var(--ink)' }}>Coming Soon</h3>
+                        <div className="room-grid">
+                          {comingSoonListings.map((listing: any) => (
+                            <ListingCard key={listing.id} listing={listing} />
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
               </div>
-            ) : processedListings.length === 0 ? (
-              <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '2rem 1rem' }}>
-                <p style={{ color: 'var(--mid)', fontSize: '1.1rem', marginBottom: '0.5rem' }}>
-                  {t('search.noResults')}
-                </p>
-                <p style={{ color: 'var(--mid)', fontSize: '0.95rem' }}>
-                  No available rooms match your filters. Rooms that have already been rented are hidden automatically.
-                </p>
-              </div>
-            ) : (
-              processedListings.map((listing: any) => (
-                <ListingCard
-                  key={listing.id}
-                  listing={listing}
-                />
-              ))
-            )}
-          </div>
+            );
+          })()}
 
           {hasMore && !loading ? (
             <div className="search-load-more">
