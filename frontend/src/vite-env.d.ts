@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-
+/// <reference types="vite-plugin-pwa/client" />
 // Augment ImportMeta so TypeScript knows about Vite's env vars
 interface ImportMetaEnv {
     readonly VITE_SUPABASE_PROJECT_REF: string;

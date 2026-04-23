@@ -9,7 +9,6 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import './styles/global.css';
 import './lib/i18n';
 
-
 const rootElement = document.getElementById('root');
 if (!rootElement) {
   console.error('iRent: Fatal Error - #root element not found in DOM.');

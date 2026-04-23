@@ -1,20 +1,58 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      injectRegister: 'auto',
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.png', 'icon-192x192.png', 'icon-512x512.png'],
+      manifest: {
+        name: 'iRent Tanzania',
+        short_name: 'iRent',
+        description: "Tanzania's trusted property rental marketplace. Find verified rooms in Dar es Salaam — Msasani, Masaki, Upanga and beyond.",
+        theme_color: '#22c55e',
+        background_color: '#ffffff',
+        display: 'standalone',
+        orientation: 'portrait',
+        scope: '/',
+        start_url: '/',
+        icons: [
+          {
+            src: 'icon-192.png',
+            sizes: '192x192',
+            type: 'image/png'
+          },
+          {
+            src: 'icon-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable'
+          }
+        ]
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,svg,png,jpg,jpeg,ico}'],
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: true
+      }
+    })
+  ],
 
-  // Force Leaflet to be pre-bundled by Vite (fixes dynamic import failure in prod)
+  // Force Mapbox to be pre-bundled by Vite
   optimizeDeps: {
-    include: ['leaflet'],
+    include: ['mapbox-gl'],
   },
 
   build: {
     rollupOptions: {
       output: {
         manualChunks: {
-          // Keep Leaflet in its own stable chunk so the dynamic import() can resolve it
-          leaflet: ['leaflet'],
+          // Keep Mapbox in its own stable chunk
+          mapbox: ['mapbox-gl'],
         },
       },
     },

@@ -8,7 +8,8 @@ import LandlordSidebar from './LandlordSidebar';
 import StudentSidebar from './StudentSidebar';
 import AdminSidebar from './AdminSidebar';
 import Footer from './Footer';
-import { Menu, Globe, UserPlus, LogIn, HelpCircle, X, Home, User } from 'lucide-react';
+import InstallPwaModal from './InstallPwaModal';
+import { Menu, Globe, UserPlus, LogIn, HelpCircle, X, Home, User, Download } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 
 export default function Layout({ children, hideSidebar = false, hideHeader = false, hideFooter = false }) {
@@ -37,6 +38,23 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isPwaModalOpen, setIsPwaModalOpen] = useState(false);
+  const isAndroid = /android/i.test(navigator.userAgent);
+  const isMobileOrTablet = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+  useEffect(() => {
+    const handler = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallClick = async () => {
+    setIsPwaModalOpen(true);
+  };
   const hasSyncedLanguage = useRef(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -581,6 +599,32 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
                     Help centre
                   </button>
 
+                  {isMobileOrTablet && (
+                    <button
+                      onClick={handleInstallClick}
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.75rem',
+                        padding: '0.75rem 1rem',
+                        borderRadius: '8px',
+                        border: '1px solid #22c55e',
+                        background: 'rgba(34, 197, 94, 0.05)',
+                        cursor: 'pointer',
+                        fontSize: '0.9rem',
+                        fontWeight: 600,
+                        color: 'var(--jade)',
+                        fontFamily: "'Inter', sans-serif",
+                        margin: '0.5rem 0',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      <Download size={18} />
+                      Install iRent App
+                    </button>
+                  )}
+
                   <button
                     onClick={() => { logout(); setIsMenuOpen(false); }}
                     style={{
@@ -719,6 +763,32 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
                     <HelpCircle size={18} style={{ color: '#22c55e' }} />
                     Help centre
                   </button>
+
+                  {isMobileOrTablet && (
+                    <button
+                      onClick={handleInstallClick}
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.75rem',
+                        padding: '0.75rem 1rem',
+                        borderRadius: '8px',
+                        border: '1px solid #22c55e',
+                        background: 'rgba(34, 197, 94, 0.05)',
+                        cursor: 'pointer',
+                        fontSize: '0.9rem',
+                        fontWeight: 600,
+                        color: 'var(--jade)',
+                        fontFamily: "'Inter', sans-serif",
+                        margin: '0.5rem 0',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      <Download size={18} />
+                      Install iRent App
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -849,6 +919,22 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
         </nav>
       ) : null}
 
+      {/* PWA Install Modal */}
+      {isPwaModalOpen && (
+        <InstallPwaModal
+          isOpen={isPwaModalOpen}
+          onClose={() => setIsPwaModalOpen(false)}
+          onInstall={() => {
+            if (deferredPrompt) {
+              deferredPrompt.prompt();
+              deferredPrompt.userChoice.then(({ outcome }: any) => {
+                if (outcome === 'accepted') setDeferredPrompt(null);
+              });
+            }
+          }}
+          isAndroid={isAndroid}
+        />
+      )}
     </div>
     </>
   );

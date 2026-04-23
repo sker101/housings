@@ -2043,6 +2043,16 @@ tbody td {
   .desktop-only {
     display: none !important;
   }
+
+  /* Hide the full footer on mobile — bottom nav icons replace it */
+  .footer {
+    display: none !important;
+  }
+
+  /* Add padding so content doesn't hide behind the fixed bottom nav */
+  .main-content {
+    padding-bottom: 5rem;
+  }
 }
 
 @media (min-width: 920px) {
