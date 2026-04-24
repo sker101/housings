@@ -657,63 +657,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         const sessionUser = nextSession.user as Record<string, unknown>;
         
-        // Get requested role from session storage (set during login page role selection)
-        const requestedRole = sessionStorage.getItem('oauth_signup_role') || 'tenant';
-        console.log('[Auth] verifyEmailCode - requestedRole:', requestedRole);
-
         // Check if profile exists - if not, create one for new user
         let fetchedProfile = await fetchProfile(
           sessionUser.id as string,
           nextSession.access_token as string
         );
-
-        if (fetchedProfile) {
-          // EXISTING USER: check if they want to add a new role (e.g. tenant becoming landlord)
-          if (requestedRole && requestedRole !== 'tenant') {
-            const currentRoles = (fetchedProfile as unknown as Record<string, unknown>)?.roles as string[];
-            const rolesArray = Array.isArray(currentRoles) ? currentRoles : [fetchedProfile.role || 'tenant'];
-            if (!rolesArray.includes(requestedRole)) {
-              console.log('[Auth] Upgrading existing user role to:', requestedRole);
-              const newRoles = [...rolesArray, requestedRole];
-              try {
-                // PATCH with the row filter in the URL (correct Supabase REST syntax)
-                await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${sessionUser.id}`, {
-                  method: 'PATCH',
-                  headers: {
-                    'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': `Bearer ${nextSession.access_token as string}`,
-                    'Content-Type': 'application/json',
-                    'Prefer': 'return=minimal',
-                  },
-                  body: JSON.stringify({
-                    roles: newRoles,
-                    role: requestedRole,
-                    lister_type: 'owner',
-                  }),
-                });
-                // Refresh profile after update
-                fetchedProfile = await fetchProfile(
-                  sessionUser.id as string,
-                  nextSession.access_token as string
-                );
-                console.log('[Auth] Profile upgraded to:', requestedRole);
-              } catch (err) {
-                console.error('[Auth] Failed to upgrade role:', err);
-              }
-            } else {
-              console.log('[Auth] User already has role:', requestedRole);
+        
+        const requestedRole = sessionStorage.getItem('oauth_signup_role') || 'tenant';
+        console.log('[Auth] OTP verification - requestedRole:', requestedRole);
+        
+        // If profile exists and user wants to add a new role, update it
+        if (fetchedProfile && requestedRole !== 'tenant' && requestedRole !== fetchedProfile.role) {
+          console.log('[Auth] Adding new role to existing profile via OTP:', requestedRole);
+          try {
+            const currentRoles = (fetchedProfile as unknown as Record<string, unknown>)?.roles as string[] || [fetchedProfile.role || 'tenant'];
+            if (!currentRoles.includes(requestedRole)) {
+              const newRoles = [...currentRoles, requestedRole];
+              await fetch(`${SUPABASE_URL}/rest/v1/profiles`, {
+                method: 'PATCH',
+                headers: {
+                  'apikey': SUPABASE_ANON_KEY,
+                  'Authorization': `Bearer ${nextSession.access_token as string}`,
+                  'Content-Type': 'application/json',
+                  'Prefer': 'return=minimal',
+                },
+                body: JSON.stringify({
+                  id: sessionUser.id,
+                  roles: newRoles,
+                  lister_type: 'owner',
+                }),
+              });
+              console.log('[Auth] Profile roles updated successfully via OTP');
+              
+              fetchedProfile = await fetchProfile(
+                sessionUser.id as string,
+                nextSession.access_token as string
+              );
             }
+          } catch (err) {
+            console.error('[Auth] Failed to update profile roles via OTP:', err);
           }
-        } else {
-          // NEW USER: create profile
+        }
+        
+        // If no profile exists (new email user), create one
+        if (!fetchedProfile) {
+          // Extract username from email (part before @) and format it
           const emailUsername = email.split('@')[0];
           const displayName = emailUsername
             .replace(/[._-]/g, ' ')
-            .replace(/\b\w/g, (c) => c.toUpperCase());
-
-          const roles = requestedRole === 'tenant' ? ['tenant'] : ['tenant', requestedRole];
-
+            .replace(/\b\w/g, (c) => c.toUpperCase()); // Capitalize each word
+          
           try {
+            const roles = requestedRole === 'tenant' ? ['tenant'] : ['tenant', requestedRole];
+            
             await fetch(`${SUPABASE_URL}/rest/v1/profiles`, {
               method: 'POST',
               headers: {
@@ -728,18 +724,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 roles,
                 full_name: displayName,
                 email: email,
-                phone: '',
+                phone: '', // Will require completion
                 phone_verified: false,
                 profile_photo_url: '',
                 verification_status: 'pending_profile_completion',
               }),
             });
-
+            
+            // Fetch the newly created profile
             fetchedProfile = await fetchProfile(
               sessionUser.id as string,
               nextSession.access_token as string
             );
-
+            
+            // Create tenant record if role is tenant
             if (requestedRole === 'tenant') {
               try {
                 await fetch(`${SUPABASE_URL}/rest/v1/tenants`, {
@@ -756,17 +754,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     status: 'active'
                   }),
                 });
+                console.log('[Auth] Created tenant record for:', sessionUser.id);
               } catch (tenantErr) {
+                // Tenant might already exist, that's ok
                 console.log('[Auth] Tenant record may already exist:', tenantErr);
               }
             }
+            
+            // Clear stored role
+            sessionStorage.removeItem('oauth_signup_role');
           } catch (err) {
             console.error('Failed to create profile:', err);
           }
         }
-
-        sessionStorage.removeItem('oauth_signup_role');
-        // Pass requestedRole so buildCurrentUser activates the correct role
+        
         return await hydrateUser(nextSession, true, flowId, requestedRole);
       } catch (err) {
         console.error('Email verification error:', err);

@@ -58,21 +58,17 @@ export function humanizeRole(appRole: string): string {
 export function parseRolesFromProfile(profile: { role?: unknown; roles?: unknown } | null | undefined): string[] {
   if (!profile) return [APP_ROLE.TENANT];
 
-  // If roles array exists, use it — keep ALL roles including tenant
-  if (profile.roles && Array.isArray(profile.roles) && profile.roles.length > 0) {
-    const parsed = (profile.roles as unknown[])
+  // If roles array exists, use it
+  if (profile.roles && Array.isArray(profile.roles)) {
+    const parsed = profile.roles
       .map((r) => toAppRole(r))
-      .filter((r, i, arr) => r && arr.indexOf(r) === i); // deduplicate
+      .filter((r) => r && r !== APP_ROLE.TENANT);
     return parsed.length > 0 ? parsed : [APP_ROLE.TENANT];
   }
 
   // Fall back to single role field
   const singleRole = toAppRole(profile.role);
-  // If user's primary role is landlord etc, they implicitly also have tenant
-  if (singleRole && singleRole !== APP_ROLE.TENANT) {
-    return [APP_ROLE.TENANT, singleRole];
-  }
-  return [APP_ROLE.TENANT];
+  return singleRole ? [singleRole] : [APP_ROLE.TENANT];
 }
 
 // Get the active role (from localStorage or first available)
