@@ -241,6 +241,13 @@ function generateCodeVerifier(): string {
 }
 
 async function generateCodeChallenge(verifier: string): Promise<string> {
+  // Check if crypto.subtle is available (requires secure context: HTTPS or localhost)
+  if (!crypto?.subtle?.digest) {
+    console.warn('Web Crypto API not available. OAuth may not work in insecure contexts (HTTP).');
+    // Fallback: use plain verifier (less secure, but allows development)
+    return btoa(verifier).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  
   const encoder = new TextEncoder();
   const data = encoder.encode(verifier);
   const digest = await crypto.subtle.digest('SHA-256', data);

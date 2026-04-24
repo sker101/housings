@@ -31,6 +31,8 @@ import {
   Sparkles,
   Clock,
   MapPin,
+  SearchX,
+  Ban,
 } from 'lucide-react';
 
 // Room type options
@@ -782,7 +784,7 @@ export default function HomePage() {
           style={viewMode === 'map' ? { padding: 0 } : undefined}
         >
           {/* Results Count - Mobile Only "For You" Header */}
-          {viewMode === 'grid' && (
+          {viewMode === 'grid' && !loading && filteredListings.length > 0 && (
             <div className="mobile-for-you-header">
               <Sparkles size={18} className="mobile-for-you-icon" />
               <span className="mobile-for-you-text">For You</span>
@@ -819,25 +821,42 @@ export default function HomePage() {
           {/* Empty State */}
           {!loading && filteredListings.length === 0 && (
             <div className="room-grid-empty">
-              <h3 className="room-grid-empty__title">No homes found</h3>
+              <div style={{ marginBottom: '1rem' }}>
+                {activeFiltersCount > 0 ? (
+                  <SearchX size={48} style={{ color: '#94a3b8' }} />
+                ) : (
+                  <Ban size={48} style={{ color: '#94a3b8' }} />
+                )}
+              </div>
+              <h3 className="room-grid-empty__title">
+                {activeFiltersCount > 0 ? 'No rooms match your filters' : 'No rooms available right now'}
+              </h3>
               <p className="room-grid-empty__text">
-                Try adjusting your filters or search for a different location to find more options.
+                {activeFiltersCount > 0
+                  ? 'Try adjusting your filters to see more options. Rooms may not be available for your current selections.'
+                  : 'Rooms may not be available at the moment. Please check back later or try adjusting search filters when more listings are added.'}
               </p>
-              <button
-                onClick={clearFilters}
-                style={{
-                  marginTop: '1rem',
-                  padding: '0.75rem 1.5rem',
-                  background: '#22c55e',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontWeight: 600,
-                  cursor: 'pointer'
-                }}
-              >
-                Clear all filters
-              </button>
+              {activeFiltersCount > 0 && (
+                <button
+                  onClick={clearFilters}
+                  style={{
+                    marginTop: '1rem',
+                    padding: '0.75rem 1.5rem',
+                    background: '#22c55e',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  <SlidersHorizontal size={16} />
+                  Clear all filters
+                </button>
+              )}
             </div>
           )}
 

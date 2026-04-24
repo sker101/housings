@@ -3,9 +3,10 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { normalizeAuthError } from '../lib/authErrors';
+import { Chrome } from 'lucide-react';
 
 export default function LoginPage() {
-  const { login, loading } = useAuth();
+  const { login, loading, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useTranslation();
@@ -30,6 +31,14 @@ export default function LoginPage() {
       return;
     }
     navigate('/', { replace: true });
+  };
+
+  const handleGoogle = async () => {
+    try {
+      await signInWithGoogle();
+    } catch (err) {
+      setError(normalizeAuthError(err, 'login'));
+    }
   };
 
   const handleSubmit = async (event) => {
@@ -58,15 +67,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="container section auth-page">
+    <div className="auth-page">
       <section className="auth-shell">
-        <aside className="auth-shell__intro">
-          <p className="auth-shell__eyebrow">{t('auth.welcomeBack')}</p>
-          <h1>{t('auth.signInTitle')}</h1>
-          <p>{t('auth.signInSubtitle')}</p>
-        </aside>
-
-        <article className="auth-shell__form card">
+        <article className="auth-shell__form">
           <h2>{t('auth.login')}</h2>
           {error ? <p className="error-text">{error}</p> : null}
 
@@ -83,6 +86,21 @@ export default function LoginPage() {
               </Link>
             </div>
           ) : null}
+
+          {/* Google Sign In */}
+          <button
+            type="button"
+            onClick={handleGoogle}
+            disabled={loading}
+            className="google-btn"
+          >
+            <Chrome size={20} />
+            Continue with Google
+          </button>
+
+          <div className="divider">
+            <span>or</span>
+          </div>
 
           <form onSubmit={handleSubmit}>
             <label>

@@ -302,7 +302,7 @@ label {
   top: 0;
   z-index: 50;
   border-bottom: 1px solid var(--border);
-  background: rgba(247, 244, 238, 0.93);
+  background: rgba(255, 255, 255, 0.97);
   backdrop-filter: blur(9px);
 }
 
@@ -726,34 +726,33 @@ label {
 
 
 .auth-page {
-  min-height: calc(100vh - 136px);
+  min-height: auto;
   display: grid;
-  align-content: center;
+  align-content: flex-start;
+  padding: 1rem 0.75rem 0.5rem;
+  background: #fff;
 }
 
 .auth-shell {
   display: grid;
-  gap: 0.85rem;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 360px;
+  margin: 0 auto;
+  animation: slideUpFade 0.4s ease-out;
+}
+
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .auth-shell__intro {
-  border: 1px solid rgba(255, 255, 255, 0.24);
-  background: linear-gradient(155deg, #1b261f, #2a2f27 70%, #3d2f1a);
-  color: #f2ecdf;
-  border-radius: var(--radius-lg);
-  padding: 1.2rem;
+  display: none;
 }
 
 .auth-shell__eyebrow {
-  font-family: 'Syne', sans-serif;
-  font-size: 0.72rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: #a3d1b4;
-}
-
-.auth-shell__intro p {
-  color: rgba(243, 237, 227, 0.78);
+  display: none;
 }
 
 .auth-shell__form,
@@ -820,13 +819,212 @@ label {
 .auth-links {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.72rem;
+  gap: 0.5rem;
+  justify-content: center;
+  padding-top: 0.5rem;
 }
 
 .auth-links a {
   color: var(--jade);
-  font-size: 0.88rem;
+  font-size: 0.75rem;
   font-weight: 600;
+  transition: color 0.2s ease;
+  text-decoration: none;
+}
+
+.auth-links a:hover {
+  color: var(--jade-dark);
+  text-decoration: none;
+}
+
+/* Enhanced Login Form Styling - Mobile Optimized */
+.auth-shell__form {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.25rem 1rem;
+  box-shadow: none;
+  border: 1px solid var(--border);
+}
+
+.auth-shell__form h2 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 0.75rem;
+  text-align: center;
+}
+
+.auth-shell__form label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 0.25rem;
+  display: block;
+}
+
+.auth-shell__form input[type="email"],
+.auth-shell__form input[type="password"],
+.auth-shell__form input[type="text"] {
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: #fff;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.auth-shell__form input[type="email"]:focus,
+.auth-shell__form input[type="password"]:focus,
+.auth-shell__form input[type="text"]:focus {
+  border-color: var(--jade);
+  box-shadow: 0 0 0 2px rgba(29, 158, 117, 0.08);
+}
+
+.auth-shell__form .btn {
+  width: 100%;
+  padding: 0.7rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--jade) 0%, var(--jade-dark) 100%);
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 0.25rem;
+}
+
+.auth-shell__form .btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(29, 158, 117, 0.3);
+}
+
+.auth-shell__form .btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.auth-shell__form .btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.password-toggle {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--mid);
+  padding: 0.3rem 0.6rem;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.password-toggle:hover {
+  border-color: var(--jade);
+  color: var(--jade);
+}
+
+.password-checklist {
+  padding: 0.35rem 0;
+}
+
+.password-checklist span {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+}
+
+.remember-me {
+  padding: 0.15rem 0;
+}
+
+.remember-me input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--jade);
+  cursor: pointer;
+}
+
+.remember-me span {
+  font-size: 0.8rem;
+  color: var(--ink);
+}
+
+.error-text {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+
+/* Google Sign-in Button */
+.google-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.65rem;
+  background: #fff;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.google-btn:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.google-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.google-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.google-btn svg {
+  color: #4285f4;
+  width: 18px;
+  height: 18px;
+}
+
+/* Divider */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.35rem 0;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.divider span {
+  font-size: 0.75rem;
+  color: var(--mid);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .room-page {
@@ -2213,12 +2411,17 @@ tbody td {
   align-items: center;
   justify-content: center;
   border-radius: 8px;
-  transition: all 0.2s;
+  transition: all 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  will-change: transform;
 }
 
 .topbar-action-btn:hover {
-  background: #f1f5f9;
   color: var(--jade);
+}
+
+.topbar-action-btn:active {
+  transform: scale(0.92);
 }
 
 .mobile-badge-only {
@@ -2418,12 +2621,13 @@ tbody td {
   padding: 10px 12px;
   border-radius: 8px;
   cursor: pointer;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   font-weight: 500;
   color: var(--ink);
   transition: all 0.2s;
   text-align: left;
   width: 100%;
+  white-space: nowrap;
 }
 
 .a11y-menu__item:hover {
@@ -6013,8 +6217,7 @@ tbody td {
 .notification-row {
   width: 100%;
   min-height: 52px;
-  background: #fdfbf7;
-  border-bottom: 1px solid var(--border);
+  background: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -6087,7 +6290,6 @@ tbody td {
 
 .marquee-text {
   display: inline-block;
-  padding-left: 100%;
   animation: marquee 25s linear infinite;
   font-size: 0.85rem;
   font-weight: 600;
@@ -6096,7 +6298,7 @@ tbody td {
 }
 
 @keyframes marquee {
-  0% { transform: translateX(0); }
+  0% { transform: translateX(100%); }
   100% { transform: translateX(-100%); }
 }
 

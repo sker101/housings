@@ -75,7 +75,7 @@ function PL({ children, hideSidebar = false, hideHeader = false, hideFooter = fa
 
 /** Room Details Layout - No sidebar/nav/footer for logged in users */
 function RoomDetailsLayout({ children }: { children: React.ReactNode }) {
-  return <Layout hideSidebar={true} hideHeader={true} hideFooter={true}>{children}</Layout>;
+  return <Layout hideSidebar={true} hideFooter={true}>{children}</Layout>;
 }
 
 export default function App() {

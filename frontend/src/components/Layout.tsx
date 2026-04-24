@@ -11,6 +11,7 @@ import Footer from './Footer';
 import InstallPwaModal from './InstallPwaModal';
 import { Menu, Globe, UserPlus, LogIn, HelpCircle, X, Home, User, Download, Moon, Sun, Map, Accessibility, Search, Heart, MessageCircle, Wifi, Car, Droplets, Shield, Utensils, Shirt, Filter, Star, LayoutGrid } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
+import topImage from '../images/modern-home-exterior-with-landscaping-driveway.jpg';
 
 export default function Layout({ children, hideSidebar = false, hideHeader = false, hideFooter = false }) {
   const { user, token, isAuthenticated, logout, networkError, setNetworkError } = useAuth();
@@ -470,47 +471,76 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
         <header className={`topbar ${isHomePage ? 'topbar--on-homepage' : ''}`} style={{ display: 'flex', flexDirection: 'column', padding: 0 }}>
           <div className="topbar-content" style={{ width: '100%', padding: '0.5rem 0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
             <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center' }}>
-              <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <img 
-                  src="/icon-192.png" 
-                  alt="iRent Logo" 
-                  style={{ 
-                    width: '38px', 
-                    height: '38px', 
+              <button
+                type="button"
+                className="topbar-action-btn"
+                onClick={() => navigate('/')}
+                title="Home"
+                style={{ padding: '0.35rem' }}
+              >
+                <img
+                  src="/icon-192.png"
+                  alt="iRent"
+                  style={{
+                    width: '46px',
+                    height: '46px',
                     objectFit: 'contain',
-                    borderRadius: '10px',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
-                  }} 
+                    borderRadius: '10px'
+                  }}
                 />
-                <span style={{ 
-                  fontFamily: "'Inter', sans-serif", 
-                  fontWeight: 800, 
-                  fontSize: '1.4rem', 
-                  color: 'var(--ink)', 
-                  letterSpacing: '-0.03em',
-                  display: 'flex',
-                  alignItems: 'center'
-                }}>
-                  i<span style={{ color: '#22c55e' }}>Rent</span>
-                </span>
-              </Link>
+              </button>
             </div>
             <div style={{ flex: '1 1 auto', display: 'flex', justifyContent: 'center', alignItems: 'center', minWidth: 0, maxWidth: '600px' }}>
-              <div className="topbar-search-pill" role="button" onClick={() => setIsSearchModalOpen(true)} style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                background: '#f8fafc',
-                border: '1px solid var(--border)',
-                padding: '0.5rem 1rem',
-                borderRadius: '999px',
-                width: '100%',
-                maxWidth: '400px',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}>
-                <Search size={16} style={{ color: 'var(--mid)', flexShrink: 0 }} />
-                <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--mid)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Find your perfect home</span>
+              <div
+                role="button"
+                onClick={() => setIsSearchModalOpen(true)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+                  padding: '0.4rem 0.9rem',
+                  borderRadius: '999px',
+                  cursor: 'pointer',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  boxShadow: '0 3px 12px rgba(34, 197, 94, 0.35)',
+                  transition: 'transform 0.2s, box-shadow 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'scale(1.02)';
+                  e.currentTarget.style.boxShadow = '0 4px 16px rgba(34, 197, 94, 0.45)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'scale(1)';
+                  e.currentTarget.style.boxShadow = '0 3px 12px rgba(34, 197, 94, 0.35)';
+                }}
+              >
+                {/* Shiny effect overlay */}
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: '-100%',
+                  width: '100%',
+                  height: '100%',
+                  background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%)',
+                  animation: 'shine 2.5s infinite'
+                }} />
+                <style>{`
+                  @keyframes shine {
+                    0% { left: -100%; }
+                    100% { left: 100%; }
+                  }
+                `}</style>
+                <Home size={14} style={{ color: '#fff', flexShrink: 0, position: 'relative', zIndex: 1 }} />
+                <span style={{
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  color: '#fff',
+                  whiteSpace: 'nowrap',
+                  position: 'relative',
+                  zIndex: 1
+                }}>Find your perfect home</span>
               </div>
             </div>
             <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.4rem', position: 'relative' }} ref={a11yRef}>
@@ -580,22 +610,89 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
           </div>
 
           {/* NOTIFICATION ROW */}
-          <div className="notification-row">
-            {(isMobileOrTablet && showInstallPopup) ? (
-              <div className="install-popup-slide-in">
+          <div
+            className="notification-row"
+            style={{
+              overflow: 'hidden',
+              position: 'relative',
+              minHeight: isMobileOrTablet && showInstallPopup ? 'auto' : '60px',
+              backgroundColor: isMobileOrTablet && showInstallPopup ? '#ffffff' : 'transparent',
+              backgroundImage: isMobileOrTablet && showInstallPopup
+                ? 'none'
+                : `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url("${topImage}")`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat'
+            }}
+          >
+            {isMobileOrTablet && showInstallPopup && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  padding: '0.4rem 0.75rem',
+                  background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(22, 163, 74, 0.08) 100%)',
+                  border: '1.5px solid #22c55e',
+                  borderRadius: '8px',
+                  color: '#22c55e',
+                  fontSize: '0.8rem',
+                  fontWeight: 500,
+                  maxWidth: '100%',
+                  margin: '0.3rem 0.5rem',
+                  animation: 'slideDown 0.3s ease-out'
+                }}
+              >
+                <style>{`
+                  @keyframes slideDown {
+                    from { transform: translateY(-100%); opacity: 0; }
+                    to { transform: translateY(0); opacity: 1; }
+                  }
+                `}</style>
                 <Download size={14} style={{ flexShrink: 0 }} />
                 <span>Install iRent for better experience</span>
-                <button className="install-popup-close" onClick={() => setShowInstallPopup(false)}>
-                  <X size={12} strokeWidth={3} />
+                <button
+                  onClick={() => setShowInstallPopup(false)}
+                  style={{
+                    background: 'rgba(34, 197, 94, 0.15)',
+                    border: '1px solid #22c55e',
+                    borderRadius: '50%',
+                    width: '26px',
+                    height: '26px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: '#22c55e',
+                    flexShrink: 0,
+                    marginLeft: '0.5rem'
+                  }}
+                >
+                  <X size={16} strokeWidth={2.5} />
                 </button>
               </div>
-            ) : (
-              <div className="marquee-container">
-                <div className="marquee-text">
-                  <Star size={12} fill="#22c55e" color="#22c55e" style={{ display: 'inline', marginRight: '6px', verticalAlign: '-1px' }} />
-                  Number one renting app in Tanzania! Explore, search, and find your perfect home instantly. Enjoy exclusive features and seamless communication with landlords.
-                  <Star size={12} fill="#22c55e" color="#22c55e" style={{ display: 'inline', marginLeft: '6px', verticalAlign: '-1px' }} />
-                </div>
+            )}
+            {(!isMobileOrTablet || !showInstallPopup) && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '100%',
+                padding: '0.5rem 1rem',
+                textAlign: 'center'
+              }}>
+                <p style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 500,
+                  color: '#ffffff',
+                  lineHeight: 1.4,
+                  margin: 0,
+                  textShadow: '0 1px 3px rgba(0,0,0,0.5)',
+                  maxWidth: '90%'
+                }}>
+                  Discover your perfect home with iRent. Tanzania's #1 rental platform. Browse verified listings, connect with landlords, and book your stay with confidence.
+                </p>
               </div>
             )}
           </div>
