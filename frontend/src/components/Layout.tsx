@@ -431,20 +431,29 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
         <header className={`topbar ${isHomePage ? 'topbar--on-homepage' : ''}`} style={{ display: 'flex', flexDirection: 'column', padding: 0 }}>
           <div className="topbar-content" style={{ width: '100%', padding: '0.5rem 0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
             <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center' }}>
-              <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{
-                  width: '32px',
-                  height: '32px',
-                  background: 'linear-gradient(135deg, #166534, #15803d)',
-                  borderRadius: '8px',
+              <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <img 
+                  src="/icon-192.png" 
+                  alt="iRent Logo" 
+                  style={{ 
+                    width: '38px', 
+                    height: '38px', 
+                    objectFit: 'contain',
+                    borderRadius: '10px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+                  }} 
+                />
+                <span style={{ 
+                  fontFamily: "'Inter', sans-serif", 
+                  fontWeight: 800, 
+                  fontSize: '1.4rem', 
+                  color: 'var(--ink)', 
+                  letterSpacing: '-0.03em',
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 2px 8px rgba(22,101,52,0.2)'
+                  alignItems: 'center'
                 }}>
-                  <Home size={18} color="white" />
-                </div>
-                <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '1.25rem', color: 'var(--ink)', letterSpacing: '-0.02em' }}>i<span style={{ color: '#22c55e' }}>Rent</span></span>
+                  i<span style={{ color: '#22c55e' }}>Rent</span>
+                </span>
               </Link>
             </div>
             <div style={{ flex: '1 1 auto', display: 'flex', justifyContent: 'center', alignItems: 'center', minWidth: 0, maxWidth: '600px' }}>

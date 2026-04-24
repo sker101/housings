@@ -139,19 +139,21 @@ function RoleBasedSidebarContent({
             display: 'flex', 
             alignItems: 'center', 
             justifyContent: 'center', 
+            gap: '8px',
             textDecoration: 'none',
             transition: 'opacity 0.2s'
           }}
           onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
           onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
         >
+          <img src="/icon-192.png" alt="" style={{ width: '28px', height: '28px', objectFit: 'contain', borderRadius: '6px' }} />
           <span
             style={{
-              fontFamily: "'Syne', sans-serif",
+              fontFamily: "'Inter', sans-serif",
               fontWeight: 800,
               color: 'var(--ink)',
-              fontSize: '1.1rem',
-              letterSpacing: '-0.02em',
+              fontSize: '1.25rem',
+              letterSpacing: '-0.03em',
               whiteSpace: 'nowrap',
             }}
           >
