@@ -425,6 +425,42 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
 
   const navigate = useNavigate();
 
+  const topActionLink = (() => {
+    if (!isAuthenticated) {
+      return (
+        <Link to="/auth/login" className="btn btn--small">
+          {t('nav.login', 'Login')}
+        </Link>
+      );
+    }
+    if (user?.role === APP_ROLE.ADMIN) {
+      return (
+        <Link to="/admin" className="btn btn--small">
+          {t('nav.admin', 'Admin')}
+        </Link>
+      );
+    }
+    if (user?.role === APP_ROLE.LANDLORD) {
+      return (
+        <Link to="/landlord/dashboard" className="btn btn--small">
+          {t('nav.dashboard', 'Dashboard')}
+        </Link>
+      );
+    }
+    if (user?.role === APP_ROLE.PROPERTY_MANAGER) {
+      return (
+        <Link to="/manager/dashboard" className="btn btn--small">
+          {t('nav.dashboard', 'Dashboard')}
+        </Link>
+      );
+    }
+    return (
+      <Link to="/tenant/dashboard" className="btn btn--small">
+        {t('nav.dashboard', 'Dashboard')}
+      </Link>
+    );
+  })();
+
   return (
     <>
       <Toaster position="top-right" />
@@ -478,6 +514,24 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
               </div>
             </div>
             <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.4rem', position: 'relative' }} ref={a11yRef}>
+              {!isMobileOrTablet && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginRight: '0.5rem' }}>
+                  {isAuthenticated && (
+                    <Link to="/profile" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', marginRight: '0.5rem' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--mid)', marginRight: '0.8rem' }}>
+                        {t('layout.greeting', 'Hi')}, {user?.fullName?.split(' ')[0] || 'User'}
+                      </span>
+                    </Link>
+                  )}
+                  {topActionLink}
+                  {isAuthenticated && (
+                    <button type="button" className="btn btn--ghost btn--small" onClick={logout}>
+                      {t('nav.logout', 'Logout')}
+                    </button>
+                  )}
+                </div>
+              )}
+
               {isHomePage ? (
                 <button type="button" className="topbar-action-btn" onClick={toggleHomePageView} title="Toggle View">
                   {homeViewMode === 'map' ? <LayoutGrid size={18} /> : <Map size={18} />}
