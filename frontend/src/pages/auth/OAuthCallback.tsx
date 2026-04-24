@@ -63,7 +63,7 @@ export default function OAuthCallback() {
             return;
           }
 
-          toast.success(isNewUser ? 'Welcome to iRent! 🎉' : 'Welcome back! 👋');
+          toast.success(isNewUser ? 'Welcome to iRent! 🎉' : 'Welcome back! 👋', { duration: 2000 });
 
           // Redirect based on profile completion status
           if (isNewUser) {
@@ -122,7 +122,7 @@ export default function OAuthCallback() {
           detail: { session, persistent: true } 
         }));
         
-        toast.success(isNewUser ? 'Welcome to iRent! 🎉' : 'Welcome back! 👋');
+        toast.success(isNewUser ? 'Welcome to iRent! 🎉' : 'Welcome back! 👋', { duration: 2000 });
         
         // Wait a bit for AuthContext to process, then navigate
         setTimeout(() => {

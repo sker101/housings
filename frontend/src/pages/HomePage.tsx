@@ -665,7 +665,7 @@ export default function HomePage() {
           </div>
 
           {/* Filter Categories */}
-          <div className="filter-categories" style={{ maxWidth: '1000px', margin: '0 auto', justifyContent: 'center' }}>
+          <div className="filter-categories" style={{ maxWidth: '1200px', margin: '0 auto' }}>
             {ROOM_TYPES.map((type) => {
               const Icon = type.icon;
               return (

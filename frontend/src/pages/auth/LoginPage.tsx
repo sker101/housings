@@ -140,7 +140,7 @@ const LoginPage: React.FC = () => {
     try {
       const authUser = await verifyEmailCode(email.trim(), code);
       if (authUser) {
-        toast.success('Welcome! 🎉');
+        toast.success('Welcome! 🎉', { duration: 2000 });
         const dest = getDashboard(authUser.role);
         navigate(dest, { replace: true });
       } else {
@@ -176,7 +176,7 @@ const LoginPage: React.FC = () => {
     setError('');
     try {
       await login({ email: email.trim(), password: adminPassword });
-      toast.success('Welcome, Admin!');
+      toast.success('Welcome, Admin!', { duration: 2000 });
       navigate('/admin', { replace: true });
     } catch (err: any) {
       setError(err?.message || 'Invalid admin credentials');
