@@ -27,14 +27,25 @@ export default function OAuthCallback() {
   const processingRef = useRef(false);
 
   useEffect(() => {
+    // Log OAuth callback details for debugging
+    const code = searchParams.get('code');
+    const hashParams = parseHashParams(window.location.hash);
+    const accessToken = hashParams.access_token;
+    const errorParam = searchParams.get('error');
+    
+    console.log('[OAuthCallback] Processing callback', {
+      currentUrl: window.location.href,
+      origin: window.location.origin,
+      hasCode: !!code,
+      hasAccessToken: !!accessToken,
+      hasError: !!errorParam,
+      errorDescription: searchParams.get('error_description'),
+    });
+
     // Prevent double processing
     if (processingRef.current) return;
     
     // Check if we have anything to process
-    const code = searchParams.get('code');
-    const hashParams = parseHashParams(window.location.hash);
-    const accessToken = hashParams.access_token;
-    
     if (!code && !accessToken) {
       // No auth data present yet, wait
       return;
@@ -43,7 +54,6 @@ export default function OAuthCallback() {
     processingRef.current = true;
     
     // Check for error in query params
-    const errorParam = searchParams.get('error');
     const errorDescription = searchParams.get('error_description');
 
     if (errorParam) {
@@ -67,12 +77,18 @@ export default function OAuthCallback() {
 
           // Redirect based on profile completion status
           if (isNewUser) {
+            console.log('[OAuthCallback] New user, redirecting to complete-profile');
             navigate('/auth/complete-profile', { replace: true });
           } else {
             let dashboardPath = '/tenant/dashboard';
             if (user.role === 'admin') dashboardPath = '/admin';
             else if (user.role === 'landlord') dashboardPath = '/landlord/dashboard';
             else if (user.role === 'property_manager') dashboardPath = '/manager/dashboard';
+            console.log('[OAuthCallback] Existing user, redirecting to dashboard', {
+              userRole: user.role,
+              dashboardPath,
+              targetUrl: `${window.location.origin}${dashboardPath}`,
+            });
             navigate(dashboardPath, { replace: true });
           }
         } catch (err) {
@@ -113,8 +129,16 @@ export default function OAuthCallback() {
         const redirectTarget = isNewUser 
           ? '/auth/complete-profile' 
           : (userData.role || userMetadata.role || 'tenant') === 'landlord' || (userData.role || userMetadata.role || 'tenant') === 'property_manager'
-            ? '/landlord'
-            : '/tenant';
+            ? '/landlord/dashboard'
+            : '/tenant/dashboard';
+        
+        console.log('[OAuthCallback] Implicit flow processing', {
+          isNewUser,
+          userRole: userData.role || userMetadata.role,
+          redirectTarget,
+          targetUrl: `${window.location.origin}${redirectTarget}`,
+        });
+        
         sessionStorage.setItem('oauth_redirect_target', redirectTarget);
         
         // Trigger session refresh event so AuthContext picks up the new session
@@ -126,6 +150,7 @@ export default function OAuthCallback() {
         
         // Wait a bit for AuthContext to process, then navigate
         setTimeout(() => {
+          console.log('[OAuthCallback] Navigating to:', redirectTarget);
           navigate(redirectTarget, { replace: true });
         }, 300);
         return;

@@ -452,9 +452,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // ─── Google OAuth ───────────────────────────────────────────
   const signInWithGoogle = useCallback(
     async (role?: string) => {
-      // Use the current origin for redirect, which works for both local and production
-      const origin = window.location.origin;
-      const redirectTo = `${origin}/auth/callback`;
+      // Use current origin for redirect - window.location.origin includes port automatically
+      // This ensures localhost dev redirects to localhost, not production
+      const redirectTo = `${window.location.origin}/auth/callback`;
+      
+      console.log('[Auth] OAuth signInWithGoogle initiated', {
+        redirectTo,
+        hostname: window.location.hostname,
+        origin: window.location.origin,
+        supabaseUrl: SUPABASE_URL,
+      });
+      
       // Store role preference for new users
       if (role) {
         sessionStorage.setItem('oauth_signup_role', role);
@@ -466,6 +474,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           redirectTo,
           scopes: 'openid profile email',
         }) as { url?: string };
+        
+        console.log('[Auth] OAuth URL generated:', response?.url);
         
         if (response?.url) {
           window.location.href = response.url;
@@ -635,8 +645,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // ─── Magic Link / Email OTP ─────────────────────────────────
   const sendMagicLinkEmail = useCallback(
     async (email: string) => {
-      const origin = window.location.origin;
-      const redirectTo = `${origin}/auth/verify-email`;
+      const redirectTo = `${window.location.origin}/auth/verify-email`;
       await sendMagicLink({ email, redirectTo });
     },
     []
