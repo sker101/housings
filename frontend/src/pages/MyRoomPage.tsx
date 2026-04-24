@@ -161,7 +161,7 @@ export default function MyRoomPage() {
 
       const [listingRows, photoRows, landlordRows, paymentRows] = await Promise.all([
         selectRows('listings', {
-          select: 'id,title,district,ward,street,room_type,floor,near_universities,lat,lng,price_monthly,security_deposit,utilities_included,house_rules,amenities,lister_id',
+          select: '*',
           filters: [{ column: 'id', op: 'eq', value: active.listing_id }],
           accessToken: token
         }),

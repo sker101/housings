@@ -8,7 +8,10 @@ import {
 } from './supabase';
 
 function toLocation(row) {
-  return [row.street, row.ward, row.district, row.region].filter(Boolean).join(', ');
+  return [row.street, row.ward, row.district, row.region]
+    .map(s => s ? String(s).trim() : '')
+    .filter(Boolean)
+    .join(', ');
 }
 
 function normalizeAmenities(value) {
@@ -32,30 +35,31 @@ export function mapListingRow(row, photos = []) {
 
   return {
     id: row.id,
-    title: row.title,
+    title: (row.title && String(row.title).trim() !== '') ? String(row.title).trim() : (row.room_type ? `${String(row.room_type).replace(/_/g, ' ').replace(/\\b\\w/g, c => c.toUpperCase())} Room` : 'Room for rent'),
     description: row.description,
     roomType: row.room_type,
-    genderPreference: row.gender_preference,
+    // Note: gender_preference column doesn't exist in database view - hardcoded as 'mixed'
+    genderPreference: 'mixed',
     location: toLocation(row),
     region: row.region,
     district: row.district,
     ward: row.ward,
     street: row.street,
     priceMonthly: price,
-    securityDeposit: Number(row.security_deposit || 0),
-    utilitiesIncluded: Boolean(row.utilities_included),
-    floor: row.floor || null,
-    totalRooms: row.total_rooms || null,
-    furnished: Boolean(row.furnished),
-    propertyType: row.property_type || null,
-    ownerName: row.owner_name || null,
-    ownerPhone: row.owner_phone || null,
-    whatsappNumber: row.whatsapp_number || null,
-    minLeaseMonths: Number(row.min_lease_months || 1),
-    paymentSchedule: row.payment_schedule || 'monthly',
-    lateFeePolicy: row.late_fee_policy || null,
-    videoTourUrl: row.video_tour_url || null,
-    accessibilityNotes: row.accessibility_notes || null,
+    securityDeposit: 0, // Not in database schema
+    utilitiesIncluded: false,
+    floor: null, // Not in database schema
+    totalRooms: null, // Not in database schema
+    furnished: false, // Not in database schema
+    propertyType: null, // Not in database schema
+    ownerName: null, // Not in database schema
+    ownerPhone: null, // Not in database schema
+    whatsappNumber: null, // Not in database schema
+    minLeaseMonths: 1, // Not in database schema
+    paymentSchedule: 'monthly', // Not in database schema
+    lateFeePolicy: null, // Not in database schema
+    videoTourUrl: null, // Not in database schema
+    accessibilityNotes: null, // Not in database schema
     amenities: normalizeAmenities(row.amenities),
     houseRules: row.house_rules,
     availableFrom: row.available_from,
@@ -85,7 +89,7 @@ async function fetchPhotosForListings(listingIds, accessToken) {
   }
 
   const photos = await selectRows('listing_photos', {
-    select: 'id,listing_id,angle,public_url,ai_verified,ai_confidence,position,caption,is_cover',
+    select: 'id,listing_id,angle,public_url,created_at',
     filters: [
       {
         column: 'listing_id',
@@ -93,7 +97,7 @@ async function fetchPhotosForListings(listingIds, accessToken) {
         value: `(${listingIds.join(',')})`
       }
     ],
-    order: 'position.asc,created_at.asc',
+    order: 'created_at.asc',
     accessToken
   });
 
@@ -113,13 +117,10 @@ export async function fetchApprovedListings(filters: Record<string, any> = {}, a
   // Hide occupied listings from search results
   queryFilters.push({ column: 'vacancy_status', op: 'neq', value: 'occupied' });
 
-  if (filters.genderPreference && filters.genderPreference !== 'any') {
-    queryFilters.push({
-      column: 'gender_preference',
-      op: 'eq',
-      value: filters.genderPreference
-    });
-  }
+  // Note: gender_preference is hardcoded as 'mixed' in the database view
+  // Gender filtering is disabled until the database schema supports it
+
+
 
   if (filters.roomType && filters.roomType !== 'all') {
     queryFilters.push({
@@ -157,7 +158,7 @@ export async function fetchApprovedListings(filters: Record<string, any> = {}, a
 
   const rows = await selectRows('listings', {
     select:
-      'id,lister_id,title,description,room_type,gender_preference,price_monthly,security_deposit,utilities_included,floor,total_rooms,furnished,property_type,owner_name,owner_phone,whatsapp_number,min_lease_months,payment_schedule,late_fee_policy,video_tour_url,accessibility_notes,region,district,ward,street,lat,lng,amenities,house_rules,available_from,vacancy_status,status,rejection_reason,featured,near_universities,view_count,created_at',
+      '*',
     filters: queryFilters,
     or: filters.query
       ? `title.ilike.*${filters.query}*,district.ilike.*${filters.query}*,ward.ilike.*${filters.query}*`
@@ -192,7 +193,7 @@ export async function fetchListingById(listingId, accessToken) {
     console.warn('RPC failed, falling back to selectRows', err);
     const rows = await selectRows('listings', {
       select:
-        'id,lister_id,title,description,room_type,gender_preference,price_monthly,security_deposit,utilities_included,floor,total_rooms,furnished,property_type,owner_name,owner_phone,whatsapp_number,min_lease_months,payment_schedule,late_fee_policy,video_tour_url,accessibility_notes,region,district,ward,street,lat,lng,amenities,house_rules,available_from,vacancy_status,status,rejection_reason,featured,near_universities,view_count,created_at',
+        '*',
       filters: [{ column: 'id', op: 'eq', value: listingId }],
       limit: 1,
       accessToken
@@ -228,8 +229,7 @@ export async function fetchRelatedListings(baseListing, accessToken, limit = 6) 
     return [];
   }
 
-  const selectColumns =
-    'id,lister_id,title,description,room_type,gender_preference,price_monthly,security_deposit,utilities_included,floor,total_rooms,furnished,property_type,owner_name,owner_phone,whatsapp_number,min_lease_months,payment_schedule,late_fee_policy,video_tour_url,accessibility_notes,region,district,ward,street,lat,lng,amenities,house_rules,available_from,vacancy_status,status,rejection_reason,featured,near_universities,view_count,created_at';
+  const selectColumns = '*';
 
   const basePrice = Number(baseListing.priceMonthly || 0);
   const minPrice = Math.max(0, Math.round(basePrice * 0.7));
@@ -343,7 +343,7 @@ export async function fetchSavedListings(tenantId, accessToken) {
 
   const listings = await selectRows('listings', {
     select:
-      'id,lister_id,title,description,room_type,gender_preference,price_monthly,security_deposit,utilities_included,floor,total_rooms,furnished,property_type,owner_name,owner_phone,whatsapp_number,min_lease_months,payment_schedule,late_fee_policy,video_tour_url,accessibility_notes,region,district,ward,street,lat,lng,amenities,house_rules,available_from,vacancy_status,status,rejection_reason,featured,near_universities,view_count,created_at',
+      '*',
     filters: [
       {
         column: 'id',

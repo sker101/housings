@@ -49,12 +49,6 @@ const AMENITY_OPTIONS = [
   { value: 'pool', label: 'Pool', icon: Waves },
 ];
 
-// Gender preference options
-const GENDER_OPTIONS = [
-  { value: 'male', label: 'Male only' },
-  { value: 'female', label: 'Female only' },
-];
-
 // Price ranges
 const PRICE_RANGES = [
   { min: 0, max: 100000, label: 'Under 100K' },
@@ -87,7 +81,6 @@ export default function SearchPage() {
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
   const [selectedRoomType, setSelectedRoomType] = useState('all');
   const [selectedUniversity, setSelectedUniversity] = useState('');
-  const [selectedGender, setSelectedGender] = useState('');
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [selectedPriceRange, setSelectedPriceRange] = useState<{min: number, max: number | null} | null>(null);
   const [selectedPropertyType, setSelectedPropertyType] = useState('');
@@ -115,7 +108,7 @@ export default function SearchPage() {
 
     if (searchQuery.trim()) filters.query = searchQuery.trim();
     if (selectedRoomType && selectedRoomType !== 'all') filters.roomType = selectedRoomType;
-    if (selectedGender) filters.genderPreference = selectedGender;
+    // Note: Gender filter removed - database view hardcodes gender as 'mixed'
     if (selectedPriceRange) {
       filters.minPrice = selectedPriceRange.min;
       if (selectedPriceRange.max) filters.maxPrice = selectedPriceRange.max;
@@ -127,7 +120,7 @@ export default function SearchPage() {
     if (selectedAmenities.length > 0) filters.amenities = selectedAmenities;
 
     return filters;
-  }, [searchQuery, selectedRoomType, selectedGender, selectedPriceRange, selectedUniversity, selectedPropertyType, furnished, utilitiesIncluded, selectedAmenities]);
+  }, [searchQuery, selectedRoomType, selectedPriceRange, selectedUniversity, selectedPropertyType, furnished, utilitiesIncluded, selectedAmenities]);
 
   useEffect(() => {
     let mounted = true;
@@ -279,7 +272,6 @@ export default function SearchPage() {
     setSearchQuery('');
     setSelectedRoomType('all');
     setSelectedUniversity('');
-    setSelectedGender('');
     setSelectedAmenities([]);
     setSelectedPriceRange(null);
     setSelectedPropertyType('');
@@ -299,7 +291,6 @@ export default function SearchPage() {
     (selectedUniversity ? 1 : 0) +
     (selectedPriceRange ? 1 : 0) +
     (selectedPropertyType ? 1 : 0) +
-    (selectedGender ? 1 : 0) +
     (furnished ? 1 : 0) +
     (utilitiesIncluded ? 1 : 0);
 
@@ -545,46 +536,7 @@ export default function SearchPage() {
               </div>
             </div>
 
-            {/* Gender */}
-            <div>
-              <h4 style={{ margin: '0 0 0.75rem', fontSize: '0.875rem', fontWeight: 600, color: '#374151' }}>Gender preference</h4>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                {selectedGender && (
-                  <button
-                    onClick={() => setSelectedGender('')}
-                    style={{
-                      padding: '0.5rem 1rem',
-                      borderRadius: 999,
-                      border: '2px solid #22c55e',
-                      background: '#f0fdf4',
-                      color: '#166534',
-                      fontSize: '0.875rem',
-                      fontWeight: 600,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {GENDER_OPTIONS.find(g => g.value === selectedGender)?.label} ×
-                  </button>
-                )}
-                {!selectedGender && GENDER_OPTIONS.map((gender) => (
-                  <button
-                    key={gender.value}
-                    onClick={() => setSelectedGender(gender.value)}
-                    style={{
-                      padding: '0.5rem 1rem',
-                      borderRadius: 999,
-                      border: '1px solid #d1d5db',
-                      background: 'white',
-                      color: '#4b5563',
-                      fontSize: '0.875rem',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {gender.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+            {/* Note: Gender filter removed - database view hardcodes gender as 'mixed' */}
 
             {/* Actions */}
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', paddingTop: '0.5rem' }}>

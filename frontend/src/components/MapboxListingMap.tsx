@@ -161,22 +161,24 @@ export default function MapboxListingMap({
 
       const colour = markerColour(room.availability_status);
 
+      const iconSvg = room.availability_status === 'available'
+        ? `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`
+        : `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
+
       // Custom SVG pin
       const el = document.createElement('div');
       el.style.cssText = `
-        width: 36px; height: 36px; cursor: pointer;
-        display: flex; align-items: center; justify-content: center;
-        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
-        transition: transform 0.15s ease;
+        width: 40px; height: 40px; cursor: pointer;
+        position: relative;
+        display: flex; align-items: flex-start; justify-content: center;
+        padding-top: 8px;
+        transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       `;
       el.innerHTML = `
-        <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="18" cy="16" r="14" fill="${colour}" stroke="white" stroke-width="2.5"/>
-          <path d="M18 34 L12 22 Q18 28 24 22 Z" fill="${colour}"/>
-          <text x="18" y="21" text-anchor="middle" fill="white" font-size="12" font-weight="bold" font-family="Inter,sans-serif">
-            ${room.availability_status === 'available' ? '✓' : '⏳'}
-          </text>
+        <svg style="position: absolute; top: 0; left: 0; z-index: -1;" width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" filter="drop-shadow(0px 3px 4px rgba(0,0,0,0.3))">
+          <path d="M20 38 C20 38 6 24 6 15 C6 7.26801 12.268 1 20 1 C27.732 1 34 7.26801 34 15 C34 24 20 38 20 38 Z" fill="${colour}" stroke="white" stroke-width="2"/>
         </svg>
+        ${iconSvg}
       `;
 
       el.addEventListener('mouseenter', () => { el.style.transform = 'scale(1.2)'; });
@@ -188,7 +190,7 @@ export default function MapboxListingMap({
             <strong style="font-size:13px;color:#1e293b">${room.title}${comingSoonBadge(room.availability_status)}</strong>
             <p style="margin:4px 0 0;font-size:12px;color:#64748b">${room.ward ? `📍 ${room.ward}` : ''}</p>
             <p style="margin:4px 0 0;font-size:14px;font-weight:700;color:#22c55e">${formatTZS(room.price_tzs)}<span style="font-weight:400;font-size:11px;color:#94a3b8">/mo</span></p>
-            <button onclick="window.dispatchEvent(new CustomEvent('irent:room-click',{detail:'${room.id}'})))"
+            <button onclick="window.dispatchEvent(new CustomEvent('irent:room-click',{detail:'${room.id}'}))"
               style="margin-top:8px;padding:6px 14px;background:#22c55e;color:white;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;width:100%">
               View Room
             </button>
