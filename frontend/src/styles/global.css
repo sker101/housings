@@ -28,17 +28,18 @@
   --radius-sm: 8px;
 }
 
-/* Dark Mode Variables */
+/* Dark Mode Variables - Premium Slate/Zinc Palette */
 [data-theme='dark'] {
-  --ink: #fafaf9;
-  --paper: #0c0a09;
-  --cream: #1c1917;
-  --surface: #1c1917;
-  --mid: #a8a29e;
-  --mid-light: #57534e;
-  --border: #292524;
-  --border-dark: #44403c;
-  --jade-muted: #064e3b;
+  --ink: #f8fafc;        /* Slate 50 */
+  --paper: #0f172a;      /* Slate 950 - Deep Navy/Slate */
+  --cream: #1e293b;      /* Slate 800 */
+  --surface: #1e293b;    /* Slate 800 */
+  --mid: #94a3b8;        /* Slate 400 */
+  --mid-light: #475569;  /* Slate 600 */
+  --border: #334155;     /* Slate 700 */
+  --border-dark: #475569; /* Slate 600 */
+  --jade-muted: #064e3b; /* Deep emerald */
+  --jade: #22c55e;       /* Bright emerald for dark mode */
 }
 
 [data-theme='dark'] body {
@@ -47,13 +48,15 @@
 }
 
 [data-theme='dark'] .topbar {
-  background: rgba(28, 25, 23, 0.8) !important;
+  background: rgba(15, 23, 42, 0.8) !important;
   border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(12px);
 }
 
 [data-theme='dark'] .a11y-menu {
   background: var(--surface);
   border-color: var(--border);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
 }
 
 [data-theme='dark'] .a11y-menu__item {
@@ -61,11 +64,19 @@
 }
 
 [data-theme='dark'] .a11y-menu__item:hover {
-  background: #292524;
+  background: #334155;
 }
 
 [data-theme='dark'] .topbar-search-pill {
-  background: #292524 !important;
+  background: #1e293b !important;
+  border-color: var(--border) !important;
+  color: var(--ink) !important;
+}
+
+[data-theme='dark'] .card, 
+[data-theme='dark'] .room-card,
+[data-theme='dark'] .sidebar-content {
+  background: var(--surface) !important;
   border-color: var(--border) !important;
 }
 
