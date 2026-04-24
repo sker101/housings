@@ -53,3 +53,51 @@ export function humanizeRole(appRole: string): string {
   if (appRole === APP_ROLE.PROPERTY_MANAGER) return 'Project Manager';
   return 'Tenant';
 }
+
+// Parse multiple roles from profile (supports both old single 'role' and new 'roles' array)
+export function parseRolesFromProfile(profile: { role?: unknown; roles?: unknown } | null | undefined): string[] {
+  if (!profile) return [APP_ROLE.TENANT];
+
+  // If roles array exists, use it — keep ALL roles including tenant
+  if (profile.roles && Array.isArray(profile.roles) && profile.roles.length > 0) {
+    const parsed = (profile.roles as unknown[])
+      .map((r) => toAppRole(r))
+      .filter((r, i, arr) => r && arr.indexOf(r) === i); // deduplicate
+    return parsed.length > 0 ? parsed : [APP_ROLE.TENANT];
+  }
+
+  // Fall back to single role field
+  const singleRole = toAppRole(profile.role);
+  // If user's primary role is landlord etc, they implicitly also have tenant
+  if (singleRole && singleRole !== APP_ROLE.TENANT) {
+    return [APP_ROLE.TENANT, singleRole];
+  }
+  return [APP_ROLE.TENANT];
+}
+
+// Get the active role (from localStorage or first available)
+export function getActiveRole(allRoles: string[]): string {
+  const stored = localStorage.getItem('activeRole');
+  if (stored && allRoles.includes(stored)) return stored;
+  return allRoles[0] || APP_ROLE.TENANT;
+}
+
+// Set the active role in localStorage
+export function setActiveRole(role: string): void {
+  localStorage.setItem('activeRole', role);
+}
+
+// Clear the active role from localStorage
+export function clearActiveRole(): void {
+  localStorage.removeItem('activeRole');
+}
+
+// Check if user has a specific role
+export function hasRole(allRoles: string[], role: string): boolean {
+  return allRoles.includes(role);
+}
+
+// Check if user can switch between roles (has multiple)
+export function canSwitchRoles(allRoles: string[]): boolean {
+  return allRoles.length > 1;
+}

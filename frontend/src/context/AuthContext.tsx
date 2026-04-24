@@ -19,7 +19,15 @@ import {
   SUPABASE_URL,
   SUPABASE_ANON_KEY,
 } from '../lib/supabase';
-import { APP_ROLE, appRoleFromProfile } from '../lib/roles';
+import {
+  APP_ROLE,
+  appRoleFromProfile,
+  parseRolesFromProfile,
+  getActiveRole,
+  setActiveRole,
+  clearActiveRole,
+  canSwitchRoles
+} from '../lib/roles';
 import type { Profile } from '../types';
 
 // ─────────────────────────────────────────────────────────────
@@ -31,7 +39,8 @@ interface AuthUser {
   email: string;
   phone: string;
   phoneVerified: boolean;
-  role: string;
+  role: string; // Active/current role
+  roles: string[]; // All roles the user has
   roleRaw: string;
   listerType: string;
   landlordVerificationStatus: string;
@@ -58,6 +67,8 @@ interface AuthContextValue {
   sendMagicLinkEmail: (_email: string) => Promise<void>;
   verifyEmailCode: (_email: string, _code: string) => Promise<AuthUser | null>;
   refreshMe: () => Promise<AuthUser | null>;
+  switchRole: (role: string) => void;
+  canSwitchRoles: boolean;
   networkError: boolean;
   setNetworkError: (_v: boolean) => void;
 }
@@ -87,12 +98,23 @@ function buildSessionObject(authPayload: Record<string, unknown>): Record<string
 
 function buildCurrentUser(
   session: Record<string, unknown>,
-  profile: Profile | null
+  profile: Profile | null,
+  requestedRole?: string
 ): AuthUser | null {
   const sessionUser = session?.user as Record<string, unknown> | undefined;
   if (!sessionUser) return null;
 
-  const role = appRoleFromProfile(profile);
+  // Parse all roles from profile
+  const allRoles = parseRolesFromProfile(profile);
+
+  // Determine active role: requested > stored > first available
+  let activeRole: string;
+  if (requestedRole && allRoles.includes(requestedRole)) {
+    activeRole = requestedRole;
+    setActiveRole(requestedRole);
+  } else {
+    activeRole = getActiveRole(allRoles);
+  }
 
   return {
     userId: sessionUser.id as string,
@@ -103,8 +125,9 @@ function buildCurrentUser(
     email: (sessionUser.email as string) || '',
     phone: profile?.phone || (sessionUser.user_metadata as Record<string, string>)?.phone || '',
     phoneVerified: Boolean((profile as unknown as Record<string, unknown>)?.phone_verified),
-    role,
-    roleRaw: profile?.role || (role === APP_ROLE.LANDLORD ? 'landlord' : 'tenant'),
+    role: activeRole,
+    roles: allRoles,
+    roleRaw: profile?.role || (activeRole === APP_ROLE.LANDLORD ? 'landlord' : 'tenant'),
     listerType: (profile as unknown as Record<string, unknown>)?.lister_type as string || '',
     landlordVerificationStatus: normalizeVerificationStatus(
       (profile as unknown as Record<string, unknown>)?.verification_status
@@ -120,7 +143,7 @@ async function fetchProfile(userId: string, accessToken: string): Promise<Profil
   try {
     const rows = await selectRows('profiles', {
       select: [
-        'id', 'role', 'lister_type', 'full_name', 'phone', 'phone_verified',
+        'id', 'role', 'roles', 'lister_type', 'full_name', 'phone', 'phone_verified',
         'university', 'profile_photo_url', 'id_doc_url', 'selfie_url',
         'verification_status', 'subscription_plan', 'preferred_language',
         'commission_rate_pct', 'created_at',
@@ -190,55 +213,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async (
       activeSession: Record<string, unknown>,
       rememberMe = true,
-      flowId = authFlowIdRef.current
+      flowId?: string,
+      requestedRole?: string
     ): Promise<AuthUser | null> => {
-      setLoading(true);
-      try {
-        const sessionUser = activeSession?.user as Record<string, unknown> | undefined;
-        if (!activeSession?.access_token || !sessionUser?.id) {
-          if (flowId === authFlowIdRef.current) {
-            applySession(null, rememberMe);
-            setLoading(false);
-          }
-          return null;
-        }
+      if (!activeSession?.access_token) return null;
 
+      const currentFlowId = flowId ?? authFlowIdRef.current;
+
+      try {
         const fetchedProfile = await fetchProfile(
-          sessionUser.id as string,
+          (activeSession.user as Record<string, unknown>)?.id as string,
           activeSession.access_token as string
         );
 
-        if (flowId !== authFlowIdRef.current) return null;
-
-        // ─── Suspended account guard ───────────────────────────────
-        if (fetchedProfile?.suspended && !suspendedRedirectRef.current) {
-          suspendedRedirectRef.current = true;
-          applySession(null, rememberMe);
-          try {
-            await signOut(activeSession.access_token as string);
-          } catch {
-            // ignore
-          }
-          // Hard redirect — avoids needing useNavigate at this level
-          window.location.href = '/auth/login?reason=suspended';
-          return null;
+        if (!fetchedProfile) {
+          // Profile may not exist yet (race condition with DB trigger)
+          // Return a minimal user object to allow the app to continue
+          const sessionUser = activeSession.user as Record<string, unknown>;
+          const minimalUser: AuthUser = {
+            userId: sessionUser.id as string,
+            fullName: (sessionUser.user_metadata as Record<string, string>)?.full_name || (sessionUser.email as string) || '',
+            email: (sessionUser.email as string) || '',
+            phone: '',
+            phoneVerified: false,
+            role: requestedRole || APP_ROLE.TENANT,
+            roles: requestedRole ? ['tenant', requestedRole] : [APP_ROLE.TENANT],
+            roleRaw: 'tenant',
+            listerType: '',
+            landlordVerificationStatus: '',
+            university: '',
+            preferredLanguage: 'en',
+          };
+          setUser(minimalUser);
+          applySession(activeSession, rememberMe);
+          return minimalUser;
         }
 
         setProfile(fetchedProfile);
-        const nextUser = buildCurrentUser(activeSession, fetchedProfile);
+        const nextUser = buildCurrentUser(activeSession, fetchedProfile, requestedRole);
         setUser(nextUser);
         applySession(activeSession, rememberMe);
         return nextUser;
       } catch (err) {
-        console.error('Hydration failed:', err);
-        return null;
-      } finally {
-        if (flowId === authFlowIdRef.current) {
+        if (isCurrentAuthFlow(currentFlowId)) {
           setLoading(false);
         }
+        return null;
       }
     },
-    [applySession]
+    []
   );
 
   const initialize = useCallback(async () => {
@@ -345,7 +368,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           data: { 
             full_name: payload.fullName.trim(), 
             phone: payload.phone.trim(), 
-            role: 'tenant' 
+            role: 'tenant',
+            roles: ['tenant']
           },
         }) as Record<string, unknown>;
 
@@ -369,13 +393,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const flowId = beginAuthFlow();
       setLoading(true);
       try {
+        const selectedRole = payload.role || 'landlord';
         const response = await signUpWithPassword({
           email: payload.email.trim().toLowerCase(),
           password: payload.password,
           data: {
             full_name: payload.fullName.trim(),
             phone: payload.phone.trim(),
-            role: payload.role || 'landlord',
+            role: selectedRole,
+            roles: selectedRole === 'tenant' ? ['tenant'] : ['tenant', selectedRole],
             lister_type: payload.listerType || 'owner',
           },
         }) as Record<string, unknown>;
@@ -406,6 +432,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       applySession(null);
       setUser(null);
       setProfile(null);
+      clearActiveRole();
     }
   }, [applySession, session?.access_token]);
 
@@ -475,19 +502,63 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const isNewUser = !sessionUser?.last_sign_in_at || 
           (sessionUser.created_at as string) === (sessionUser.last_sign_in_at as string);
         
+        // Get requested role from session storage
+        const requestedRole = sessionStorage.getItem('oauth_signup_role') || 'tenant';
+        console.log('[Auth] OAuth callback - requestedRole:', requestedRole);
+        
         // Fetch or create profile
         let fetchedProfile = await fetchProfile(
           sessionUser.id as string,
           nextSession.access_token as string
         );
         
+        console.log('[Auth] Existing profile:', fetchedProfile);
+        
+        // If profile exists and user wants to add a new role, update it
+        if (fetchedProfile && requestedRole !== 'tenant' && requestedRole !== fetchedProfile.role) {
+          console.log('[Auth] Adding new role to existing profile:', requestedRole);
+          try {
+            const currentRoles = (fetchedProfile as unknown as Record<string, unknown>)?.roles as string[] || [fetchedProfile.role || 'tenant'];
+            console.log('[Auth] Current roles:', currentRoles);
+            if (!currentRoles.includes(requestedRole)) {
+              const newRoles = [...currentRoles, requestedRole];
+              console.log('[Auth] New roles array:', newRoles);
+              await fetch(`${SUPABASE_URL}/rest/v1/profiles`, {
+                method: 'PATCH',
+                headers: {
+                  'apikey': SUPABASE_ANON_KEY,
+                  'Authorization': `Bearer ${nextSession.access_token as string}`,
+                  'Content-Type': 'application/json',
+                  'Prefer': 'return=minimal',
+                },
+                body: JSON.stringify({
+                  id: sessionUser.id,
+                  roles: newRoles,
+                  lister_type: 'owner',
+                }),
+              });
+              console.log('[Auth] Profile roles updated successfully');
+              // Refresh profile after update
+              fetchedProfile = await fetchProfile(
+                sessionUser.id as string,
+                nextSession.access_token as string
+              );
+              console.log('[Auth] Refreshed profile:', fetchedProfile);
+            }
+          } catch (err) {
+            console.error('[Auth] Failed to update profile roles:', err);
+          }
+        }
+        
         // If no profile exists (new OAuth user), create one with pending status
         if (!fetchedProfile) {
-          const role = sessionStorage.getItem('oauth_signup_role') || 'tenant';
           const metadata = (sessionUser.user_metadata as Record<string, unknown>) || {};
           
           // Create initial profile via RPC or direct insert
           try {
+            // Build roles array based on requested role
+            const roles = requestedRole === 'tenant' ? ['tenant'] : ['tenant', requestedRole];
+
             await fetch(`${SUPABASE_URL}/rest/v1/profiles`, {
               method: 'POST',
               headers: {
@@ -498,7 +569,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               },
               body: JSON.stringify({
                 id: sessionUser.id,
-                role,
+                role: requestedRole,
+                roles,
                 full_name: metadata.full_name || metadata.name || '',
                 email: sessionUser.email,
                 phone: '', // Will require completion
@@ -518,7 +590,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           );
           
           // Create tenant record if role is tenant
-          if (role === 'tenant') {
+          if (requestedRole === 'tenant') {
             try {
               await fetch(`${SUPABASE_URL}/rest/v1/tenants`, {
                 method: 'POST',
@@ -545,7 +617,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           sessionStorage.removeItem('oauth_signup_role');
         }
         
-        const nextUser = await hydrateUser(nextSession, true, flowId);
+        // Pass requestedRole so buildCurrentUser uses it as the active role
+        const nextUser = await hydrateUser(nextSession, true, flowId, requestedRole);
         
         return { user: nextUser, isNewUser: !fetchedProfile || fetchedProfile.phone === '' };
       } catch (err) {
@@ -584,22 +657,62 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         const sessionUser = nextSession.user as Record<string, unknown>;
         
+        // Get requested role from session storage (set during login page role selection)
+        const requestedRole = sessionStorage.getItem('oauth_signup_role') || 'tenant';
+        console.log('[Auth] verifyEmailCode - requestedRole:', requestedRole);
+
         // Check if profile exists - if not, create one for new user
         let fetchedProfile = await fetchProfile(
           sessionUser.id as string,
           nextSession.access_token as string
         );
-        
-        // If no profile exists (new email user), create one
-        if (!fetchedProfile) {
-          // Extract username from email (part before @) and format it
+
+        if (fetchedProfile) {
+          // EXISTING USER: check if they want to add a new role (e.g. tenant becoming landlord)
+          if (requestedRole && requestedRole !== 'tenant') {
+            const currentRoles = (fetchedProfile as unknown as Record<string, unknown>)?.roles as string[];
+            const rolesArray = Array.isArray(currentRoles) ? currentRoles : [fetchedProfile.role || 'tenant'];
+            if (!rolesArray.includes(requestedRole)) {
+              console.log('[Auth] Upgrading existing user role to:', requestedRole);
+              const newRoles = [...rolesArray, requestedRole];
+              try {
+                // PATCH with the row filter in the URL (correct Supabase REST syntax)
+                await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${sessionUser.id}`, {
+                  method: 'PATCH',
+                  headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${nextSession.access_token as string}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=minimal',
+                  },
+                  body: JSON.stringify({
+                    roles: newRoles,
+                    role: requestedRole,
+                    lister_type: 'owner',
+                  }),
+                });
+                // Refresh profile after update
+                fetchedProfile = await fetchProfile(
+                  sessionUser.id as string,
+                  nextSession.access_token as string
+                );
+                console.log('[Auth] Profile upgraded to:', requestedRole);
+              } catch (err) {
+                console.error('[Auth] Failed to upgrade role:', err);
+              }
+            } else {
+              console.log('[Auth] User already has role:', requestedRole);
+            }
+          }
+        } else {
+          // NEW USER: create profile
           const emailUsername = email.split('@')[0];
           const displayName = emailUsername
             .replace(/[._-]/g, ' ')
-            .replace(/\b\w/g, (c) => c.toUpperCase()); // Capitalize each word
-          
-          const role = sessionStorage.getItem('oauth_signup_role') || 'tenant';
-          
+            .replace(/\b\w/g, (c) => c.toUpperCase());
+
+          const roles = requestedRole === 'tenant' ? ['tenant'] : ['tenant', requestedRole];
+
           try {
             await fetch(`${SUPABASE_URL}/rest/v1/profiles`, {
               method: 'POST',
@@ -611,24 +724,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               },
               body: JSON.stringify({
                 id: sessionUser.id,
-                role,
+                role: requestedRole,
+                roles,
                 full_name: displayName,
                 email: email,
-                phone: '', // Will require completion
+                phone: '',
                 phone_verified: false,
                 profile_photo_url: '',
                 verification_status: 'pending_profile_completion',
               }),
             });
-            
-            // Fetch the newly created profile
+
             fetchedProfile = await fetchProfile(
               sessionUser.id as string,
               nextSession.access_token as string
             );
-            
-            // Create tenant record if role is tenant
-            if (role === 'tenant') {
+
+            if (requestedRole === 'tenant') {
               try {
                 await fetch(`${SUPABASE_URL}/rest/v1/tenants`, {
                   method: 'POST',
@@ -644,21 +756,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     status: 'active'
                   }),
                 });
-                console.log('[Auth] Created tenant record for:', sessionUser.id);
               } catch (tenantErr) {
-                // Tenant might already exist, that's ok
                 console.log('[Auth] Tenant record may already exist:', tenantErr);
               }
             }
-            
-            // Clear stored role
-            sessionStorage.removeItem('oauth_signup_role');
           } catch (err) {
             console.error('Failed to create profile:', err);
           }
         }
-        
-        return await hydrateUser(nextSession, true, flowId);
+
+        sessionStorage.removeItem('oauth_signup_role');
+        // Pass requestedRole so buildCurrentUser activates the correct role
+        return await hydrateUser(nextSession, true, flowId, requestedRole);
       } catch (err) {
         console.error('Email verification error:', err);
         throw err;
@@ -668,6 +777,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     },
     [hydrateUser, beginAuthFlow, isCurrentAuthFlow]
   );
+
+  // Role switching functionality
+  const switchRole = useCallback((newRole: string) => {
+    if (!user?.roles?.includes(newRole)) {
+      console.error('Cannot switch to role:', newRole, 'User does not have this role');
+      return;
+    }
+    setActiveRole(newRole);
+    // Refresh user to get updated active role
+    refreshMe();
+  }, [user, refreshMe]);
+
+  const canSwitchRolesValue = useMemo(() => {
+    return canSwitchRoles(user?.roles || []);
+  }, [user?.roles]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -686,10 +810,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       sendMagicLinkEmail,
       verifyEmailCode,
       refreshMe,
+      switchRole,
+      canSwitchRoles: canSwitchRolesValue,
       networkError,
       setNetworkError,
     }),
-    [user, profile, session, loading, login, logout, registerStudent, registerLandlord, signInWithGoogle, handleOAuthCallback, sendMagicLinkEmail, verifyEmailCode, refreshMe, networkError]
+    [user, profile, session, loading, login, logout, registerStudent, registerLandlord, signInWithGoogle, handleOAuthCallback, sendMagicLinkEmail, verifyEmailCode, refreshMe, switchRole, canSwitchRolesValue, networkError]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
