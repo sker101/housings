@@ -316,7 +316,9 @@
         "defaultSosMsg": "A system alert is active. Please check notifications.",
         "greeting": "Hi",
         "networkError": "Unable to connect to the server. Please check your internet connection and try again.",
-        "retry": "Retry"
+        "retry": "Retry",
+        "toggleTheme": "Toggle Theme",
+        "changeLanguage": "Change Language"
     },
     "studentDashboard": {
         "title": "Tenant Dashboard",

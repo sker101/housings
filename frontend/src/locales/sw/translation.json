@@ -316,7 +316,9 @@
         "defaultSosMsg": "Kuna taarifa ya dharura. Tafadhali kagua taarifa zako.",
         "greeting": "Habari",
         "networkError": "Imeshindikana kuunganishwa na seva. Tafadhali kagua intaneti yako.",
-        "retry": "Jaribu Tena"
+        "retry": "Jaribu Tena",
+        "toggleTheme": "Badili Muonekano",
+        "changeLanguage": "Badili Lugha"
     },
     "studentDashboard": {
         "title": "Dashibodi ya Mpangaji",

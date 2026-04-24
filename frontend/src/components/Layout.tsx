@@ -207,18 +207,21 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
     setIsMenuOpen(false);
   }, [location.pathname, location.search]);
 
-  // Close menu when clicking outside
+  // Close menus when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setIsMenuOpen(false);
       }
+      if (a11yRef.current && !a11yRef.current.contains(event.target as Node)) {
+        setIsA11yOpen(false);
+      }
     }
-    if (isMenuOpen) {
+    if (isMenuOpen || isA11yOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isMenuOpen]);
+  }, [isMenuOpen, isA11yOpen]);
 
   const toggleLanguage = async () => {
     const nextLang = i18n.language.startsWith('en') ? 'sw' : 'en';
@@ -484,15 +487,26 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
                   <Map size={18} />
                 </button>
               )}
-              <button type="button" className="topbar-action-btn" onClick={() => setIsA11yOpen(!isA11yOpen)} title="Accessibility" aria-expanded={isA11yOpen} aria-haspopup="menu"><Accessibility size={18} /></button>
+              <button 
+                type="button" 
+                className={`topbar-action-btn ${isA11yOpen ? 'is-active' : ''}`} 
+                onClick={() => setIsA11yOpen(!isA11yOpen)} 
+                title="Accessibility" 
+                aria-expanded={isA11yOpen} 
+                aria-haspopup="menu"
+              >
+                <Accessibility size={18} />
+              </button>
 
               {isA11yOpen && (
                 <div className="a11y-menu">
                   <button type="button" className="a11y-menu__item" onClick={() => { toggleDarkMode(); setIsA11yOpen(false); }}>
-                    {isDarkMode ? <Sun size={16} /> : <Moon size={16} />} <span>Toggle theme</span>
+                    {isDarkMode ? <Sun size={16} /> : <Moon size={16} />} 
+                    <span>{t('layout.toggleTheme', 'Toggle theme')}</span>
                   </button>
                   <button type="button" className="a11y-menu__item" onClick={() => { toggleLanguage(); setIsA11yOpen(false); }}>
-                    <Globe size={16} /> <span>Change language</span>
+                    <Globe size={16} /> 
+                    <span>{t('layout.changeLanguage', 'Change language')}</span>
                   </button>
                 </div>
               )}
