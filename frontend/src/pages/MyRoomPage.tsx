@@ -3,17 +3,22 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ShieldCheck, MapPin, Share2, FileText } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { selectRows, insertRows } from '../lib/supabase';
+import ListingMap from '../components/ListingMap';
+import { mapListingRow } from '../lib/listings';
 
 const PRIMARY = '#1D9E75';
 
 type Booking = {
   id: string;
   listing_id: string;
-  lister_id?: string;
+  landlord_id?: string;
   move_in_date?: string;
-  duration_months?: number;
+  months_duration?: number;
   status?: string;
   reference?: string;
+  platform_deposit_fee?: number;
+  gateway_fee?: number;
+  total_amount_due?: number;
 };
 
 type Listing = {
@@ -112,18 +117,97 @@ export default function MyRoomPage() {
       if (retryCount === 0) setLoading(true);
       setError('');
 
-      const bookingRows = await selectRows('bookings', {
-        select: 'id,listing_id,lister_id,move_in_date,duration_months,status,reference,created_at',
-        filters: [
-          { column: 'tenant_id', op: 'eq', value: user.userId },
-          { column: 'status', op: 'in', value: '(approved,completed,requested)' }
-        ],
-        order: 'created_at.desc',
+      // 1. Get the real tenant_id for this profile (create if missing)
+      let tenantRows = await selectRows('tenants', {
+        select: 'id',
+        filters: [{ column: 'profile_id', op: 'eq', value: user.userId }],
         limit: 1,
         accessToken: token
       });
+      let realTenantId = tenantRows?.[0]?.id;
+      
+      // Auto-create tenant record if missing
+      if (!realTenantId) {
+        console.log('[MyRoom] Creating missing tenant record for:', user.userId);
+        try {
+          const { insertRows } = await import('../lib/supabase');
+          const newTenant = await insertRows('tenants', {
+            profile_id: user.userId,
+            tenant_type: 'student'
+          }, { accessToken: token });
+          realTenantId = newTenant?.[0]?.id;
+          console.log('[MyRoom] Created tenant record:', realTenantId);
+        } catch (tenantErr) {
+          console.warn('[MyRoom] Failed to create tenant record:', tenantErr);
+        }
+      }
+      
+      console.log('[MyRoom] Real Tenant ID:', realTenantId, 'User Profile ID:', user.userId);
 
-      const active = bookingRows?.[0];
+      // 2. Fetch active booking or lease
+      // Use the actual tenant record ID for queries (since booking was created with this ID)
+      const tenantIdForQuery = realTenantId;
+      
+      if (!tenantIdForQuery) {
+        console.log('[MyRoom] No tenant record, skipping booking fetch');
+        setLoading(false);
+        return;
+      }
+      
+      console.log('[MyRoom] Fetching data for:', { realTenantId, profileId: user.userId });
+      
+      // Fetch bookings and leases separately to prevent one failure from blocking the other
+      let bookingRows: any[] = [];
+      let leaseRows: any[] = [];
+
+      try {
+        bookingRows = await selectRows('bookings', {
+          select: 'id,listing_id,landlord_id,move_in_date,months_duration,status,created_at,platform_deposit_fee,gateway_fee,total_amount_due',
+          or: `tenant_id.eq.${realTenantId},tenant_id.eq.${user.userId}`,
+          filters: [
+            { column: 'status', op: 'in', value: '(pending,requested,approved,confirmed,completed,disputed,paid,active)' }
+          ],
+          order: 'created_at.desc',
+          limit: 1,
+          accessToken: token
+        });
+        console.log('[MyRoom] Booking query result:', bookingRows);
+      } catch (err) {
+        console.warn('[MyRoom] Booking query failed:', err);
+      }
+
+      try {
+        leaseRows = await selectRows('tenant_leases', {
+          select: 'id,listing_id,landlord_id,status,created_at,platform_deposit_fee,gateway_fee,total_amount_due',
+          or: `tenant_id.eq.${realTenantId},tenant_id.eq.${user.userId}`,
+          filters: [
+            { column: 'status', op: 'eq', value: 'active' }
+          ],
+          order: 'created_at.desc',
+          limit: 1,
+          accessToken: token
+        });
+        console.log('[MyRoom] Lease query result:', leaseRows);
+      } catch (err) {
+        console.warn('[MyRoom] Lease query failed:', err);
+      }
+
+      console.log('[MyRoom] Bookings found:', bookingRows?.length);
+      console.log('[MyRoom] Leases found:', leaseRows?.length);
+
+      let active = bookingRows?.[0];
+      
+      // If no active booking, check if it's already a lease
+      if (!active && leaseRows?.[0]) {
+        const lease = leaseRows[0];
+        active = {
+          ...lease,
+          move_in_date: lease.move_in_date || lease.lease_start_date || lease.start_date,
+          // map lease status to a booking-like status for UI
+          status: 'confirmed' 
+        };
+      }
+
       if (!active) {
         if (isMounted) {
           setBooking(null);
@@ -139,23 +223,35 @@ export default function MyRoomPage() {
         return;
       }
 
-      // SELF-HEALING: If redirect from AzamPay success but status is still requested
-      if (isPaymentSuccess && active.status === 'requested') {
+      // SELF-HEALING: If redirect from AzamPay success or status is paid but room is still available
+      const shouldOccupy = isPaymentSuccess || active.status === 'paid';
+      
+      if (shouldOccupy && (active.status === 'requested' || active.status === 'pending' || active.status === 'paid')) {
+        console.log('[MyRoom] Self-healing active status:', active.status);
         const { updateRows } = await import('../lib/supabase');
         try {
-          await Promise.all([
-             updateRows('bookings', { status: 'approved' }, {
-               filters: [{ column: 'id', op: 'eq', value: active.id }],
-               accessToken: token
-             }),
-             updateRows('listings', { vacancy_status: 'occupied' }, {
-               filters: [{ column: 'id', op: 'eq', value: active.listing_id }],
-               accessToken: token
-             })
-          ]);
-          active.status = 'approved'; // Optimistic update
+          const updates: Promise<any>[] = [];
+          
+          if (active.status !== 'paid') {
+            updates.push(updateRows('bookings', { status: 'paid' }, {
+              filters: [{ column: 'id', op: 'eq', value: active.id }],
+              accessToken: token
+            }));
+          }
+
+          // Always try to mark the room as occupied to be safe
+          updates.push(updateRows('listings', { vacancy_status: 'occupied' }, {
+            filters: [{ column: 'id', op: 'eq', value: active.listing_id }],
+            accessToken: token
+          }));
+
+          if (updates.length > 0) {
+            await Promise.all(updates);
+            active.status = 'paid'; // Optimistic update
+            console.log('[MyRoom] Self-healing completed: status=paid, room=occupied');
+          }
         } catch (healErr) {
-          console.warn('Self-healing failed (likely RLS):', healErr);
+          console.warn('[MyRoom] Self-healing background update failed (expected if already synced):', healErr);
         }
       }
 
@@ -171,9 +267,10 @@ export default function MyRoomPage() {
           order: 'position.asc',
           accessToken: token
         }).catch(() => []),
+        // Get landlord profile directly using landlord_id (which is the profile ID)
         selectRows('profiles', {
           select: 'id,full_name,phone,verification_status,role',
-          filters: [{ column: 'id', op: 'eq', value: active.lister_id }],
+          filters: [{ column: 'id', op: 'eq', value: active.landlord_id }],
           accessToken: token
         }).catch(() => []),
         selectRows('payment_records', {
@@ -185,15 +282,21 @@ export default function MyRoomPage() {
       ]);
 
       if (!isMounted) return;
-      console.log('--- My Room Fetch Diagnostics ---');
-      console.log('User ID:', user?.userId);
-      console.log('Booking found:', active?.id);
-      console.log('Listing ID:', active?.listing_id);
-      console.log('Listing details returned:', !!listingRows?.[0]);
 
+      const listingData = listingRows?.[0];
+      if (listingData) {
+        const mapped = mapListingRow(listingData, photoRows || []);
+        setListing(mapped);
+        setPhotos(mapped.photos.map((p: any) => p.public_url || p).filter(Boolean));
+        if (mapped.photos.length === 0 && mapped.imageUrl) {
+          setPhotos([mapped.imageUrl]);
+        }
+      } else {
+        setListing(null);
+        setPhotos([]);
+      }
+      
       setBooking(active);
-      setListing(listingRows?.[0] || null);
-      setPhotos((photoRows || []).map((p: any) => p.public_url).filter(Boolean));
       setLandlord(landlordRows?.[0] || null);
       setPayments(paymentRows || []);
     } catch (err: any) {
@@ -203,8 +306,6 @@ export default function MyRoomPage() {
     } finally {
       if (isMounted) {
         setLoading(false);
-        // If we found a paid record but status is still requested, 
-        // we can optimistically show the room.
       }
     }
   };
@@ -220,7 +321,7 @@ export default function MyRoomPage() {
 
   const leaseEndDate = useMemo(() => {
     const moveIn = booking?.move_in_date;
-    const months = booking?.duration_months || 0;
+    const months = booking?.months_duration || 0;
     if (!moveIn || !months) return null;
     const d = new Date(moveIn);
     d.setMonth(d.getMonth() + Number(months));
@@ -235,7 +336,7 @@ export default function MyRoomPage() {
 
   const leaseProgressPct = useMemo(() => {
     const moveIn = booking?.move_in_date;
-    const months = booking?.duration_months || 0;
+    const months = booking?.months_duration || 0;
     if (!moveIn || !months || !leaseEndDate) return 0;
     const start = new Date(moveIn).getTime();
     const end = leaseEndDate.getTime();
@@ -318,7 +419,7 @@ export default function MyRoomPage() {
         </div>
 
         {/* ── Pending Payment Banner ── */}
-        {booking?.status === 'requested' && (
+        {(booking?.status === 'requested' || booking?.status === 'pending') && (
           <div style={{
             background: '#FFFBEB', border: '1px solid #FEF3C7', borderRadius: 12, 
             padding: '1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem'
@@ -399,9 +500,9 @@ export default function MyRoomPage() {
             {activeTab === 'overview' && (
               <div style={{ display: 'grid', gap: '0.75rem' }}>
                 {/* Photo Gallery - Hero Image */}
-                <div style={{ borderRadius: 14, overflow: 'hidden', position: 'relative' }}>
+                <div style={{ borderRadius: 14, overflow: 'hidden', position: 'relative', background: '#f5f5f0' }}>
                   <img
-                    src={photos?.[activePhotoIndex] || 'https://placehold.co/800x500/1D9E75/ffffff?text=iRent'}
+                    src={photos?.[activePhotoIndex] || (listing as any)?.imageUrl || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1200&q=80'}
                     alt={listing?.title || 'Room'}
                     style={{ width: '100%', height: 300, objectFit: 'cover', display: 'block' }}
                   />
@@ -478,7 +579,7 @@ export default function MyRoomPage() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.35rem' }}>
                     <span style={{ fontSize: '0.78rem', color: 'var(--mid)' }}>{formatDate(booking?.move_in_date)}</span>
                     <span style={{ fontSize: '0.78rem', color: '#1D9E75', fontWeight: 600 }}>
-                      {booking?.duration_months || 0} month lease
+                      {booking?.months_duration || 0} month lease
                     </span>
                     <span style={{ fontSize: '0.78rem', color: 'var(--mid)' }}>
                       {leaseEndDate ? formatDate(leaseEndDate.toISOString()) : '—'}
@@ -492,7 +593,7 @@ export default function MyRoomPage() {
                     <InfoRow label="Type" value={listing?.room_type || '—'} />
                     <InfoRow label="Floor" value={listing?.floor || '—'} />
                     <InfoRow label="Move-in" value={formatDate(booking?.move_in_date)} />
-                    <InfoRow label="Duration" value={`${booking?.duration_months || 0} months`} />
+                    <InfoRow label="Duration" value={`${booking?.months_duration || 0} months`} />
                     <InfoRow label="Monthly rent" value={formatTZS(listing?.price_monthly)} />
                     <InfoRow label="Security deposit" value={formatTZS(listing?.security_deposit)} />
                     <InfoRow label="Utilities included" value={listing?.utilities_included ? 'Yes' : 'No'} />
@@ -594,6 +695,29 @@ export default function MyRoomPage() {
 
                 <div className="card" style={{ padding: '0.9rem', borderRadius: 12 }}>
                   <p style={{ margin: '0 0 0.6rem', fontWeight: 700 }}>Location</p>
+                  
+                  {/* Interactive Mapbox Satellite Map */}
+                  <div style={{ 
+                    height: '240px', 
+                    borderRadius: '12px', 
+                    overflow: 'hidden', 
+                    marginBottom: '1rem',
+                    border: '1px solid var(--border)' 
+                  }}>
+                    {listing && (
+                      <ListingMap 
+                        listings={[{
+                          ...listing,
+                          lat: listing.lat,
+                          lng: listing.lng,
+                          title: listing.title || 'Your Room',
+                          priceMonthly: listing.price_monthly
+                        }]} 
+                        onMarkerSelect={() => {}} 
+                      />
+                    )}
+                  </div>
+
                   <div style={{
                     background: '#E8F6EF', borderRadius: 10, padding: '0.75rem',
                     marginBottom: '0.6rem', display: 'flex', alignItems: 'center', gap: '0.5rem'
@@ -755,9 +879,9 @@ export default function MyRoomPage() {
                 <div className="card" style={{ padding: '0.9rem', borderRadius: 12 }}>
                   <p style={{ margin: 0, color: 'var(--mid)' }}>Payment summary</p>
                   <Row label="Monthly rent" value={formatTZS(listing?.price_monthly)} />
-                  <Row label="Security deposit" value={formatTZS(listing?.security_deposit)} />
-                  <Row label="Platform fee" value={formatTZS(5000)} />
-                  <Row label="Total paid" value={formatTZS(mainPayment?.amount || listing?.price_monthly)} bold />
+                  <Row label="Platform deposit fee" value={formatTZS(booking?.platform_deposit_fee)} />
+                  <Row label="Gateway transaction fee" value={formatTZS(booking?.gateway_fee)} />
+                  <Row label="Total due today" value={formatTZS(booking?.total_amount_due)} bold />
                   <Row label="Booking reference" value={booking?.reference || mainPayment?.reference || '—'} />
                 </div>
                 <div className="card" style={{ padding: '0.9rem', borderRadius: 12 }}>

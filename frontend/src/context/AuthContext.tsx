@@ -2,15 +2,22 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import {
   AUTH_SESSION_REFRESH_EVENT,
   clearStoredSession,
+  exchangeCodeForSession,
   fetchAuthUser,
   isSessionExpired,
   readStoredSession,
   refreshAuthSession,
   selectRows,
+  sendMagicLink,
+  sendOTP,
+  signInWithOAuth,
   signInWithPassword,
   signOut,
   signUpWithPassword,
+  verifyOTP,
   writeStoredSession,
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY,
 } from '../lib/supabase';
 import { APP_ROLE, appRoleFromProfile } from '../lib/roles';
 import type { Profile } from '../types';
@@ -46,6 +53,10 @@ interface AuthContextValue {
   logout: () => Promise<void>;
   registerStudent: (_payload: Record<string, string>) => Promise<Record<string, unknown>>;
   registerLandlord: (_payload: Record<string, string>) => Promise<Record<string, unknown>>;
+  signInWithGoogle: (_role?: string) => Promise<void>;
+  handleOAuthCallback: (_code: string) => Promise<{ user: AuthUser | null; isNewUser: boolean }>;
+  sendMagicLinkEmail: (_email: string) => Promise<void>;
+  verifyEmailCode: (_email: string, _code: string) => Promise<AuthUser | null>;
   refreshMe: () => Promise<AuthUser | null>;
   networkError: boolean;
   setNetworkError: (_v: boolean) => void;
@@ -181,43 +192,65 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       rememberMe = true,
       flowId = authFlowIdRef.current
     ): Promise<AuthUser | null> => {
-      const sessionUser = activeSession?.user as Record<string, unknown> | undefined;
-      if (!activeSession?.access_token || !sessionUser?.id) {
-        if (flowId === authFlowIdRef.current) applySession(null, rememberMe);
-        return null;
-      }
-
-      const fetchedProfile = await fetchProfile(
-        sessionUser.id as string,
-        activeSession.access_token as string
-      );
-
-      if (flowId !== authFlowIdRef.current) return null;
-
-      // ─── Suspended account guard ───────────────────────────────
-      if (fetchedProfile?.suspended && !suspendedRedirectRef.current) {
-        suspendedRedirectRef.current = true;
-        applySession(null, rememberMe);
-        try {
-          await signOut(activeSession.access_token as string);
-        } catch {
-          // ignore
+      setLoading(true);
+      try {
+        const sessionUser = activeSession?.user as Record<string, unknown> | undefined;
+        if (!activeSession?.access_token || !sessionUser?.id) {
+          if (flowId === authFlowIdRef.current) {
+            applySession(null, rememberMe);
+            setLoading(false);
+          }
+          return null;
         }
-        // Hard redirect — avoids needing useNavigate at this level
-        window.location.href = '/auth/login?reason=suspended';
-        return null;
-      }
 
-      setProfile(fetchedProfile);
-      const nextUser = buildCurrentUser(activeSession, fetchedProfile);
-      setUser(nextUser);
-      applySession(activeSession, rememberMe);
-      return nextUser;
+        const fetchedProfile = await fetchProfile(
+          sessionUser.id as string,
+          activeSession.access_token as string
+        );
+
+        if (flowId !== authFlowIdRef.current) return null;
+
+        // ─── Suspended account guard ───────────────────────────────
+        if (fetchedProfile?.suspended && !suspendedRedirectRef.current) {
+          suspendedRedirectRef.current = true;
+          applySession(null, rememberMe);
+          try {
+            await signOut(activeSession.access_token as string);
+          } catch {
+            // ignore
+          }
+          // Hard redirect — avoids needing useNavigate at this level
+          window.location.href = '/auth/login?reason=suspended';
+          return null;
+        }
+
+        setProfile(fetchedProfile);
+        const nextUser = buildCurrentUser(activeSession, fetchedProfile);
+        setUser(nextUser);
+        applySession(activeSession, rememberMe);
+        return nextUser;
+      } catch (err) {
+        console.error('Hydration failed:', err);
+        return null;
+      } finally {
+        if (flowId === authFlowIdRef.current) {
+          setLoading(false);
+        }
+      }
     },
     [applySession]
   );
 
   const initialize = useCallback(async () => {
+    // Prevent initialize from cancelling an in-flight OAuth callback flow
+    if (typeof window !== 'undefined' && window.location.pathname.includes('/auth/callback')) {
+      const hasCode = window.location.search.includes('code=');
+      const hasToken = window.location.hash.includes('access_token=');
+      if (hasCode || hasToken) {
+        return;
+      }
+    }
+
     const flowId = beginAuthFlow();
     setLoading(true);
 
@@ -264,10 +297,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         session: detail.session,
         persistent: detail.persistent !== false,
       });
+      // Hydrate user manually because initialize only runs once on mount
+      setLoading(true);
+      const flowId = beginAuthFlow();
+      hydrateUser(detail.session, detail.persistent !== false, flowId)
+        .finally(() => {
+          if (isCurrentAuthFlow(flowId)) setLoading(false);
+        });
     };
     window.addEventListener(AUTH_SESSION_REFRESH_EVENT, handleSessionRefresh);
     return () => window.removeEventListener(AUTH_SESSION_REFRESH_EVENT, handleSessionRefresh);
-  }, []);
+  }, [hydrateUser, beginAuthFlow, isCurrentAuthFlow]);
 
   const login = useCallback(
     async (
@@ -382,6 +422,251 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [session, persistent, hydrateUser, applySession, beginAuthFlow, isCurrentAuthFlow]);
 
+  // ─── Google OAuth ───────────────────────────────────────────
+  const signInWithGoogle = useCallback(
+    async (role?: string) => {
+      const redirectTo = `${window.location.origin}/auth/callback`;
+      
+      // Store role preference for new users
+      if (role) {
+        sessionStorage.setItem('oauth_signup_role', role);
+      }
+      
+      try {
+        const response = await signInWithOAuth({
+          provider: 'google',
+          redirectTo,
+          scopes: 'openid profile email',
+        }) as { url?: string };
+        
+        if (response?.url) {
+          window.location.href = response.url;
+        } else {
+          throw new Error('Failed to get Google sign-in URL');
+        }
+      } catch (err) {
+        console.error('[Auth] signInWithGoogle error:', err);
+        throw err;
+      }
+    },
+    []
+  );
+
+  const handleOAuthCallback = useCallback(
+    async (code: string): Promise<{ user: AuthUser | null; isNewUser: boolean }> => {
+      const flowId = beginAuthFlow();
+      setLoading(true);
+      
+      try {
+        // Retrieve PKCE code_verifier stored during signInWithOAuth
+        const codeVerifier = sessionStorage.getItem('pkce_code_verifier') || undefined;
+        sessionStorage.removeItem('pkce_code_verifier');
+
+        const response = await exchangeCodeForSession({ auth_code: code, code_verifier: codeVerifier }) as Record<string, unknown>;
+        const nextSession = buildSessionObject(response);
+        
+        if (!nextSession) {
+          throw new Error('Failed to exchange code for session');
+        }
+        
+        // Check if this is a new user by looking at user metadata
+        const sessionUser = nextSession.user as Record<string, unknown>;
+        const isNewUser = !sessionUser?.last_sign_in_at || 
+          (sessionUser.created_at as string) === (sessionUser.last_sign_in_at as string);
+        
+        // Fetch or create profile
+        let fetchedProfile = await fetchProfile(
+          sessionUser.id as string,
+          nextSession.access_token as string
+        );
+        
+        // If no profile exists (new OAuth user), create one with pending status
+        if (!fetchedProfile) {
+          const role = sessionStorage.getItem('oauth_signup_role') || 'tenant';
+          const metadata = (sessionUser.user_metadata as Record<string, unknown>) || {};
+          
+          // Create initial profile via RPC or direct insert
+          try {
+            await fetch(`${SUPABASE_URL}/rest/v1/profiles`, {
+              method: 'POST',
+              headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${nextSession.access_token as string}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=minimal',
+              },
+              body: JSON.stringify({
+                id: sessionUser.id,
+                role,
+                full_name: metadata.full_name || metadata.name || '',
+                email: sessionUser.email,
+                phone: '', // Will require completion
+                phone_verified: false,
+                profile_photo_url: metadata.avatar_url || metadata.picture || '',
+                verification_status: 'pending_profile_completion',
+              }),
+            });
+          } catch (err) {
+            console.error('Failed to create profile:', err);
+          }
+          
+          // Fetch the newly created profile
+          fetchedProfile = await fetchProfile(
+            sessionUser.id as string,
+            nextSession.access_token as string
+          );
+          
+          // Create tenant record if role is tenant
+          if (role === 'tenant') {
+            try {
+              await fetch(`${SUPABASE_URL}/rest/v1/tenants`, {
+                method: 'POST',
+                headers: {
+                  'apikey': SUPABASE_ANON_KEY,
+                  'Authorization': `Bearer ${nextSession.access_token as string}`,
+                  'Content-Type': 'application/json',
+                  'Prefer': 'return=minimal',
+                },
+                body: JSON.stringify({
+                  profile_id: sessionUser.id,
+                  tenant_type: 'student',
+                  status: 'active'
+                }),
+              });
+              console.log('[Auth] Created tenant record for OAuth user:', sessionUser.id);
+            } catch (tenantErr) {
+              // Tenant might already exist, that's ok
+              console.log('[Auth] Tenant record may already exist:', tenantErr);
+            }
+          }
+          
+          // Clear the stored role
+          sessionStorage.removeItem('oauth_signup_role');
+        }
+        
+        const nextUser = await hydrateUser(nextSession, true, flowId);
+        
+        return { user: nextUser, isNewUser: !fetchedProfile || fetchedProfile.phone === '' };
+      } catch (err) {
+        console.error('OAuth callback error:', err);
+        if (isCurrentAuthFlow(flowId)) applySession(null);
+        throw err;
+      } finally {
+        if (isCurrentAuthFlow(flowId)) setLoading(false);
+      }
+    },
+    [hydrateUser, applySession, beginAuthFlow, isCurrentAuthFlow]
+  );
+
+  // ─── Magic Link / Email OTP ─────────────────────────────────
+  const sendMagicLinkEmail = useCallback(
+    async (email: string) => {
+      const redirectTo = `${window.location.origin}/auth/verify-email`;
+      await sendMagicLink({ email, redirectTo });
+    },
+    []
+  );
+
+  const verifyEmailCode = useCallback(
+    async (email: string, code: string): Promise<AuthUser | null> => {
+      const flowId = beginAuthFlow();
+      setLoading(true);
+      
+      try {
+        const response = await verifyOTP({ email, token: code, type: 'email' }) as Record<string, unknown>;
+        const nextSession = buildSessionObject(response);
+        
+        if (!nextSession) {
+          throw new Error('Invalid verification code');
+        }
+        
+        const sessionUser = nextSession.user as Record<string, unknown>;
+        
+        // Check if profile exists - if not, create one for new user
+        let fetchedProfile = await fetchProfile(
+          sessionUser.id as string,
+          nextSession.access_token as string
+        );
+        
+        // If no profile exists (new email user), create one
+        if (!fetchedProfile) {
+          // Extract username from email (part before @) and format it
+          const emailUsername = email.split('@')[0];
+          const displayName = emailUsername
+            .replace(/[._-]/g, ' ')
+            .replace(/\b\w/g, (c) => c.toUpperCase()); // Capitalize each word
+          
+          const role = sessionStorage.getItem('oauth_signup_role') || 'tenant';
+          
+          try {
+            await fetch(`${SUPABASE_URL}/rest/v1/profiles`, {
+              method: 'POST',
+              headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${nextSession.access_token as string}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=minimal',
+              },
+              body: JSON.stringify({
+                id: sessionUser.id,
+                role,
+                full_name: displayName,
+                email: email,
+                phone: '', // Will require completion
+                phone_verified: false,
+                profile_photo_url: '',
+                verification_status: 'pending_profile_completion',
+              }),
+            });
+            
+            // Fetch the newly created profile
+            fetchedProfile = await fetchProfile(
+              sessionUser.id as string,
+              nextSession.access_token as string
+            );
+            
+            // Create tenant record if role is tenant
+            if (role === 'tenant') {
+              try {
+                await fetch(`${SUPABASE_URL}/rest/v1/tenants`, {
+                  method: 'POST',
+                  headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${nextSession.access_token as string}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=minimal',
+                  },
+                  body: JSON.stringify({
+                    profile_id: sessionUser.id,
+                    tenant_type: 'student',
+                    status: 'active'
+                  }),
+                });
+                console.log('[Auth] Created tenant record for:', sessionUser.id);
+              } catch (tenantErr) {
+                // Tenant might already exist, that's ok
+                console.log('[Auth] Tenant record may already exist:', tenantErr);
+              }
+            }
+            
+            // Clear stored role
+            sessionStorage.removeItem('oauth_signup_role');
+          } catch (err) {
+            console.error('Failed to create profile:', err);
+          }
+        }
+        
+        return await hydrateUser(nextSession, true, flowId);
+      } catch (err) {
+        console.error('Email verification error:', err);
+        throw err;
+      } finally {
+        if (isCurrentAuthFlow(flowId)) setLoading(false);
+      }
+    },
+    [hydrateUser, beginAuthFlow, isCurrentAuthFlow]
+  );
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
@@ -394,11 +679,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       logout,
       registerStudent,
       registerLandlord,
+      signInWithGoogle,
+      handleOAuthCallback,
+      sendMagicLinkEmail,
+      verifyEmailCode,
       refreshMe,
       networkError,
       setNetworkError,
     }),
-    [user, profile, session, loading, login, logout, registerStudent, registerLandlord, refreshMe, networkError]
+    [user, profile, session, loading, login, logout, registerStudent, registerLandlord, signInWithGoogle, handleOAuthCallback, sendMagicLinkEmail, verifyEmailCode, refreshMe, networkError]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

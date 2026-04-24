@@ -8,7 +8,7 @@ export type Role = 'tenant' | 'landlord' | 'property_manager' | 'admin';
 export type ListingStatus = 'draft' | 'pending' | 'approved' | 'rejected' | 'flagged' | 'suspended';
 export type InquiryStatus = 'open' | 'interested' | 'unavailable' | 'booked';
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
-export type BookingStatus = 'requested' | 'approved' | 'declined' | 'cancelled' | 'completed';
+export type BookingStatus = 'pending' | 'requested' | 'approved' | 'confirmed' | 'declined' | 'cancelled' | 'completed' | 'disputed';
 export type SubscriptionStatus = 'active' | 'cancelled' | 'past_due';
 
 export interface Profile {
@@ -67,14 +67,15 @@ export interface Inquiry {
 export interface Booking {
   id: string;
   tenant_id: string;
-  lister_id: string;
+  landlord_id: string;
   listing_id: string;
-  amount: number;
+  total_tzs: number;
   reference?: string;
-  payment_status: PaymentStatus;
-  status?: BookingStatus;
+  status: BookingStatus;
+  message?: string;
+  contact_preference?: string;
   move_in_date?: string;
-  duration_months?: number;
+  months_duration?: number;
   created_at: string;
   listing?: Partial<Listing>;
   tenant?: Partial<Profile>;

@@ -130,7 +130,7 @@ async function refreshStoredAccessToken(accessToken?: string, isAuthRequest = fa
   return accessToken;
 }
 
-async function rawAuthRequest(path: string, options: { method: string; query?: Record<string, string>; body: any }) {
+async function rawAuthRequest(path: string, options: { method: string; query?: Record<string, string>; body?: any }) {
   const target = new URL(path, SUPABASE_URL);
   if (options.query) {
     Object.entries(options.query).forEach(([key, value]) => {
@@ -138,7 +138,7 @@ async function rawAuthRequest(path: string, options: { method: string; query?: R
     });
   }
 
-  const response = await fetch(target.toString(), {
+  const fetchOptions: RequestInit = {
     method: options.method,
     headers: {
       'apikey': SUPABASE_ANON_KEY,
@@ -146,14 +146,62 @@ async function rawAuthRequest(path: string, options: { method: string; query?: R
     },
     credentials: 'omit',
     referrerPolicy: 'no-referrer',
-    body: JSON.stringify(options.body)
-  });
+    // Don't follow redirects - we need to capture the redirect URL
+    redirect: 'manual' as RequestRedirect,
+  };
+  
+  // Only add body for methods that support it (POST, PUT, PATCH)
+  if (options.body && options.method !== 'GET') {
+    fetchOptions.body = JSON.stringify(options.body);
+  }
+  
+  const response = await fetch(target.toString(), fetchOptions);
 
-  const payload = await response.json();
+  // Handle 302 redirect (OAuth authorize endpoint returns this)
+  if (response.status === 302 || response.status === 0) {
+    const location = response.headers.get('location');
+    if (location) {
+      return { url: location };
+    }
+    // If no location header, parse the HTML body for the URL
+    const text = await response.text();
+    const urlMatch = text.match(/href="([^"]+)"/);
+    if (urlMatch) {
+      return { url: urlMatch[1].replace(/&amp;/g, '&') };
+    }
+    throw new Error('OAuth redirect URL not found');
+  }
+
+  // Handle non-JSON responses (like HTML error pages)
+  const contentType = response.headers.get('content-type') || '';
+  const isJson = contentType.includes('application/json');
+  
   if (!response.ok) {
+    if (!isJson) {
+      const text = await response.text();
+      console.error('Non-JSON error response:', text.substring(0, 500));
+      throw new Error(`Auth error (${response.status}): Provider may not be configured. Check Supabase Auth settings.`);
+    }
+    const payload = await response.json();
     throw payload;
   }
-  return payload;
+  
+  // For successful responses, try to parse JSON
+  if (isJson) {
+    return await response.json();
+  }
+  
+  // Some auth endpoints may return empty bodies
+  const text = await response.text();
+  if (!text) {
+    return {};
+  }
+  
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { url: text };
+  }
 }
 
 export async function signInWithPassword({ email, password }) {
@@ -173,6 +221,109 @@ export async function signUpWithPassword({ email, password, data }) {
     method: 'POST',
     body: { email, password, data }
   });
+}
+
+// ─────────────────────────────────────────────────────────────
+// Google OAuth
+// ─────────────────────────────────────────────────────────────
+
+interface OAuthProvider {
+  provider: 'google' | 'apple' | 'facebook';
+  redirectTo?: string;
+  scopes?: string;
+}
+
+// PKCE helpers
+function generateCodeVerifier(): string {
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return Array.from(array, b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function generateCodeChallenge(verifier: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(verifier);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  return btoa(String.fromCharCode(...new Uint8Array(digest)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+export async function signInWithOAuth({ provider, redirectTo, scopes }: OAuthProvider) {
+  // Generate PKCE pair
+  const codeVerifier = generateCodeVerifier();
+  const codeChallenge = await generateCodeChallenge(codeVerifier);
+
+  // Store verifier for the callback to use
+  sessionStorage.setItem('pkce_code_verifier', codeVerifier);
+
+  const target = new URL('/auth/v1/authorize', SUPABASE_URL);
+  target.searchParams.append('provider', provider);
+  target.searchParams.append('code_challenge', codeChallenge);
+  target.searchParams.append('code_challenge_method', 'S256');
+
+  if (redirectTo) {
+    target.searchParams.append('redirect_to', redirectTo);
+  }
+  if (scopes) {
+    target.searchParams.append('scopes', scopes);
+  }
+
+  const url = target.toString();
+  console.log('[supabase] Generated OAuth URL (PKCE):', url);
+  return { url };
+}
+
+// ─────────────────────────────────────────────────────────────
+// Email Magic Link / OTP
+// ─────────────────────────────────────────────────────────────
+
+export async function sendMagicLink({ email, redirectTo }: { email: string; redirectTo?: string }) {
+  const body: Record<string, unknown> = { email };
+  if (redirectTo) {
+    body.redirect_to = redirectTo;
+  }
+  
+  return rawAuthRequest('/auth/v1/magiclink', {
+    method: 'POST',
+    body
+  });
+}
+
+export async function sendOTP({ email }: { email: string }) {
+  return rawAuthRequest('/auth/v1/otp', {
+    method: 'POST',
+    body: { email, type: 'email' }
+  });
+}
+
+export async function verifyOTP({ email, token, type = 'email' }: { email: string; token: string; type?: string }) {
+  return rawAuthRequest('/auth/v1/verify', {
+    method: 'POST',
+    body: { email, token, type }
+  });
+}
+
+export async function exchangeCodeForSession({ auth_code, code_verifier }: { auth_code: string; code_verifier?: string }) {
+  const target = new URL('/auth/v1/token?grant_type=pkce', SUPABASE_URL);
+
+  const body: Record<string, string> = { auth_code };
+  if (code_verifier) body.code_verifier = code_verifier;
+
+  const response = await fetch(target.toString(), {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error_description || err.msg || err.message || 'Token exchange failed');
+  }
+
+  return response.json();
 }
 
 async function request(path: string, options: RequestOptions = {}) {
@@ -218,7 +369,9 @@ async function request(path: string, options: RequestOptions = {}) {
       body: body == null ? undefined : contentType === 'application/json' ? JSON.stringify(body) : body
     });
 
+  console.log(`[Supabase] ${method} ${target.toString()}`);
   let response = await executeFetch(resolvedAccessToken);
+  console.log(`[Supabase] Response ${response.status} from ${path}`);
 
   if (raw) {
     if (accessToken && response.status === 401) {
@@ -262,6 +415,7 @@ async function request(path: string, options: RequestOptions = {}) {
     throw new Error(normalizeErrorMessage(payload, `Supabase request failed (${response.status})`));
   }
 
+  console.log(`[Supabase] Payload from ${path}:`, payload);
   return payload;
 }
 

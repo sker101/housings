@@ -109,14 +109,14 @@ export default function AdminDashboardPage() {
           countRows('notifications', { filters: [{ column: 'read_at', op: 'is', value: 'null' }], accessToken: token }),
           countRows('campuscover_claims', { filters: [{ column: 'status', op: 'eq', value: 'pending' }], accessToken: token }),
 
-          selectRows('system_settings', { select: 'key,value', accessToken: token }),
+          selectRows('system_config', { select: 'key,value', accessToken: token }),
 
           selectRows('listings', { select: 'created_at,status', order: 'created_at.desc', limit: 30, accessToken: token }),
           selectRows('bookings', { select: 'created_at,status', order: 'created_at.desc', limit: 30, accessToken: token }),
           selectRows('listing_reports', { select: 'created_at,status', order: 'created_at.desc', limit: 30, accessToken: token }),
 
           selectRows('reviews', { select: 'rating', limit: 500, accessToken: token }),
-          selectRows('payments', { select: 'amount,status', limit: 1000, accessToken: token }).catch(() => []),
+          selectRows('payment_records', { select: 'amount,status', limit: 1000, accessToken: token }).catch(() => []),
           selectRows('admin_audit_log', {
             select: 'action,target_type,created_at',
             order: 'created_at.desc',
@@ -255,7 +255,7 @@ export default function AdminDashboardPage() {
   async function toggleSOS(val: boolean) {
     const targetAnnouncement = val ? settings.global_announcement : '';
     try {
-      await upsertRows('system_settings', [
+      await upsertRows('system_config', [
         { key: 'maintenance_mode', value: val },
         { key: 'global_announcement', value: targetAnnouncement },
       ], { accessToken: token, onConflict: 'key' });
@@ -608,7 +608,7 @@ export default function AdminDashboardPage() {
               style={{ width: '100%' }}
               onBlur={async () => {
                 try {
-                  await upsertRows('system_settings', [{ key: 'global_announcement', value: announcementText }], { accessToken: token, onConflict: 'key' });
+                  await upsertRows('system_config', [{ key: 'global_announcement', value: announcementText }], { accessToken: token, onConflict: 'key' });
                   setSettings((prev: any) => ({ ...prev, global_announcement: announcementText }));
                 } catch (e: any) { setError(e.message); }
               }}
@@ -754,7 +754,7 @@ export default function AdminDashboardPage() {
 
   function renderPayments() {
     const key = 'payments_all';
-    if (!queueData[key]) { loadQueue(key, 'payments', { select: 'id,amount,method,status,created_at,payment_type', order: 'created_at.desc', limit: 100 }); }
+    if (!queueData[key]) { loadQueue(key, 'payment_records', { select: 'id,amount,status,created_at', order: 'created_at.desc', limit: 100 }); }
     const rows = queueData[key] || [];
     const STATUS_COLOR: Record<string, string> = { completed: '#22c55e', pending: '#f59e0b', failed: '#ef4444' };
     return (

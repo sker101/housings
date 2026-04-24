@@ -216,22 +216,22 @@ export default function MessagesPage() {
       try {
         if (user?.userId) {
           await updateRows(
-            'messages',
-            { seen_at: new Date().toISOString() },
+            'chat_messages',
+            { is_read: true },
             {
               filters: [
-                { column: 'conversation_id', op: 'eq', value: threadId },
+                { column: 'inquiry_id', op: 'eq', value: threadId },
                 { column: 'sender_id', op: 'neq', value: user.userId },
-                { column: 'seen_at', op: 'is', value: 'null' }
+                { column: 'is_read', op: 'eq', value: 'false' }
               ],
               accessToken: token
             }
-          );
+          ).catch(() => {});
         }
 
-        const messageRows = await selectRows('messages', {
-          select: 'id,conversation_id,sender_id,body,seen_at,created_at',
-          filters: [{ column: 'conversation_id', op: 'eq', value: threadId }],
+        const messageRows = await selectRows('chat_messages', {
+          select: 'id,inquiry_id,sender_id,body,is_read,created_at',
+          filters: [{ column: 'inquiry_id', op: 'eq', value: threadId }],
           order: 'created_at.asc',
           accessToken: token
         });
@@ -300,9 +300,9 @@ export default function MessagesPage() {
 
     try {
       await insertRows(
-        'messages',
+        'chat_messages',
         {
-          conversation_id: threadId,
+          inquiry_id: threadId,
           sender_id: user.userId,
           body: sanitizeInput(messageBody)
         },
@@ -311,9 +311,9 @@ export default function MessagesPage() {
 
       setMessageBody('');
 
-      const messageRows = await selectRows('messages', {
-        select: 'id,conversation_id,sender_id,body,seen_at,created_at',
-        filters: [{ column: 'conversation_id', op: 'eq', value: threadId }],
+      const messageRows = await selectRows('chat_messages', {
+        select: 'id,inquiry_id,sender_id,body,is_read,created_at',
+        filters: [{ column: 'inquiry_id', op: 'eq', value: threadId }],
         order: 'created_at.asc',
         accessToken: token
       });
@@ -353,8 +353,8 @@ export default function MessagesPage() {
 
     try {
       const rows = await updateRows(
-        'conversations',
-        { inquiry_status: statusValue },
+        'room_inquiries',
+        { status: statusValue },
         {
           filters: [{ column: 'id', op: 'eq', value: threadId }],
           accessToken: token

@@ -1,4 +1,5 @@
 -- Enhanced listings view for detail page compatibility
+ALTER TABLE public.rooms ADD COLUMN IF NOT EXISTS is_furnished boolean DEFAULT false;
 DROP VIEW IF EXISTS public.listings;
 
 CREATE VIEW public.listings AS

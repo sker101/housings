@@ -54,22 +54,12 @@ export default function LandlordListingsPage() {
 
         // Fetch bookings
         let bookingRows: any[] = [];
-        try {
-          bookingRows = await selectRows('bookings', {
-            select: 'id,room_id',
-            filters: [{ column: 'room_id', op: 'in', value: `(${listingIds.join(',')})` }],
-            limit: 5000,
-            accessToken: token
-          });
-        } catch (err) {
-          console.warn('LandlordListingsPage: modern bookings query failed, trying legacy fallback.', err);
-          bookingRows = await selectRows('bookings', {
-            select: 'id,listing_id',
-            filters: [{ column: 'listing_id', op: 'in', value: `(${listingIds.join(',')})` }],
-            limit: 5000,
-            accessToken: token
-          }).catch(() => []);
-        }
+        bookingRows = await selectRows('bookings', {
+          select: 'id,listing_id',
+          filters: [{ column: 'listing_id', op: 'in', value: `(${listingIds.join(',')})` }],
+          limit: 5000,
+          accessToken: token
+        }).catch(() => []);
 
         // Aggregate stats
         const savesByListing = savedRows.reduce((acc: any, r: any) => {
@@ -78,7 +68,7 @@ export default function LandlordListingsPage() {
         }, {});
 
         const bookingsByListing = bookingRows.reduce((acc: any, r: any) => {
-          const listingId = r.room_id || r.listing_id;
+          const listingId = r.listing_id;
           if (listingId) {
             acc[listingId] = (acc[listingId] || 0) + 1;
           }

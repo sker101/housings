@@ -19,7 +19,7 @@ function humanize(value: string | undefined) {
 }
 
 function isComingSoon(status: string | undefined): boolean {
-  return status === 'available_soon' || status === 'listed_occupied';
+  return status === 'available_soon' || status === 'coming_soon' || status === 'listed_occupied';
 }
 
 export default function ListingCard({ listing }: {

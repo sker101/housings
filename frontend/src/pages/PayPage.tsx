@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
+import { ShieldCheck } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { selectRows, insertRows } from '../lib/supabase';
+import { selectRows, upsertRows } from '../lib/supabase';
+import { calculateTenantPayment, formatTZS } from '../lib/paymentCalculations';
+import { getPaymentProvider } from '../lib/payments/factory';
+import { PaymentBreakdownComponent } from '../components/PaymentBreakdown';
 
 export default function PayPage() {
   const location = useLocation();
@@ -46,76 +50,112 @@ export default function PayPage() {
   const [notice, setNotice] = useState('');
   const [gateway, setGateway] = useState<'selcom' | 'azampay'>('azampay');
 
-  const total = useMemo(() => {
-    const price = Number(listing?.price_monthly || 0);
-    return price * months;
+  const breakdown = useMemo(() => {
+    const monthlyPrice = Number(listing?.price_monthly || 0);
+    return calculateTenantPayment(monthlyPrice, months);
   }, [listing?.price_monthly, months]);
 
-  useEffect(() => {
-    async function load() {
-      if (!state?.listingId || listing?.lister_id) return;
-      try {
-        setLoading(true);
-        const rows = await selectRows('listings', {
-          select: 'id,title,price_monthly,available_from,district,ward,street,lister_id',
-          filters: [{ column: 'id', op: 'eq', value: state.listingId }],
-          accessToken: token
-        });
-        if (rows?.[0]) setListing(rows[0]);
-      } catch (err: any) {
-        setError(err.message || 'Unable to load listing');
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, [state?.listingId, listing?.title, token]);
+  const [isConfirmed, setIsConfirmed] = useState(false);
 
   const handlePay = async () => {
+    if (!isConfirmed) return;
     if (!listing?.id) {
       setError('Select a listing before paying.');
       return;
     }
+    if (!user) {
+      setError('You must be logged in to make a payment.');
+      return;
+    }
+    
+    // 0. ENFORCE PROFILE COMPLETION
+    if (!user.phone || user.phone === '') {
+        setError('Please complete your profile with a genuine phone number before making a payment.');
+        setNotice('Redirecting to profile in 3 seconds...');
+        setTimeout(() => navigate('/profile'), 3000);
+        return;
+    }
+
     setError('');
     setNotice('');
     setLoading(true);
+    
     try {
-      const reservation = {
-        listingId: listing.id,
-        title: listing.title,
-        priceMonthly: listing.price_monthly,
-        months,
-        total,
-        reservedAt: new Date().toISOString(),
-        moveInDate,
-        coverPhoto: state?.coverPhoto || null,
-        address: listing.street || listing.ward || listing.district || '',
-        reference: `LOCAL-${Date.now()}`
-      };
-      // 0. Ensure a profile exists for this tenant to satisfy foreign key constraints
-      const profileCheck = await selectRows('profiles', {
-        select: 'id',
-        filters: [{ column: 'id', op: 'eq', value: user.userId }],
+      const reference = `PAY-${Date.now()}-${user.userId.substring(0, 5)}`;
+
+      console.log('[Pay] Listing data:', { id: listing?.id, lister_id: listing?.lister_id, title: listing?.title });
+
+      // 1. Resolve Role-based IDs
+      // Use lister_id directly from listing - it's the landlord/dalali profile ID
+      const landlordId = listing.lister_id;
+      
+      console.log('[Pay] User ID:', user.userId);
+      console.log('[Pay] Landlord ID from listing:', landlordId);
+      console.log('[Pay] Listing data:', listing);
+      
+      if (!landlordId) {
+          throw new Error('Unable to identify the property lister. Please try again.');
+      }
+      
+      // 1a. Verify listing exists and get actual lister_id from database
+      const listingCheck = await selectRows('listings', {
+        select: 'id,lister_id',
+        filters: [
+          { column: 'id', op: 'eq', value: listing.id }
+        ],
         limit: 1,
         accessToken: token
       });
-
-      if (!profileCheck || profileCheck.length === 0) {
-        console.log('Profile missing, creating lazy profile...');
-        await insertRows('profiles', {
-          id: user.userId,
-          full_name: user.fullName || user.email,
-          role: 'tenant',
-          verification_status: 'approved'
-        }, { accessToken: token });
+      
+      if (!listingCheck || listingCheck.length === 0) {
+        throw new Error('Listing not found in database.');
       }
+      
+      const actualListerId = listingCheck[0].lister_id;
+      console.log('[Pay] Actual lister_id from DB:', actualListerId);
+      
+      // Use the actual lister_id from database to ensure RLS passes
+      const verifiedLandlordId = actualListerId || landlordId;
+      if (actualListerId && actualListerId !== landlordId) {
+        console.warn('[Pay] Lister ID mismatch. Using DB value:', actualListerId);
+      }
+      
+      // Get or create tenant record - we need the actual tenant ID (not profile ID)
+      let tenantRows = await selectRows('tenants', {
+        select: 'id',
+        filters: [{ column: 'profile_id', op: 'eq', value: user.userId }],
+        limit: 1,
+        accessToken: token
+      });
+      
+      let realTenantId = tenantRows?.[0]?.id;
+      console.log('[Pay] Tenant record found:', realTenantId || 'No');
+      
+      if (!realTenantId) {
+          // Create tenant record if missing
+          console.log('[Pay] Creating tenant record for:', user.userId);
+          const newTenant = await upsertRows('tenants', { 
+            profile_id: user.userId, 
+            tenant_type: 'student'
+          }, { accessToken: token });
+          realTenantId = newTenant?.[0]?.id;
+          console.log('[Pay] Created tenant record:', realTenantId);
+      }
+      
+      if (!realTenantId) {
+        throw new Error('Unable to create tenant record. Please try again.');
+      }
+      
+      // Use the actual tenant record ID for the booking (FK constraint requires this)
+      const tenantIdForBooking = realTenantId;
 
+      // 2. Create/Update Booking with fee data
       const existing = await selectRows('bookings', {
         select: 'id',
         filters: [
-          { column: 'tenant_id', op: 'eq', value: user.userId },
+          { column: 'tenant_id', op: 'eq', value: tenantIdForBooking },
           { column: 'listing_id', op: 'eq', value: listing.id },
-          { column: 'status', op: 'in', value: '(requested,approved)' }
+          { column: 'status', op: 'in', value: '(pending,confirmed)' }
         ],
         limit: 1,
         accessToken: token
@@ -124,82 +164,99 @@ export default function PayPage() {
       let bookingId = existing?.[0]?.id;
 
       if (!bookingId) {
-        const newBooking = await insertRows('bookings', {
+        const bookingData = {
           listing_id: listing.id,
-          tenant_id: user.userId,
-          lister_id: listing.lister_id,
-          move_in_date: reservation.moveInDate,
-          duration_months: months,
-          status: gateway === 'azampay' ? 'requested' : 'approved',
-          reference: reservation.reference
-        }, { accessToken: token });
-        bookingId = newBooking?.[0]?.id;
-      } else {
-        const { updateRows } = await import('../lib/supabase');
-        // Update the existing booking reference if needed
-        await updateRows('bookings', { 
-            reference: reservation.reference,
-            move_in_date: reservation.moveInDate,
-            duration_months: months
-        }, { 
-            filters: [{ column: 'id', op: 'eq', value: bookingId }],
-            accessToken: token 
-        });
-      }
-
-      if (gateway === 'azampay' && bookingId) {
-        // Call AzamPay Edge Function
-        const { invokeFunction } = await import('../lib/supabase');
-        const azamResponse = await invokeFunction('azampay-checkout', {
-          bookingId,
-          amount: total,
-          name: user.fullName || 'iRent Tenant',
-          email: user.email,
-          phone: user.phone || '255700000000',
-          months
-        }, token);
-
-        const dataUrl =
-          typeof azamResponse?.data === 'string' && /^https?:\/\//i.test(azamResponse.data.trim())
-            ? azamResponse.data.trim()
-            : azamResponse?.data?.url;
-        const redirectUrl =
-          azamResponse?.checkout_url || dataUrl || azamResponse?.url;
-
-        if (azamResponse?.success && redirectUrl) {
-          window.location.href = redirectUrl;
-          return;
-        }
-        if (redirectUrl) {
-          window.location.href = redirectUrl;
-          return;
-        }
+          tenant_id: tenantIdForBooking,
+          landlord_id: verifiedLandlordId,
+          move_in_date: moveInDate,
+          months_duration: months,
+          total_tzs: breakdown.totalDue,
+          platform_deposit_fee: breakdown.platformDepositFee,
+          gateway_fee: breakdown.gatewayFee,
+          total_amount_due: breakdown.totalDue,
+          status: 'pending',
+          reference: reference,
+          notes: `Reservation for ${listing.title} including platform deposit fee`
+        };
+        console.log('[Pay] Creating booking with data:', bookingData);
         
-        console.error('AzamPay Response:', azamResponse);
-        throw new Error(azamResponse?.error || azamResponse?.message || 'Failed to initiate AzamPay checkout');
+        try {
+          // Direct insert - RLS is disabled
+          const newBooking = await upsertRows('bookings', bookingData, { accessToken: token });
+          bookingId = newBooking?.[0]?.id;
+        } catch (bookingErr: any) {
+          console.error('[Pay] Booking creation failed:', bookingErr);
+          console.error('[Pay] Error details:', bookingErr.message || bookingErr);
+          console.error('[Pay] Full error object:', JSON.stringify(bookingErr, null, 2));
+          throw new Error(`Booking creation failed: ${bookingErr.message || bookingErr.error || 'Database error'}`);
+        }
+        if (!bookingId) throw new Error('Failed to create booking record.');
       }
 
-      const { updateRows } = await import('../lib/supabase');
-      await updateRows('listings', { vacancy_status: 'occupied' }, {
-        filters: [{ column: 'id', op: 'eq', value: listing.id }],
-        accessToken: token
+      // 3. Initiate Payment using Provider Abstraction
+      const provider = getPaymentProvider(token || '');
+      const response = await provider.initiatePayment({
+        amount: breakdown.totalDue,
+        reference: reference,
+        customerName: user.fullName,
+        customerEmail: user.email,
+        customerPhone: user.phone,
+        metadata: {
+          bookingId,
+          listingId: listing.id,
+          breakdown: breakdown
+        }
       });
 
-      setNotice('Payment successful! Your reservation has been recorded.');
-      navigate('/my-room');
-    } catch (err: any) {
-      const msg = err.message || '';
-      if (msg.toLowerCase().includes('es256') || msg.toLowerCase().includes('unsupported jwt')) {
-        setError(
-          'Your session token needs to be refreshed. Please sign out and sign back in, then try again.'
-        );
+      if (response.success) {
+        if (response.checkoutUrl) {
+          window.location.href = response.checkoutUrl;
+        } else {
+          setSuccessData({ reference: reference, amount: breakdown.totalDue });
+        }
       } else {
-        setError(msg || 'Unable to start payment. Please try again.');
+        throw new Error(response.error || 'Payment failed to initiate.');
       }
+    } catch (err: any) {
+      console.error('[Pay] Payment error:', err);
+      setError(err.message || 'Unable to start payment. Please try again.');
     } finally {
       setLoading(false);
     }
   };
+
+  const [successData, setSuccessData] = useState<{ reference: string; amount: number } | null>(null);
+
+  if (successData) {
+    return (
+      <div className="container section" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+        <div className="card" style={{ maxWidth: 450, width: '100%', textAlign: 'center', padding: '3rem 2rem', borderRadius: 24, boxShadow: '0 20px 50px rgba(0,0,0,0.1)' }}>
+          <div style={{ background: 'var(--jade)', color: 'white', width: 80, height: 80, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
+            <ShieldCheck size={48} />
+          </div>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.5rem' }}>Payment Confirmed!</h1>
+          <p style={{ color: 'var(--mid)', marginBottom: '2rem' }}>
+            Your room has been reserved. You can now view your room details and lease in your dashboard.
+          </p>
+          
+          <div style={{ background: 'var(--cream)', padding: '1.25rem', borderRadius: 16, marginBottom: '2rem', textAlign: 'left' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+              <span style={{ color: 'var(--mid)', fontSize: '0.9rem' }}>Reference</span>
+              <span style={{ fontWeight: 700, fontFamily: 'monospace' }}>{successData.reference}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: 'var(--mid)', fontSize: '0.9rem' }}>Amount Paid</span>
+              <span style={{ fontWeight: 700 }}>{formatTZS(successData.amount)}</span>
+            </div>
+          </div>
+
+          <button className="btn" style={{ width: '100%' }} onClick={() => navigate('/my-room?payment=success')}>
+            Go to My Room
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container section" style={{ display: 'flex', justifyContent: 'center' }}>
@@ -234,27 +291,11 @@ export default function PayPage() {
             </p>
           </div>
 
-          <div className="card" style={{ padding: '1rem', border: '1px solid var(--border)', background: '#fff' }}>
-            <p style={{ margin: 0, color: 'var(--mid)', fontWeight: 600 }}>Payment method</p>
-            <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                className={`btn btn--ghost ${gateway === 'azampay' ? 'is-active' : ''}`}
-                onClick={() => setGateway('azampay')}
-                style={{ minWidth: 120 }}
-              >
-                AzamPay (Sandbox)
-              </button>
-              <button
-                type="button"
-                className={`btn btn--ghost ${gateway === 'selcom' ? 'is-active' : ''}`}
-                onClick={() => setGateway('selcom')}
-                style={{ minWidth: 120 }}
-              >
-                Selcom
-              </button>
-            </div>
-          </div>
+          <PaymentBreakdownComponent 
+            breakdown={breakdown} 
+            months={months}
+            onConfirm={(confirmed) => setIsConfirmed(confirmed)} 
+          />
 
           <label style={{ display: 'grid', gap: '0.35rem' }}>
             <span style={{ fontWeight: 600 }}>Months to reserve</span>
@@ -262,8 +303,22 @@ export default function PayPage() {
               type="number"
               min={1}
               max={12}
-              value={months}
-              onChange={(e) => setMonths(Math.max(1, Math.min(12, Number(e.target.value) || 1)))}
+              value={months || ''}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === '') {
+                  setMonths(0);
+                  return;
+                }
+                const n = parseInt(val, 10);
+                if (!isNaN(n)) {
+                  setMonths(Math.max(0, Math.min(12, n)));
+                }
+              }}
+              onBlur={() => {
+                if (!months || months < 1) setMonths(1);
+              }}
+              style={{ padding: '0.75rem', borderRadius: 8, border: '1px solid var(--border)', fontSize: '1rem' }}
             />
           </label>
 
@@ -290,12 +345,18 @@ export default function PayPage() {
               }}
             >
               <div>
-                <p style={{ margin: 0, color: 'var(--mid)' }}>Total to pay</p>
+                <p style={{ margin: 0, color: 'var(--mid)' }}>Grand Total</p>
                 <strong style={{ fontSize: '1.3rem', color: '#27500A' }}>
-                  TZS {new Intl.NumberFormat('sw-TZ').format(total)}
+                  {formatTZS(breakdown.totalDue)}
                 </strong>
               </div>
-              <button className="btn" type="button" onClick={handlePay} disabled={loading}>
+              <button 
+                className="btn" 
+                type="button" 
+                onClick={handlePay} 
+                disabled={loading || !isConfirmed}
+                style={{ opacity: (loading || !isConfirmed) ? 0.6 : 1 }}
+              >
                 {loading ? 'Processing...' : 'Pay now'}
               </button>
             </div>

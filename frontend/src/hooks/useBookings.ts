@@ -29,10 +29,28 @@ export function useBookings(
     setLoading(true);
     setError(null);
     try {
-      const column = role === 'tenant' ? 'tenant_id' : 'lister_id';
+      // Resolve the role-specific ID (landlord_id or tenant_id)
+      let roleId = userId;
+      const table = role === 'host' ? 'landlords' : 'tenants';
+      const roleRows = await selectRows(table, {
+        select: 'id',
+        filters: [{ column: 'profile_id', op: 'eq', value: userId }],
+        limit: 1,
+        accessToken: accessToken
+      });
+      if (roleRows?.[0]) {
+        roleId = roleRows[0].id;
+      } else {
+        // If no role record exists, we can't have bookings
+        setBookings([]);
+        setLoading(false);
+        return;
+      }
+
+      const column = role === 'tenant' ? 'tenant_id' : 'landlord_id';
       const rows = await selectRows('bookings', {
-        select: 'id,listing_id,tenant_id,lister_id,move_in_date,duration_months,status,created_at',
-        filters: [{ column, op: 'eq', value: userId }],
+        select: 'id,listing_id,tenant_id,landlord_id,move_in_date,months_duration,status,total_tzs,created_at',
+        or: `${column}.eq.${roleId}${userId ? `,${column}.eq.${userId}` : ''}`,
         order: 'created_at.desc',
         accessToken,
       });
@@ -55,10 +73,10 @@ export function useBookings(
     return bookings
       .filter(
         (b) =>
-          b.payment_status === 'paid' &&
+          (b.status === 'confirmed' || b.status === 'completed') &&
           b.created_at >= startOfMonth
       )
-      .reduce((sum, b) => sum + Number(b.amount || 0), 0);
+      .reduce((sum, b) => sum + Number(b.total_tzs || 0), 0);
   })();
 
   return { bookings, loading, error, reload: fetchBookings, monthlyIncome };

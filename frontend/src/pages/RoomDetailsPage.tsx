@@ -7,7 +7,6 @@ import ListingMap from '../components/ListingMap';
 import { useAuth } from '../context/AuthContext';
 import { APP_ROLE } from '../lib/roles';
 import {
-  createBookingRequest,
   fetchListingBookingsForUser,
   fetchListingById,
   fetchListingReviews,
@@ -164,11 +163,6 @@ export default function RoomDetailsPage() {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [swipeStartX, setSwipeStartX] = useState(null);
   const [openInquiry, setOpenInquiry] = useState(false);
-  const [editingName, setEditingName] = useState(false);
-  const [inquiryName, setInquiryName] = useState('');
-  const [moveInDate, setMoveInDate] = useState('');
-  const [durationMonths, setDurationMonths] = useState('6');
-  const [contactPreference, setContactPreference] = useState('in_app_chat');
   const [message, setMessage] = useState('');
   const [submittingInquiry, setSubmittingInquiry] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -190,11 +184,6 @@ export default function RoomDetailsPage() {
   const [submittingReport, setSubmittingReport] = useState(false);
   const [reportSuccess, setReportSuccess] = useState(false);
   const [reportError, setReportError] = useState('');
-
-  const monthlyRent = useMemo(() => Number((listing as any)?.priceMonthly ?? (listing as any)?.price_monthly ?? 0), [listing]);
-  const securityDeposit = monthlyRent;
-  const platformFee = 5000;
-  const totalDueToday = monthlyRent + securityDeposit + platformFee;
 
   const REPORT_REASONS = [
     { value: 'fraud', label: '⚠️ Fraudulent / Scam Listing' },
@@ -254,9 +243,11 @@ export default function RoomDetailsPage() {
         setListerProfile(payload.listerProfile);
         setActivePhotoIndex(0);
 
-        invokeFunction('increment-view', { listingId: payload.listing.id }, token).catch(() => {
-          // Best-effort analytics update.
-        });
+        if (payload.listing.vacancyStatus === 'available') {
+          invokeFunction('increment-view', { listingId: payload.listing.id }, token).catch(() => {
+            // Best-effort analytics update.
+          });
+        }
 
         const [related, listingCount, reviewsList] = await Promise.all([
           fetchRelatedListings(payload.listing, token, 6).catch(() => []),
@@ -301,11 +292,6 @@ export default function RoomDetailsPage() {
     };
   }, [roomId, token]);
 
-  useEffect(() => {
-    if (user?.fullName && !inquiryName) {
-      setInquiryName(user.fullName);
-    }
-  }, [user?.fullName, inquiryName]);
 
   useEffect(() => {
     let mounted = true;
@@ -664,23 +650,22 @@ export default function RoomDetailsPage() {
       return;
     }
 
-    if (message.trim().length < 16) {
-      setError('Please add a bit more detail so the lister can help quickly.');
+    // Only allow chat if user has paid booking
+    if (!hasPaidBooking) {
+      setError('Please complete payment to chat with the landlord.');
+      return;
+    }
+
+    if (message.trim().length < 5) {
+      setError('Please write a brief message.');
       return;
     }
 
     setSubmittingInquiry(true);
     setError('');
 
-    if (inquiryName.trim() && inquiryName.trim() !== (user?.fullName || '').trim()) {
-      updateRows('profiles', { full_name: inquiryName.trim() }, {
-        filters: [{ column: 'id', op: 'eq', value: user.userId }],
-        accessToken: token
-      }).catch(() => { });
-    }
-
     try {
-      const existing = await selectRows('conversations', {
+      const existing = await selectRows('room_inquiries', {
         select: 'id',
         filters: [
           { column: 'listing_id', op: 'eq', value: listing.id },
@@ -690,69 +675,42 @@ export default function RoomDetailsPage() {
         accessToken: token
       });
 
-      let conversationId = existing[0]?.id;
+      let inquiryId = existing[0]?.id;
 
-      if (!conversationId) {
+      if (!inquiryId) {
         const created = await insertRows(
-          'conversations',
+          'room_inquiries',
           {
             listing_id: listing.id,
             tenant_id: user.userId,
-            lister_id: listing.listerId,
-            inquiry_status: 'open',
-            move_in_date: moveInDate || null
+            status: 'open'
           },
           { accessToken: token }
         );
 
-        conversationId = created?.[0]?.id;
+        inquiryId = created?.[0]?.id;
       }
 
-      if (!conversationId) {
-        throw new Error('Unable to open conversation.');
+      if (!inquiryId) {
+        throw new Error('Unable to open inquiry.');
       }
 
       await insertRows(
-        'messages',
+        'chat_messages',
         {
-          conversation_id: conversationId,
+          inquiry_id: inquiryId,
           sender_id: user.userId,
-          body: `${message.trim()}\n\nPreferred contact: ${humanize(contactPreference)}`
+          body: message.trim()
         },
         { accessToken: token }
       );
 
-      await updateRows(
-        'conversations',
-        {
-          last_message_at: new Date().toISOString()
-        },
-        {
-          filters: [{ column: 'id', op: 'eq', value: conversationId }],
-          accessToken: token
-        }
-      );
-
-      // Also create a booking request
-      if (moveInDate) {
-        await createBookingRequest({
-          listingId: listing.id,
-          tenantId: user.userId,
-          listerId: listing.listerId,
-          moveInDate,
-          durationMonths: Number(durationMonths) || 6,
-          message: message.trim(),
-          contactPreference,
-          accessToken: token
-        }).catch(() => {
-          // Booking creation is best-effort; inquiry still succeeds
-        });
-      }
-
       setSubmittingInquiry(false);
+      setMessage('');
+      setOpenInquiry(false);
       navigate(`/messages/${conversationId}`);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Failed to send message. Please try again.');
       setSubmittingInquiry(false);
     }
   };
@@ -1044,12 +1002,12 @@ export default function RoomDetailsPage() {
                 style={{ flex: 2, textAlign: 'center' }}
                 state={{
                   listingId: listing.id,
+                  listerId: listing.listerId,
                   price: listing.priceMonthly,
                   title: listing.title,
                   availableFrom: listing.availableFrom,
                   coverPhoto: Array.isArray(listing?.photos) ? listing.photos[0] : null,
                   address: listing.location || listing.district || listing.ward || '',
-                  listerId: listing.listerId,
                 }}
               >
                 Reserve / Pay
@@ -1183,8 +1141,8 @@ export default function RoomDetailsPage() {
             <h2>{t('roomDetails.location')}</h2>
             <p>{listing.location}</p>
           </div>
-          <div className="room-location-map-full">
-            <ListingMap listings={[listing]} onMarkerSelect={() => { }} />
+          <div className="room-location-map-full" style={{ borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+            <ListingMap listings={[listing]} onMarkerSelect={() => { }} height="400px" />
           </div>
           {nearestUniversity ? (
             <p className="muted">
@@ -1369,138 +1327,98 @@ export default function RoomDetailsPage() {
             className="sheet"
             role="dialog"
             aria-modal="true"
-            aria-label="Send Inquiry"
+            aria-label={hasPaidBooking ? "Chat with Landlord" : "Payment Required"}
             tabIndex={-1}
             onClick={(event) => event.stopPropagation()}
             onKeyDown={(e) => e.stopPropagation()}
           >
-            <h2>{t('roomDetails.sendInquiry')}</h2>
-            <p className="muted">
-              {t('roomDetails.inquirySubtitle')}
-            </p>
-            <div style={{
-              background: 'var(--cream)',
-              border: '1px solid var(--border)',
-              borderRadius: 12,
-              padding: '1rem',
-              marginBottom: '1rem'
-            }}>
-              <p style={{ margin: '0 0 0.6rem', fontWeight: 700, fontSize: '0.9rem' }}>Cost breakdown</p>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem', fontSize: '0.88rem' }}>
-                <span style={{ color: 'var(--mid)' }}>Monthly rent</span>
-                <span>TZS {new Intl.NumberFormat('sw-TZ').format(monthlyRent)}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem', fontSize: '0.88rem' }}>
-                <span style={{ color: 'var(--mid)' }}>Security deposit</span>
-                <span>TZS {new Intl.NumberFormat('sw-TZ').format(securityDeposit)}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem', fontSize: '0.88rem' }}>
-                <span style={{ color: 'var(--mid)' }}>Platform fee</span>
-                <span>TZS {new Intl.NumberFormat('sw-TZ').format(platformFee)}</span>
-              </div>
-              <div style={{ borderTop: '1px solid var(--border)', marginTop: '0.6rem', paddingTop: '0.6rem', display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontWeight: 700 }}>Total due today</span>
-                <span style={{ fontWeight: 700, color: '#1D9E75' }}>TZS {new Intl.NumberFormat('sw-TZ').format(totalDueToday)}</span>
-              </div>
-            </div>
-            <form onSubmit={submitInquiry}>
-              <label>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                  <span>{t('roomDetails.yourName')}</span>
-                  {user?.fullName && !editingName ? (
-                    <button
-                      type="button"
-                      className="btn btn--small btn--ghost"
-                      onClick={() => setEditingName(true)}
-                    >
-                      {t('roomDetails.edit')}
+            {hasPaidBooking ? (
+              // PAID USER - Simple Chat Interface
+              <>
+                <h2>Chat with Landlord</h2>
+                <p className="muted">
+                  Send a message to {listerProfile?.full_name || 'the landlord'} about this room
+                </p>
+                <form onSubmit={submitInquiry}>
+                  <label>
+                    Your Message
+                    <textarea
+                      value={message}
+                      onChange={(event) => setMessage(event.target.value)}
+                      placeholder="Hi, I'm interested in this room and would like to know more..."
+                      maxLength={400}
+                      required
+                      style={{ minHeight: '120px' }}
+                    />
+                  </label>
+
+                  <p className="muted">{message.trim().length}/400 characters</p>
+
+                  {error ? <p className="error-text" style={{ marginTop: '1rem', marginBottom: '1rem' }}>{error}</p> : null}
+
+                  <div className="sheet__actions">
+                    <button type="button" className="btn btn--ghost" onClick={() => setOpenInquiry(false)}>
+                      Cancel
                     </button>
-                  ) : null}
+                    <button type="submit" className="btn" disabled={submittingInquiry}>
+                      {submittingInquiry ? 'Sending...' : 'Send Message'}
+                    </button>
+                  </div>
+                </form>
+              </>
+            ) : (
+              // UNPAID USER - Payment Required
+              <>
+                <h2>🔒 Payment Required</h2>
+                <div style={{
+                  background: '#FEF3C7',
+                  border: '1px solid #FDE68A',
+                  borderRadius: 12,
+                  padding: '1.5rem',
+                  margin: '1rem 0',
+                  textAlign: 'center'
+                }}>
+                  <p style={{ margin: '0 0 1rem', fontSize: '1rem', color: '#92400E', fontWeight: 600 }}>
+                    Complete payment to chat with the landlord
+                  </p>
+                  <p style={{ margin: '0 0 1.5rem', fontSize: '0.9rem', color: '#B45309' }}>
+                    To ensure serious inquiries only, payment verification is required before starting a conversation. This also unlocks the landlord's phone number and WhatsApp.
+                  </p>
+                  <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+                    <button 
+                      type="button" 
+                      className="btn btn--ghost" 
+                      onClick={() => setOpenInquiry(false)}
+                    >
+                      Maybe Later
+                    </button>
+                    {listing.vacancyStatus === 'occupied' ? (
+                      <button className="btn" disabled style={{ background: 'var(--mid)', cursor: 'not-allowed', width: '100%' }}>
+                        Room Already Occupied
+                      </button>
+                    ) : (
+                      <Link
+                        to="/tenant/payments"
+                        className="btn"
+                        style={{ textAlign: 'center', textDecoration: 'none' }}
+                        state={{
+                          listingId: listing.id,
+                          price: listing.priceMonthly,
+                          title: listing.title,
+                          availableFrom: listing.availableFrom,
+                          coverPhoto: Array.isArray(listing?.photos) ? listing.photos[0] : null,
+                          address: listing.location || listing.district || listing.ward || '',
+                          listerId: listing.listerId,
+                        }}
+                        onClick={() => setOpenInquiry(false)}
+                      >
+                        Pay Now to Chat
+                      </Link>
+                    )}
+                  </div>
                 </div>
-                {user?.fullName && !editingName ? (
-                  <input value={user.fullName} readOnly />
-                ) : (
-                  <input
-                    value={inquiryName}
-                    onChange={(event) => setInquiryName(event.target.value)}
-                    placeholder=""
-                    required
-                  />
-                )}
-              </label>
-
-              <label>
-                {t('roomDetails.moveInDate')}
-                <input
-                  type="date"
-                  value={moveInDate}
-                  onChange={(event) => setMoveInDate(event.target.value)}
-                />
-              </label>
-
-              <label>
-                {t('roomDetails.duration')}
-                <select
-                  value={durationMonths}
-                  onChange={(event) => setDurationMonths(event.target.value)}
-                >
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((months) => (
-                    <option key={months} value={months}>
-                      {months} month{months !== 1 ? 's' : ''}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label>
-                {t('roomDetails.contactPreference')}
-                <select
-                  value={contactPreference}
-                  onChange={(event) => setContactPreference(event.target.value)}
-                >
-                  <option value="in_app_chat">{t('roomDetails.inAppChatFirst')}</option>
-                  <option value="phone_call">{t('roomDetails.phoneCall')}</option>
-                  <option value="whatsapp">{t('roomDetails.whatsapp')}</option>
-                </select>
-              </label>
-
-              <label>
-                {t('roomDetails.message')}
-                <textarea
-                  value={message}
-                  onChange={(event) => setMessage(event.target.value)}
-                  placeholder="Hi, I am interested in this listing..."
-                  maxLength={400}
-                  required
-                />
-              </label>
-
-              <div className="room-message-templates">
-                {MESSAGE_TEMPLATES.map((template) => (
-                  <button
-                    key={template}
-                    type="button"
-                    className="btn btn--ghost btn--small"
-                    onClick={() => setMessage(template)}
-                  >
-                    {t('roomDetails.useTemplate')}
-                  </button>
-                ))}
-              </div>
-
-              <p className="muted">{message.trim().length}/400 characters</p>
-
-              {error ? <p className="error-text" style={{ marginTop: '1rem', marginBottom: '1rem' }}>{error}</p> : null}
-
-              <div className="sheet__actions">
-                <button type="button" className="btn btn--ghost" onClick={() => setOpenInquiry(false)}>
-                  {t('roomDetails.cancel')}
-                </button>
-                <button type="submit" className="btn" disabled={submittingInquiry}>
-                  {submittingInquiry ? t('search.searching') : t('roomDetails.send')}
-                </button>
-              </div>
-            </form>
+              </>
+            )}
           </article>
         </section>
       ) : null}

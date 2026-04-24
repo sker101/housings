@@ -39,7 +39,7 @@ CREATE POLICY "referrals_admin_all" ON public.landlord_referrals
 CREATE TABLE IF NOT EXISTS public.location_shares (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id   uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  listing_id  uuid NOT NULL REFERENCES public.listings(id) ON DELETE CASCADE,
+  listing_id  uuid NOT NULL REFERENCES public.rooms(id) ON DELETE CASCADE,
   share_type  text NOT NULL DEFAULT 'link' CHECK (share_type IN ('link', 'whatsapp', 'native', 'copy')),
   shared_with text,  -- optional: phone number or name of person shared with
   created_at  timestamptz DEFAULT now()

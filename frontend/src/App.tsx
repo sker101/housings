@@ -13,8 +13,11 @@ import NotFoundPage      from './pages/NotFoundPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 
 // ── Auth pages (new) ──────────────────────────────────────────
-import LoginPage  from './pages/auth/LoginPage';
-import SignupPage from './pages/auth/SignupPage';
+import LoginPage          from './pages/auth/LoginPage';
+import SignupPage         from './pages/auth/SignupPage';
+import OAuthCallback      from './pages/auth/OAuthCallback';
+import CompleteProfilePage from './pages/auth/CompleteProfilePage';
+import VerifyEmailPage    from './pages/auth/VerifyEmailPage';
 
 // ── Shared Dashboard Layout (Role-based) ──────────────────────
 import RoleBasedLayout from './components/RoleBasedLayout';
@@ -90,10 +93,13 @@ export default function App() {
         <Route path="/reset-password"    element={<PL><ResetPasswordPage /></PL>} />
 
         {/* ── Auth ────────────────────────────────────────── */}
-        <Route path="/auth/login"        element={<PL><LoginPage /></PL>} />
-        <Route path="/auth/signup"       element={<PL><SignupPage /></PL>} />
-        <Route path="/login"             element={<Navigate to="/auth/login" replace />} />
-        <Route path="/register"          element={<Navigate to="/auth/signup" replace />} />
+        <Route path="/auth/login"           element={<PL><LoginPage /></PL>} />
+        <Route path="/auth/signup"          element={<PL><SignupPage /></PL>} />
+        <Route path="/auth/callback"        element={<PL><OAuthCallback /></PL>} />
+        <Route path="/auth/verify-email"    element={<PL><VerifyEmailPage /></PL>} />
+        <Route path="/auth/complete-profile" element={<ProtectedRoute roles={ALL}><CompleteProfilePage /></ProtectedRoute>} />
+        <Route path="/login"                element={<Navigate to="/auth/login" replace />} />
+        <Route path="/register"             element={<Navigate to="/auth/signup" replace />} />
         {/* Legacy /list-property route — now lives under /landlord/properties/new */}
         <Route path="/list-property"     element={<Navigate to="/landlord/properties/new" replace />} />
         <Route path="/list-property/*"   element={<Navigate to="/landlord/properties/new" replace />} />

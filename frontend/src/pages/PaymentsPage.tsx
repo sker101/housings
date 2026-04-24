@@ -20,9 +20,9 @@ type LegacyBookingRow = {
   id: string;
   listing_id?: string;
   tenant_id?: string;
-  lister_id?: string;
+  landlord_id?: string;
   move_in_date?: string;
-  duration_months?: number;
+  months_duration?: number;
   status?: string;
   reference?: string;
   created_at?: string;
@@ -52,7 +52,7 @@ type NormalizedBooking = {
   listing_id: string;
   tenant_lookup_id?: string;
   move_in_date?: string;
-  duration_months?: number;
+  months_duration?: number;
   status?: string;
   reference?: string;
   created_at?: string;
@@ -151,12 +151,22 @@ export default function PaymentsPage() {
       const rate = Number(profileRows?.[0]?.commission_rate_pct || 0);
       setCommissionPct(isAdmin ? 0 : rate);
 
+      // ── Resolve Real Landlord ID ──
+      let realLandlordId = user.userId;
+      if (!isAdmin) {
+        const landlordRows = await selectRows('landlords', {
+          select: 'id',
+          filters: [{ column: 'profile_id', op: 'eq', value: user.userId }],
+          limit: 1,
+          accessToken: token
+        });
+        realLandlordId = landlordRows?.[0]?.id || user.userId;
+      }
+
       // ── Fetch bookings using actual schema columns ──
-      // bookings table: id, listing_id, tenant_id, lister_id, move_in_date,
-      //   duration_months, status, reference, created_at
       const bookingRows = await selectRows('bookings', {
-        select: 'id,listing_id,tenant_id,lister_id,move_in_date,duration_months,status,reference,created_at',
-        filters: isAdmin ? [] : [{ column: 'lister_id', op: 'eq', value: user.userId }],
+        select: 'id,listing_id,tenant_id,landlord_id,move_in_date,months_duration,status,reference,created_at',
+        filters: isAdmin ? [] : [{ column: 'landlord_id', op: 'eq', value: realLandlordId }],
         order: 'created_at.desc',
         limit: 500,
         accessToken: token,
@@ -167,7 +177,7 @@ export default function PaymentsPage() {
         listing_id: row.listing_id || '',
         tenant_lookup_id: row.tenant_id,
         move_in_date: row.move_in_date,
-        duration_months: row.duration_months,
+        months_duration: row.months_duration,
         status: row.status,
         reference: row.reference,
         created_at: row.created_at,
@@ -240,7 +250,7 @@ export default function PaymentsPage() {
               return {
                 id: `synth-${b.id}`,
                 booking_id: b.id,
-                amount: Number(listing?.price_monthly || 0) * (b.duration_months || 1),
+                amount: Number(listing?.price_monthly || 0) * (b.months_duration || 1),
                 due_date: b.move_in_date,
                 status: b.status === 'completed' ? 'paid' : 'pending',
                 paid_at: b.status === 'completed' ? b.created_at : undefined,

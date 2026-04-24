@@ -29,9 +29,10 @@ interface Listing {
 interface ListingMapProps {
   listings: Listing[];
   onMarkerSelect?: (_listing: Listing) => void;
+  height?: string | number;
 }
 
-export default function ListingMap({ listings, onMarkerSelect }: ListingMapProps) {
+export default function ListingMap({ listings, onMarkerSelect, height = '100%' }: ListingMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
@@ -151,8 +152,8 @@ export default function ListingMap({ listings, onMarkerSelect }: ListingMapProps
   }
 
   return (
-    <div style={{ position: 'relative', overflow: 'hidden' }}>
-      <div ref={containerRef} className="listing-map-container" style={{ width: '100%' }} />
+    <div style={{ position: 'relative', overflow: 'hidden', height: typeof height === 'number' ? `${height}px` : height }}>
+      <div ref={containerRef} className="listing-map-container" style={{ width: '100%', height: '100%' }} />
     </div>
   );
 }

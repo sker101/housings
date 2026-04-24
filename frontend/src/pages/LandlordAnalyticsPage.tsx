@@ -73,26 +73,16 @@ export default function LandlordAnalyticsPage() {
           ]);
           saveRows = sRows;
 
-          try {
-            bookingRows = await selectRows('bookings', {
-              select: 'id,room_id,status',
-              filters: [{ column: 'room_id', op: 'in', value: `(${listingIds.join(',')})` }],
-              limit: 500,
-              accessToken: token
-            });
-          } catch (err) {
-            console.warn('LandlordAnalyticsPage: modern bookings query failed, trying legacy fallback.', err);
-            bookingRows = await selectRows('bookings', {
-              select: 'id,listing_id,status',
-              filters: [{ column: 'listing_id', op: 'in', value: `(${listingIds.join(',')})` }],
-              limit: 500,
-              accessToken: token
-            }).catch(() => []);
-          }
+          bookingRows = await selectRows('bookings', {
+            select: 'id,listing_id,status',
+            filters: [{ column: 'listing_id', op: 'in', value: `(${listingIds.join(',')})` }],
+            limit: 500,
+            accessToken: token
+          }).catch(() => []);
 
           bookingRows = bookingRows.map((row: any) => ({
             ...row,
-            listingKey: row.room_id || row.listing_id
+            listingKey: row.listing_id
           }));
         }
 

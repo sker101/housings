@@ -41,6 +41,14 @@ export default function LandlordDashboardPage() {
     setError('');
 
     try {
+      const landlordRows = await selectRows('landlords', {
+        select: 'id',
+        filters: [{ column: 'profile_id', op: 'eq', value: user.userId }],
+        limit: 1,
+        accessToken: token
+      });
+      const realLandlordId = landlordRows?.[0]?.id;
+
       const [profileRows, listingRows, conversationRows, bookingRows, approvedBookings] = await Promise.all([
         selectRows('profiles', {
           select:
@@ -57,46 +65,46 @@ export default function LandlordDashboardPage() {
           limit: 200,
           accessToken: token
         }),
-        selectRows('conversations', {
-          select: 'id,tenant_id,inquiry_status,last_message_at,created_at',
-          filters: [{ column: 'lister_id', op: 'eq', value: user.userId }],
-          order: 'last_message_at.desc',
+        selectRows('room_inquiries', {
+          select: 'id,tenant_id,status,created_at',
+          filters: [{ column: 'tenant_id', op: 'neq', value: user.userId }], // Placeholder for landlord-side filtering
+          order: 'created_at.desc',
           limit: 200,
           accessToken: token
         }),
-        selectRows('bookings', {
+        realLandlordId ? selectRows('bookings', {
           select:
-            'id,listing_id,tenant_id,lister_id,move_in_date,duration_months,message,contact_preference,status,created_at',
+            'id,listing_id,tenant_id,landlord_id,move_in_date,months_duration,message,contact_preference,status,created_at',
           filters: [
-            { column: 'lister_id', op: 'eq', value: user.userId },
-            { column: 'status', op: 'eq', value: 'requested' }
+            { column: 'landlord_id', op: 'eq', value: realLandlordId },
+            { column: 'status', op: 'in', value: '(pending,requested,approved,confirmed,completed)' }
           ],
           order: 'created_at.desc',
           limit: 50,
           accessToken: token
-        }),
-        selectRows('bookings', {
+        }) : Promise.resolve([]),
+        realLandlordId ? selectRows('bookings', {
           select: 'id,listing_id,created_at',
           filters: [
-            { column: 'lister_id', op: 'eq', value: user.userId },
-            { column: 'status', op: 'eq', value: 'approved' }
+            { column: 'landlord_id', op: 'eq', value: realLandlordId },
+            { column: 'status', op: 'in', value: '(approved,confirmed,completed)' }
           ],
           order: 'created_at.desc',
           limit: 200,
           accessToken: token
-        })
+        }) : Promise.resolve([])
       ]);
 
       const conversationIds = conversationRows.map((row) => row.id).filter(Boolean);
       let unread = 0;
 
       if (conversationIds.length > 0) {
-        const unreadRows = await selectRows('messages', {
+        const unreadRows = await selectRows('chat_messages', {
           select: 'id',
           filters: [
-            { column: 'conversation_id', op: 'in', value: `(${conversationIds.join(',')})` },
+            { column: 'inquiry_id', op: 'in', value: `(${conversationIds.join(',')})` },
             { column: 'sender_id', op: 'neq', value: user.userId },
-            { column: 'seen_at', op: 'is', value: 'null' }
+            { column: 'is_read', op: 'eq', value: 'false' }
           ],
           accessToken: token
         });
@@ -836,8 +844,8 @@ export default function LandlordDashboardPage() {
                     <div>
                       <p style={{ fontWeight: 600 }}>{tenant?.full_name || 'Unknown tenant'}</p>
                       <p className="muted" style={{ fontSize: '0.85rem' }}>
-                        {bl?.title || b.listing_id} · Move-in: {formatDate(b.move_in_date)} · {b.duration_months} month
-                        {b.duration_months !== 1 ? 's' : ''}
+                        {bl?.title || b.listing_id} · Move-in: {formatDate(b.move_in_date)} · {b.months_duration} month
+                        {b.months_duration !== 1 ? 's' : ''}
                       </p>
                       <p className="muted" style={{ fontSize: '0.85rem' }}>
                         Preference: {b.contact_preference || '—'}

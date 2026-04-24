@@ -123,7 +123,7 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
     async function loadSettings() {
       try {
         const [settingsRows, profileRows] = await Promise.all([
-          selectRows('system_settings', {}),
+          selectRows('system_config', {}),
           (isAuthenticated && user?.userId) ? selectRows('profiles', {
             select: 'verification_status',
             filters: [{ column: 'id', op: 'eq', value: user.userId }],
@@ -158,9 +158,11 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
         return;
       }
       try {
-        const conversations = await selectRows('conversations', {
+        const conversations = await selectRows('room_inquiries', {
           select: 'id',
-          or: `tenant_id.eq.${user.userId},lister_id.eq.${user.userId}`,
+          filters: [
+            { column: 'tenant_id', op: 'eq', value: user.userId }
+          ],
           limit: 500,
           accessToken: token
         });
@@ -169,12 +171,12 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
           if (mounted) { setUnreadCount(0); }
           return;
         }
-        const unreadRows = await selectRows('messages', {
+        const unreadRows = await selectRows('chat_messages', {
           select: 'id',
           filters: [
-            { column: 'conversation_id', op: 'in', value: `(${conversationIds.join(',')})` },
+            { column: 'inquiry_id', op: 'in', value: `(${conversationIds.join(',')})` },
             { column: 'sender_id', op: 'neq', value: user.userId },
-            { column: 'seen_at', op: 'is', value: 'null' }
+            { column: 'is_read', op: 'eq', value: 'false' }
           ],
           accessToken: token
         });
@@ -278,17 +280,6 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
     <>
       <Toaster position="top-right" />
       <div className="app-shell">
-      {sosMode ? (
-        <div className="sos-banner">
-          <span className="sos-banner__content">
-            🚨 <strong>{t('layout.sosEmergency')}:</strong> {announcement || t('layout.defaultSosMsg')}
-          </span>
-        </div>
-      ) : (announcement && announcement.trim() !== '') ? (
-        <div className="announcement-banner">
-          <span>📢 {announcement}</span>
-        </div>
-      ) : null}
 
       {!hideHeader && <header className={`topbar ${isHomePage ? 'topbar--on-homepage' : ''}`} style={{ display: 'flex', alignItems: 'center', padding: 0 }}>
         {/* Unified Header Design - Same for both logged in and logged out users */}
@@ -848,7 +839,7 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
 
           {/* Footer on all pages unless hideFooter is true */}
           {!hideFooter && (
-            <div className="footer-wrapper" style={isMobileOrTablet ? { display: 'none' } : undefined}>
+            <div className="footer-wrapper">
               <Footer />
             </div>
           )}

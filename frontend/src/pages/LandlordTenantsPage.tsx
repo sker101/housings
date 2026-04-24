@@ -21,7 +21,7 @@ type LegacyBookingRow = {
   tenant_id?: string;
   listing_id?: string;
   move_in_date?: string;
-  duration_months?: number;
+  months_duration?: number;
   contact_preference?: string;
   message?: string;
 };
@@ -29,7 +29,7 @@ type LegacyBookingRow = {
 type ModernBookingRow = {
   id: string;
   tenant_id?: string;
-  room_id?: string;
+  listing_id?: string;
   move_in_date?: string;
   months_duration?: number;
   notes?: string;
@@ -59,7 +59,7 @@ type ModernBookingRow = {
 type TenantRow = {
   id: string;
   move_in_date?: string;
-  duration_months?: number;
+  months_duration?: number;
   contact_preference?: string | null;
   message?: string | null;
   profile?: ProfileRow | null;
@@ -132,7 +132,7 @@ export default function LandlordTenantsPage() {
         if (landlordIds.length > 0) {
           try {
             const modernBookingRows = await selectRows('bookings', {
-              select: 'id,tenant_id,room_id,move_in_date,months_duration,notes,tenant:tenants(profile:profiles(id,full_name,phone))',
+              select: 'id,tenant_id,listing_id,move_in_date,months_duration,notes,tenant:tenants(profile:profiles(id,full_name,phone))',
               filters: [
                 landlordIds.length === 1
                   ? { column: 'landlord_id', op: 'eq', value: landlordIds[0] }
@@ -144,7 +144,7 @@ export default function LandlordTenantsPage() {
               accessToken: token,
             });
 
-            const listingIds = uniqueIds((modernBookingRows as ModernBookingRow[]).map((row) => row.room_id));
+            const listingIds = uniqueIds((modernBookingRows as ModernBookingRow[]).map((row) => row.listing_id));
             const listingRows = listingIds.length
               ? await selectRows('listings', {
                   select: 'id,title,room_type,price_monthly',
@@ -157,11 +157,11 @@ export default function LandlordTenantsPage() {
             normalizedTenants = (modernBookingRows as ModernBookingRow[]).map((row) => ({
               id: row.id,
               move_in_date: row.move_in_date,
-              duration_months: row.months_duration,
+              months_duration: row.months_duration,
               contact_preference: null,
               message: row.notes || null,
               profile: extractTenantProfile(row.tenant),
-              listing: row.room_id ? listingMap.get(row.room_id) || null : null,
+              listing: row.listing_id ? listingMap.get(row.listing_id) || null : null,
             }));
           } catch (err) {
             console.warn('LandlordTenantsPage: modern tenant query failed, trying legacy fallback.', err);
@@ -170,7 +170,7 @@ export default function LandlordTenantsPage() {
 
         if (normalizedTenants.length === 0) {
           const legacyBookingRows = await selectRows('bookings', {
-            select: 'id,tenant_id,listing_id,move_in_date,duration_months,contact_preference,message',
+            select: 'id,tenant_id,listing_id,move_in_date,months_duration,contact_preference,message',
             filters: [
               { column: 'lister_id', op: 'eq', value: user.userId },
               { column: 'status', op: 'eq', value: 'approved' },
@@ -205,7 +205,7 @@ export default function LandlordTenantsPage() {
           normalizedTenants = (legacyBookingRows as LegacyBookingRow[]).map((row) => ({
             id: row.id,
             move_in_date: row.move_in_date,
-            duration_months: row.duration_months,
+            months_duration: row.months_duration,
             contact_preference: row.contact_preference || null,
             message: row.message || null,
             profile: row.tenant_id ? profileMap.get(row.tenant_id) || null : null,
@@ -239,7 +239,7 @@ export default function LandlordTenantsPage() {
   );
 
   const durationValues = tenants
-    .map((tenant) => Number(tenant.duration_months))
+    .map((tenant) => Number(tenant.months_duration))
     .filter((value) => Number.isFinite(value) && value > 0);
 
   const avgDuration = durationValues.length > 0
@@ -359,8 +359,8 @@ export default function LandlordTenantsPage() {
                   <div className="tn-row">
                     <span className="tn-row-lbl">Duration</span>
                     <span>
-                      {tenant.duration_months
-                        ? `${tenant.duration_months} month${tenant.duration_months !== 1 ? 's' : ''}`
+                      {tenant.months_duration
+                        ? `${tenant.months_duration} month${tenant.months_duration !== 1 ? 's' : ''}`
                         : '—'}
                     </span>
                   </div>

@@ -6,6 +6,7 @@ import {
   updateRows,
   rpc
 } from './supabase';
+import { logActivity } from './activity';
 
 function toLocation(row) {
   return [row.street, row.ward, row.district, row.region].filter(Boolean).join(', ');
@@ -35,7 +36,6 @@ export function mapListingRow(row, photos = []) {
     title: row.title,
     description: row.description,
     roomType: row.room_type,
-    genderPreference: row.gender_preference,
     location: toLocation(row),
     region: row.region,
     district: row.district,
@@ -79,6 +79,7 @@ export function mapListingRow(row, photos = []) {
   };
 }
 
+
 async function fetchPhotosForListings(listingIds, accessToken) {
   if (!Array.isArray(listingIds) || listingIds.length === 0) {
     return new Map();
@@ -112,14 +113,6 @@ export async function fetchApprovedListings(filters: Record<string, any> = {}, a
 
   // Hide occupied listings from search results
   queryFilters.push({ column: 'vacancy_status', op: 'neq', value: 'occupied' });
-
-  if (filters.genderPreference && filters.genderPreference !== 'any') {
-    queryFilters.push({
-      column: 'gender_preference',
-      op: 'eq',
-      value: filters.genderPreference
-    });
-  }
 
   if (filters.roomType && filters.roomType !== 'all') {
     queryFilters.push({
@@ -157,7 +150,7 @@ export async function fetchApprovedListings(filters: Record<string, any> = {}, a
 
   const rows = await selectRows('listings', {
     select:
-      'id,lister_id,title,description,room_type,gender_preference,price_monthly,security_deposit,utilities_included,floor,total_rooms,furnished,property_type,owner_name,owner_phone,whatsapp_number,min_lease_months,payment_schedule,late_fee_policy,video_tour_url,accessibility_notes,region,district,ward,street,lat,lng,amenities,house_rules,available_from,vacancy_status,status,rejection_reason,featured,near_universities,view_count,created_at',
+      'id,property_id,lister_id,title,description,room_type,price_monthly,security_deposit,region,district,ward,street,lat,lng,amenities,available,vacancy_status,status,rejection_reason,featured,created_at',
     filters: queryFilters,
     or: filters.query
       ? `title.ilike.*${filters.query}*,district.ilike.*${filters.query}*,ward.ilike.*${filters.query}*`
@@ -192,7 +185,7 @@ export async function fetchListingById(listingId, accessToken) {
     console.warn('RPC failed, falling back to selectRows', err);
     const rows = await selectRows('listings', {
       select:
-        'id,lister_id,title,description,room_type,gender_preference,price_monthly,security_deposit,utilities_included,floor,total_rooms,furnished,property_type,owner_name,owner_phone,whatsapp_number,min_lease_months,payment_schedule,late_fee_policy,video_tour_url,accessibility_notes,region,district,ward,street,lat,lng,amenities,house_rules,available_from,vacancy_status,status,rejection_reason,featured,near_universities,view_count,created_at',
+        'id,property_id,lister_id,title,description,room_type,price_monthly,security_deposit,region,district,ward,street,lat,lng,amenities,available,vacancy_status,status,rejection_reason,featured,created_at',
       filters: [{ column: 'id', op: 'eq', value: listingId }],
       limit: 1,
       accessToken
@@ -229,7 +222,7 @@ export async function fetchRelatedListings(baseListing, accessToken, limit = 6) 
   }
 
   const selectColumns =
-    'id,lister_id,title,description,room_type,gender_preference,price_monthly,security_deposit,utilities_included,floor,total_rooms,furnished,property_type,owner_name,owner_phone,whatsapp_number,min_lease_months,payment_schedule,late_fee_policy,video_tour_url,accessibility_notes,region,district,ward,street,lat,lng,amenities,house_rules,available_from,vacancy_status,status,rejection_reason,featured,near_universities,view_count,created_at';
+    'id,property_id,lister_id,title,description,room_type,price_monthly,security_deposit,region,district,ward,street,lat,lng,amenities,available,vacancy_status,status,rejection_reason,featured,created_at';
 
   const basePrice = Number(baseListing.priceMonthly || 0);
   const minPrice = Math.max(0, Math.round(basePrice * 0.7));
@@ -237,6 +230,7 @@ export async function fetchRelatedListings(baseListing, accessToken, limit = 6) 
 
   const preferredFilters = [
     { column: 'status', op: 'eq', value: 'approved' },
+    { column: 'vacancy_status', op: 'neq', value: 'occupied' },
     { column: 'id', op: 'neq', value: baseListing.id },
     baseListing.district
       ? { column: 'district', op: 'eq', value: baseListing.district }
@@ -256,6 +250,7 @@ export async function fetchRelatedListings(baseListing, accessToken, limit = 6) 
   if (rows.length < limit) {
     const fallbackFilters = [
       { column: 'status', op: 'eq', value: 'approved' },
+      { column: 'vacancy_status', op: 'neq', value: 'occupied' },
       { column: 'id', op: 'neq', value: baseListing.id },
       baseListing.region
         ? { column: 'region', op: 'eq', value: baseListing.region }
@@ -313,6 +308,14 @@ export async function toggleSavedListing({ tenantId, listingId, accessToken }) {
       ],
       accessToken
     });
+    // Record activity
+    await logActivity(
+      tenantId,
+      'interaction',
+      'Removed a listing from your saved rooms',
+      { listing_id: listingId, action: 'unsave' },
+      accessToken
+    );
     return false;
   }
 
@@ -325,14 +328,24 @@ export async function toggleSavedListing({ tenantId, listingId, accessToken }) {
     { accessToken }
   );
 
+  // Record activity
+  await logActivity(
+    tenantId,
+    'interaction',
+    'Saved a new listing to your collection',
+    { listing_id: listingId, action: 'save' },
+    accessToken
+  );
+
   return true;
 }
 
-export async function fetchSavedListings(tenantId, accessToken) {
+export async function fetchSavedListings(tenantId, accessToken, options: { limit?: number } = {}) {
   const saved = await selectRows('saved_listings', {
     select: 'tenant_id,listing_id,saved_at',
     filters: [{ column: 'tenant_id', op: 'eq', value: tenantId }],
     order: 'saved_at.desc',
+    limit: options.limit,
     accessToken
   });
 
@@ -343,7 +356,7 @@ export async function fetchSavedListings(tenantId, accessToken) {
 
   const listings = await selectRows('listings', {
     select:
-      'id,lister_id,title,description,room_type,gender_preference,price_monthly,security_deposit,utilities_included,floor,total_rooms,furnished,property_type,owner_name,owner_phone,whatsapp_number,min_lease_months,payment_schedule,late_fee_policy,video_tour_url,accessibility_notes,region,district,ward,street,lat,lng,amenities,house_rules,available_from,vacancy_status,status,rejection_reason,featured,near_universities,view_count,created_at',
+      'id,property_id,lister_id,title,description,room_type,price_monthly,security_deposit,region,district,ward,street,lat,lng,amenities,available,vacancy_status,status,rejection_reason,featured,created_at',
     filters: [
       {
         column: 'id',
@@ -420,16 +433,39 @@ export async function fetchListingReviews(listingId, accessToken) {
     return [];
   }
 
-  const rows = await selectRows('reviews', {
-    select: 'id,listing_id,tenant_id,rating,comment,created_at',
-    filters: [
-      { column: 'listing_id', op: 'eq', value: listingId },
-      { column: 'is_hidden', op: 'eq', value: false }
-    ],
-    order: 'created_at.desc',
-    limit: 100,
-    accessToken
-  });
+  // Fetch reviews using any available table name (reviews or listing_reviews)
+  let rows = [];
+  try {
+    rows = await selectRows('reviews', {
+      select: '*',
+      filters: [{ column: 'listing_id', op: 'eq', value: listingId }],
+      order: 'created_at.desc',
+      limit: 100,
+      accessToken
+    });
+  } catch {
+    try {
+      rows = await selectRows('reviews', {
+        select: '*',
+        filters: [{ column: 'room_id', op: 'eq', value: listingId }],
+        order: 'created_at.desc',
+        limit: 100,
+        accessToken
+      });
+    } catch {
+      try {
+        rows = await selectRows('listing_reviews', {
+          select: '*',
+          filters: [{ column: 'listing_id', op: 'eq', value: listingId }],
+          order: 'created_at.desc',
+          limit: 100,
+          accessToken
+        });
+      } catch {
+        rows = [];
+      }
+    }
+  }
 
   const authorMap = await fetchProfilesByIds(
     rows.map((row) => row.tenant_id).filter(Boolean),
@@ -489,7 +525,7 @@ export async function createBookingRequest({
       tenant_id: tenantId,
       lister_id: listerId,
       move_in_date: moveInDate,
-      duration_months: Number(durationMonths),
+      months_duration: Number(durationMonths),
       message: String(message || '').trim(),
       contact_preference: contactPreference || 'in_app_chat',
       status: 'requested'
@@ -509,20 +545,24 @@ export async function fetchListingBookingsForUser({
     return [];
   }
 
+  // NOTE: In the new schema, bookings table uses 'room_id' instead of 'listing_id'
+  // and tenant_id/lister_id are references to their respective role tables, 
+  // but many queries still use profile_id. We check the column names here.
   const rows = await selectRows('bookings', {
     select:
-      'id,listing_id,tenant_id,lister_id,move_in_date,duration_months,message,contact_preference,status,created_at,updated_at',
-    // The previous code had a duplicate filters key. This block corrects it by merging the required columns
-    filters: [{ column: 'listing_id', op: 'eq', value: listingId }, { column: 'tenant_id', op: 'eq', value: userId, orGroup: true }, { column: 'lister_id', op: 'eq', value: userId, orGroup: true }],
-    or: `tenant_id.eq.${userId},lister_id.eq.${userId}`,
+      'id,listing_id,tenant_id,landlord_id,move_in_date,months_duration,status,created_at',
+    filters: [
+      { column: 'listing_id', op: 'eq', value: listingId }
+    ],
+    or: `tenant_id.eq.${userId}`,
     order: 'created_at.desc',
-    limit: 100,
+    limit: 1,
     accessToken
   });
 
   const profiles = await fetchProfilesByIds(
     rows
-      .flatMap((row) => [row.tenant_id, row.lister_id])
+      .flatMap((row) => [row.tenant_id, row.landlord_id])
       .filter(Boolean),
     accessToken
   );
@@ -531,16 +571,16 @@ export async function fetchListingBookingsForUser({
     id: row.id,
     listingId: row.listing_id,
     tenantId: row.tenant_id,
-    listerId: row.lister_id,
+    landlordId: row.landlord_id,
     moveInDate: row.move_in_date,
-    durationMonths: Number(row.duration_months || 0),
+    durationMonths: Number(row.months_duration || 0),
     message: row.message || '',
     contactPreference: row.contact_preference || 'in_app_chat',
     status: row.status || 'requested',
     createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    updatedAt: row.created_at,
     tenantName: profiles.get(row.tenant_id)?.full_name || 'Tenant',
-    listerName: profiles.get(row.lister_id)?.full_name || 'Lister'
+    landlordName: profiles.get(row.landlord_id)?.full_name || 'Landlord'
   }));
 }
 

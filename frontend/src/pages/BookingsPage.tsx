@@ -23,10 +23,21 @@ export default function BookingsPage() {
             try {
                 setLoading(true);
 
-                const column = user.role === APP_ROLE.LANDLORD ? 'lister_id' : 'tenant_id';
+                let roleId = user.userId;
+                const table = user.role === APP_ROLE.LANDLORD ? 'landlords' : 'tenants';
+                const roleRows = await selectRows(table, {
+                    select: 'id',
+                    filters: [{ column: 'profile_id', op: 'eq', value: user.userId }],
+                    limit: 1,
+                    accessToken: token
+                });
+                if (roleRows?.[0]) roleId = roleRows[0].id;
+
+                const column = user.role === APP_ROLE.LANDLORD ? 'landlord_id' : 'tenant_id';
                 const rows = await selectRows('bookings', {
-                    select: 'id,listing_id,tenant_id,lister_id,move_in_date,duration_months,status,created_at',
-                    filters: [{ column, op: 'eq', value: user.userId }],
+                    select: 'id,listing_id,tenant_id,landlord_id,move_in_date,months_duration,status,created_at',
+                    or: `${column}.eq.${roleId}${user.userId ? `,${column}.eq.${user.userId}` : ''}`,
+                    filters: [{ column: 'status', op: 'in', value: '(pending,requested,approved,confirmed,completed,disputed)' }],
                     order: 'created_at.desc',
                     limit: 100,
                     accessToken: token
@@ -35,16 +46,16 @@ export default function BookingsPage() {
                 if (!mounted) return;
 
                 const listingIds = Array.from(new Set(rows.map(r => r.listing_id)));
-                const profileIds = Array.from(new Set(rows.map(r => user.role === APP_ROLE.LANDLORD ? r.tenant_id : r.lister_id)));
-
-                const [listingRows, profileRows] = await Promise.all([
+                const profileIds = Array.from(new Set(rows.map(r => user.role === APP_ROLE.LANDLORD ? r.tenant_id : r.landlord_id)));
+                const oppositeTable = user.role === APP_ROLE.LANDLORD ? 'tenants' : 'landlords';
+                const [listingRows, roleProfileRows] = await Promise.all([
                     listingIds.length > 0 ? selectRows('listings', {
                         select: 'id,title,region,district,ward',
                         filters: [{ column: 'id', op: 'in', value: `(${listingIds.join(',')})` }],
                         accessToken: token
                     }) : Promise.resolve([]),
-                    profileIds.length > 0 ? selectRows('profiles', {
-                        select: 'id,full_name,phone',
+                    profileIds.length > 0 ? selectRows(oppositeTable, {
+                        select: 'id,profile:profiles(id,full_name,phone)',
                         filters: [{ column: 'id', op: 'in', value: `(${profileIds.join(',')})` }],
                         accessToken: token
                     }) : Promise.resolve([])
@@ -54,7 +65,9 @@ export default function BookingsPage() {
                 listingRows.forEach(l => lmap[l.id] = l);
 
                 const pmap: Record<string, any> = {};
-                profileRows.forEach(p => pmap[p.id] = p);
+                roleProfileRows.forEach((r: any) => {
+                    if (r.profile) pmap[r.id] = r.profile;
+                });
 
                 setBookings(rows);
                 setListings(lmap);
@@ -104,7 +117,7 @@ export default function BookingsPage() {
                 ) : (
                     bookings.map(b => {
                         const listing = listings[b.listing_id];
-                        const counterParty = profiles[user.role === APP_ROLE.LANDLORD ? b.tenant_id : b.lister_id];
+                        const counterParty = profiles[user.role === APP_ROLE.LANDLORD ? b.tenant_id : b.landlord_id];
                         const statusStyle = getStatusStyle(b.status);
 
                         return (
@@ -117,7 +130,7 @@ export default function BookingsPage() {
                                             <MapPin size={14} /> {listing ? `${listing.district}, ${listing.region}` : t('common.unknownLocation')}
                                         </div>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                            <Clock size={14} /> {t('bookings.moveIn')}: {new Date(b.move_in_date).toLocaleDateString()} ({b.duration_months} {t('common.months')})
+                                            <Clock size={14} /> {t('bookings.moveIn')}: {new Date(b.move_in_date).toLocaleDateString()} ({b.months_duration} {t('common.months')})
                                         </div>
                                     </div>
 

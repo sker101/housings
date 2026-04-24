@@ -107,7 +107,7 @@ export default function ProtectedRoute({ children, roles }: ProtectedRouteProps)
   const normalizedEffective = (verifiedRouteRole ||
     (normalizeForRouteGuard(user.role) as Role)) as Role;
 
-  const isAdminRequired = roles.includes('admin');
+  const isAdminRequired = roles.length === 1 && roles.includes('admin');
   const hasAdminRole = normalizedEffective === 'admin';
 
   if (isAdminRequired && !hasAdminRole) {

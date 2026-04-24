@@ -13,6 +13,11 @@ DROP POLICY IF EXISTS "profiles_insert_self_or_admin" ON public.profiles;
 DROP POLICY IF EXISTS "profiles_update_self_or_admin" ON public.profiles;
 DROP POLICY IF EXISTS "Users update own profile" ON public.profiles;
 DROP POLICY IF EXISTS "profiles_delete_admin" ON public.profiles;
+DROP POLICY IF EXISTS "profiles_select_privacy" ON public.profiles;
+DROP POLICY IF EXISTS "profiles_update_privacy" ON public.profiles;
+DROP POLICY IF EXISTS "profiles_insert_automation" ON public.profiles;
+DROP POLICY IF EXISTS "profiles_delete_admin_only" ON public.profiles;
+
 
 -- Create strict policies using the correct enum values ('lister', 'student', 'admin')
 CREATE POLICY "profiles_select_privacy" 
@@ -46,6 +51,8 @@ CREATE POLICY "profiles_delete_admin_only"
 DROP POLICY IF EXISTS "Admin can manage all reports" ON public.listing_reports;
 DROP POLICY IF EXISTS "Anyone can submit a report" ON public.listing_reports;
 DROP POLICY IF EXISTS "Reporter can read own reports" ON public.listing_reports;
+DROP POLICY IF EXISTS "listing_reports_admin_access" ON public.listing_reports;
+DROP POLICY IF EXISTS "listing_reports_insert_authenticated" ON public.listing_reports;
 
 CREATE POLICY "listing_reports_admin_access"
   ON public.listing_reports FOR ALL
@@ -60,6 +67,8 @@ CREATE POLICY "listing_reports_insert_authenticated"
 -- 3. Tighten CLAIMS
 DROP POLICY IF EXISTS "Admin can manage all claims" ON public.campuscover_claims;
 DROP POLICY IF EXISTS "Tenant can submit and read own claims" ON public.campuscover_claims;
+DROP POLICY IF EXISTS "campuscover_claims_access" ON public.campuscover_claims;
+DROP POLICY IF EXISTS "campuscover_claims_insert_tenant" ON public.campuscover_claims;
 
 CREATE POLICY "campuscover_claims_access"
   ON public.campuscover_claims FOR ALL

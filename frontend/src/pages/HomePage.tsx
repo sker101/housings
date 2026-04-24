@@ -486,8 +486,12 @@ export default function HomePage() {
     );
   };
 
-  const availableListings = filteredListings.filter(l => (l as any).vacancyStatus !== 'available_soon' && (l as any).vacancyStatus !== 'listed_occupied');
-  const comingSoonListings = filteredListings.filter(l => (l as any).vacancyStatus === 'available_soon' || (l as any).vacancyStatus === 'listed_occupied');
+  function isComingSoon(status: string | undefined): boolean {
+    return status === 'available_soon' || status === 'coming_soon' || status === 'listed_occupied';
+  }
+
+  const availableListings = filteredListings.filter(l => !isComingSoon((l as any).vacancyStatus));
+  const comingSoonListings = filteredListings.filter(l => isComingSoon((l as any).vacancyStatus));
 
   return (
     <div style={{ minHeight: '100vh', position: 'relative' }}>

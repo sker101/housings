@@ -18,6 +18,8 @@ import { useListings } from '../../hooks/useListings';
 import { useActivityLog } from '../../hooks/useActivityLog';
 import { profileCompletion, TZSFormat, formatDate } from '../../utils/format';
 import { selectRows } from '../../lib/supabase';
+import { fetchSavedListings } from '../../lib/listings';
+import { logSignInOnce } from '../../lib/activity';
 import ExitListingModal from '../../components/ExitListingModal';
 
 function KpiCard({ label, value, sub, icon: Icon, color }: {
@@ -61,15 +63,20 @@ export default function TenantDashboard() {
   const [activeLease, setActiveLease]     = useState<ActiveLease | null>(null);
   const [tenantId, setTenantId]           = useState<string | null>(null);
   const [referralEarnings, setReferralEarnings] = useState(0);
+  const [pendingReferrals, setPendingReferrals] = useState(0);
+  const [daysUntilRentDue, setDaysUntilRentDue] = useState<number | null>(null);
+  const [nextPaymentDate, setNextPaymentDate] = useState<string | null>(null);
   const [retryCount, setRetryCount]       = useState(0);
   const [showExitModal, setShowExitModal] = useState(false);
   const [exitSuccess, setExitSuccess]     = useState<string | null>(null);
+  const [savedRooms, setSavedRooms]       = useState<any[]>([]);
+  const [savedCount, setSavedCount]       = useState(0);
+  const [savedLoading, setSavedLoading]   = useState(true);
 
   const isPaymentSuccess = location.search.includes('payment=success');
 
   useEffect(() => { setIsVisible(true); }, []);
 
-  const { listings: savedListings, loading: savedLoading } = useListings(token, { limit: 3 });
   const { events, loading: actLoading } = useActivityLog(userId, token);
 
   // ── Fetch tenant record + active lease + referral earnings ──────
@@ -78,6 +85,11 @@ export default function TenantDashboard() {
     let mounted = true;
     async function fetchTenantData() {
       try {
+        // Log sign-in once
+        if (userId && token) {
+          logSignInOnce(userId, token);
+        }
+
         // Get tenant row
         const tenants = await selectRows('tenants', {
           select: 'id, referral_earnings_tzs',
@@ -102,9 +114,73 @@ export default function TenantDashboard() {
         });
         if (mounted && leases.length) {
           setActiveLease(leases[0] as ActiveLease);
+          
+          // Fetch next payment due
+          const payments = await selectRows('payments', {
+            select: 'due_date',
+            filters: [
+              { column: 'status', op: 'neq', value: 'paid' },
+              { column: 'due_date', op: 'gte', value: new Date().toISOString().split('T')[0] }
+            ],
+            order: 'due_date.asc',
+            limit: 1,
+            accessToken: token!
+          });
+          
+          if (payments.length) {
+            const rawDate = payments[0].due_date;
+            setNextPaymentDate(rawDate);
+            const dueDate = new Date(rawDate);
+            const today = new Date();
+            const diff = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+            setDaysUntilRentDue(diff);
+          }
+        } else if (mounted) {
+          // If no active lease, check for a confirmed/paid booking
+          const bookings = await selectRows('bookings', {
+            select: 'id, move_in_date, status',
+            filters: [
+              { column: 'tenant_id', op: 'eq', value: tenant.id },
+              { column: 'status', op: 'in', value: '(paid,confirmed,approved)' }
+            ],
+            order: 'created_at.desc',
+            limit: 1,
+            accessToken: token!
+          });
+          if (bookings.length) {
+            const b = bookings[0];
+            const isTodayOrPast = new Date(b.move_in_date) <= new Date();
+            setActiveLease({
+              id: b.id,
+              room_id: '', // Not needed for KPI
+              lease_end_date: b.move_in_date,
+              days_remaining: 0, 
+              renewal_decision: isTodayOrPast ? 'active' : 'incoming'
+            });
+          }
+        }
+
+        // Fetch Saved Listings (Resilient)
+        setSavedLoading(true);
+        const [saved, savedIds] = await Promise.all([
+          fetchSavedListings(userId!, token!, { limit: 3 }).catch(() => []),
+          selectRows('saved_listings', {
+            select: 'count',
+            filters: [{ column: 'tenant_id', op: 'eq', value: userId! }],
+            accessToken: token!
+          }).catch(() => [])
+        ]);
+        if (mounted) {
+          setSavedRooms(saved);
+          setSavedCount(savedIds?.[0]?.count ?? savedIds.length ?? 0);
+          setSavedLoading(false);
+          
+          setReferralEarnings((tenant as any).referral_earnings_tzs || 0);
+          setPendingReferrals(0);
         }
       } catch (err) {
         console.error('TenantDashboard: failed to fetch tenant data', err);
+        if (mounted) setSavedLoading(false);
       }
     }
     fetchTenantData();
@@ -198,50 +274,47 @@ export default function TenantDashboard() {
         <div
           className="active-stay-card"
           onClick={() => navigate('/my-room')}
-          style={{ animationDelay: '0.1s', cursor: 'pointer', position: 'relative' }}
+          style={{ 
+            animationDelay: '0.1s', 
+            cursor: 'pointer', 
+            position: 'relative',
+            padding: '1.5rem 2rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '1rem'
+          }}
           role="presentation"
         >
           <div className="active-stay-content">
-            <div className="active-stay-badge">
-              <Home size={12} style={{ marginRight: 4 }} />
-              Active Lease
-            </div>
-            <h3 className="active-stay-title">Your Current Room</h3>
-            <div className="active-stay-details">
-              <span className="active-stay-date">
-                <Calendar size={14} />
-                Move-out: {new Date(activeLease.lease_end_date).toLocaleDateString('sw-TZ')}
-              </span>
-              <span style={{
-                background: daysLeftColour + '20',
-                color:      daysLeftColour,
-                padding: '2px 10px', borderRadius: '999px',
-                fontWeight: 700, fontSize: '0.8rem',
-              }}>
-                {daysLeftLabel} remaining
-              </span>
-            </div>
+            <h3 className="active-stay-title" style={{ margin: 0 }}>
+              {activeLease.renewal_decision === 'incoming' ? 'Incoming Move-in' : 'Your Current Room'}
+            </h3>
           </div>
-          <Link to="/my-room" className="active-stay-btn" onClick={e => e.stopPropagation()}>
-            Manage Room <ArrowRight size={16} />
-          </Link>
+          
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            {/* "Moving soon?" CTA */}
+            {canListRoom && (
+              <button
+                onClick={e => { e.stopPropagation(); setShowExitModal(true); }}
+                style={{
+                  background: '#f0fdf4', border: '1.5px solid #86efac',
+                  borderRadius: '10px', padding: '0.5rem 1rem',
+                  fontSize: '0.85rem', fontWeight: 600, color: '#16a34a',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
+                  fontFamily: "'Inter', sans-serif",
+                }}
+              >
+                <Gift size={14} /> Moving soon?
+              </button>
+            )}
+            
+            <Link to="/my-room" className="active-stay-btn" onClick={e => e.stopPropagation()} style={{ margin: 0 }}>
+              Manage Room <ArrowRight size={16} />
+            </Link>
+          </div>
 
-          {/* "Moving soon?" CTA */}
-          {canListRoom && (
-            <button
-              onClick={e => { e.stopPropagation(); setShowExitModal(true); }}
-              style={{
-                position: 'absolute', top: '1rem', right: '1rem',
-                background: '#f0fdf4', border: '1.5px solid #86efac',
-                borderRadius: '10px', padding: '0.4rem 0.75rem',
-                fontSize: '0.78rem', fontWeight: 600, color: '#16a34a',
-                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
-                fontFamily: "'Inter', sans-serif",
-              }}
-            >
-              <Gift size={13} /> Moving soon? List your room
-            </button>
-          )}
         </div>
       )}
 
@@ -255,28 +328,34 @@ export default function TenantDashboard() {
       <div className="kpi-grid">
         <KpiCard
           label="Active Lease"
-          value={activeLease ? 'Active' : 'None'}
-          sub={activeLease ? `Expires ${new Date(activeLease.lease_end_date).toLocaleDateString('sw-TZ')}` : 'No current lease'}
+          value={activeLease ? (activeLease.renewal_decision === 'incoming' ? 'Incoming' : 'Active') : 'None'}
+          sub={activeLease 
+            ? (activeLease.renewal_decision === 'incoming' 
+                ? `Move-in: ${new Date(activeLease.lease_end_date).toLocaleDateString('sw-TZ')}`
+                : (activeLease.renewal_decision === 'active' 
+                   ? `Current Stay` 
+                   : `Expires ${new Date(activeLease.lease_end_date).toLocaleDateString('sw-TZ')}`))
+            : 'No current lease'}
           icon={Home}
           color="#22c55e"
         />
         <KpiCard
-          label="Days until Move-out"
-          value={daysLeftLabel}
-          sub={daysLeft != null && daysLeft <= 30 ? '⚠ Renew or list your room' : 'Lease in good standing'}
+          label="Next Rent Due"
+          value={nextPaymentDate ? new Date(nextPaymentDate).toLocaleDateString('sw-TZ') : (activeLease?.renewal_decision === 'incoming' ? '—' : 'None')}
+          sub={daysUntilRentDue !== null ? (daysUntilRentDue <= 0 ? 'Due today!' : `${daysUntilRentDue} days remaining`) : (activeLease?.renewal_decision === 'incoming' ? 'Waiting for move-in' : 'No upcoming payments')}
           icon={Calendar}
-          color={daysLeftColour}
+          color={daysUntilRentDue !== null && daysUntilRentDue <= 5 ? '#ef4444' : '#22c55e'}
         />
         <KpiCard
-          label="iRent Referral Earnings"
+          label="Referral Earnings"
           value={new Intl.NumberFormat('sw-TZ', { style: 'currency', currency: 'TZS', maximumFractionDigits: 0 }).format(referralEarnings)}
-          sub="Lifetime referral rewards"
+          sub={pendingReferrals > 0 ? `${TZSFormat(pendingReferrals)} pending rewards` : 'Lifetime referral rewards'}
           icon={Gift}
           color="#8b5cf6"
         />
         <KpiCard
           label={t('studentDashboard.savedRooms', 'Saved Rooms')}
-          value={savedListings.length}
+          value={savedCount}
           sub={t('studentDashboard.listingsSaved', 'listings saved')}
           icon={Heart}
           color="#ef4444"
@@ -366,7 +445,7 @@ export default function TenantDashboard() {
             <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
               <LoadingSpinner size="medium" text="Loading…" />
             </div>
-          ) : savedListings.length === 0 ? (
+          ) : savedRooms.length === 0 ? (
             <div className="empty-state">
               <div className="empty-icon">🏠</div>
               <p className="empty-text">{t('studentDashboard.noSavedRooms', 'No saved rooms yet')}</p>
@@ -374,18 +453,28 @@ export default function TenantDashboard() {
             </div>
           ) : (
             <div className="saved-list">
-              {savedListings.map(l => (
-                <Link key={l.id} to={`/listings/${l.id}`} className="saved-room-card">
-                  <div className="saved-room-image"><MapPin size={20} /></div>
-                  <div className="saved-room-info">
-                    <p className="saved-room-title">{l.title}</p>
-                    <p className="saved-room-location">
-                      {l.area ?? l.district} · {TZSFormat(l.price)}/mo
-                    </p>
-                  </div>
-                  <StatusPill variant={l.status} size="sm" />
-                </Link>
-              ))}
+              {savedRooms.map(item => {
+                const l = item.listing;
+                if (!l) return null;
+                return (
+                  <Link key={l.id} to={`/rooms/${l.id}`} className="saved-room-card">
+                    <div className="saved-room-image">
+                      {l.imageUrl ? (
+                        <img src={l.imageUrl} alt={l.title} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }} />
+                      ) : (
+                        <MapPin size={20} />
+                      )}
+                    </div>
+                    <div className="saved-room-info">
+                      <p className="saved-room-title">{l.title}</p>
+                      <p className="saved-room-location">
+                        {l.ward || l.district} · {TZSFormat(l.priceMonthly)}/mo
+                      </p>
+                    </div>
+                    <StatusPill variant="available" size="sm" />
+                  </Link>
+                );
+              })}
             </div>
           )}
         </section>

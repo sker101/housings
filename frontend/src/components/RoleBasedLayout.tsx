@@ -133,7 +133,18 @@ function RoleBasedSidebarContent({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div style={{ padding: '1.25rem 1rem', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Link 
+          to="/" 
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            textDecoration: 'none',
+            transition: 'opacity 0.2s'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+          onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+        >
           <span
             style={{
               fontFamily: "'Syne', sans-serif",
@@ -146,7 +157,7 @@ function RoleBasedSidebarContent({
           >
             i<span style={{ color: accentColor }}>Rent</span>
           </span>
-        </div>
+        </Link>
       </div>
 
       <div
