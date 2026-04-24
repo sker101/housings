@@ -343,7 +343,7 @@ export default function ListPropertyPage() {
               minLeaseMonths: row.min_lease_months || 1,
               paymentSchedule: row.payment_schedule || 'monthly',
               lateFeePolicy: row.late_fee_policy || '',
-              utilitiesIncluded: row.utilities_included || false,
+              utilitiesIncluded: false,
               region: row.region || 'Dar es Salaam',
               district: row.district || '',
               ward: row.ward || '',
@@ -572,10 +572,8 @@ export default function ListPropertyPage() {
         title: sanitizeInput(values.title),
         description: sanitizeInput(values.description),
         room_type: values.roomType,
-        gender_preference: values.genderPreference,
         price_monthly: Number(values.priceMonthly),
         security_deposit: Number(values.securityDeposit || 0),
-        utilities_included: values.utilitiesIncluded,
         floor: values.floor || null,
         total_rooms: values.totalRooms ? Number(values.totalRooms) : null,
         furnished: values.furnished,
@@ -595,7 +593,6 @@ export default function ListPropertyPage() {
         lat: latNum,
         lng: lngNum,
         amenities: JSON.stringify(values.amenities),
-        house_rules: sanitizeInput(values.houseRules),
         available_from: values.availableFrom,
         vacancy_status: 'available',
         status: 'pending',
@@ -609,9 +606,7 @@ export default function ListPropertyPage() {
         title: values.title.trim(),
         description: values.description.trim(),
         room_type: values.roomType,
-        gender_preference: values.genderPreference,
         price_monthly: Number(values.priceMonthly),
-        utilities_included: values.utilitiesIncluded,
         region: values.region,
         district: values.district,
         ward: values.ward,
@@ -619,12 +614,9 @@ export default function ListPropertyPage() {
         lat: latNum,
         lng: lngNum,
         amenities: JSON.stringify(values.amenities),
-        house_rules: values.houseRules.trim(),
-        available_from: values.availableFrom,
         vacancy_status: 'available',
         status: 'pending',
-        featured: false,
-        near_universities: values.university ? [values.university] : []
+        featured: false
       };
 
       console.log('📦 Step 2: Creating Listing...');
@@ -727,8 +719,6 @@ export default function ListPropertyPage() {
           angle: slot.key,
           storage_path: storagePath,
           public_url: publicUrl,
-          ai_verified: aiVerified,
-          ai_confidence: aiConfidence,
           // New columns from overhaul migration
           position: index,
           caption: slot.label,

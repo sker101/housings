@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import MapboxListingMap from '../components/MapboxListingMap';
 import { useAuth } from '../context/AuthContext';
 import bgImage from '../images/homelanding.jpg';
 import {
@@ -26,6 +27,10 @@ import {
   ChevronLeft,
   ChevronRight,
   SlidersHorizontal,
+  Home,
+  Sparkles,
+  Clock,
+  MapPin,
 } from 'lucide-react';
 
 // Room type options
@@ -55,12 +60,6 @@ const AMENITY_OPTIONS = [
   { value: 'pool', label: 'Pool', icon: Waves },
 ];
 
-// Gender preference options - no default, user must explicitly choose
-const GENDER_OPTIONS = [
-  { value: 'male', label: 'Male only' },
-  { value: 'female', label: 'Female only' },
-];
-
 // Price ranges
 const PRICE_RANGES = [
   { min: 0, max: 100000, label: 'Under 100K' },
@@ -83,7 +82,6 @@ interface Listing {
   title: string;
   description: string;
   roomType: string;
-  genderPreference: string;
   priceMonthly: number;
   location: string;
   district: string;
@@ -115,13 +113,27 @@ export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRoomType, setSelectedRoomType] = useState('all');
   const [selectedUniversity, setSelectedUniversity] = useState<string>('');
-  const [selectedGender, setSelectedGender] = useState('');
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [selectedPriceRange, setSelectedPriceRange] = useState<{min: number, max: number | null} | null>(null);
   const [selectedPropertyType, setSelectedPropertyType] = useState('');
   const [showMoreFilters, setShowMoreFilters] = useState(false);
   const [furnished, setFurnished] = useState(false);
   const [utilitiesIncluded, setUtilitiesIncluded] = useState(false);
+
+  const [viewMode, setViewMode] = useState('grid');
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  useEffect(() => {
+    const handleToggleView = (e: any) => {
+      setIsTransitioning(true);
+      setTimeout(() => {
+        setViewMode(e.detail);
+        setIsTransitioning(false);
+      }, 400);
+    };
+    window.addEventListener('toggleHomePageView', handleToggleView);
+    return () => window.removeEventListener('toggleHomePageView', handleToggleView);
+  }, []);
 
   // Image carousel states
   const [imageIndices, setImageIndices] = useState<Record<string, number>>({});
@@ -130,6 +142,83 @@ export default function HomePage() {
   const [isFilterMinimized, setIsFilterMinimized] = useState(false);
   const [lastScrollY, setLastScrollY] = useState(0);
   const resultsRef = useRef<HTMLDivElement>(null);
+  const [gridHeight, setGridHeight] = useState<number>(0);
+
+  // Measure the grid section height so the map can match it
+  useEffect(() => {
+    const updateHeight = () => {
+      if (resultsRef.current) {
+        setGridHeight(resultsRef.current.offsetHeight);
+      }
+    };
+    updateHeight();
+    window.addEventListener('resize', updateHeight);
+    return () => window.removeEventListener('resize', updateHeight);
+  }, [viewMode]);
+
+  // Also update gridHeight after listings load
+  useEffect(() => {
+    if (resultsRef.current) {
+      // Manual height tracking removed in favor of flexbox
+    }
+  });
+
+  // Load filters from sessionStorage and apply them
+  useEffect(() => {
+    const loadFilters = () => {
+      const appliedFiltersStr = sessionStorage.getItem('appliedFilters');
+      if (appliedFiltersStr) {
+        try {
+          const appliedFilters = JSON.parse(appliedFiltersStr);
+          
+          // Apply price range
+          if (appliedFilters.priceMin !== undefined && appliedFilters.priceMax !== undefined) {
+            setSelectedPriceRange({
+              min: appliedFilters.priceMin,
+              max: appliedFilters.priceMax
+            });
+          }
+
+          // Apply search query
+          if (appliedFilters.searchQuery) {
+            setSearchQuery(appliedFilters.searchQuery);
+          }
+
+          // Apply amenities
+          if (appliedFilters.amenities && appliedFilters.amenities.length > 0) {
+            setSelectedAmenities(appliedFilters.amenities);
+          }
+          
+          // Apply room type directly since it's now a single string
+          if (appliedFilters.roomType) {
+            const roomTypeMap: Record<string, string> = {
+              'all': 'all',
+              'Single Room': 'single',
+              'Shared Room': 'shared',
+              'Self Contained': 'self_contained',
+              'Studio': 'studio',
+              'Apartment': 'apartment',
+              '1 Bedroom': '1_bedroom',
+              '2 Bedroom': '2_bedroom'
+            };
+            const mappedType = roomTypeMap[appliedFilters.roomType];
+            if (mappedType) {
+              setSelectedRoomType(mappedType);
+            }
+          }
+          
+          // Clear the sessionStorage after applying filters
+          sessionStorage.removeItem('appliedFilters');
+        } catch (err) {
+          console.error('Error parsing applied filters:', err);
+        }
+      }
+    };
+
+    loadFilters();
+    window.addEventListener('filtersApplied', loadFilters);
+    return () => window.removeEventListener('filtersApplied', loadFilters);
+  }, []);
 
   // Fetch listings
   useEffect(() => {
@@ -148,8 +237,9 @@ export default function HomePage() {
         if (selectedRoomType && selectedRoomType !== 'all') {
           filters.roomType = selectedRoomType;
         }
-        if (selectedGender) {
-          filters.genderPreference = selectedGender;
+        // Note: Gender filter removed - database view hardcodes gender as 'mixed'
+        if (selectedAmenities && selectedAmenities.length > 0) {
+          filters.amenities = selectedAmenities;
         }
         if (selectedPriceRange) {
           filters.minPrice = selectedPriceRange.min;
@@ -181,7 +271,7 @@ export default function HomePage() {
     return () => {
       mounted = false;
     };
-  }, [token, selectedRoomType, selectedGender, selectedPriceRange, searchQuery]);
+  }, [token, selectedRoomType, selectedPriceRange, searchQuery]);
 
   // Fetch saved listings
   useEffect(() => {
@@ -220,32 +310,60 @@ export default function HomePage() {
         return false;
       }
 
-      // Property type filter
-      if (selectedPropertyType && listing.propertyType !== selectedPropertyType) {
-        return false;
+
+
+      // Search query filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const titleMatch = listing.title?.toLowerCase().includes(query) || false;
+        const locationMatch = listing.location?.toLowerCase().includes(query) || false;
+        const descriptionMatch = listing.description?.toLowerCase().includes(query) || false;
+        if (!titleMatch && !locationMatch && !descriptionMatch) {
+          return false;
+        }
       }
 
-      // Furnished filter
-      if (furnished && !listing.furnished) {
-        return false;
+      // Price range filter
+      if (selectedPriceRange) {
+        const price = Number(listing.price);
+        if (price < selectedPriceRange.min || price > selectedPriceRange.max) {
+          return false;
+        }
       }
 
-      // Utilities filter
-      if (utilitiesIncluded && !listing.utilitiesIncluded) {
-        return false;
+      // Room type filter
+      if (selectedRoomType && selectedRoomType !== 'all') {
+        if (listing.roomType !== selectedRoomType) {
+          return false;
+        }
       }
 
       // Amenities filter
       if (selectedAmenities.length > 0) {
-        const hasAllAmenities = selectedAmenities.every(
-          amenity => listing.amenities?.[amenity] === true
-        );
+        const hasAllAmenities = selectedAmenities.every(amenity => {
+          const ams = listing.amenities;
+          if (!ams) return false;
+          
+          const searchAm = amenity.toLowerCase();
+          
+          if (Array.isArray(ams)) {
+            return ams.some(a => typeof a === 'string' && a.toLowerCase() === searchAm);
+          }
+          
+          // Object format: { "water": true } or { "Water": true }
+          for (const [key, val] of Object.entries(ams)) {
+            if (key.toLowerCase() === searchAm && val === true) {
+              return true;
+            }
+          }
+          return false;
+        });
         if (!hasAllAmenities) return false;
       }
 
       return true;
     });
-  }, [listings, selectedUniversity, selectedPropertyType, furnished, utilitiesIncluded, selectedAmenities]);
+  }, [listings, selectedUniversity, selectedAmenities, searchQuery, selectedPriceRange, selectedRoomType]);
 
   // Calculate badge counts from actual data
   const badgeCounts = useMemo(() => {
@@ -255,7 +373,6 @@ export default function HomePage() {
       'generator': 0, 'pool': 0,
       'single': 0, 'shared': 0, 'bedsit': 0, 'studio': 0,
       'apartment': 0, 'self_contained': 0, '1_bedroom': 0, '2_bedroom': 0,
-      'male': 0, 'female': 0, 'any': 0,
     };
 
     listings.forEach(listing => {
@@ -264,17 +381,27 @@ export default function HomePage() {
         counts[listing.roomType]++;
       }
 
-      // Gender counts
-      if (listing.genderPreference && counts[listing.genderPreference] !== undefined) {
-        counts[listing.genderPreference]++;
-      }
+      // Note: Gender counts removed - database view hardcodes gender as 'mixed'
 
       // Amenity counts
-      Object.entries(listing.amenities || {}).forEach(([key, value]) => {
-        if (value && counts[key] !== undefined) {
-          counts[key]++;
+      const ams = listing.amenities;
+      if (ams) {
+        if (Array.isArray(ams)) {
+          ams.forEach(a => {
+            if (typeof a === 'string') {
+              const key = a.toLowerCase();
+              if (counts[key] !== undefined) counts[key]++;
+            }
+          });
+        } else {
+          Object.entries(ams).forEach(([key, value]) => {
+            if (value === true) {
+              const lowerKey = key.toLowerCase();
+              if (counts[lowerKey] !== undefined) counts[lowerKey]++;
+            }
+          });
         }
-      });
+      }
     });
 
     return counts;
@@ -315,7 +442,6 @@ export default function HomePage() {
     setSearchQuery('');
     setSelectedRoomType('all');
     setSelectedUniversity('');
-    setSelectedGender('');
     setSelectedAmenities([]);
     setSelectedPriceRange(null);
     setSelectedPropertyType('');
@@ -392,11 +518,7 @@ export default function HomePage() {
 
   const activeFiltersCount = selectedAmenities.length +
     (selectedUniversity ? 1 : 0) +
-    (selectedPriceRange ? 1 : 0) +
-    (selectedPropertyType ? 1 : 0) +
-    (selectedGender ? 1 : 0) +
-    (furnished ? 1 : 0) +
-    (utilitiesIncluded ? 1 : 0);
+    (selectedPriceRange ? 1 : 0);
 
   const renderListingCard = (listing: Listing) => {
     const currentImageIndex = imageIndices[listing.id] || 0;
@@ -471,15 +593,26 @@ export default function HomePage() {
           )}
         </div>
 
-        <div className="room-card__content">
-          <div className="room-card__header">
-            <span className="room-card__location">
-              {listing.district || listing.ward}, {listing.region}
-            </span>
+        <div className="room-card__content" style={{ padding: '0.15rem 0.25rem 0.4rem', display: 'flex', flexDirection: 'column', gap: '0.2rem', minWidth: 0 }}>
+          <h3 style={{ margin: '0', fontSize: '0.9rem', fontWeight: 600, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {listing.title}
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem', minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', color: '#64748b' }}>
+              <MapPin size={12} style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: '0.75rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {listing.district || listing.ward || listing.street || 'Tanzania'}
+              </span>
+            </div>
+            {listing.region && (
+              <span style={{ fontSize: '0.7rem', color: '#94a3b8', paddingLeft: '0.95rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {listing.region}
+              </span>
+            )}
           </div>
-          <div className="room-card__price">
-            <span className="room-card__price-value">TSh {formatPrice(listing.priceMonthly)}</span>
-            <span className="room-card__price-unit">/month</span>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.2rem', marginTop: '0.1rem' }}>
+            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#475569' }}>TSh {formatPrice(listing.priceMonthly)}</span>
+            <span style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 500 }}>/ month</span>
           </div>
         </div>
       </div>
@@ -613,73 +746,9 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* Gender Preference - No default, user must explicitly choose */}
-              <div className="filter-panel__section">
-                <h4 className="filter-panel__title">Gender preference</h4>
-                <div className="filter-panel__options">
-                  {/* Show clear button if gender is selected */}
-                  {selectedGender && (
-                    <button
-                      className="filter-badge is-active"
-                      onClick={() => setSelectedGender('')}
-                    >
-                      {GENDER_OPTIONS.find(g => g.value === selectedGender)?.label}
-                      <span className="filter-badge__clear">×</span>
-                    </button>
-                  )}
-                  {/* Show options if no gender selected */}
-                  {!selectedGender && GENDER_OPTIONS.map((gender) => {
-                    const count = badgeCounts[gender.value] || 0;
-                    return (
-                      <button
-                        key={gender.value}
-                        className="filter-badge"
-                        onClick={() => setSelectedGender(gender.value)}
-                      >
-                        {gender.label}
-                        {count > 0 && <span className="filter-badge__count">{count}</span>}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+              {/* Note: Gender preference filter removed - database view hardcodes gender as 'mixed' */}
 
-              {/* Property type */}
-              <div className="filter-panel__section">
-                <h4 className="filter-panel__title">Property type</h4>
-                <div className="filter-panel__options">
-                  {PROPERTY_TYPES.map((type) => (
-                    <button
-                      key={type.value}
-                      className={`filter-badge ${selectedPropertyType === type.value ? 'is-active' : ''}`}
-                      onClick={() => setSelectedPropertyType(
-                        selectedPropertyType === type.value ? '' : type.value
-                      )}
-                    >
-                      {type.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
 
-              {/* Additional Filters */}
-              <div className="filter-panel__section">
-                <h4 className="filter-panel__title">Additional filters</h4>
-                <div className="filter-panel__options">
-                  <button
-                    className={`filter-badge ${furnished ? 'is-active' : ''}`}
-                    onClick={() => setFurnished(!furnished)}
-                  >
-                    Furnished
-                  </button>
-                  <button
-                    className={`filter-badge ${utilitiesIncluded ? 'is-active' : ''}`}
-                    onClick={() => setUtilitiesIncluded(!utilitiesIncluded)}
-                  >
-                    Utilities included
-                  </button>
-                </div>
-              </div>
 
               {/* Filter Actions */}
               <div className="filter-actions">
@@ -698,13 +767,25 @@ export default function HomePage() {
         </div>
       </div>
 
+      {/* Mobile badge removed (replaced by centered top badge in Layout) */}
+
       {/* Room Grid Section */}
-      <section className="room-grid-section" ref={resultsRef}>
-        <div className="room-grid-section__inner">
-          {/* Results Count */}
-          <div className="results-count">
-            {loading ? 'Loading homes...' : `${filteredListings.length} homes available`}
-          </div>
+      <section
+        className="room-grid-section"
+        ref={resultsRef}
+        style={viewMode === 'map' ? { padding: 0 } : undefined}
+      >
+        <div
+          className="room-grid-section__inner"
+          style={viewMode === 'map' ? { padding: 0 } : undefined}
+        >
+          {/* Results Count - Mobile Only "For You" Header */}
+          {viewMode === 'grid' && (
+            <div className="mobile-for-you-header">
+              <Sparkles size={18} className="mobile-for-you-icon" />
+              <span className="mobile-for-you-text">For You</span>
+            </div>
+          )}
 
           {/* Error */}
           {error && (
@@ -758,23 +839,66 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* Room Grid - Available */}
-          {!loading && availableListings.length > 0 && (
-            <div className="room-grid">
-              {availableListings.map(renderListingCard)}
+          {/* Main Content Area (Map or Grid) */}
+          {isTransitioning ? (
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '6rem 0' }}>
+               <div className="spinner" style={{ width: '40px', height: '40px', border: '3px solid rgba(34,197,94,0.2)', borderTopColor: '#22c55e', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+               <span style={{ marginTop: '1rem', fontWeight: 600, color: 'var(--ink)' }}>
+                 {viewMode === 'grid' ? 'Switching to Map View...' : 'Switching to Grid View...'}
+               </span>
             </div>
-          )}
-
-          {/* Room Grid - Coming Soon */}
-          {!loading && comingSoonListings.length > 0 && (
+          ) : viewMode === 'map' ? (
+            <section style={{ position: 'relative', width: '100vw', height: '450px', marginLeft: 'calc(50% - 50vw)', overflow: 'hidden' }}>
+               <MapboxListingMap
+                  rooms={filteredListings.map((l: any) => ({
+                     id: l.id,
+                     latitude: Number(l.lat),
+                     longitude: Number(l.lng),
+                     title: l.title,
+                     price_tzs: Number(l.priceMonthly),
+                     room_type: l.roomType,
+                     primary_image: l.images?.[0] || '',
+                     availability_status: l.vacancyStatus || 'available',
+                     ward: l.ward
+                  }))}
+                  center={[-6.7924, 39.2083]}
+                  zoom={11}
+                  onRoomClick={(roomId) => navigate(`/rooms/${roomId}`)}
+               />
+               <div style={{
+                  position: 'absolute', top: 16, left: 16, zIndex: 10,
+                  background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(8px)',
+                  borderRadius: 20, padding: '6px 14px', fontSize: '0.82rem',
+                  fontWeight: 700, boxShadow: '0 2px 10px rgba(0,0,0,0.12)',
+                  color: '#1e293b',
+                }}>
+                  {filteredListings.length} rooms shown on map
+                </div>
+            </section>
+          ) : (
             <>
-              {availableListings.length > 0 && (
-                <hr style={{ margin: '1.5rem 0', border: 'none', borderTop: '1px solid var(--border)' }} />
+              {/* Room Grid - Available */}
+              {!loading && availableListings.length > 0 && (
+                <div className="room-grid">
+                  {availableListings.map(renderListingCard)}
+                </div>
               )}
-              <h3 style={{ fontSize: '1.25rem', marginBottom: '1rem', color: 'var(--ink)' }}>Coming Soon</h3>
-              <div className="room-grid">
-                {comingSoonListings.map(renderListingCard)}
-              </div>
+
+              {/* Room Grid - Coming Soon */}
+              {!loading && comingSoonListings.length > 0 && (
+                <>
+                  {availableListings.length > 0 && (
+                    <hr style={{ margin: '1.5rem 0', border: 'none', borderTop: '1px solid var(--border)' }} />
+                  )}
+                  <div className="mobile-coming-soon-header">
+                    <Clock size={16} className="mobile-coming-soon-icon" />
+                    <span className="mobile-coming-soon-text">Coming Soon</span>
+                  </div>
+                  <div className="room-grid">
+                    {comingSoonListings.map(renderListingCard)}
+                  </div>
+                </>
+              )}
             </>
           )}
         </div>
