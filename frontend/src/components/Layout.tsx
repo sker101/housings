@@ -480,7 +480,7 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
 
           {/* NOTIFICATION ROW */}
           <div className="notification-row">
-            {showInstallPopup ? (
+            {(isMobileOrTablet && showInstallPopup) ? (
               <div className="install-popup-slide-in">
                 <Download size={14} style={{ flexShrink: 0 }} />
                 <span>Install iRent for better experience</span>
