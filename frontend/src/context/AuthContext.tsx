@@ -425,8 +425,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // ─── Google OAuth ───────────────────────────────────────────
   const signInWithGoogle = useCallback(
     async (role?: string) => {
-      const redirectTo = `${window.location.origin}/auth/callback`;
-      
+      // Use the current origin for redirect, which works for both local and production
+      const origin = window.location.origin;
+      const redirectTo = `${origin}/auth/callback`;
       // Store role preference for new users
       if (role) {
         sessionStorage.setItem('oauth_signup_role', role);
@@ -561,7 +562,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // ─── Magic Link / Email OTP ─────────────────────────────────
   const sendMagicLinkEmail = useCallback(
     async (email: string) => {
-      const redirectTo = `${window.location.origin}/auth/verify-email`;
+      const origin = window.location.origin;
+      const redirectTo = `${origin}/auth/verify-email`;
       await sendMagicLink({ email, redirectTo });
     },
     []

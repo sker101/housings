@@ -641,29 +641,31 @@ export default function HomePage() {
       <div className={`filter-container ${isFilterMinimized ? 'is-minimized' : ''}`}>
         <div className="filter-container__inner">
           {/* Main Search Bar */}
-          <div className="search-bar-main">
-            <div className="search-bar-main__input-wrapper" style={{ borderRight: 'none' }}>
-              <Search className="search-bar-main__icon" size={20} />
-              <input
-                type="text"
-                className="search-bar-main__input"
-                placeholder="search for your perfect home"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              />
+          <div className="search-bar-main-wrapper" style={{ width: '100%', maxWidth: '850px', margin: '0 auto 1.5rem' }}>
+            <div className="search-bar-main">
+              <div className="search-bar-main__input-wrapper" style={{ borderRight: 'none' }}>
+                <Search className="search-bar-main__icon" size={20} />
+                <input
+                  type="text"
+                  className="search-bar-main__input"
+                  placeholder="search for your perfect home"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                />
+              </div>
+              <button
+                className="search-bar-main__btn"
+                onClick={handleSearch}
+                aria-label="Search"
+              >
+                <Search size={20} />
+              </button>
             </div>
-            <button
-              className="search-bar-main__btn"
-              onClick={handleSearch}
-              aria-label="Search"
-            >
-              <Search size={20} />
-            </button>
           </div>
 
           {/* Filter Categories */}
-          <div className="filter-categories">
+          <div className="filter-categories" style={{ maxWidth: '1000px', margin: '0 auto', justifyContent: 'center' }}>
             {ROOM_TYPES.map((type) => {
               const Icon = type.icon;
               return (

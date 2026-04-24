@@ -429,32 +429,56 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
 
       {!hideHeader ? (
         <header className={`topbar ${isHomePage ? 'topbar--on-homepage' : ''}`} style={{ display: 'flex', flexDirection: 'column', padding: 0 }}>
-          <div className="mobile-header-wrapper" style={{ width: '100%', padding: '0.5rem 0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+          <div className="topbar-content" style={{ width: '100%', padding: '0.5rem 0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
             <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center' }}>
-              <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
-                <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '1.4rem', color: 'var(--ink)' }}>i<span style={{ color: '#22c55e' }}>Rent</span></span>
+              <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  background: 'linear-gradient(135deg, #166534, #15803d)',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 2px 8px rgba(22,101,52,0.2)'
+                }}>
+                  <Home size={18} color="white" />
+                </div>
+                <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '1.25rem', color: 'var(--ink)', letterSpacing: '-0.02em' }}>i<span style={{ color: '#22c55e' }}>Rent</span></span>
               </Link>
             </div>
-            <div style={{ flex: '1 1 auto', display: 'flex', justifyContent: 'center', alignItems: 'center', minWidth: 0 }}>
-              <div className="mobile-top-badge" role="button" onClick={() => setIsSearchModalOpen(true)}>
-                <Home size={14} style={{ color: 'white', flexShrink: 0 }} />
-                <span className="mobile-top-badge__text">Find Your Perfect Home</span>
+            <div style={{ flex: '1 1 auto', display: 'flex', justifyContent: 'center', alignItems: 'center', minWidth: 0, maxWidth: '600px' }}>
+              <div className="topbar-search-pill" role="button" onClick={() => setIsSearchModalOpen(true)} style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                background: '#f8fafc',
+                border: '1px solid var(--border)',
+                padding: '0.5rem 1rem',
+                borderRadius: '999px',
+                width: '100%',
+                maxWidth: '400px',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}>
+                <Search size={16} style={{ color: 'var(--mid)', flexShrink: 0 }} />
+                <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--mid)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Find your perfect home</span>
               </div>
             </div>
             <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.4rem', position: 'relative' }} ref={a11yRef}>
               {isHomePage ? (
-                <button type="button" onClick={toggleHomePageView} title="Toggle View" style={{ background: 'transparent', border: 'none', padding: '0.35rem', cursor: 'pointer' }}>
+                <button type="button" className="topbar-action-btn" onClick={toggleHomePageView} title="Toggle View">
                   {homeViewMode === 'map' ? <LayoutGrid size={18} /> : <Map size={18} />}
                 </button>
               ) : (
-                <button type="button" onClick={() => navigate('/listings')} title="Browse Listings" style={{ background: 'transparent', border: 'none', padding: '0.35rem', cursor: 'pointer' }}>
+                <button type="button" className="topbar-action-btn" onClick={() => navigate('/listings')} title="Browse Listings">
                   <Map size={18} />
                 </button>
               )}
-              <button type="button" onClick={() => setIsA11yOpen(!isA11yOpen)} title="Accessibility" style={{ background: 'transparent', border: 'none', padding: '0.35rem' }} aria-expanded={isA11yOpen} aria-haspopup="menu"><Accessibility size={18} /></button>
+              <button type="button" className="topbar-action-btn" onClick={() => setIsA11yOpen(!isA11yOpen)} title="Accessibility" aria-expanded={isA11yOpen} aria-haspopup="menu"><Accessibility size={18} /></button>
 
               {isA11yOpen && (
-                <div className="a11y-menu mobile-only">
+                <div className="a11y-menu">
                   <button type="button" className="a11y-menu__item" onClick={() => { toggleDarkMode(); setIsA11yOpen(false); }}>
                     {isDarkMode ? <Sun size={16} /> : <Moon size={16} />} <span>Toggle theme</span>
                   </button>

@@ -151,7 +151,7 @@ label {
 
 .section__header h1,
 .section__header h2 {
-  font-size: clamp(1.35rem, 3.5vw, 2rem);
+  font-size: clamp(1.25rem, 2.5vw, 1.75rem);
 }
 
 .section__header p {
@@ -387,7 +387,7 @@ label {
 
 .hero h1 {
   max-width: 700px;
-  font-size: clamp(1.72rem, 5vw, 3.05rem);
+  font-size: clamp(1.5rem, 4vw, 2.75rem);
   line-height: 1.05;
 }
 
@@ -2144,9 +2144,29 @@ tbody td {
   }
 }
 
-/* Mobile Header Styles */
-.mobile-header-wrapper {
+/* Unified Topbar Content */
+.topbar-content {
   display: flex !important;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.topbar-action-btn {
+  background: transparent;
+  border: none;
+  padding: 0.5rem;
+  cursor: pointer;
+  color: var(--mid);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.topbar-action-btn:hover {
+  background: #f1f5f9;
+  color: var(--jade);
 }
 
 .mobile-badge-only {
@@ -2157,17 +2177,13 @@ tbody td {
   display: flex !important;
 }
 
-/* Hide desktop header on mobile */
+/* Hide desktop specific elements on mobile if needed */
 .desktop-header-wrapper {
   display: none !important;
 }
 
-/* Hide mobile elements on desktop */
+/* Responsive adjustments */
 @media (min-width: 680px) {
-  .mobile-header-wrapper {
-    display: none !important;
-  }
-
   .mobile-badge-only {
     display: none !important;
   }
@@ -3170,7 +3186,7 @@ tbody td {
 }
 
 .hero--minimal h1 {
-  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
   margin-bottom: 0.75rem;
 }
 
