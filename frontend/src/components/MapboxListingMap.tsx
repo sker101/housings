@@ -93,6 +93,7 @@ export default function MapboxListingMap({
   const mapRef       = useRef<mapboxgl.Map | null>(null);
   const markersRef   = useRef<mapboxgl.Marker[]>([]);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [mapStyle, setMapStyle] = useState<'light' | 'satellite'>('light');
 
   // === Init map ===
   useEffect(() => {
@@ -100,7 +101,7 @@ export default function MapboxListingMap({
 
     const map = new mapboxgl.Map({
       container: containerRef.current,
-      style: 'mapbox://styles/mapbox/light-v11',
+      style: mapStyle === 'light' ? 'mapbox://styles/mapbox/light-v11' : 'mapbox://styles/mapbox/satellite-streets-v12',
       center: DAR_ES_SALAAM_CENTRE,
       zoom: 12,
       attributionControl: false,
@@ -132,6 +133,13 @@ export default function MapboxListingMap({
       mapRef.current = null;
     };
   }, []);
+
+  // Update style when mapStyle state changes
+  useEffect(() => {
+    if (!mapRef.current || !mapLoaded) return;
+    const newStyle = mapStyle === 'light' ? 'mapbox://styles/mapbox/light-v11' : 'mapbox://styles/mapbox/satellite-streets-v12';
+    mapRef.current.setStyle(newStyle);
+  }, [mapStyle, mapLoaded]);
 
   // === Ward zoom ===
   useEffect(() => {
@@ -239,6 +247,48 @@ export default function MapboxListingMap({
           <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#f59e0b', display: 'inline-block' }} />
           Coming Soon
         </span>
+      </div>
+
+      {/* Style Toggle */}
+      <div style={{
+        position: 'absolute',
+        top: 12,
+        left: 12,
+        zIndex: 10
+      }}>
+        <button
+          onClick={() => setMapStyle(prev => prev === 'light' ? 'satellite' : 'light')}
+          style={{
+            background: 'white',
+            border: 'none',
+            borderRadius: '10px',
+            padding: '8px 12px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontSize: '12px',
+            fontWeight: 700,
+            color: '#1e293b',
+            cursor: 'pointer',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+            transition: 'all 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = '#f8fafc';
+            e.currentTarget.style.transform = 'translateY(-1px)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'white';
+            e.currentTarget.style.transform = 'translateY(0)';
+          }}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="12 2 2 7 12 12 22 7 12 2" />
+            <polyline points="2 17 12 22 22 17" />
+            <polyline points="2 12 12 17 22 12" />
+          </svg>
+          {mapStyle === 'light' ? 'Satellite View' : 'Map View'}
+        </button>
       </div>
     </div>
   );
