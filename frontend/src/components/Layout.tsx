@@ -478,7 +478,7 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
               <button
                 type="button"
                 className="topbar-action-btn"
-                onClick={() => navigate(isAuthenticated ? userDashboardPath : '/')}
+                onClick={() => navigate('/')}
                 title="Home"
                 style={{ padding: '0.35rem' }}
               >
@@ -576,7 +576,7 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
                       {homeViewMode === 'map' ? <LayoutGrid size={18} /> : (isAuthenticated ? <Search size={18} /> : <Map size={18} />)}
                     </button>
                   ) : (
-                    <button type="button" className="topbar-action-btn" onClick={() => navigate('/listings')} title="Browse Listings">
+                    <button type="button" className="topbar-action-btn" onClick={() => setIsSearchModalOpen(true)} title="Search Listings">
                       <Search size={18} />
                     </button>
                   )}
