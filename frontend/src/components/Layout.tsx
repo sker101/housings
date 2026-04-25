@@ -622,43 +622,6 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
               </div>
             </div>
 
-<<<<<<< Updated upstream
-          </div>
-
-          {/* NOTIFICATION ROW - Always displays image and text */}
-          <div
-            className="notification-row"
-            style={{
-              overflow: 'hidden',
-              position: 'relative',
-              minHeight: '60px',
-              backgroundImage: `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url("${topImage}")`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              backgroundRepeat: 'no-repeat'
-            }}
-          >
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              height: '100%',
-              padding: '0.5rem 1rem',
-              textAlign: 'center'
-            }}>
-              <p style={{
-                fontSize: '0.75rem',
-                fontWeight: 500,
-                color: '#ffffff',
-                lineHeight: 1.4,
-                margin: 0,
-                textShadow: '0 1px 3px rgba(0,0,0,0.5)',
-                maxWidth: '90%'
-              }}>
-                Discover your perfect home with iRent. Tanzania's #1 rental platform. Browse verified listings, connect with landlords, and book your stay with confidence.
-              </p>
-            </div>
-=======
             {isMobileOrTablet && (
               <div className={`install-popup ${deferredPrompt ? 'show' : ''}`}>
                 <div className="install-popup__inner">
@@ -797,86 +760,9 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
                 <Footer />
               </div>
             )}
->>>>>>> Stashed changes
           </div>
         </div>
 
-
-<<<<<<< Updated upstream
-      {/* Admin Mobile Bottom Nav - hidden on homepage */}
-      {isAuthenticated && !isHomePage && user?.role === APP_ROLE.ADMIN ? (
-        <nav
-          className="bottom-nav mobile-only"
-          aria-label="Admin Navigation"
-          style={{ 
-            display: 'flex', justifyContent: 'space-around', alignItems: 'center', 
-            gap: '0.25rem', background: 'rgba(255, 255, 255, 0.95)', 
-            backdropFilter: 'blur(10px)',
-            borderTop: '1px solid rgba(0,0,0,0.05)',
-            boxShadow: '0 -4px 20px rgba(0,0,0,0.04)',
-            padding: '0.6rem 0.25rem',
-            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100
-          }}
-        >
-          <NavLink 
-            to="/messages" 
-            className={({ isActive }) => (isActive ? 'is-active' : '')} 
-            style={({ isActive }) => ({ 
-              flex: 1, textAlign: 'center', fontSize: '0.72rem', fontWeight: 800,
-              color: isActive ? '#1D9E75' : '#64748b',
-              textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px'
-            })}
-          >
-             <span style={{ fontSize: '1.2rem' }}>💬</span>
-             <span>Messages</span>
-             {unreadCount > 0 && <span className="nav-badge" style={{ position: 'absolute', top: 5, right: '15%' }}>{unreadCount}</span>}
-          </NavLink>
-          <NavLink 
-            to="/admin/landlords" 
-            className={({ isActive }) => (isActive ? 'is-active' : '')} 
-            style={({ isActive }) => ({ 
-              flex: 1, textAlign: 'center', fontSize: '0.72rem', fontWeight: 800,
-              color: isActive ? '#1D9E75' : '#64748b',
-              textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px'
-            })}
-          >
-            <span style={{ fontSize: '1.2rem' }}>🤝</span>
-            <span>Vetting</span>
-          </NavLink>
-          <NavLink 
-            to="/admin/listings" 
-            className={({ isActive }) => (isActive ? 'is-active' : '')} 
-            style={({ isActive }) => ({ 
-              flex: 1, textAlign: 'center', fontSize: '0.72rem', fontWeight: 800,
-              color: isActive ? '#1D9E75' : '#64748b',
-              textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px'
-            })}
-          >
-            <span style={{ fontSize: '1.2rem' }}>🏠</span>
-            <span>Listings</span>
-          </NavLink>
-          {!isPwaInstalled && (
-            <button
-              type="button"
-              onClick={() => setIsInstallPanelOpen(true)}
-              style={{ 
-                flex: 1, textAlign: 'center', background: 'none', border: 'none', 
-                color: '#64748b', fontSize: '0.72rem', fontWeight: 800,
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px'
-              }}
-            >
-              <span style={{ fontSize: '1.2rem' }}>⬇️</span>
-              <span>Install App</span>
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={logout}
-            style={{ 
-              flex: 1, textAlign: 'center', background: 'none', border: 'none', 
-              color: '#b91c1c', fontSize: '0.72rem', fontWeight: 800,
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px'
-=======
         {/* Admin Mobile Bottom Nav - hidden on homepage */}
         {isAuthenticated && !isHomePage && user?.role === APP_ROLE.ADMIN ? (
           <nav
@@ -890,7 +776,6 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
               boxShadow: '0 -4px 20px rgba(0,0,0,0.04)',
               padding: '0.6rem 0.25rem',
               position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100
->>>>>>> Stashed changes
             }}
           >
             <NavLink
@@ -972,131 +857,12 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
                 onTouchMove={onTouchMoveHandler}
                 onTouchEnd={onTouchEndHandler}
               >
-<<<<<<< Updated upstream
-                <LayoutGrid size={22} />
-                <span>Dashboard</span>
-              </NavLink>
-
-              <NavLink
-                to="/saved"
-                className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
-                style={({ isActive }) => ({ color: isActive ? '#22c55e' : '#6b7280' })}
-              >
-                <Heart size={22} />
-                <span>Wishlist</span>
-              </NavLink>
-
-              <NavLink
-                to="/messages"
-                className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
-                style={({ isActive }) => ({ color: isActive ? '#22c55e' : '#6b7280' })}
-              >
-                <MessageCircle size={22} />
-                <span>Messages</span>
-                {unreadCount > 0 && isAuthenticated && <span className="mobile-bottom-nav-badge">{unreadCount}</span>}
-              </NavLink>
-
-              <NavLink
-                to={profileTarget}
-                className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
-                style={({ isActive }) => ({ color: isActive ? '#22c55e' : '#6b7280' })}
-              >
-                <User size={22} />
-                <span>{profileLabel}</span>
-              </NavLink>
-
-              {!isPwaInstalled && (
-                <button
-                  onClick={() => setIsInstallPanelOpen(true)}
-                  className="mobile-bottom-menu-item"
-                  style={{ color: '#6b7280', background: 'none', border: 'none', padding: '0.5rem 0.25rem' }}
-                >
-                  <Download size={22} />
-                  <span>Install App</span>
-                </button>
-              )}
-            </>
-          ) : (
-            <>
-              <NavLink
-                to={isAuthenticated ? userDashboardPath : '/'}
-                className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
-                style={({ isActive }) => ({ color: isActive ? '#22c55e' : '#6b7280' })}
-              >
-                {isAuthenticated ? <LayoutGrid size={22} /> : <Home size={22} strokeWidth={isHomePage ? 2.5 : 2} />}
-                <span>{isAuthenticated ? 'Dashboard' : 'Home'}</span>
-              </NavLink>
-
-              <NavLink
-                to="/saved"
-                className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
-                style={({ isActive }) => ({ color: isActive ? '#22c55e' : '#6b7280' })}
-                onClick={(e) => {
-                  if (!isAuthenticated) {
-                    e.preventDefault();
-                    navigate('/auth/login');
-                  }
-                }}
-              >
-                <Heart size={22} strokeWidth={location.pathname === '/saved' ? 2.5 : 2} />
-                <span>Wishlist</span>
-              </NavLink>
-
-              <NavLink
-                to="/messages"
-                className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
-                style={({ isActive }) => ({ color: isActive ? '#22c55e' : '#6b7280' })}
-                onClick={(e) => {
-                  if (!isAuthenticated) {
-                    e.preventDefault();
-                    navigate('/auth/login');
-                  }
-                }}
-              >
-                <MessageCircle size={22} strokeWidth={location.pathname === '/messages' ? 2.5 : 2} />
-                <span>Messages</span>
-                {unreadCount > 0 && isAuthenticated && <span className="mobile-bottom-nav-badge">{unreadCount}</span>}
-              </NavLink>
-
-              <NavLink
-                to={profileTarget}
-                className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
-                style={({ isActive }) => ({ color: isActive ? '#22c55e' : '#6b7280' })}
-              >
-                <User size={22} strokeWidth={isAuthPage ? 2.5 : 2} />
-                <span>{profileLabel}</span>
-              </NavLink>
-
-              {!isPwaInstalled && (
-                <button
-                  onClick={() => setIsInstallPanelOpen(true)}
-                  className="mobile-bottom-menu-item"
-                  style={{ color: '#6b7280', background: 'none', border: 'none', padding: '0.5rem 0.25rem' }}
-                >
-                  <Download size={22} />
-                  <span>Install App</span>
-                </button>
-              )}
-=======
                 <Search size={18} className="mobile-bottom-search-icon" />
                 <span className="mobile-bottom-search-placeholder">find your perfect home</span>
               </div>
->>>>>>> Stashed changes
             </>
           )}
 
-<<<<<<< Updated upstream
-      {/* Mobile Search Filter Modal */}
-      {isSearchModalOpen && (
-        <div 
-          className={`mobile-search-modal-overlay ${isSearchModalClosing ? 'is-closing' : ''}`} 
-          onClick={closeSearchModal}
-          onTouchMove={(e) => e.stopPropagation()}
-        >
-          <div 
-            className={`mobile-search-modal ${isSearchModalClosing ? 'is-closing' : ''}`} 
-            onClick={(e) => e.stopPropagation()}
-=======
           {/* Bottom Menu Bar */}
           <nav className="mobile-bottom-menu-bar">
             {isAuthenticated && user?.role === APP_ROLE.TENANT ? (
@@ -1198,7 +964,6 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
           <div
             className={`mobile-search-modal-overlay ${isSearchModalClosing ? 'is-closing' : ''}`}
             onClick={closeSearchModal}
->>>>>>> Stashed changes
           >
             <div
               className={`mobile-search-modal ${isSearchModalClosing ? 'is-closing' : ''}`}
@@ -1418,8 +1183,6 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
           </div>
         )}
 
-<<<<<<< Updated upstream
-      {/* Install Instructions Panel */}
       {isInstallPanelOpen && (
         <div 
           className="install-panel-overlay"
@@ -1728,25 +1491,6 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
         />
       )}
     </div>
-=======
-        {/* PWA Install Modal */}
-        {isPwaModalOpen && (
-          <InstallPwaModal
-            isOpen={isPwaModalOpen}
-            onClose={() => setIsPwaModalOpen(false)}
-            onInstall={() => {
-              if (deferredPrompt) {
-                deferredPrompt.prompt();
-                deferredPrompt.userChoice.then(({ outcome }: any) => {
-                  if (outcome === 'accepted') setDeferredPrompt(null);
-                });
-              }
-            }}
-            isAndroid={isAndroid}
-          />
-        )}
-      </div>
->>>>>>> Stashed changes
     </>
   );
 }
