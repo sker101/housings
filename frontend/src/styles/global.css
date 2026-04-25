@@ -5687,17 +5687,22 @@ tbody td {
     flex-direction: column;
     align-items: center;
     gap: 0.25rem;
-    padding: 0.25rem 0.75rem;
+    padding: 0.25rem 0.35rem;
     text-decoration: none;
-    font-size: 0.65rem;
+    font-size: 0.6rem;
     font-weight: 500;
     font-family: 'Inter', sans-serif;
     transition: color 0.2s ease;
     position: relative;
+    flex: 1;
+    min-width: 0;
   }
 
   .mobile-bottom-menu-item span {
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
   }
 
   /* Active state - green color */

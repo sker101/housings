@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, ChevronRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { insertRows, selectRows, updateRows } from '../lib/supabase';
 
@@ -214,7 +215,19 @@ export default function NotificationsPage() {
     <>
       <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}} .nt-page{padding:2rem} .nt-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem} .back-btn{padding:6px 14px;border-radius:9px;border:0.5px solid var(--border);background:#fff;font-size:12px;color:var(--ink);cursor:pointer;text-decoration:none} .new-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:#EAF3DE;color:#27500A;margin-left:8px;vertical-align:middle} .nt-list{display:flex;flex-direction:column;gap:8px} .ncard{background:#ffffff;border:0.5px solid var(--border);border-radius:13px;overflow:hidden;transition:box-shadow 0.15s} .ncard.is-unread{background:#f6fbf8;border-color:#97C459} .ncard.is-alert{background:#FEF2F1;border-color:#F09595} .ncard-main{padding:13px 16px;display:flex;gap:12px;align-items:flex-start;cursor:pointer} .nicon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0} .ni-booking{background:#EAF3DE} .ni-listing{background:#E6F1FB} .ni-message{background:#EEEDFE} .ni-system_alert{background:#FCEBEB} .ni-system{background:#FAEEDA} .ni-default{background:var(--cream)} .nbody-wrap{flex:1;min-width:0} .ntype{font-size:10px;font-weight:500;color:var(--mid);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px} .ntype.alert{color:#791F1F} .ntitle{font-size:13px;line-height:1.4;color:var(--ink)} .ntitle.unread{font-weight:600} .nbody-text{font-size:11px;color:var(--mid);margin-top:3px;line-height:1.5} .ntime-row{font-size:10px;color:var(--mid);margin-top:4px} .unread-dot{width:8px;height:8px;border-radius:50%;background:var(--jade);flex-shrink:0;margin-top:3px} .unread-dot.alert{background:#A32D2D} .ncard-actions{padding:8px 16px;border-top:0.5px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;background:rgba(0,0,0,0.02)} .nact-btn{padding:5px 12px;border-radius:7px;border:0.5px solid var(--border);background:#fff;font-size:11px;font-weight:500;cursor:pointer;color:var(--ink)} .nact-btn.primary{background:var(--jade);color:#fff;border-color:transparent} .nact-btn.ghost{background:transparent;color:var(--mid)} .reply-box{padding:12px 16px;border-top:0.5px solid var(--border);background:#fafafa} .reply-hint{font-size:11px;color:var(--mid);margin-bottom:8px} .reply-textarea{width:100%;padding:8px 10px;border-radius:8px;border:0.5px solid var(--border);font-size:12px;resize:vertical;outline:none;font-family:inherit;line-height:1.5;min-height:70px} .reply-actions{display:flex;gap:6px;margin-top:8px} .nt-empty{padding:3rem 2rem;text-align:center;color:var(--mid);font-size:13px;background:#ffffff;border:0.5px solid var(--border);border-radius:13px} @media(max-width:768px){.nt-page{padding:1rem}}`}</style>
 
-      <div className="nt-page">
+      {/* Breadcrumb Header */}
+      <header style={{background:'white',borderRadius:'12px',padding:'1rem 1.25rem',margin:'1rem 1rem 0',boxShadow:'0 1px 3px rgba(0,0,0,0.06)'}}>
+        <nav style={{display:'flex',alignItems:'center',gap:'0.5rem',fontSize:'0.9rem'}}>
+          <Link to="/tenant/dashboard" style={{display:'flex',alignItems:'center',gap:'0.35rem',color:'#64748b',textDecoration:'none'}}>
+            <LayoutDashboard size={16} />
+            <span>Dashboard</span>
+          </Link>
+          <ChevronRight size={16} style={{color:'#cbd5e1'}} />
+          <span style={{color:'#1e293b',fontWeight:600}}>Notifications</span>
+        </nav>
+      </header>
+
+      <div className="nt-page" style={{paddingTop:0}}>
         <div className="nt-hdr">
           <div>
             <h1 style={{ fontSize: '1.3rem', fontWeight: 700, margin: 0 }}>
@@ -224,9 +237,6 @@ export default function NotificationsPage() {
               Updates about your bookings, listings and messages
             </p>
           </div>
-          <Link to={-1 as any} className="back-btn">
-            ← Back
-          </Link>
         </div>
 
         {error ? (

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { LayoutDashboard, ChevronRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { APP_ROLE } from '../lib/roles';
 import { selectRows, updateRows } from '../lib/supabase';
@@ -346,6 +347,18 @@ export default function PaymentsPage() {
 
   return (
     <>
+      {/* Breadcrumb Header */}
+      <header style={{background:'white',borderRadius:'12px',padding:'1rem 1.25rem',margin:'1rem 1rem 0',boxShadow:'0 1px 3px rgba(0,0,0,0.06)'}}>
+        <nav style={{display:'flex',alignItems:'center',gap:'0.5rem',fontSize:'0.9rem'}}>
+          <Link to="/tenant/dashboard" style={{display:'flex',alignItems:'center',gap:'0.35rem',color:'#64748b',textDecoration:'none'}}>
+            <LayoutDashboard size={16} />
+            <span>Dashboard</span>
+          </Link>
+          <ChevronRight size={16} style={{color:'#cbd5e1'}} />
+          <span style={{color:'#1e293b',fontWeight:600}}>Payments</span>
+        </nav>
+      </header>
+
       <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}} @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}} .pay-page{padding:2rem;max-width:100%;animation:fadeUp 0.35s ease} .pay-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2rem} .kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:2rem} .kpi-card{background:#ffffff;border:0.5px solid var(--border);border-radius:14px;padding:16px 18px} .kpi-label{font-size:11px;color:var(--mid);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em} .kpi-value{font-size:22px;font-weight:700;line-height:1} .kpi-sub{font-size:11px;margin-top:4px;color:var(--mid)} .section-card{background:#ffffff;border:0.5px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:1.5rem} .section-card-header{padding:16px 20px;border-bottom:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:center} .section-title{font-size:14px;font-weight:600;color:var(--ink)} .section-sub{font-size:12px;color:var(--mid);margin-top:2px} .pay-table{width:100%;border-collapse:collapse;font-size:13px} .pay-table th{padding:10px 16px;text-align:left;font-size:11px;font-weight:600;color:var(--mid);text-transform:uppercase;letter-spacing:.04em;border-bottom:0.5px solid var(--border);background:#fafafa} .pay-table td{padding:12px 16px;border-bottom:0.5px solid var(--border);color:var(--ink);vertical-align:middle} .pay-table tr:last-child td{border-bottom:none} .pay-table tr:hover td{background:#fafcfb} .tenant-cell{display:flex;align-items:center;gap:8px} .avatar{width:28px;height:28px;border-radius:50%;background:#EEEDFE;color:#3C3489;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0} .status-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600} .status-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0} .mark-btn{padding:5px 12px;border-radius:8px;border:0.5px solid var(--border);background:#fff;font-size:12px;font-weight:500;cursor:pointer;color:var(--ink);transition:background 0.15s} .mark-btn:hover{background:var(--cream)} .mark-btn:disabled{opacity:0.5;cursor:not-allowed} .empty-state{padding:3rem 2rem;text-align:center;color:var(--mid);font-size:13px} .comm-row{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:0.5px solid var(--border);font-size:13px} .comm-row:last-child{border-bottom:none} .comm-row:hover{background:#fafcfb} @media(max-width:768px){.kpi-strip{grid-template-columns:1fr 1fr}.pay-page{padding:1rem}.pay-header{flex-direction:column;gap:1rem}}`}</style>
 
       <div className="pay-page">

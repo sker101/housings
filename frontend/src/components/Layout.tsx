@@ -9,7 +9,7 @@ import StudentSidebar from './StudentSidebar';
 import AdminSidebar from './AdminSidebar';
 import Footer from './Footer';
 import InstallPwaModal from './InstallPwaModal';
-import { Menu, Globe, UserPlus, LogIn, HelpCircle, X, Home, User, Download, Moon, Sun, Map, Accessibility, Search, Heart, MessageCircle, Wifi, Car, Droplets, Shield, Utensils, Shirt, Filter, Star, LayoutGrid, Bell } from 'lucide-react';
+import { Menu, Globe, UserPlus, LogIn, HelpCircle, X, Home, User, Download, Moon, Sun, Map, Accessibility, Search, Heart, MessageCircle, Wifi, Car, Droplets, Shield, Utensils, Shirt, Filter, Star, LayoutGrid, Bell, Smartphone, Tablet, Zap, Share2, PlusCircle, CheckCircle2, Chrome, AppWindow } from 'lucide-react';
 import { dashboardDefaultPath } from '../lib/roles';
 import { Toaster } from 'react-hot-toast';
 import topImage from '../images/modern-home-exterior-with-landscaping-driveway.jpg';
@@ -60,6 +60,11 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
   const [searchOpenedOnce, setSearchOpenedOnce] = useState(false);
   const [showInstallPopup, setShowInstallPopup] = useState(true);
   const [focusOnOpen, setFocusOnOpen] = useState(false);
+  const [isInstallPanelOpen, setIsInstallPanelOpen] = useState(false);
+  const [installTab, setInstallTab] = useState<'ios' | 'android'>('android');
+  const [isPwaInstalled, setIsPwaInstalled] = useState(false);
+  const [showAndroidHelp, setShowAndroidHelp] = useState(false);
+  const [showIOSHelp, setShowIOSHelp] = useState(false);
   const [searchPressed, setSearchPressed] = useState(false);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const bottomBarRef = useRef<HTMLDivElement | null>(null);
@@ -155,7 +160,7 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
   const isAndroid = /android/i.test(navigator.userAgent);
   const isMobileOrTablet = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-  // Scroll to top when search modal opens
+  // Scroll to top and lock body when search modal opens
   useEffect(() => {
     if (isSearchModalOpen) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -163,12 +168,22 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
       if (focusOnOpen) {
         setTimeout(() => searchInputRef.current?.focus(), 260);
       }
+      // Lock body scroll
+      document.body.style.overflow = 'hidden';
+      document.body.style.touchAction = 'none';
     } else {
       // reset the first-open flag when modal closes so next open behaves like first tap
       setSearchOpenedOnce(false);
       setFocusOnOpen(false);
       setSearchPressed(false);
+      // Unlock body scroll
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
     }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
+    };
   }, [isSearchModalOpen, focusOnOpen]);
 
   useEffect(() => {
@@ -180,8 +195,53 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
+  // Check if PWA is already installed
+  useEffect(() => {
+    const checkPwaInstalled = () => {
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                          (window.navigator as any).standalone === true;
+      setIsPwaInstalled(isStandalone);
+    };
+    checkPwaInstalled();
+    // Listen for app installed event
+    window.addEventListener('appinstalled', () => {
+      setIsPwaInstalled(true);
+      setDeferredPrompt(null);
+    });
+    // Also check when display-mode changes
+    const mediaQuery = window.matchMedia('(display-mode: standalone)');
+    mediaQuery.addEventListener('change', checkPwaInstalled);
+    return () => {
+      mediaQuery.removeEventListener('change', checkPwaInstalled);
+    };
+  }, []);
+
+  // Lock body scroll when install panel is open
+  useEffect(() => {
+    if (isInstallPanelOpen) {
+      const originalStyle = window.getComputedStyle(document.body).overflow;
+      document.body.style.overflow = 'hidden';
+      document.body.style.touchAction = 'none';
+      return () => {
+        document.body.style.overflow = originalStyle;
+        document.body.style.touchAction = '';
+      };
+    }
+  }, [isInstallPanelOpen]);
+
   const handleInstallClick = async () => {
-    setIsPwaModalOpen(true);
+    if (deferredPrompt) {
+      // For Android - trigger native install prompt
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setDeferredPrompt(null);
+        setShowInstallPopup(false);
+      }
+    } else {
+      // For iOS or when prompt is not available - show manual instructions
+      setIsPwaModalOpen(true);
+    }
   };
   const hasSyncedLanguage = useRef(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -649,105 +709,41 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
               )}
             </div>
 
-            {isMobileOrTablet && (
-              <div className={`install-popup ${deferredPrompt ? 'show' : ''}`}>
-                <div className="install-popup__inner">
-                  <div className="install-popup__text">Install iRent for faster access and offline support.</div>
-                  <div className="install-popup__actions">
-                    <button className="install-popup__install" onClick={handleInstallClick}>Install</button>
-                    <button className="install-popup__dismiss" onClick={() => setDeferredPrompt(null)}>Dismiss</button>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
-          {/* NOTIFICATION ROW */}
+          {/* NOTIFICATION ROW - Always displays image and text */}
           <div
             className="notification-row"
             style={{
               overflow: 'hidden',
               position: 'relative',
-              minHeight: isMobileOrTablet && showInstallPopup ? 'auto' : '60px',
-              backgroundColor: isMobileOrTablet && showInstallPopup ? '#ffffff' : 'transparent',
-              backgroundImage: isMobileOrTablet && showInstallPopup
-                ? 'none'
-                : `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url("${topImage}")`,
+              minHeight: '60px',
+              backgroundImage: `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url("${topImage}")`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
               backgroundRepeat: 'no-repeat'
             }}
           >
-            {isMobileOrTablet && showInstallPopup && (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                  padding: '0.4rem 0.75rem',
-                  background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(22, 163, 74, 0.08) 100%)',
-                  border: '1.5px solid #22c55e',
-                  borderRadius: '8px',
-                  color: '#22c55e',
-                  fontSize: '0.8rem',
-                  fontWeight: 500,
-                  maxWidth: '100%',
-                  margin: '0.3rem 0.5rem',
-                  animation: 'slideDown 0.3s ease-out'
-                }}
-              >
-                <style>{`
-                  @keyframes slideDown {
-                    from { transform: translateY(-100%); opacity: 0; }
-                    to { transform: translateY(0); opacity: 1; }
-                  }
-                `}</style>
-                <Download size={14} style={{ flexShrink: 0 }} />
-                <span>Install iRent for better experience</span>
-                <button
-                  onClick={() => setShowInstallPopup(false)}
-                  style={{
-                    background: 'rgba(34, 197, 94, 0.15)',
-                    border: '1px solid #22c55e',
-                    borderRadius: '50%',
-                    width: '26px',
-                    height: '26px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    color: '#22c55e',
-                    flexShrink: 0,
-                    marginLeft: '0.5rem'
-                  }}
-                >
-                  <X size={16} strokeWidth={2.5} />
-                </button>
-              </div>
-            )}
-            {(!isMobileOrTablet || !showInstallPopup) && (
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: '100%',
-                padding: '0.5rem 1rem',
-                textAlign: 'center'
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+              padding: '0.5rem 1rem',
+              textAlign: 'center'
+            }}>
+              <p style={{
+                fontSize: '0.75rem',
+                fontWeight: 500,
+                color: '#ffffff',
+                lineHeight: 1.4,
+                margin: 0,
+                textShadow: '0 1px 3px rgba(0,0,0,0.5)',
+                maxWidth: '90%'
               }}>
-                <p style={{
-                  fontSize: '0.75rem',
-                  fontWeight: 500,
-                  color: '#ffffff',
-                  lineHeight: 1.4,
-                  margin: 0,
-                  textShadow: '0 1px 3px rgba(0,0,0,0.5)',
-                  maxWidth: '90%'
-                }}>
-                  Discover your perfect home with iRent. Tanzania's #1 rental platform. Browse verified listings, connect with landlords, and book your stay with confidence.
-                </p>
-              </div>
-            )}
+                Discover your perfect home with iRent. Tanzania's #1 rental platform. Browse verified listings, connect with landlords, and book your stay with confidence.
+              </p>
+            </div>
           </div>
         </header>
       ) : null}
@@ -864,6 +860,20 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
             <span style={{ fontSize: '1.2rem' }}>🏠</span>
             <span>Listings</span>
           </NavLink>
+          {!isPwaInstalled && (
+            <button
+              type="button"
+              onClick={() => setIsInstallPanelOpen(true)}
+              style={{ 
+                flex: 1, textAlign: 'center', background: 'none', border: 'none', 
+                color: '#64748b', fontSize: '0.72rem', fontWeight: 800,
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px'
+              }}
+            >
+              <span style={{ fontSize: '1.2rem' }}>⬇️</span>
+              <span>Install App</span>
+            </button>
+          )}
           <button
             type="button"
             onClick={logout}
@@ -952,6 +962,17 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
                 <User size={22} />
                 <span>{profileLabel}</span>
               </NavLink>
+
+              {!isPwaInstalled && (
+                <button
+                  onClick={() => setIsInstallPanelOpen(true)}
+                  className="mobile-bottom-menu-item"
+                  style={{ color: '#6b7280', background: 'none', border: 'none', padding: '0.5rem 0.25rem' }}
+                >
+                  <Download size={22} />
+                  <span>Install App</span>
+                </button>
+              )}
             </>
           ) : (
             <>
@@ -1003,6 +1024,17 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
                 <User size={22} strokeWidth={isAuthPage ? 2.5 : 2} />
                 <span>{profileLabel}</span>
               </NavLink>
+
+              {!isPwaInstalled && (
+                <button
+                  onClick={() => setIsInstallPanelOpen(true)}
+                  className="mobile-bottom-menu-item"
+                  style={{ color: '#6b7280', background: 'none', border: 'none', padding: '0.5rem 0.25rem' }}
+                >
+                  <Download size={22} />
+                  <span>Install App</span>
+                </button>
+              )}
             </>
           )}
         </nav>
@@ -1013,6 +1045,7 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
         <div 
           className={`mobile-search-modal-overlay ${isSearchModalClosing ? 'is-closing' : ''}`} 
           onClick={closeSearchModal}
+          onTouchMove={(e) => e.stopPropagation()}
         >
           <div 
             className={`mobile-search-modal ${isSearchModalClosing ? 'is-closing' : ''}`} 
@@ -1232,18 +1265,310 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
         </div>
       )}
 
+      {/* Install Instructions Panel */}
+      {isInstallPanelOpen && (
+        <div 
+          className="install-panel-overlay"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.5)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'center',
+            animation: 'fadeIn 0.3s ease-out',
+            overscrollBehavior: 'contain'
+          }}
+          onClick={() => setIsInstallPanelOpen(false)}
+          onTouchMove={(e) => e.stopPropagation()}
+        >
+          <style>{`
+            @keyframes fadeIn {
+              from { opacity: 0; }
+              to { opacity: 1; }
+            }
+            @keyframes slideUp {
+              from { transform: translateY(100%); }
+              to { transform: translateY(0); }
+            }
+            @keyframes pulse {
+              0%, 100% { transform: scale(1); }
+              50% { transform: scale(1.05); }
+            }
+            .install-panel-content {
+              overflow-y: auto;
+              -webkit-overflow-scrolling: touch;
+            }
+            .install-panel-content::-webkit-scrollbar {
+              width: 6px;
+            }
+            .install-panel-content::-webkit-scrollbar-track {
+              background: #f1f1f1;
+              border-radius: 3px;
+            }
+            .install-panel-content::-webkit-scrollbar-thumb {
+              background: #c1c1c1;
+              border-radius: 3px;
+            }
+          `}</style>
+          <div 
+            className="install-panel"
+            style={{
+              background: '#ffffff',
+              borderRadius: '20px 20px 0 0',
+              width: '100%',
+              maxWidth: '500px',
+              maxHeight: '85vh',
+              display: 'flex',
+              flexDirection: 'column',
+              animation: 'slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+              boxShadow: '0 -10px 40px rgba(0,0,0,0.2)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div style={{
+              padding: '1.25rem 1.5rem 1rem',
+              borderBottom: '1px solid #f3f4f6',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: '#111827' }}>
+                  Install iRent App
+                </h2>
+                <p style={{ margin: '0.25rem 0 0', fontSize: '0.875rem', color: '#6b7280' }}>
+                  Get faster access & offline support
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setIsInstallPanelOpen(false);
+                  setShowAndroidHelp(false);
+                  setShowIOSHelp(false);
+                }}
+                style={{
+                  background: '#f3f4f6',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '36px',
+                  height: '36px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: '#6b7280'
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Platform Tabs */}
+            <div style={{
+              padding: '1rem 1.5rem',
+              display: 'flex',
+              gap: '0.5rem',
+              borderBottom: '1px solid #f3f4f6'
+            }}>
+              <button
+                onClick={() => {
+                  setInstallTab('android');
+                  setShowAndroidHelp(false);
+                  setShowIOSHelp(false);
+                }}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem 1rem',
+                  borderRadius: '12px',
+                  border: 'none',
+                  background: installTab === 'android' ? 'linear-gradient(135deg, #22c55e, #16a34a)' : '#f3f4f6',
+                  color: installTab === 'android' ? '#ffffff' : '#374151',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <Smartphone size={18} />
+                Android
+              </button>
+              <button
+                onClick={() => {
+                  setInstallTab('ios');
+                  setShowAndroidHelp(false);
+                  setShowIOSHelp(false);
+                }}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem 1rem',
+                  borderRadius: '12px',
+                  border: 'none',
+                  background: installTab === 'ios' ? 'linear-gradient(135deg, #22c55e, #16a34a)' : '#f3f4f6',
+                  color: installTab === 'ios' ? '#ffffff' : '#374151',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <Tablet size={18} />
+                iPhone/iPad
+              </button>
+            </div>
+
+            {/* PWA Download Section - Clean minimal design */}
+            <div className="install-panel-content" style={{ padding: '2rem 1.5rem 10rem', overflowY: 'auto', flex: 1 }}>
+              {installTab === 'android' ? (
+                <div style={{ animation: 'fadeIn 0.3s ease-out', textAlign: 'center' }}>
+                  <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.1rem', fontWeight: 700, color: '#111827' }}>
+                    iRent for Android
+                  </h3>
+                  <p style={{ margin: '0 0 1.5rem', fontSize: '0.85rem', color: '#6b7280' }}>
+                    Install the PWA app on your device
+                  </p>
+
+                  <div style={{ 
+                    background: 'linear-gradient(135deg, #ecfdf5, #d1fae5)', 
+                    borderRadius: '12px', 
+                    padding: '1rem',
+                    marginBottom: '1.5rem'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                      <CheckCircle2 size={18} color="#22c55e" />
+                      <span style={{ fontSize: '0.85rem', fontWeight: 500, color: '#065f46' }}>Native app experience</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                      <CheckCircle2 size={18} color="#22c55e" />
+                      <span style={{ fontSize: '0.85rem', fontWeight: 500, color: '#065f46' }}>Works offline</span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={async () => {
+                      if (deferredPrompt) {
+                        await deferredPrompt.prompt();
+                        const { outcome } = await deferredPrompt.userChoice;
+                        if (outcome === 'accepted') {
+                          setDeferredPrompt(null);
+                          setIsPwaInstalled(true);
+                          setIsInstallPanelOpen(false);
+                        }
+                      }
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '0.875rem 1.5rem',
+                      borderRadius: '12px',
+                      border: 'none',
+                      background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+                      color: '#ffffff',
+                      fontSize: '1rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem',
+                      boxShadow: '0 4px 12px rgba(34,197,94,0.3)',
+                      transition: 'transform 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                  >
+                    <Download size={20} />
+                    Install Now
+                  </button>
+                </div>
+              ) : (
+                <div style={{ animation: 'fadeIn 0.3s ease-out', textAlign: 'center' }}>
+                  <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.1rem', fontWeight: 700, color: '#111827' }}>
+                    iRent for iOS
+                  </h3>
+                  <p style={{ margin: '0 0 1.5rem', fontSize: '0.85rem', color: '#6b7280' }}>
+                    Add to home screen for app-like experience
+                  </p>
+
+                  <div style={{ 
+                    background: 'linear-gradient(135deg, #eff6ff, #dbeafe)', 
+                    borderRadius: '12px', 
+                    padding: '1rem',
+                    marginBottom: '1.5rem'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                      <CheckCircle2 size={18} color="#3b82f6" />
+                      <span style={{ fontSize: '0.85rem', fontWeight: 500, color: '#1e40af' }}>Standalone mode</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                      <CheckCircle2 size={18} color="#3b82f6" />
+                      <span style={{ fontSize: '0.85rem', fontWeight: 500, color: '#1e40af' }}>Full-screen experience</span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      // iOS requires manual Add to Home Screen
+                      // Show share sheet hint
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '0.875rem 1.5rem',
+                      borderRadius: '12px',
+                      border: 'none',
+                      background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                      color: '#ffffff',
+                      fontSize: '1rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem',
+                      boxShadow: '0 4px 12px rgba(59,130,246,0.3)',
+                      transition: 'transform 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                  >
+                    <Download size={20} />
+                    Add to Home Screen
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* PWA Install Modal */}
       {isPwaModalOpen && (
         <InstallPwaModal
           isOpen={isPwaModalOpen}
           onClose={() => setIsPwaModalOpen(false)}
-          onInstall={() => {
+          onInstall={async () => {
             if (deferredPrompt) {
-              deferredPrompt.prompt();
-              deferredPrompt.userChoice.then(({ outcome }: any) => {
-                if (outcome === 'accepted') setDeferredPrompt(null);
-              });
+              await deferredPrompt.prompt();
+              const { outcome } = await deferredPrompt.userChoice;
+              if (outcome === 'accepted') {
+                setDeferredPrompt(null);
+                setShowInstallPopup(false);
+              }
             }
+            setIsPwaModalOpen(false);
           }}
           isAndroid={isAndroid}
         />

@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ShieldCheck, MapPin, Share2, FileText } from 'lucide-react';
+import { ShieldCheck, MapPin, Share2, FileText, LayoutDashboard, ChevronRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { selectRows, insertRows } from '../lib/supabase';
 import ListingMap from '../components/ListingMap';
 import { mapListingRow } from '../lib/listings';
 
-const PRIMARY = '#1D9E75';
+const PRIMARY = '#16a34a';
 
 type Booking = {
   id: string;
@@ -360,7 +360,7 @@ export default function MyRoomPage() {
       <div className="container section" style={{ textAlign: 'center', padding: '3rem 1rem' }}>
         <h1 style={{ marginBottom: '0.6rem' }}>My room</h1>
         <div style={{
-          height: 48, width: 48, border: '4px solid #eef6f3', borderTop: '4px solid #1D9E75',
+          height: 48, width: 48, border: '4px solid #eef6f3', borderTop: '4px solid #16a34a',
           borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 1.5rem'
         }} />
         <p className="muted">
@@ -383,7 +383,7 @@ export default function MyRoomPage() {
             </p>
             <button
               onClick={() => setRetryCount(prev => prev + 1)}
-              style={{ background: 'none', border: 'none', color: '#1D9E75', fontWeight: 700, cursor: 'pointer', marginTop: '0.5rem' }}
+              style={{ background: 'none', border: 'none', color: '#16a34a', fontWeight: 700, cursor: 'pointer', marginTop: '0.5rem' }}
             >
               Refresh now
             </button>
@@ -394,7 +394,20 @@ export default function MyRoomPage() {
   }
 
   return (
-    <div className="container section">
+    <>
+      {/* Breadcrumb Header */}
+      <header style={{background:'white',borderRadius:'12px',padding:'1rem 1.25rem',margin:'1rem 1rem 0',boxShadow:'0 1px 3px rgba(0,0,0,0.06)'}}>
+        <nav style={{display:'flex',alignItems:'center',gap:'0.5rem',fontSize:'0.9rem'}}>
+          <Link to="/tenant/dashboard" style={{display:'flex',alignItems:'center',gap:'0.35rem',color:'#64748b',textDecoration:'none'}}>
+            <LayoutDashboard size={16} />
+            <span>Dashboard</span>
+          </Link>
+          <ChevronRight size={16} style={{color:'#cbd5e1'}} />
+          <span style={{color:'#1e293b',fontWeight:600}}>My Room</span>
+        </nav>
+      </header>
+
+      <div className="container section" style={{paddingTop:0}}>
 
       {/* ── Room Header & Content ── */}
 
@@ -402,10 +415,10 @@ export default function MyRoomPage() {
 
         {/* ── Green header banner ── */}
         <div style={{
-          background: '#1D9E75', borderRadius: 16, padding: '1.25rem 1.5rem',
+          background: '#16a34a', borderRadius: 16, padding: '1.25rem 1.5rem',
           marginBottom: '1rem', color: '#fff', marginLeft: '0.75rem', marginRight: '0.75rem'
         }}>
-          <p style={{ margin: 0, fontSize: '0.85rem', color: '#9FE1CB' }}>
+          <p style={{ margin: 0, fontSize: '0.85rem', color: '#86efac' }}>
             Hi {user?.fullName?.split(' ')[0] || 'there'} — your room is confirmed
           </p>
           <h1 style={{ margin: '0.25rem 0 0', fontSize: '1.5rem', fontWeight: 800, color: '#fff' }}>
@@ -484,8 +497,8 @@ export default function MyRoomPage() {
                       border: 'none',
                       background: 'transparent',
                       fontWeight: activeTab === tab ? 700 : 400,
-                      color: activeTab === tab ? '#1D9E75' : 'var(--mid)',
-                      borderBottom: activeTab === tab ? '2px solid #1D9E75' : '2px solid transparent',
+                      color: activeTab === tab ? '#16a34a' : 'var(--mid)',
+                      borderBottom: activeTab === tab ? '2px solid #16a34a' : '2px solid transparent',
                       cursor: 'pointer',
                       fontSize: '0.88rem',
                       whiteSpace: 'nowrap',
@@ -521,7 +534,7 @@ export default function MyRoomPage() {
                   {/* Room type badge */}
                   <span style={{
                     position: 'absolute', top: 12, left: 12,
-                    background: '#1D9E75', color: '#fff',
+                    background: '#16a34a', color: '#fff',
                     padding: '0.35rem 0.75rem', borderRadius: 999, fontSize: '0.82rem', fontWeight: 700
                   }}>
                     {listing?.room_type || 'Room'}
@@ -542,7 +555,7 @@ export default function MyRoomPage() {
                         onClick={() => setActivePhotoIndex(idx)}
                         style={{
                           borderRadius: 10, overflow: 'hidden', cursor: 'pointer',
-                          border: activePhotoIndex === idx ? '3px solid #1D9E75' : '3px solid transparent',
+                          border: activePhotoIndex === idx ? '3px solid #16a34a' : '3px solid transparent',
                           transition: 'transform 0.2s',
                           transform: activePhotoIndex === idx ? 'scale(0.95)' : 'scale(1)'
                         }}
@@ -578,11 +591,11 @@ export default function MyRoomPage() {
                 <div className="card" style={{ padding: '0.9rem', borderRadius: 12, marginLeft: '0.75rem', marginRight: '0.75rem' }}>
                   <p style={{ margin: '0 0 0.5rem', fontSize: '0.85rem', color: 'var(--mid)' }}>Lease progress</p>
                   <div style={{ background: 'var(--cream)', borderRadius: 999, height: 8, overflow: 'hidden' }}>
-                    <div style={{ background: '#1D9E75', width: `${leaseProgressPct}%`, height: '100%', borderRadius: 999 }} />
+                    <div style={{ background: '#16a34a', width: `${leaseProgressPct}%`, height: '100%', borderRadius: 999 }} />
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.35rem' }}>
                     <span style={{ fontSize: '0.78rem', color: 'var(--mid)' }}>{formatDate(booking?.move_in_date)}</span>
-                    <span style={{ fontSize: '0.78rem', color: '#1D9E75', fontWeight: 600 }}>
+                    <span style={{ fontSize: '0.78rem', color: '#16a34a', fontWeight: 600 }}>
                       {booking?.months_duration || 0} month lease
                     </span>
                     <span style={{ fontSize: '0.78rem', color: 'var(--mid)' }}>
@@ -726,7 +739,7 @@ export default function MyRoomPage() {
                     background: '#E8F6EF', borderRadius: 10, padding: '0.75rem',
                     marginBottom: '0.6rem', display: 'flex', alignItems: 'center', gap: '0.5rem'
                   }}>
-                    <MapPin size={16} style={{ color: '#1D9E75', flexShrink: 0 }} />
+                    <MapPin size={16} style={{ color: '#16a34a', flexShrink: 0 }} />
                     <span style={{ fontSize: '0.88rem', color: '#085041' }}>
                       {[listing?.street || listing?.ward, listing?.district].filter(Boolean).join(', ') || 'Dar es Salaam'}
                     </span>
@@ -836,7 +849,7 @@ export default function MyRoomPage() {
                       <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--mid)' }}>
                         {landlord?.role === 'dalali' ? 'Verified Dalali' : 'Property Owner'}
                         {landlord?.verification_status === 'APPROVED' && (
-                          <span style={{ color: '#1D9E75', marginLeft: '0.4rem' }}>· Verified</span>
+                          <span style={{ color: '#16a34a', marginLeft: '0.4rem' }}>· Verified</span>
                         )}
                       </p>
                     </div>
@@ -845,13 +858,13 @@ export default function MyRoomPage() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontSize: '0.85rem', color: 'var(--mid)' }}>Phone</span>
                       {landlord?.phone
-                        ? <a href={`tel:${landlord.phone}`} style={{ color: '#1D9E75', fontWeight: 600, textDecoration: 'none' }}>{landlord.phone}</a>
+                        ? <a href={`tel:${landlord.phone}`} style={{ color: '#16a34a', fontWeight: 600, textDecoration: 'none' }}>{landlord.phone}</a>
                         : <span style={{ color: 'var(--mid)' }}>—</span>}
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontSize: '0.85rem', color: 'var(--mid)' }}>WhatsApp</span>
                       {landlord?.phone
-                        ? <a href={`https://wa.me/${landlord.phone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#1D9E75', fontWeight: 600, textDecoration: 'none' }}>Open WhatsApp</a>
+                        ? <a href={`https://wa.me/${landlord.phone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#16a34a', fontWeight: 600, textDecoration: 'none' }}>Open WhatsApp</a>
                         : <span style={{ color: 'var(--mid)' }}>—</span>}
                     </div>
                   </div>
@@ -871,7 +884,7 @@ export default function MyRoomPage() {
                   <p style={{ margin: '0 0 0.75rem', fontSize: '0.78rem', color: 'var(--mid)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>iRent Support</p>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: '0.85rem', color: 'var(--mid)' }}>Helpline</span>
-                    <a href="tel:+255800000000" style={{ color: '#1D9E75', fontWeight: 600, textDecoration: 'none' }}>+255 800 000 000</a>
+                    <a href="tel:+255800000000" style={{ color: '#16a34a', fontWeight: 600, textDecoration: 'none' }}>+255 800 000 000</a>
                   </div>
                 </div>
               </div>
@@ -914,7 +927,7 @@ export default function MyRoomPage() {
                   <p style={{ margin: '0 0 0.75rem', fontWeight: 700 }}>Tenancy Agreement</p>
                   <div style={{ background: 'var(--cream)', borderRadius: 10, padding: '0.9rem', marginBottom: '0.9rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                      <FileText size={16} style={{ color: '#1D9E75' }} />
+                      <FileText size={16} style={{ color: '#16a34a' }} />
                       <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>Rental Agreement</span>
                     </div>
                     <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--mid)', lineHeight: 1.6 }}>
@@ -977,7 +990,7 @@ export default function MyRoomPage() {
 
                 <div className="card" style={{ padding: '1rem', borderRadius: 14 }}>
                   <p style={{ margin: '0 0 0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <ShieldCheck size={18} style={{ color: '#1D9E75' }} /> Emergency stats & contacts
+                    <ShieldCheck size={18} style={{ color: '#16a34a' }} /> Emergency stats & contacts
                   </p>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                     <div style={{ padding: '0.75rem', background: '#FEF2F2', borderRadius: 10 }}>
@@ -996,6 +1009,7 @@ export default function MyRoomPage() {
         )}
       </div>
     </div>
+    </>
   );
 }
 

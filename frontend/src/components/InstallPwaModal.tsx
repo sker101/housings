@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Smartphone, Share, Download, Plus } from 'lucide-react';
 
 interface InstallPwaModalProps {
@@ -10,6 +10,18 @@ interface InstallPwaModalProps {
 
 export default function InstallPwaModal({ isOpen, onClose, onInstall, isAndroid: initialIsAndroid }: InstallPwaModalProps) {
   const [platform, setPlatform] = useState<'ios' | 'android'>(initialIsAndroid ? 'android' : 'ios');
+
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.touchAction = 'none';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -37,8 +49,10 @@ export default function InstallPwaModal({ isOpen, onClose, onInstall, isAndroid:
         background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
         animation: 'fadeIn 0.2s ease-out',
         padding: '0',
+        overscrollBehavior: 'contain',
       }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onTouchMove={(e) => e.stopPropagation()}
     >
       <style>{`
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -131,7 +145,7 @@ export default function InstallPwaModal({ isOpen, onClose, onInstall, isAndroid:
         {/* Action Buttons */}
         <div style={{ padding: '0 1.5rem 1.5rem' }}>
           {platform === 'android' && (
-            <button onClick={() => { onInstall(); onClose(); }} style={{
+            <button onClick={() => { onInstall(); }} style={{
               width: '100%', padding: '0.9rem', borderRadius: '14px', border: 'none',
               background: 'linear-gradient(135deg, #22c55e, #16a34a)',
               color: '#fff', fontWeight: 700, fontSize: '0.95rem',

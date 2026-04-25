@@ -563,7 +563,7 @@ export default function HomePage() {
 
       <section className="room-grid-section" ref={resultsRef}>
         <div className="room-grid-section__inner">
-          {error && <div className="error-box">{error}</div>}
+          {error && filteredListings.length > 0 && <div className="error-box">{error}</div>}
           
           {viewMode === 'map' ? (
             <div style={{ position: 'relative', width: '100%', height: 'calc(100vh - 220px)', borderRadius: '24px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: 'var(--shadow-soft)' }}>
