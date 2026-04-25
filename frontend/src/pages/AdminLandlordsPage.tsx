@@ -257,21 +257,29 @@ export default function AdminLandlordsPage() {
   const previewProfile = useMemo(() => allProfiles.find(p => p.id === previewProfileId), [allProfiles, previewProfileId]);
   const previewListings = previewProfileId ? listingsByLister[previewProfileId] || [] : [];
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   return (
-    <div className="container section" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ marginBottom: '2rem' }}>
-          <h1 style={{ margin: 0, fontSize: '2rem', color: '#1A1A2E' }}>Project Manager Verification</h1>
-          <p style={{ color: 'var(--mid)', marginTop: '0.25rem', fontSize: '1rem', maxWidth: 600 }}>
-            Verify project manager profiles to enable their listing submission privileges. Verification is now mandatory for all listers.
+    <div className="container section" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: isMobile ? '1rem' : undefined }}>
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div style={{ marginBottom: isMobile ? '1rem' : '2rem' }}>
+          <h1 style={{ margin: 0, fontSize: isMobile ? '1.5rem' : '2rem', color: '#1A1A2E' }}>Vetting & Verification</h1>
+          <p style={{ color: 'var(--mid)', marginTop: '0.25rem', fontSize: isMobile ? '0.85rem' : '1rem', maxWidth: 600 }}>
+            Mandatory verification for all listers.
           </p>
         </div>
         <div style={{ position: 'relative' }}>
           <button type="button" className="btn btn--ghost" onClick={() => setNotifOpen(!notifOpen)}>🔔</button>
           {notifOpen && (
-            <div className="card" style={{ position: 'absolute', right: 0, top: '100%', width: 280, zIndex: 100, padding: '0.5rem', maxHeight: 300, overflowY: 'auto' }}>
+            <div className="card" style={{ position: 'absolute', right: 0, top: '100%', width: 280, zIndex: 100, padding: '0.5rem', maxHeight: 300, overflowY: 'auto', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}>
               <strong>Recent Activity</strong>
-              {notifications.map(n => <div key={n.id} style={{ fontSize: '0.8rem', padding: '0.3rem 0' }}>{n.poster_name}: {n.room_type}</div>)}
+              {notifications.map(n => <div key={n.id} style={{ fontSize: '0.8rem', padding: '0.3rem 0', borderBottom: '1px solid #f3f4f6' }}>{n.poster_name}: {n.room_type}</div>)}
             </div>
           )}
         </div>
@@ -279,20 +287,29 @@ export default function AdminLandlordsPage() {
 
       {error && <p className="error-text">{error}</p>}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.6rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.6rem' }}>
         <StatCard label="Total" value={counts.total} color="var(--ink)" />
         <StatCard label="Pending" value={counts.pending} color={AMBER} />
         <StatCard label="Verified" value={counts.verified} color={PRIMARY} />
         <StatCard label="Rejected" value={counts.rejected} color={RED} />
       </div>
 
-      <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
+      <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.5rem', margin: isMobile ? '0 -1rem 0.5rem' : undefined, paddingLeft: isMobile ? '1rem' : undefined }}>
         {(['pending', 'verified', 'rejected', 'all'] as const).map(tab => (
           <button 
             key={tab} 
             onClick={() => setActiveTab(tab)} 
             className={`btn ${activeTab === tab ? '' : 'btn--ghost'}`}
-            style={{ borderRadius: 12, padding: '0.4rem 0.8rem', minWidth: 90, background: activeTab === tab ? PRIMARY : undefined, color: activeTab === tab ? '#fff' : undefined }}
+            style={{ 
+              borderRadius: 12, 
+              padding: '0.4rem 0.8rem', 
+              minWidth: 90, 
+              background: activeTab === tab ? PRIMARY : '#f3f4f6', 
+              color: activeTab === tab ? '#fff' : '#64748b',
+              whiteSpace: 'nowrap',
+              fontSize: '0.8rem',
+              fontWeight: 700
+            }}
           >
             {tab.charAt(0).toUpperCase() + tab.slice(1)} ({tab === 'pending' ? counts.pending : tab === 'verified' ? counts.verified : tab === 'rejected' ? counts.rejected : counts.total})
           </button>
@@ -300,32 +317,70 @@ export default function AdminLandlordsPage() {
       </div>
 
       {loading ? <p className="muted">Loading project managers...</p> : (
-        <div style={{ display: 'grid', gap: '0.6rem' }}>
-          {filteredProfiles.map(p => (
-            <div key={p.id} className="card" style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', padding: '0.8rem' }}>
-              <div style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--cream)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: PRIMARY }}>
-                {(p.full_name || 'D')[0].toUpperCase()}
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                  <h3 style={{ margin: 0, fontSize: '0.95rem' }}>{p.full_name}</h3>
-                  {verificationPill(p.verification_status || 'pending')}
+        <div style={{ display: 'grid', gap: '0.75rem', paddingBottom: '3rem' }}>
+          {filteredProfiles.map(p => {
+            if (isMobile) {
+              return (
+                <div key={p.id} className="card" style={{ padding: '1rem', border: '1px solid var(--border)', borderRadius: 14 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                      <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--cream)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: PRIMARY }}>
+                        {(p.full_name || 'D')[0].toUpperCase()}
+                      </div>
+                      <div>
+                        <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700 }}>{p.full_name}</h3>
+                        <p style={{ margin: 0, color: 'var(--mid)', fontSize: '0.75rem' }}>{p.phone}</p>
+                      </div>
+                    </div>
+                    {verificationPill(p.verification_status || 'pending')}
+                  </div>
+                  
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', padding: '0.5rem', background: '#f9fafb', borderRadius: 8 }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--mid)' }}>Joined {timeAgo(p.created_at)}</span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{listingsByLister[p.id]?.length || 0} Listings</span>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '0.4rem' }}>
+                    <button className="btn btn--ghost btn--small" style={{ flex: 1 }} onClick={() => setPreviewProfileId(p.id)}>Inspect</button>
+                    {(p.verification_status || 'pending').toLowerCase() === 'pending' && (
+                      <>
+                        <button className="btn btn--ghost btn--small" style={{ color: RED, flex: 1 }} onClick={() => setRejectTarget(p.id)}>Reject</button>
+                        <button className="btn btn--small" style={{ background: PRIMARY, color: '#fff', flex: 1.5 }} onClick={() => handleApprove(p.id)} disabled={actionLoading === p.id}>
+                          {actionLoading === p.id ? '...' : 'Approve'}
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
-                <p style={{ margin: 0, color: 'var(--mid)', fontSize: '0.8rem' }}>{p.phone} • Joined {timeAgo(p.created_at)}</p>
+              );
+            }
+            
+            return (
+              <div key={p.id} className="card" style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', padding: '0.8rem' }}>
+                <div style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--cream)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: PRIMARY }}>
+                  {(p.full_name || 'D')[0].toUpperCase()}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <h3 style={{ margin: 0, fontSize: '0.95rem' }}>{p.full_name}</h3>
+                    {verificationPill(p.verification_status || 'pending')}
+                  </div>
+                  <p style={{ margin: 0, color: 'var(--mid)', fontSize: '0.8rem' }}>{p.phone} • Joined {timeAgo(p.created_at)}</p>
+                </div>
+                <div style={{ display: 'flex', gap: '0.4rem' }}>
+                  <button className="btn btn--ghost btn--small" onClick={() => setPreviewProfileId(p.id)}>Inspect</button>
+                  {(p.verification_status || 'pending').toLowerCase() === 'pending' && (
+                    <>
+                      <button className="btn btn--ghost btn--small" style={{ color: RED }} onClick={() => setRejectTarget(p.id)}>Reject</button>
+                      <button className="btn btn--small" style={{ background: PRIMARY, color: '#fff' }} onClick={() => handleApprove(p.id)} disabled={actionLoading === p.id}>
+                        {actionLoading === p.id ? '...' : 'Approve'}
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
-              <div style={{ display: 'flex', gap: '0.4rem' }}>
-                <button className="btn btn--ghost btn--small" onClick={() => setPreviewProfileId(p.id)}>Inspect</button>
-                {(p.verification_status || 'pending').toLowerCase() === 'pending' && (
-                  <>
-                    <button className="btn btn--ghost btn--small" style={{ color: RED }} onClick={() => setRejectTarget(p.id)}>Reject</button>
-                    <button className="btn btn--small" style={{ background: PRIMARY, color: '#fff' }} onClick={() => handleApprove(p.id)} disabled={actionLoading === p.id}>
-                      {actionLoading === p.id ? '...' : 'Approve'}
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

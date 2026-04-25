@@ -48,13 +48,58 @@ export function useListings(
         // status is usually for properties
       }
 
-      const rows = await selectRows('rooms', {
-        select: '*, properties(*), room_photos(*)',
-        filters,
-        order: 'created_at.desc',
-        limit: filter.limit ?? 100,
-        accessToken: accessToken || undefined,
-      });
+      let rows = [];
+      try {
+        rows = await selectRows('rooms', {
+          select: '*, properties(*), room_photos(*)',
+          filters,
+          order: 'created_at.desc',
+          limit: filter.limit ?? 100,
+          accessToken: accessToken || undefined,
+        });
+      } catch (e) {
+        console.warn('[useListings] Fetch from "rooms" failed, falling back to "listings":', e);
+      }
+
+      // FALLBACK: If rooms fetch failed or returned nothing for an owner, try the old 'listings' table
+      if (rows.length === 0) {
+        try {
+          const legacyRows = await selectRows('listings', {
+            select: '*',
+            filters: filter.ownerId ? [{ column: 'lister_id', op: 'eq', value: filter.ownerId }] : [],
+            order: 'created_at.desc',
+            limit: filter.limit ?? 100,
+            accessToken: accessToken || undefined,
+          });
+          
+          if (legacyRows.length > 0) {
+            console.log(`[useListings] Found ${legacyRows.length} legacy listings for owner ${filter.ownerId}`);
+            rows = legacyRows.map(lr => ({
+              id: lr.id,
+              properties: {
+                landlord_id: lr.lister_id,
+                title: lr.title,
+                city: lr.region,
+                neighbourhood: lr.ward,
+                address: lr.street,
+                latitude: lr.lat,
+                longitude: lr.lng,
+                is_featured: lr.featured,
+                description: lr.description
+              },
+              price_tzs: lr.price_monthly,
+              room_type: lr.room_type,
+              amenities: typeof lr.amenities === 'string' ? JSON.parse(lr.amenities) : (lr.amenities || []),
+              availability_status: lr.vacancy_status || 'available',
+              created_at: lr.created_at,
+              description: lr.description,
+              room_photos: [] // Photos would need another fetch from listing_photos if needed
+            }));
+          }
+        } catch (e) {
+          console.error('[useListings] Fallback fetch from "listings" failed:', e);
+        }
+      }
 
       // Map backend columns back to frontend expected structure
       const mappedListings = rows.map((r: any) => {
@@ -77,11 +122,11 @@ export function useListings(
           lng: prop.longitude,
           status: 'approved', // mock status
           room_type: r.room_type,
-          amenities: r.amenities || [],
+          amenities: Array.isArray(r.amenities) ? r.amenities : (typeof r.amenities === 'object' ? Object.keys(r.amenities).filter(k => r.amenities[k]) : []),
           vacancy_status: r.availability_status,
           featured: prop.is_featured,
           created_at: r.created_at,
-          photos: photos.map((p: any) => p.photo_url),
+          photos: photos.map((p: any) => p.photo_url || p.public_url),
           property_id: prop.id,
         };
       }).filter(Boolean);

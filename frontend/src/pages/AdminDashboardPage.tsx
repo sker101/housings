@@ -264,16 +264,24 @@ export default function AdminDashboardPage() {
     } catch (e: any) { setError(e.message); }
   }
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // ─── Render helpers ───────────────────────────────────────────────
   const gridStyle: React.CSSProperties = {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-    gap: '1rem',
+    gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fill, minmax(200px, 1fr))',
+    gap: isMobile ? '0.6rem' : '1rem',
     marginBottom: '2rem',
   };
 
   const chartCard = (title: string, children: React.ReactNode) => (
-    <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '1.25rem', marginBottom: '1.5rem' }}>
+    <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: isMobile ? '1rem' : '1.25rem', marginBottom: '1rem' }}>
       <p style={{ fontWeight: 700, marginBottom: '1rem', fontSize: '0.95rem' }}>{title}</p>
       {children}
     </div>
@@ -284,13 +292,13 @@ export default function AdminDashboardPage() {
     function renderOverview() {
       return (
         <>
-          <SectionHeader title="📊 iRent Platform Performance" sub="Live snapshot of all key platform metrics." />
-          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
-            <Link to="/admin/landlords" className="btn btn--ghost btn--small" style={{ border: '1px solid var(--border)' }}>
-              Verify project manager accounts
+          <SectionHeader title={isMobile ? "Platform Performance" : "📊 iRent Platform Performance"} sub={isMobile ? "Live snapshot of key metrics." : "Live snapshot of all key platform metrics."} />
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
+            <Link to="/admin/landlords" className="btn btn--ghost btn--small" style={{ border: '1px solid var(--border)', flex: isMobile ? 1 : 'none', fontSize: '0.75rem' }}>
+              Verify Listers
             </Link>
-            <Link to="/admin/listings" className="btn btn--ghost btn--small" style={{ border: '1px solid var(--border)' }}>
-              Moderate listings
+            <Link to="/admin/listings" className="btn btn--ghost btn--small" style={{ border: '1px solid var(--border)', flex: isMobile ? 1 : 'none', fontSize: '0.75rem' }}>
+              Moderate Listings
             </Link>
           </div>
           <div style={gridStyle}>
@@ -298,15 +306,19 @@ export default function AdminDashboardPage() {
             <StatCard label="Total Listings" value={stats.totalListings} color="#22c55e" />
             <StatCard label="Total Bookings" value={stats.totalBookings} color="#f59e0b" />
             <StatCard label="Reports" value={stats.totalReports} color="#ef4444" />
-            <StatCard label="Location Shares" value={stats.totalLocationShares} color="#06b6d4" sub="Properties shared externally" />
-            <StatCard label="Referrals" value={stats.totalReferrals} color="#f59e0b" sub="Tenant-to-tenant referrals" />
-            <StatCard label="Reviews" value={stats.totalReviews} color="#8b5cf6" sub={`Avg rating: ${stats.avgRating}`} />
-            <StatCard label="Payments" value={stats.totalPaymentsCount} color="#06b6d4" />
             <StatCard label="Revenue" value={`${Number(stats.totalRevenue || 0).toLocaleString()} TZS`} color="#10b981" />
             <StatCard label="Claims" value={stats.totalClaims} color="#f97316" sub={`${stats.pendingClaims} pending`} />
+            {!isMobile && (
+              <>
+                <StatCard label="Location Shares" value={stats.totalLocationShares} color="#06b6d4" sub="Properties shared externally" />
+                <StatCard label="Referrals" value={stats.totalReferrals} color="#f59e0b" sub="Tenant-to-tenant referrals" />
+                <StatCard label="Reviews" value={stats.totalReviews} color="#8b5cf6" sub={`Avg rating: ${stats.avgRating}`} />
+                <StatCard label="Payments" value={stats.totalPaymentsCount} color="#06b6d4" />
+              </>
+            )}
           </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
           {chartCard('Users by Role',
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>

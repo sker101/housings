@@ -904,6 +904,44 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
                   <span>{profileLabel}</span>
                 </NavLink>
               </>
+            ) : isAuthenticated && user?.role === APP_ROLE.ADMIN ? (
+              <>
+                <NavLink
+                  to="/admin/users"
+                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                  style={({ isActive }) => ({ color: isActive ? '#22c55e' : '#6b7280' })}
+                >
+                  <User size={22} />
+                  <span>Users</span>
+                </NavLink>
+
+                <NavLink
+                  to="/admin/landlords"
+                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                  style={({ isActive }) => ({ color: isActive ? '#22c55e' : '#6b7280' })}
+                >
+                  <Shield size={22} />
+                  <span>Vetting</span>
+                </NavLink>
+
+                <NavLink
+                  to="/admin/listings"
+                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                  style={({ isActive }) => ({ color: isActive ? '#22c55e' : '#6b7280' })}
+                >
+                  <Home size={22} />
+                  <span>Listings</span>
+                </NavLink>
+
+                <NavLink
+                  to="/admin/reports"
+                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                  style={({ isActive }) => ({ color: isActive ? '#22c55e' : '#6b7280' })}
+                >
+                  <Bell size={22} />
+                  <span>Reports</span>
+                </NavLink>
+              </>
             ) : (
               <>
                 <NavLink

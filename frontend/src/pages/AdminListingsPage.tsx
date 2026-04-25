@@ -187,15 +187,90 @@ export default function AdminListingsPage() {
     return 'var(--mid)';
   };
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   return (
     <>
+      <style>{`
+        .admin-tabs-container {
+          display: flex;
+          gap: 0.35rem;
+          margin-bottom: 1.25rem;
+          overflow-x: auto;
+          padding-bottom: 0.5rem;
+          -webkit-overflow-scrolling: touch;
+        }
+        .admin-tabs-container::-webkit-scrollbar {
+          display: none;
+        }
+        .listing-mobile-card {
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 14px;
+          padding: 1rem;
+          margin-bottom: 0.75rem;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        }
+        .listing-card-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 0.75rem;
+        }
+        .listing-card-title {
+          font-weight: 700;
+          font-size: 0.95rem;
+          color: var(--top);
+          margin: 0;
+          line-height: 1.3;
+        }
+        .listing-card-meta {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 0.75rem;
+          margin-bottom: 1rem;
+          padding: 0.75rem;
+          background: #f9fafb;
+          border-radius: 10px;
+        }
+        .meta-item label {
+          display: block;
+          font-size: 0.65rem;
+          text-transform: uppercase;
+          color: var(--mid);
+          font-weight: 700;
+          margin-bottom: 0.1rem;
+        }
+        .meta-item value {
+          display: block;
+          font-size: 0.8rem;
+          font-weight: 600;
+          color: var(--top);
+        }
+        .listing-card-actions {
+          display: flex;
+          gap: 0.4rem;
+          flex-wrap: wrap;
+        }
+        .listing-card-actions > * {
+          flex: 1;
+          min-width: 80px;
+        }
+      `}</style>
+
       {/* Title */}
       <div style={{ marginBottom: '1rem' }}>
-        <h2 style={{ fontFamily: " sans-serif", fontWeight: 800, fontSize: '1.2rem', margin: 0 }}>
-          All Listings
+        <h2 style={{ fontFamily: " sans-serif", fontWeight: 800, fontSize: isMobile ? '1.1rem' : '1.2rem', margin: 0 }}>
+          {isMobile ? 'Listings Moderation' : 'All Listings'}
         </h2>
         <p style={{ color: 'var(--mid)', fontSize: '0.84rem', marginTop: '0.2rem' }}>
-          View, moderate and manage every property on the platform.
+          {isMobile ? 'Review and manage properties.' : 'View, moderate and manage every property on the platform.'}
         </p>
       </div>
 
@@ -205,30 +280,30 @@ export default function AdminListingsPage() {
           <Search size={15} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--mid)' }} />
           <input
             type="text"
-            placeholder="Search by title, lister name, district…"
+            placeholder="Search listings…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            style={{ paddingLeft: '2.2rem', width: '100%' }}
+            style={{ paddingLeft: '2.2rem', width: '100%', borderRadius: '12px' }}
           />
         </div>
-        <button className="btn btn--ghost btn--small" onClick={loadListings} title="Refresh" style={{ flexShrink: 0 }}>
+        <button className="btn btn--ghost btn--small" onClick={loadListings} title="Refresh" style={{ flexShrink: 0, borderRadius: '12px' }}>
           <RefreshCw size={14} />
         </button>
       </div>
 
-      {/* Status Tabs */}
-      <div style={{ display: 'flex', gap: '0.35rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+      {/* Status Tabs - Scrollable */}
+      <div className="admin-tabs-container">
         {STATUS_TABS.map((tab) => {
           const isActive = activeTab === tab.key;
           return (
             <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
               display: 'flex', alignItems: 'center', gap: '0.35rem',
-              padding: '0.38rem 0.75rem', borderRadius: 99,
+              padding: '0.45rem 0.9rem', borderRadius: 99,
               border: isActive ? '2px solid var(--jade)' : '1px solid var(--border)',
               background: isActive ? 'var(--jade-muted, #e8f8f2)' : 'var(--surface)',
               color: isActive ? 'var(--jade)' : 'var(--mid)',
               fontWeight: isActive ? 700 : 500, fontSize: '0.8rem', cursor: 'pointer',
-              transition: 'all 0.15s',
+              transition: 'all 0.15s', whiteSpace: 'nowrap', flexShrink: 0
             }}>
               {tab.icon}
               {tab.label}
@@ -236,7 +311,7 @@ export default function AdminListingsPage() {
                 background: isActive ? 'var(--jade)' : 'var(--border)',
                 color: isActive ? '#fff' : 'var(--mid)',
                 borderRadius: 99, fontSize: '0.7rem', fontWeight: 700,
-                padding: '0 0.4rem', lineHeight: '1.5',
+                padding: '0 0.4rem', lineHeight: '1.5', marginLeft: '0.2rem'
               }}>
                 {counts[tab.key]}
               </span>
@@ -245,7 +320,7 @@ export default function AdminListingsPage() {
         })}
       </div>
 
-      {/* Table */}
+      {/* Content Area */}
       {loading ? (
         <div style={{ display: 'grid', gap: '0.5rem' }}><SkeletonCard variant="row" count={10} /></div>
       ) : filtered.length === 0 ? (
@@ -253,7 +328,67 @@ export default function AdminListingsPage() {
           <Building size={36} style={{ color: 'var(--mid)', marginBottom: '0.75rem' }} />
           <p style={{ color: 'var(--mid)' }}>No listings in this category.</p>
         </div>
+      ) : isMobile ? (
+        /* Mobile Card View */
+        <div style={{ paddingBottom: '3rem' }}>
+          {filtered.map((l) => (
+            <div key={l.id} className="listing-mobile-card" style={{ opacity: busyId === l.id ? 0.5 : 1 }}>
+              <div className="listing-card-header">
+                <div style={{ flex: 1, paddingRight: '0.5rem' }}>
+                  <h3 className="listing-card-title">{l.title}</h3>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--mid)', marginTop: '0.2rem' }}>
+                    {[l.ward, l.district].filter(Boolean).join(', ')}
+                  </div>
+                </div>
+                <span style={{
+                  display: 'inline-block', borderRadius: 99, padding: '0.15rem 0.55rem',
+                  fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase',
+                  color: accentFor(l.status), background: `${accentFor(l.status)}14`,
+                }}>{l.status}</span>
+              </div>
+
+              <div className="listing-card-meta">
+                <div className="meta-item">
+                  <label>Price</label>
+                  <value style={{ color: 'var(--jade)' }}>{TZSFormat(l.price_tzs)}</value>
+                </div>
+                <div className="meta-item">
+                  <label>Lister</label>
+                  <value>{l.lister_name}</value>
+                </div>
+                <div className="meta-item">
+                  <label>Type</label>
+                  <value>{l.room_type || 'Room'}</value>
+                </div>
+                <div className="meta-item">
+                  <label>Posted</label>
+                  <value>{formatDate(l.created_at)}</value>
+                </div>
+              </div>
+
+              <div className="listing-card-actions">
+                <Link to={`/listings/${l.id}`} target="_blank" rel="noopener noreferrer" className="btn btn--ghost btn--small" style={{ flex: 0.5 }}>
+                  <Eye size={14} />
+                </Link>
+                <button className="btn btn--ghost btn--small" onClick={() => handleInspect(l)} style={{ flex: 0.5, color: '#2563eb', background: '#e8f3ff' }}>
+                  <AlertTriangle size={14} />
+                </button>
+                {l.status !== 'approved' && (
+                  <button className="btn btn--small" onClick={() => moderate(l.id, 'approve')} disabled={busyId === l.id} style={{ background: 'var(--jade)', color: '#fff' }}>
+                    Approve
+                  </button>
+                )}
+                {l.status !== 'rejected' && (
+                  <button className="btn btn--red btn--small" onClick={() => { const r = prompt('Rejection reason (optional):'); moderate(l.id, 'reject', r || undefined); }} disabled={busyId === l.id}>
+                    Reject
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
       ) : (
+        /* Desktop Table View */
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', minWidth: 780 }}>
             <thead>

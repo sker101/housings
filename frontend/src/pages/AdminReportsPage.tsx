@@ -92,25 +92,34 @@ export default function AdminReportsPage() {
         await act(r.id, 'dismissed', note);
     };
 
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     return (
-        <div className="container section">
-            <div className="section__header">
+        <div className="container section" style={{ padding: isMobile ? '1rem' : undefined }}>
+            <div className="section__header" style={{ flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', gap: isMobile ? '1rem' : undefined }}>
                 <div>
-                    <h1>Listing Reports</h1>
-                    <p>Review and resolve user-submitted reports. Upholding a report will auto-flag the listing.</p>
+                    <h1 style={{ fontSize: isMobile ? '1.5rem' : '2rem' }}>Listing Reports</h1>
+                    <p style={{ fontSize: isMobile ? '0.85rem' : '1rem' }}>Review and resolve user-submitted reports. Upholding a report will auto-flag the listing.</p>
                 </div>
-                <Link to="/admin" className="btn btn--ghost btn--small">← Admin</Link>
+                <Link to="/admin" className="btn btn--ghost btn--small" style={{ alignSelf: isMobile ? 'flex-end' : 'center' }}>← Admin</Link>
             </div>
 
             {error ? <p className="error-text">{error}</p> : null}
 
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1.25rem', overflowX: 'auto', paddingBottom: '0.5rem', margin: isMobile ? '0 -1rem 1rem' : undefined, paddingLeft: isMobile ? '1rem' : undefined }}>
                 {(['pending', 'upheld', 'dismissed'] as const).map((f) => (
                     <button
                         key={f}
                         type="button"
                         className={`btn btn--small ${filter === f ? '' : 'btn--ghost'}`}
                         onClick={() => setFilter(f)}
+                        style={{ whiteSpace: 'nowrap', borderRadius: 12, padding: '0.4rem 1rem', background: filter === f ? 'var(--red)' : '#f3f4f6', color: filter === f ? '#fff' : '#64748b' }}
                     >
                         {f.charAt(0).toUpperCase() + f.slice(1)}
                     </button>

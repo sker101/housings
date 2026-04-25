@@ -89,20 +89,35 @@ export default function AdminAuditLogPage() {
     return ['all', ...new Set(logs.map((log) => log.action).filter(Boolean))];
   }, [logs]);
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   return (
-    <div className="container section">
-      <div className="section__header">
-        <div>
-          <h1>Admin Audit Log</h1>
-          <p>Chronological record of moderation actions.</p>
-        </div>
+    <div className="container" style={{ padding: isMobile ? '1rem' : '2rem', paddingBottom: '5rem' }}>
+      <div style={{ marginBottom: '2rem' }}>
+        <h1 style={{ fontSize: isMobile ? '1.5rem' : '2rem', margin: 0 }}>Admin Audit Log</h1>
+        <p style={{ color: 'var(--mid)', marginTop: '0.25rem' }}>Chronological record of moderation actions.</p>
       </div>
 
-      {loading ? <p className="muted">Loading audit log...</p> : null}
-      {error ? <p className="error-text">{error}</p> : null}
+      {loading && <p className="muted" style={{ textAlign: 'center', padding: '2rem' }}>Loading audit log...</p>}
+      {error && <p className="error-text" style={{ padding: '1rem', background: '#fee2e2', borderRadius: 8, color: '#b91c1c' }}>{error}</p>}
 
-      <section className="card filter-drawer">
-        <select value={actionFilter} onChange={(event) => setActionFilter(event.target.value)}>
+      <section style={{ 
+        display: 'grid', 
+        gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))', 
+        gap: '0.75rem', 
+        marginBottom: '1.5rem',
+        background: 'var(--surface)',
+        padding: '1rem',
+        borderRadius: 14,
+        border: '1px solid var(--border)'
+      }}>
+        <select value={actionFilter} onChange={(event) => setActionFilter(event.target.value)} style={{ width: '100%' }}>
           {actionOptions.map((action) => (
             <option key={action} value={action}>
               {action === 'all' ? 'All actions' : action}
@@ -110,7 +125,7 @@ export default function AdminAuditLogPage() {
           ))}
         </select>
 
-        <select value={targetFilter} onChange={(event) => setTargetFilter(event.target.value)}>
+        <select value={targetFilter} onChange={(event) => setTargetFilter(event.target.value)} style={{ width: '100%' }}>
           <option value="all">All targets</option>
           <option value="landlord">Landlord</option>
           <option value="listing">Listing</option>
@@ -121,37 +136,71 @@ export default function AdminAuditLogPage() {
           placeholder="Filter by admin ID"
           value={adminFilter}
           onChange={(event) => setAdminFilter(event.target.value)}
+          style={{ width: '100%' }}
         />
       </section>
 
-      <section className="card table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Time</th>
-              <th>Action</th>
-              <th>Target</th>
-              <th>Target ID</th>
-              <th>Reason</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredLogs.map((log) => (
-              <tr key={log.id}>
-                <td>{formatTimestamp(log.created_at)}</td>
-                <td>{log.action}</td>
-                <td>{log.target_type}</td>
-                <td>{log.target_id}</td>
-                <td>{log.reason || '-'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {!loading && !error && (
+        <section>
+          {isMobile ? (
+            <div style={{ display: 'grid', gap: '0.75rem' }}>
+              {filteredLogs.map((log) => (
+                <div key={log.id} style={{ 
+                  background: 'var(--surface)', 
+                  border: '1px solid var(--border)', 
+                  borderRadius: 14, 
+                  padding: '1rem',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', alignItems: 'center' }}>
+                    <span style={{ fontWeight: 700, color: 'var(--jade)', fontSize: '0.75rem', textTransform: 'uppercase' }}>{log.action}</span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--mid)' }}>{formatTimestamp(log.created_at)}</span>
+                  </div>
+                  <div style={{ marginBottom: '0.5rem' }}>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--mid)', textTransform: 'uppercase', fontWeight: 700, display: 'block' }}>Target</span>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>{log.target_type} ({log.target_id})</span>
+                  </div>
+                  {log.reason && (
+                    <div style={{ padding: '0.5rem', background: '#f9fafb', borderRadius: 8 }}>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--mid)', textTransform: 'uppercase', fontWeight: 700, display: 'block' }}>Reason</span>
+                      <p style={{ margin: 0, fontSize: '0.85rem' }}>{log.reason}</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="card" style={{ overflow: 'auto', borderRadius: 14, border: '1px solid var(--border)' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ background: 'var(--cream)', borderBottom: '1px solid var(--border)' }}>
+                    <th style={{ textAlign: 'left', padding: '0.75rem' }}>Time</th>
+                    <th style={{ textAlign: 'left', padding: '0.75rem' }}>Action</th>
+                    <th style={{ textAlign: 'left', padding: '0.75rem' }}>Target</th>
+                    <th style={{ textAlign: 'left', padding: '0.75rem' }}>Target ID</th>
+                    <th style={{ textAlign: 'left', padding: '0.75rem' }}>Reason</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredLogs.map((log) => (
+                    <tr key={log.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                      <td style={{ padding: '0.75rem' }}>{formatTimestamp(log.created_at)}</td>
+                      <td style={{ padding: '0.75rem', fontWeight: 600 }}>{log.action}</td>
+                      <td style={{ padding: '0.75rem' }}>{log.target_type}</td>
+                      <td style={{ padding: '0.75rem', fontSize: '0.8rem', color: 'var(--mid)' }}>{log.target_id}</td>
+                      <td style={{ padding: '0.75rem' }}>{log.reason || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
-        {filteredLogs.length === 0 && !loading ? (
-          <p className="muted">No audit entries yet.</p>
-        ) : null}
-      </section>
+          {filteredLogs.length === 0 && (
+            <p className="muted" style={{ textAlign: 'center', padding: '3rem' }}>No audit entries yet.</p>
+          )}
+        </section>
+      )}
     </div>
   );
 }

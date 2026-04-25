@@ -148,6 +148,14 @@ export default function AdminConfigPage() {
     }
   };
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   if (isLoading) {
     return (
       <div style={{ padding: '2rem', textAlign: 'center', color: '#6b7280' }}>
@@ -158,11 +166,11 @@ export default function AdminConfigPage() {
   }
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div style={{ padding: isMobile ? '1rem' : '2rem', maxWidth: '1200px', margin: '0 auto', paddingBottom: '4rem' }}>
+      <div style={{ marginBottom: '2rem', display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', gap: '1rem' }}>
         <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: '700', marginBottom: '0.5rem' }}>System Configuration</h1>
-          <p style={{ color: '#6b7280' }}>Manage platform settings, features, and fees</p>
+          <h1 style={{ fontSize: isMobile ? '1.5rem' : '1.75rem', fontWeight: '700', marginBottom: '0.25rem' }}>System Configuration</h1>
+          <p style={{ color: '#6b7280', fontSize: '0.9rem' }}>Manage platform settings, features, and fees</p>
         </div>
         {isDirty && (
           <button
@@ -203,8 +211,10 @@ export default function AdminConfigPage() {
                   background: '#f9fafb',
                   borderRadius: '6px',
                   display: 'flex',
+                  flexDirection: isMobile ? 'column' : 'row',
                   justifyContent: 'space-between',
-                  alignItems: 'center'
+                  alignItems: isMobile ? 'flex-start' : 'center',
+                  gap: '1rem'
                 }}
               >
                 <div>

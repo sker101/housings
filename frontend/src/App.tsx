@@ -3,7 +3,6 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import ProtectedRoute from './components/ProtectedRoute';
 import PageErrorBoundary from './components/PageErrorBoundary';
-import AuthLoader from './components/AuthLoader';
 
 // ── Public pages ──────────────────────────────────────────────
 import Layout from './components/Layout';
@@ -21,6 +20,7 @@ import CompleteProfilePage from './pages/auth/CompleteProfilePage';
 import VerifyEmailPage    from './pages/auth/VerifyEmailPage';
 
 // ── Shared Dashboard Layout (Role-based) ──────────────────────
+import RoleBasedLayout from './components/RoleBasedLayout';
 
 // ── Tenant pages ──────────────────────────────────────────────
 import TenantDashboard   from './pages/tenant/Dashboard';
@@ -75,18 +75,10 @@ function PL({ children, hideSidebar = false, hideHeader = false, hideFooter = fa
 
 /** Room Details Layout - No sidebar/nav/footer for logged in users */
 function RoomDetailsLayout({ children }: { children: React.ReactNode }) {
-  return <Layout hideSidebar={true} hideFooter={true}>{children}</Layout>;
+  return <Layout hideSidebar={true} hideHeader={true} hideFooter={true}>{children}</Layout>;
 }
 
-import { useAuth } from './context/AuthContext';
-
 export default function App() {
-  const { loading } = useAuth();
-
-  if (loading) {
-    return <AuthLoader title="Loading" subtitle="Please wait…" />;
-  }
-
   return (
     <>
       <Toaster position="bottom-right" />
@@ -113,7 +105,7 @@ export default function App() {
         <Route path="/list-property/*"   element={<Navigate to="/landlord/properties/new" replace />} />
 
         {/* ── Authenticated Routes ────── */}
-        <Route element={<Layout />}>
+        <Route element={<RoleBasedLayout />}>
           
           {/* Shared multi-role */}
           <Route path="/profile"            element={<ProtectedRoute roles={ALL}><ProfilePage /></ProtectedRoute>} />

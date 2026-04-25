@@ -66,49 +66,66 @@ export default function LandlordDashboard() {
     let mounted = true;
     async function load() {
       try {
-        // Get landlord row
-        const landlords = await selectRows('landlords', {
-          select: 'id',
-          filters: [{ column: 'profile_id', op: 'eq', value: userId! }],
-          accessToken: token!,
-        });
-        if (!mounted || !landlords.length) return;
-        const lId = (landlords[0] as {id:string}).id;
+        let lId = null;
+        try {
+          const landlords = await selectRows('landlords', {
+            select: 'id',
+            filters: [{ column: 'profile_id', op: 'eq', value: userId! }],
+            accessToken: token!,
+          });
+          if (landlords.length > 0) {
+            lId = (landlords[0] as {id:string}).id;
+          }
+        } catch (e) {
+          console.warn('[LandlordDashboard] No "landlords" table found or fetch failed:', e);
+        }
 
-        // Active leases
-        const leaseRows = await selectRows('tenant_leases', {
-          select: 'id, room_id, days_remaining, lease_end_date, status, renewal_decision, tenant:tenants(profile:profiles(full_name)), room:rooms!room_id(room_number, property:properties(title))',
-          filters: [
-            { column: 'landlord_id', op: 'eq', value: lId },
-            { column: 'status',      op: 'eq', value: 'active' },
-          ],
-          order: 'days_remaining.asc',
-          limit: 50,
-          accessToken: token!,
-        });
-        if (mounted) setLeases(leaseRows as LeaseRow[]);
+        if (mounted && lId) {
+          // Active leases
+          try {
+            const leaseRows = await selectRows('tenant_leases', {
+              select: 'id, room_id, days_remaining, lease_end_date, status, renewal_decision, tenant:tenants(profile:profiles(full_name)), room:rooms!room_id(room_number, property:properties(title))',
+              filters: [
+                { column: 'landlord_id', op: 'eq', value: lId },
+                { column: 'status',      op: 'eq', value: 'active' },
+              ],
+              order: 'days_remaining.asc',
+              limit: 50,
+              accessToken: token!,
+            });
+            setLeases(leaseRows as LeaseRow[]);
+          } catch (e) {
+            console.warn('[LandlordDashboard] Lease fetch failed (likely missing tables):', e);
+          }
 
-        // Pending documents
-        const docs = await selectRows('property_documents', {
-          select: 'id',
-          filters: [{ column: 'verification_status', op: 'eq', value: 'pending' }],
-          accessToken: token!,
-        });
-        if (mounted) setPendingDocs(docs.length);
+          // Total revenue from payments
+          try {
+            const payments = await selectRows('payments', {
+              select: 'amount_tzs',
+              filters: [
+                { column: 'landlord_id', op: 'eq', value: lId },
+                { column: 'status',      op: 'eq', value: 'completed' },
+              ],
+              limit: 5000,
+              accessToken: token!,
+            });
+            const total = (payments as {amount_tzs:number}[]).reduce((s, p) => s + (p.amount_tzs || 0), 0);
+            setTotalRevenue(total);
+          } catch (e) {
+            console.warn('[LandlordDashboard] Revenue fetch failed:', e);
+          }
+        }
 
-        // Total revenue from payments
-        const payments = await selectRows('payments', {
-          select: 'amount_tzs',
-          filters: [
-            { column: 'landlord_id', op: 'eq', value: lId },
-            { column: 'status',      op: 'eq', value: 'completed' },
-          ],
-          limit: 5000,
-          accessToken: token!,
-        });
-        if (mounted) {
-          const total = (payments as {amount_tzs:number}[]).reduce((s, p) => s + (p.amount_tzs || 0), 0);
-          setTotalRevenue(total);
+        // Pending documents (doesn't require landlord ID)
+        try {
+          const docs = await selectRows('property_documents', {
+            select: 'id',
+            filters: [{ column: 'verification_status', op: 'eq', value: 'pending' }],
+            accessToken: token!,
+          });
+          if (mounted) setPendingDocs(docs.length);
+        } catch (e) {
+           console.warn('[LandlordDashboard] property_documents fetch failed:', e);
         }
       } catch (err) {
         console.error('LandlordDashboard: failed to load', err);

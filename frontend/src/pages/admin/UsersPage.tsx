@@ -136,8 +136,74 @@ export default function AdminUsersPage() {
     return matchTab && matchSearch;
   });
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   return (
     <>
+      <style>{`
+        .admin-tabs-container {
+          display: flex;
+          gap: 0.35rem;
+          margin-bottom: 1.25rem;
+          overflow-x: auto;
+          padding-bottom: 0.5rem;
+          -webkit-overflow-scrolling: touch;
+        }
+        .admin-tabs-container::-webkit-scrollbar {
+          display: none;
+        }
+        .user-mobile-card {
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 14px;
+          padding: 1rem;
+          margin-bottom: 0.75rem;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        }
+        .user-card-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 0.75rem;
+        }
+        .user-card-name {
+          font-weight: 700;
+          font-size: 1rem;
+          color: var(--top);
+          margin: 0;
+        }
+        .user-card-details {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 0.5rem;
+          margin-bottom: 1rem;
+        }
+        .detail-label {
+          font-size: 0.7rem;
+          text-transform: uppercase;
+          color: var(--mid);
+          font-weight: 700;
+          margin-bottom: 0.1rem;
+        }
+        .detail-value {
+          font-size: 0.85rem;
+          font-weight: 500;
+          color: var(--top);
+        }
+        .user-card-actions {
+          display: flex;
+          gap: 0.5rem;
+          border-top: 1px solid var(--border);
+          padding-top: 0.75rem;
+        }
+      `}</style>
+
       {/* Header */}
       <div style={{ display: 'flex', gap: '0.6rem', marginBottom: '1rem', alignItems: 'center' }}>
         <div style={{ flex: 1, position: 'relative' }}>
@@ -147,16 +213,16 @@ export default function AdminUsersPage() {
             placeholder="Search by name or phone…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            style={{ paddingLeft: '2.2rem', width: '100%' }}
+            style={{ paddingLeft: '2.2rem', width: '100%', borderRadius: '12px' }}
           />
         </div>
-        <button className="btn btn--ghost btn--small" onClick={loadProfiles} title="Refresh" style={{ flexShrink: 0 }}>
+        <button className="btn btn--ghost btn--small" onClick={loadProfiles} title="Refresh" style={{ flexShrink: 0, borderRadius: '12px' }}>
           <RefreshCw size={14} />
         </button>
       </div>
 
-      {/* Role Tabs */}
-      <div style={{ display: 'flex', gap: '0.35rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+      {/* Role Tabs - Scrollable on mobile */}
+      <div className="admin-tabs-container">
         {TABS.map((tab) => {
           const isActive = activeTab === tab.key;
           return (
@@ -167,7 +233,7 @@ export default function AdminUsersPage() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.35rem',
-                padding: '0.38rem 0.75rem',
+                padding: '0.45rem 0.9rem',
                 borderRadius: 99,
                 border: isActive ? '2px solid var(--jade)' : '1px solid var(--border)',
                 background: isActive ? 'var(--jade-muted, #e8f8f2)' : 'var(--surface)',
@@ -176,6 +242,8 @@ export default function AdminUsersPage() {
                 fontSize: '0.8rem',
                 cursor: 'pointer',
                 transition: 'all 0.15s',
+                whiteSpace: 'nowrap',
+                flexShrink: 0
               }}
             >
               {tab.icon}
@@ -188,6 +256,7 @@ export default function AdminUsersPage() {
                 fontWeight: 700,
                 padding: '0 0.4rem',
                 lineHeight: '1.5',
+                marginLeft: '0.2rem'
               }}>
                 {counts[tab.key]}
               </span>
@@ -196,7 +265,7 @@ export default function AdminUsersPage() {
         })}
       </div>
 
-      {/* Table */}
+      {/* Content Area */}
       {loading ? (
         <div style={{ display: 'grid', gap: '0.5rem' }}><SkeletonCard variant="row" count={8} /></div>
       ) : filtered.length === 0 ? (
@@ -204,7 +273,79 @@ export default function AdminUsersPage() {
           <Users size={36} style={{ color: 'var(--mid)', marginBottom: '0.75rem' }} />
           <p style={{ color: 'var(--mid)' }}>No users found in this category.</p>
         </div>
+      ) : isMobile ? (
+        /* Mobile Card View */
+        <div style={{ paddingBottom: '2rem' }}>
+          {filtered.map((p) => (
+            <div key={p.id} className="user-mobile-card" style={{ opacity: busyId === p.id ? 0.6 : 1 }}>
+              <div className="user-card-header">
+                <div>
+                  <h3 className="user-card-name">{p.full_name || 'Anonymous User'}</h3>
+                  <div style={{ color: 'var(--jade)', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', marginTop: '0.2rem' }}>
+                    {p.role === 'tenant' ? 'Tenant' : p.role === 'admin' ? 'Admin' : (p.role === 'property_manager' ? 'Property Manager' : 'Landlord')}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '0.4rem' }}>
+                   <StatusPill variant={p.verification_status === 'suspended' ? 'suspended' : 'active'} size="sm" />
+                </div>
+              </div>
+              
+              <div className="user-card-details">
+                <div>
+                  <div className="detail-label">Phone</div>
+                  <div className="detail-value">{p.phone || '—'}</div>
+                </div>
+                <div>
+                  <div className="detail-label">Verification</div>
+                  <div style={{ display: 'flex' }}>
+                    <StatusPill variant={p.verification_status === 'verified' ? 'verified' : 'unverified'} size="sm" />
+                  </div>
+                </div>
+                <div>
+                  <div className="detail-label">Joined</div>
+                  <div className="detail-value">{formatDate(p.created_at)}</div>
+                </div>
+              </div>
+
+              <div className="user-card-actions">
+                {p.verification_status !== 'verified' && p.verification_status !== 'suspended' && (
+                  <button 
+                    className="btn btn--jade btn--small" 
+                    onClick={() => handleVerifyId(p.id)} 
+                    disabled={busyId === p.id}
+                    style={{ flex: 1, fontSize: '0.75rem' }}
+                  >
+                    <CheckCircle size={14} style={{ marginRight: '0.4rem' }} />
+                    Verify ID
+                  </button>
+                )}
+                {p.verification_status === 'suspended' ? (
+                  <button 
+                    className="btn btn--jade btn--small" 
+                    onClick={() => handleUnsuspend(p.id)} 
+                    disabled={busyId === p.id}
+                    style={{ flex: 1, fontSize: '0.75rem' }}
+                  >
+                    <Shield size={14} style={{ marginRight: '0.4rem' }} />
+                    Reinstate
+                  </button>
+                ) : (
+                  <button 
+                    className="btn btn--red btn--small" 
+                    onClick={() => handleSuspend(p.id)} 
+                    disabled={busyId === p.id || p.role === 'admin'}
+                    style={{ flex: 1, fontSize: '0.75rem', opacity: p.role === 'admin' ? 0.4 : 1 }}
+                  >
+                    <ShieldX size={14} style={{ marginRight: '0.4rem' }} />
+                    Suspend
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
       ) : (
+        /* Desktop Table View */
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.83rem', minWidth: 680 }}>
             <thead>
