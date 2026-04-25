@@ -30,6 +30,7 @@ export async function getProfile(
       select: [
         'id',
         'role',
+        'roles',
         'lister_type',
         'full_name',
         'phone',

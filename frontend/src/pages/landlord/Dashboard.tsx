@@ -29,7 +29,7 @@ function KpiCard({ label, value, sub, accent }: {
       <p style={{ fontSize: '0.73rem', fontWeight: 600, color: 'var(--mid)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
         {label}
       </p>
-      <p style={{ fontFamily: "'Syne', sans-serif", fontSize: '1.65rem', fontWeight: 800, color: accent ?? 'var(--ink)', lineHeight: 1.15, margin: '0.25rem 0 0' }}>
+      <p style={{ fontFamily: " sans-serif", fontSize: '1.65rem', fontWeight: 800, color: accent ?? 'var(--ink)', lineHeight: 1.15, margin: '0.25rem 0 0' }}>
         {value}
       </p>
       {sub && <p style={{ fontSize: '0.76rem', color: 'var(--mid)', marginTop: '0.15rem' }}>{sub}</p>}
@@ -146,7 +146,7 @@ export default function LandlordDashboard() {
     <>
       {/* ── Header ────────────────────────────────────────── */}
       <div style={{ marginBottom: '1.25rem' }}>
-        <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: '1.3rem', color: 'var(--ink)' }}>
+        <h2 style={{ fontFamily: " sans-serif", fontSize: '1.3rem', color: 'var(--ink)' }}>
           {user?.fullName?.split(' ')[0] ?? 'Hi'}'s iRent Dashboard
         </h2>
         <p style={{ color: 'var(--mid)', fontSize: '0.88rem' }}>Manage your properties, leases, and income.</p>
@@ -165,7 +165,7 @@ export default function LandlordDashboard() {
         {/* ── Lease Tracker ─────────────────────────────────── */}
         <section>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-            <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: '1rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <h3 style={{ fontFamily: " sans-serif", fontSize: '1rem', display: 'flex', alignItems: 'center', gap: 8 }}>
               <AlertTriangle size={16} style={{ color: '#d97706' }} />
               Lease Tracker
             </h3>
@@ -215,7 +215,7 @@ export default function LandlordDashboard() {
         {/* ── Inquiry Inbox ─────────────────────────────────── */}
         <section>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-            <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: '1rem' }}>
+            <h3 style={{ fontFamily: " sans-serif", fontSize: '1rem' }}>
               Inquiry Inbox {pendingInquiries.length > 0 && (
                 <span style={{ marginLeft: '0.4rem', fontSize: '0.75rem', fontWeight: 700, background: 'var(--amber-light)', color: '#6b3a0a', borderRadius: 99, padding: '0.1rem 0.45rem' }}>
                   {pendingInquiries.length}
@@ -242,7 +242,7 @@ export default function LandlordDashboard() {
         {/* ── Listing Views ─────────────────────────────────── */}
         <section>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-            <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: '1rem' }}>
+            <h3 style={{ fontFamily: " sans-serif", fontSize: '1rem' }}>
               <Building2 size={16} style={{ marginRight: 6, verticalAlign: 'middle' }} />
               Property Views
             </h3>
@@ -262,13 +262,22 @@ export default function LandlordDashboard() {
                 {listings.slice(0, 6).map(l => {
                   const pct = Math.round(((l.views ?? 0) / maxViews) * 100);
                   return (
-                    <div key={l.id}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                        <span style={{ fontSize: '0.82rem', fontWeight: 500, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '75%' }}>{l.title}</span>
-                        <span style={{ fontSize: '0.78rem', color: 'var(--mid)', flexShrink: 0 }}>{l.views ?? 0} views</span>
+                    <div key={l.id} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                      <div style={{ width: 32, height: 32, borderRadius: 6, overflow: 'hidden', background: '#f1f5f9', flexShrink: 0, border: '1px solid var(--border)' }}>
+                        <img 
+                          src={l.imageUrl || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=80&q=80'} 
+                          alt="" 
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                        />
                       </div>
-                      <div style={{ height: 6, background: 'var(--border)', borderRadius: 99, overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${pct}%`, background: 'var(--jade)', borderRadius: 99, transition: 'width 0.4s ease' }} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.2rem' }}>
+                          <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '180px' }}>{l.title}</span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--mid)', flexShrink: 0 }}>{l.views ?? 0} views</span>
+                        </div>
+                        <div style={{ height: 4, background: 'var(--border)', borderRadius: 99, overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${pct}%`, background: 'var(--jade)', borderRadius: 99, transition: 'width 0.4s ease' }} />
+                        </div>
                       </div>
                     </div>
                   );
@@ -280,7 +289,7 @@ export default function LandlordDashboard() {
 
         {/* ── Recent Activity ───────────────────────────────── */}
         <section>
-          <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: '1rem', marginBottom: '0.75rem' }}>Recent Activity</h3>
+          <h3 style={{ fontFamily: " sans-serif", fontSize: '1rem', marginBottom: '0.75rem' }}>Recent Activity</h3>
           {actLoading ? (
             <div style={{ display: 'grid', gap: '0.65rem' }}><SkeletonCard variant="activity" count={4} /></div>
           ) : events.length === 0 ? (

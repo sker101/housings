@@ -32,14 +32,19 @@ function normalizeAmenities(value) {
 }
 
 export function mapListingRow(row, photos = []) {
-  const price = Number(row.price_monthly || 0);
+  // Resilient price mapping
+  const price = Number(row.price_monthly || row.price_tzs || row.price || 0);
+  
+  // Resilient status mapping
+  const vacancyStatus = row.vacancy_status || row.availability_status || (row.is_available === true ? 'available' : row.is_available === false ? 'occupied' : 'available');
 
   return {
     id: row.id,
-    title: (row.title && String(row.title).trim() !== '') ? String(row.title).trim() : (row.room_type ? `${String(row.room_type).replace(/_/g, ' ').replace(/\\b\\w/g, c => c.toUpperCase())} Room` : 'Room for rent'),
+    title: (row.title && String(row.title).trim() !== '') 
+      ? String(row.title).trim() 
+      : (row.room_type ? `${String(row.room_type).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())} Room` : 'Room for rent'),
     description: row.description,
     roomType: row.room_type,
-    // Note: gender_preference column doesn't exist in database view - hardcoded as 'mixed'
     genderPreference: 'mixed',
     location: toLocation(row),
     region: row.region,
@@ -47,24 +52,24 @@ export function mapListingRow(row, photos = []) {
     ward: row.ward,
     street: row.street,
     priceMonthly: price,
-    securityDeposit: 0, // Not in database schema
+    securityDeposit: row.deposit_tzs || row.security_deposit || 0,
     utilitiesIncluded: false,
-    floor: null, // Not in database schema
-    totalRooms: null, // Not in database schema
-    furnished: false, // Not in database schema
-    propertyType: null, // Not in database schema
-    ownerName: null, // Not in database schema
-    ownerPhone: null, // Not in database schema
-    whatsappNumber: null, // Not in database schema
-    minLeaseMonths: 1, // Not in database schema
-    paymentSchedule: 'monthly', // Not in database schema
-    lateFeePolicy: null, // Not in database schema
-    videoTourUrl: null, // Not in database schema
-    accessibilityNotes: null, // Not in database schema
+    floor: row.floor_number || row.floor || null,
+    totalRooms: row.max_occupants || row.total_rooms || null,
+    furnished: false,
+    propertyType: null,
+    ownerName: null,
+    ownerPhone: null,
+    whatsappNumber: null,
+    minLeaseMonths: 1,
+    paymentSchedule: 'monthly',
+    lateFeePolicy: null,
+    videoTourUrl: null,
+    accessibilityNotes: null,
     amenities: normalizeAmenities(row.amenities),
     houseRules: row.house_rules,
     availableFrom: row.available_from,
-    vacancyStatus: row.vacancy_status,
+    vacancyStatus: vacancyStatus,
     status: row.status,
     featured: Boolean(row.featured),
     nearUniversities: Array.isArray(row.near_universities)
@@ -74,7 +79,7 @@ export function mapListingRow(row, photos = []) {
     lng: row.lng,
     listerId: row.lister_id,
     rejectionReason: row.rejection_reason,
-    viewCount: Number(row.view_count || 0),
+    viewCount: Number(row.view_count || row.views || 0),
     createdAt: row.created_at,
     photos,
     imageUrl:
@@ -85,7 +90,7 @@ export function mapListingRow(row, photos = []) {
 }
 
 
-async function fetchPhotosForListings(listingIds, accessToken) {
+export async function fetchPhotosForListings(listingIds, accessToken) {
   if (!Array.isArray(listingIds) || listingIds.length === 0) {
     return new Map();
   }
@@ -119,8 +124,6 @@ export async function fetchApprovedListings(filters: Record<string, any> = {}, a
   // Hide occupied listings from search results
   queryFilters.push({ column: 'vacancy_status', op: 'neq', value: 'occupied' });
 
-  // Note: gender_preference is hardcoded as 'mixed' in the database view
-  // Gender filtering is disabled until the database schema supports it
   if (filters.roomType && filters.roomType !== 'all') {
     queryFilters.push({
       column: 'room_type',
@@ -129,9 +132,11 @@ export async function fetchApprovedListings(filters: Record<string, any> = {}, a
     });
   }
 
+  const priceCol = 'price_tzs'; // Use new column name
+
   if (filters.minPrice != null && filters.minPrice !== '') {
     queryFilters.push({
-      column: 'price_monthly',
+      column: priceCol,
       op: 'gte',
       value: Number(filters.minPrice) as any
     });
@@ -139,7 +144,7 @@ export async function fetchApprovedListings(filters: Record<string, any> = {}, a
 
   if (filters.maxPrice != null && filters.maxPrice !== '') {
     queryFilters.push({
-      column: 'price_monthly',
+      column: priceCol,
       op: 'lte',
       value: Number(filters.maxPrice) as any
     });
@@ -148,16 +153,15 @@ export async function fetchApprovedListings(filters: Record<string, any> = {}, a
   let order = 'featured.desc,created_at.desc';
 
   if (filters.sort === 'price_asc') {
-    order = 'price_monthly.asc';
+    order = `${priceCol}.asc`;
   } else if (filters.sort === 'price_desc') {
-    order = 'price_monthly.desc';
+    order = `${priceCol}.desc`;
   } else if (filters.sort === 'newest') {
     order = 'created_at.desc';
   }
 
   const rows = await selectRows('listings', {
-    select:
-      '*',
+    select: '*',
     filters: queryFilters,
     or: filters.query
       ? `title.ilike.*${filters.query}*,district.ilike.*${filters.query}*,ward.ilike.*${filters.query}*`

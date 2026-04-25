@@ -122,71 +122,49 @@ export default function SearchPage() {
     return filters;
   }, [searchQuery, selectedRoomType, selectedPriceRange, selectedUniversity, selectedPropertyType, furnished, utilitiesIncluded, selectedAmenities]);
 
-  useEffect(() => {
-    let mounted = true;
-
-    async function runSearch() {
-      setLoading(true);
+  const runSearch = useCallback(async (isLoadMore = false) => {
+    try {
+      if (isLoadMore) setLoadingMore(true);
+      else {
+        setLoading(true);
+        setPage(1);
+      }
       setError('');
 
-      try {
-        const filters = buildFilters();
-        const rows = await fetchApprovedListings(filters, token);
-
-        if (mounted) {
-          setListings(rows);
-          setPage(1);
-          setHasMore(rows.length === PAGE_SIZE);
-        }
-      } catch (err) {
-        if (mounted) {
-          setError(err.message);
-          setListings([]);
-          setHasMore(false);
-          setPage(1);
-        }
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
+      const filters = buildFilters();
+      if (isLoadMore) {
+        filters.offset = page * PAGE_SIZE;
       }
-    }
 
-    runSearch();
+      const results = await fetchApprovedListings(filters, token);
 
-    return () => {
-      mounted = false;
-    };
-  }, [buildFilters, token]);
+      if (isLoadMore) {
+        setListings(prev => [...prev, ...results]);
+        setPage(prev => prev + 1);
+      } else {
+        setListings(results);
+      }
 
-  const loadMore = useCallback(async () => {
-    if (loading || loadingMore || !hasMore) {
-      return;
-    }
-
-    setLoadingMore(true);
-    setError('');
-
-    try {
-      const baseFilters = buildFilters();
-      const rows = await fetchApprovedListings(
-        {
-          ...baseFilters,
-          limit: PAGE_SIZE,
-          offset: page * PAGE_SIZE
-        },
-        token
-      );
-
-      setListings((prev) => [...prev, ...rows]);
-      setPage((prev) => prev + 1);
-      setHasMore(rows.length === PAGE_SIZE);
-    } catch (err) {
-      setError(err.message);
+      setHasMore(results.length === PAGE_SIZE);
+    } catch (err: any) {
+      console.error('Search error:', err);
+      setError(err.message || 'Failed to fetch listings');
     } finally {
+      setLoading(false);
       setLoadingMore(false);
     }
-  }, [buildFilters, hasMore, loading, loadingMore, page, token]);
+  }, [buildFilters, token, page]);
+
+  // Initial search and filter changes
+  useEffect(() => {
+    runSearch();
+  }, [searchQuery, selectedRoomType, selectedUniversity, selectedAmenities, selectedPriceRange, selectedPropertyType, furnished, utilitiesIncluded]);
+
+  const loadMore = useCallback(() => {
+    if (hasMore && !loading && !loadingMore) {
+      runSearch(true);
+    }
+  }, [hasMore, loading, loadingMore, runSearch]);
 
   useEffect(() => {
     if (viewMode !== 'list' || loading || loadingMore || !hasMore) {
@@ -207,14 +185,13 @@ export default function SearchPage() {
       { rootMargin: '220px' }
     );
 
-    observer.observe(node);
+    const target = node;
+    observer.observe(target);
 
     return () => {
       observer.disconnect();
     };
   }, [hasMore, loadMore, loading, loadingMore, viewMode]);
-
-
 
   const resultCountLabel = useMemo(() => {
     if (loading) {
@@ -247,6 +224,18 @@ export default function SearchPage() {
   }, [listings, selectedUniversity]);
 
   const mapListings = useMemo(() => processedListings.filter((l: any) => l.lat && l.lng), [processedListings]);
+
+  // Stable memoized array for Mapbox markers to prevent flicker
+  const mapRooms = useMemo(() => {
+    return mapListings.map((l: any) => ({
+      id: l.id,
+      lat: Number(l.lat),
+      lng: Number(l.lng),
+      title: l.title,
+      priceMonthly: l.priceMonthly,
+      imageUrl: l.imageUrl
+    }));
+  }, [mapListings]);
 
   // Viewport-synced subset — only rooms visible in current map bounds
   const viewportListings = useMemo(() => {
@@ -294,8 +283,6 @@ export default function SearchPage() {
     (furnished ? 1 : 0) +
     (utilitiesIncluded ? 1 : 0);
 
-
-
   return (
     <div className="container section">
       <div className="section__header">
@@ -322,27 +309,25 @@ export default function SearchPage() {
         </div>
       </div>
 
-      {/* Modern Filter Container - Homepage Style */}
       <div style={{
-        background: 'white',
+        background: 'var(--surface)',
         borderRadius: 16,
         padding: '1.25rem 1.5rem',
-        marginBottom: '1.5rem',
-        boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
-        border: '1px solid #e5e7eb'
+        boxShadow: 'var(--shadow-soft)',
+        border: '1px solid var(--border)',
+        marginBottom: '1.5rem'
       }}>
-        {/* Main Search Bar */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
           gap: '0.75rem',
           padding: '0.75rem 1rem',
-          background: '#f9fafb',
+          background: 'var(--cream)',
           borderRadius: 12,
-          border: '2px solid #e5e7eb',
+          border: '2px solid var(--border)',
           marginBottom: '1rem'
         }}>
-          <Search size={20} style={{ color: '#6b7280', flexShrink: 0 }} />
+          <Search size={20} style={{ color: 'var(--mid)', flexShrink: 0 }} />
           <input
             type="text"
             value={searchQuery}
@@ -354,7 +339,7 @@ export default function SearchPage() {
               background: 'transparent',
               fontSize: '1rem',
               outline: 'none',
-              color: '#111827'
+              color: 'var(--ink)'
             }}
           />
           {searchQuery && (
@@ -375,7 +360,6 @@ export default function SearchPage() {
           paddingBottom: '0.5rem',
           scrollbarWidth: 'none'
         }}>
-
           {ROOM_TYPE_OPTIONS.map((type) => {
             const Icon = type.icon;
             const isActive = selectedRoomType === type.value;
@@ -389,16 +373,17 @@ export default function SearchPage() {
                   alignItems: 'center',
                   gap: '0.35rem',
                   padding: '0.6rem 1rem',
-                  minWidth: '80px',
-                  border: isActive ? '2px solid #22c55e' : '2px solid #e5e7eb',
+                  minWidth: '90px',
+                  border: isActive ? '2px solid var(--jade)' : '2px solid var(--border)',
                   borderRadius: 12,
-                  background: isActive ? '#f0fdf4' : 'white',
+                  background: isActive ? 'var(--jade-muted)' : 'var(--surface)',
                   cursor: 'pointer',
-                  flexShrink: 0
+                  flexShrink: 0,
+                  transition: 'all 0.2s'
                 }}
               >
-                <Icon size={22} style={{ color: isActive ? '#22c55e' : '#6b7280' }} />
-                <span style={{ fontSize: '0.75rem', fontWeight: isActive ? 600 : 500, color: isActive ? '#166534' : '#6b7280' }}>
+                <Icon size={22} style={{ color: isActive ? 'var(--jade)' : 'var(--mid)' }} />
+                <span style={{ fontSize: '0.75rem', fontWeight: isActive ? 600 : 500, color: isActive ? 'var(--jade-dark)' : 'var(--mid)' }}>
                   {type.label}
                 </span>
               </button>
@@ -415,23 +400,23 @@ export default function SearchPage() {
               gap: '0.35rem',
               padding: '0.6rem 1rem',
               minWidth: '80px',
-              border: showMoreFilters ? '2px solid #22c55e' : '2px solid #e5e7eb',
+              border: showMoreFilters ? '2px solid var(--jade)' : '2px solid var(--border)',
               borderRadius: 12,
-              background: showMoreFilters ? '#f0fdf4' : 'white',
+              background: showMoreFilters ? 'var(--jade-muted)' : 'var(--surface)',
               cursor: 'pointer',
               flexShrink: 0,
               position: 'relative'
             }}
           >
-            <SlidersHorizontal size={22} style={{ color: showMoreFilters ? '#22c55e' : '#6b7280' }} />
-            <span style={{ fontSize: '0.75rem', fontWeight: showMoreFilters ? 600 : 500, color: showMoreFilters ? '#166534' : '#6b7280' }}>
+            <SlidersHorizontal size={22} style={{ color: showMoreFilters ? 'var(--jade)' : 'var(--mid)' }} />
+            <span style={{ fontSize: '0.75rem', fontWeight: showMoreFilters ? 600 : 500, color: showMoreFilters ? 'var(--jade-dark)' : 'var(--mid)' }}>
               Filters
             </span>
             {activeFiltersCount > 0 && (
               <span style={{
                 position: 'absolute',
                 top: -6, right: -6,
-                background: '#22c55e',
+                background: 'var(--jade)',
                 color: 'white',
                 padding: '0.15rem 0.5rem',
                 borderRadius: '999px',
@@ -460,9 +445,9 @@ export default function SearchPage() {
                       style={{
                         padding: '0.5rem 1rem',
                         borderRadius: 999,
-                        border: isActive ? '2px solid #22c55e' : '1px solid #d1d5db',
-                        background: isActive ? '#f0fdf4' : 'white',
-                        color: isActive ? '#166534' : '#4b5563',
+                        border: isActive ? '2px solid var(--jade)' : '1px solid var(--border)',
+                        background: isActive ? 'var(--jade-muted)' : 'var(--surface)',
+                        color: isActive ? 'var(--jade-dark)' : 'var(--mid)',
                         fontSize: '0.875rem',
                         fontWeight: isActive ? 600 : 400,
                         cursor: 'pointer'
@@ -492,9 +477,9 @@ export default function SearchPage() {
                         gap: '0.35rem',
                         padding: '0.5rem 0.875rem',
                         borderRadius: 999,
-                        border: isActive ? '2px solid #22c55e' : '1px solid #d1d5db',
-                        background: isActive ? '#f0fdf4' : 'white',
-                        color: isActive ? '#166534' : '#4b5563',
+                        border: isActive ? '2px solid var(--jade)' : '1px solid var(--border)',
+                        background: isActive ? 'var(--jade-muted)' : 'var(--surface)',
+                        color: isActive ? 'var(--jade-dark)' : 'var(--mid)',
                         fontSize: '0.875rem',
                         fontWeight: isActive ? 600 : 400,
                         cursor: 'pointer'
@@ -521,9 +506,9 @@ export default function SearchPage() {
                       style={{
                         padding: '0.5rem 1rem',
                         borderRadius: 999,
-                        border: isActive ? '2px solid #22c55e' : '1px solid #d1d5db',
-                        background: isActive ? '#f0fdf4' : 'white',
-                        color: isActive ? '#166534' : '#4b5563',
+                        border: isActive ? '2px solid var(--jade)' : '1px solid var(--border)',
+                        background: isActive ? 'var(--jade-muted)' : 'var(--surface)',
+                        color: isActive ? 'var(--jade-dark)' : 'var(--mid)',
                         fontSize: '0.875rem',
                         fontWeight: isActive ? 600 : 400,
                         cursor: 'pointer'
@@ -536,8 +521,6 @@ export default function SearchPage() {
               </div>
             </div>
 
-            {/* Note: Gender filter removed - database view hardcodes gender as 'mixed' */}
-
             {/* Actions */}
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', paddingTop: '0.5rem' }}>
               <button
@@ -545,9 +528,9 @@ export default function SearchPage() {
                 style={{
                   padding: '0.625rem 1.25rem',
                   borderRadius: 8,
-                  border: '1px solid #d1d5db',
-                  background: 'white',
-                  color: '#4b5563',
+                  border: '1px solid var(--border)',
+                  background: 'var(--surface)',
+                  color: 'var(--mid)',
                   fontSize: '0.875rem',
                   fontWeight: 500,
                   cursor: 'pointer'
@@ -579,16 +562,8 @@ export default function SearchPage() {
 
       {viewMode === 'map' ? (
         <section style={{ position: 'relative' }}>
-          <MapboxListingMap
-            rooms={viewportListings.map((l: any) => ({
-              id: l.id,
-              latitude: Number(l.lat),
-              longitude: Number(l.lng),
-              title: l.title,
-              price_tzs: Number(l.priceMonthly),
-              availability_status: l.vacancyStatus || 'available',
-              ward: l.ward
-            }))}
+          <MapboxListingMap 
+            rooms={mapRooms}
             searchWard={searchQuery}
             height="calc(100vh - 200px)"
             onRoomClick={(roomId) => navigate(`/rooms/${roomId}`)}

@@ -81,13 +81,14 @@ export default function CompleteProfilePage() {
         accessToken: token,
       });
 
-      // Refresh user data
-      await refreshMe();
+      // Refresh user data to get updated roles/profile
+      const updatedUser = await refreshMe();
 
       toast.success('Profile updated! Welcome to iRent 🎉');
       
-      // Redirect to dashboard
-      navigate(dashboardDefaultPath(profile?.role || 'tenant'), { replace: true });
+      // Redirect to dashboard based on the updated role
+      const targetRole = updatedUser?.role || profile?.role || 'tenant';
+      navigate(dashboardDefaultPath(targetRole), { replace: true });
     } catch (err) {
       console.error('Failed to update profile:', err);
       toast.error('Failed to save profile. Please try again.');

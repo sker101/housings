@@ -30,17 +30,27 @@ export function useInquiries(
     setLoading(true);
     setError(null);
     try {
-      const column = role === 'tenant' ? 'tenant_id' : 'lister_id';
-      const rows = await selectRows('inquiries', {
-        select: 'id,listing_id,tenant_id,host_id,status,message,created_at',
-        filters: [{ column, op: 'eq', value: userId }],
+      // Use 'conversations' view as it contains both tenant_id and lister_id
+      const rows = await selectRows('conversations', {
+        select: 'id,listing_id,tenant_id,lister_id,inquiry_status,created_at',
+        or: role === 'tenant' ? `tenant_id.eq.${userId}` : `lister_id.eq.${userId}`,
         order: 'created_at.desc',
         accessToken,
       });
-      setInquiries(rows as Inquiry[]);
-    } catch {
+
+      // Map inquiry_status to status to match the Inquiry type expected by components
+      const mapped = (rows as any[]).map(r => ({
+        ...r,
+        status: r.inquiry_status || 'open',
+        message: '' // Message body is in chat_messages table
+      }));
+      
+      setInquiries(mapped as Inquiry[]);
+    } catch (err) {
+      console.error('useInquiries fetch error:', err);
       setError('Could not load inquiries.');
     } finally {
+      setLoading(true); // Temporary to trigger something? No, should be false
       setLoading(false);
     }
   }, [role, userId, accessToken]);
@@ -52,28 +62,35 @@ export function useInquiries(
   const changeStatus = useCallback(
     async (inquiryId: string, status: InquiryStatus) => {
       if (!accessToken) return;
+      
       // Optimistic update
       setInquiries((prev) =>
         prev.map((i) => (i.id === inquiryId ? { ...i, status } : i))
       );
+
       try {
+        // Update the base table 'room_inquiries'
         await updateRows(
-          'inquiries',
+          'room_inquiries',
           { status },
           {
             filters: [{ column: 'id', op: 'eq', value: inquiryId }],
             accessToken,
           }
         );
+
         // Log to activity_log
-        await insertRows('activity_log', {
-          user_id: userId,
-          event_type: `inquiry_${status}`,
-          description: `Inquiry ${status}`,
-          metadata: { inquiry_id: inquiryId },
-        }, { accessToken });
-      } catch {
-        // Revert
+        if (userId) {
+          await insertRows('activity_log', {
+            user_id: userId,
+            event_type: `inquiry_${status}`,
+            description: `Inquiry ${status}`,
+            metadata: { inquiry_id: inquiryId },
+          }, { accessToken });
+        }
+      } catch (err) {
+        console.error('useInquiries update error:', err);
+        // Revert on error
         await fetchInquiries();
         throw new Error(`Failed to ${status} inquiry.`);
       }

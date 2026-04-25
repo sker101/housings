@@ -83,7 +83,7 @@ export default function DalaliSubscription() {
                   CURRENT
                 </span>
               )}
-              <p style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: '1.1rem', marginBottom: '0.25rem' }}>{plan.name}</p>
+              <p style={{ fontFamily: " sans-serif", fontWeight: 800, fontSize: '1.1rem', marginBottom: '0.25rem' }}>{plan.name}</p>
               <p style={{ fontWeight: 700, fontSize: '1rem', color: isCurrent ? 'var(--amber)' : 'var(--jade)', marginBottom: '0.75rem' }}>{plan.price}</p>
               <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 1rem', display: 'grid', gap: '0.35rem' }}>
                 {plan.features.map((f) => (

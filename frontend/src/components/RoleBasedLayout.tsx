@@ -22,6 +22,12 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
+import { 
+  parseRolesFromProfile, 
+  getActiveRole, 
+  humanizeRole,
+  deriveRoleFromPath 
+} from '../lib/roles';
 import { RoleBadge } from './RoleBadge';
 import { initials } from '../utils/format';
 import type { Role } from '../types';
@@ -118,6 +124,8 @@ interface RoleBasedSidebarContentProps {
   pathname: string;
   onNavClick: () => void;
   onLogout: () => void | Promise<void>;
+  onSwitchRole: (role: string) => void;
+  user: any;
 }
 
 function RoleBasedSidebarContent({
@@ -129,6 +137,8 @@ function RoleBasedSidebarContent({
   pathname,
   onNavClick,
   onLogout,
+  onSwitchRole,
+  user,
 }: RoleBasedSidebarContentProps) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -181,7 +191,7 @@ function RoleBasedSidebarContent({
             display: 'grid',
             placeItems: 'center',
             color: accentColor,
-            fontFamily: "'Syne', sans-serif",
+            fontFamily: " sans-serif",
             fontWeight: 700,
             fontSize: '0.88rem',
             flexShrink: 0,
@@ -246,6 +256,48 @@ function RoleBasedSidebarContent({
         </ul>
       </nav>
 
+      {/* Role Switcher (Only for multi-role users, excluding Admins) */}
+      {user && user.roles.filter(r => r !== 'admin').length > 1 && (
+        <div style={{ padding: '0 0.75rem 0.75rem', display: 'grid', gap: '0.4rem' }}>
+          <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--mid)', textTransform: 'uppercase', paddingLeft: '0.75rem', marginBottom: '0.1rem' }}>
+            Switch Account
+          </p>
+          <div style={{ display: 'flex', gap: '0.3rem', background: 'var(--paper)', padding: '0.25rem', borderRadius: 10, border: '1px solid var(--border)' }}>
+            {user.roles.filter(r => r !== 'admin').map(r => {
+              const isActive = r === activeRole;
+              const roleColor = getAccentColor(r);
+              return (
+                <button
+                  key={r}
+                  onClick={() => {
+                    if (onSwitchRole) onSwitchRole(r);
+                  }}
+                  title={`Switch to ${humanizeRole(r)}`}
+                  style={{
+                    flex: 1,
+                    padding: '0.4rem 0',
+                    borderRadius: 8,
+                    border: 'none',
+                    background: isActive ? 'var(--surface)' : 'transparent',
+                    color: isActive ? roleColor : 'var(--mid)',
+                    cursor: 'pointer',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                    transition: 'all 0.15s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  {r === 'tenant' ? <User size={12} /> : r === 'property_manager' ? <Users size={12} /> : <Building size={12} />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div style={{ padding: '0.75rem', borderTop: '1px solid var(--border)' }}>
         <button
           type="button"
@@ -274,7 +326,7 @@ function RoleBasedSidebarContent({
 }
 
 export default function RoleBasedLayout() {
-  const { user, logout } = useAuth();
+  const { user, profile, logout, switchRole } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const { i18n } = useTranslation();
@@ -288,7 +340,8 @@ export default function RoleBasedLayout() {
     }
   }, [i18n]);
 
-  const activeRole = (user?.role || 'student') as Role;
+  const allRoles = parseRolesFromProfile(profile);
+  const activeRole = (deriveRoleFromPath(location.pathname, allRoles) || getActiveRole(allRoles)) as Role;
   const accentColor = getAccentColor(activeRole);
   const navItems = getNavItems(activeRole);
   const pageTitle = getPageTitle(location.pathname);
@@ -313,6 +366,8 @@ export default function RoleBasedLayout() {
     pathname: location.pathname,
     onNavClick: () => setSidebarOpen(false),
     onLogout: handleLogout,
+    onSwitchRole: switchRole,
+    user,
   };
 
   return (
@@ -412,7 +467,7 @@ export default function RoleBasedLayout() {
             </button>
             <h1
               style={{
-                fontFamily: "'Syne', sans-serif",
+                fontFamily: " sans-serif",
                 fontSize: '1.05rem',
                 fontWeight: 700,
                 color: 'var(--ink)',

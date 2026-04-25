@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft } from 'lucide-react';
+
 import ListingCard from '../components/ListingCard';
 import ListingMap from '../components/ListingMap';
 import { useAuth } from '../context/AuthContext';
@@ -163,6 +163,11 @@ export default function RoomDetailsPage() {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [swipeStartX, setSwipeStartX] = useState(null);
   const [openInquiry, setOpenInquiry] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [inquiryName, setInquiryName] = useState('');
+  const [moveInDate, setMoveInDate] = useState('');
+  const [durationMonths, setDurationMonths] = useState('6');
+  const [contactPreference, setContactPreference] = useState('in_app_chat');
   const [message, setMessage] = useState('');
   const [submittingInquiry, setSubmittingInquiry] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -243,11 +248,9 @@ export default function RoomDetailsPage() {
         setListerProfile(payload.listerProfile);
         setActivePhotoIndex(0);
 
-        if (payload.listing.vacancyStatus === 'available') {
-          invokeFunction('increment-view', { listingId: payload.listing.id }, token).catch(() => {
-            // Best-effort analytics update.
-          });
-        }
+        invokeFunction('increment-view', { listingId: payload.listing.id }, token).catch(() => {
+          // Best-effort analytics update.
+        });
 
         const [related, listingCount, reviewsList] = await Promise.all([
           fetchRelatedListings(payload.listing, token, 6).catch(() => []),
@@ -292,6 +295,11 @@ export default function RoomDetailsPage() {
     };
   }, [roomId, token]);
 
+  useEffect(() => {
+    if (user?.fullName && !inquiryName) {
+      setInquiryName(user.fullName);
+    }
+  }, [user?.fullName, inquiryName]);
 
   useEffect(() => {
     let mounted = true;
@@ -375,30 +383,19 @@ export default function RoomDetailsPage() {
   }, [listing, user?.userId, existingBooking, bookingsLoading]);
 
   const amenities = useMemo(() => {
-    if (!listing?.amenities) {
+    if (!listing?.amenities || typeof listing.amenities !== 'object') {
       return [];
     }
 
-    let parsed = [];
-    if (Array.isArray(listing.amenities)) {
-      parsed = listing.amenities.map(key => ({
+    return Object.entries(listing.amenities)
+      .map(([key, enabled]) => ({
         key,
         label: humanize(key),
         emoji: amenityEmoji(key),
-        enabled: true
-      }));
-    } else if (typeof listing.amenities === 'object') {
-      parsed = Object.entries(listing.amenities)
-        .map(([key, enabled]) => ({
-          key,
-          label: humanize(key),
-          emoji: amenityEmoji(key),
-          enabled: Boolean(enabled)
-        }))
-        .filter((item) => item.enabled);
-    }
-
-    return parsed.sort((a, b) => a.label.localeCompare(b.label));
+        enabled: Boolean(enabled)
+      }))
+      .filter((item) => item.enabled)
+      .sort((a, b) => a.label.localeCompare(b.label));
   }, [listing?.amenities]);
 
   const houseRules = useMemo(
@@ -422,6 +419,14 @@ export default function RoomDetailsPage() {
     if (existingBooking && ['paid', 'confirmed', 'approved'].includes(existingBooking.status)) return true;
     return false;
   }, [user?.userId, listing?.listerId, existingBooking]);
+
+  const averageRating = useMemo(() => {
+    if (reviews.length === 0) return 0;
+    const validReviews = reviews.filter((r) => typeof r?.rating === 'number' && !isNaN(r.rating));
+    if (validReviews.length === 0) return 0;
+    const sum = validReviews.reduce((acc: number, review: any) => acc + review.rating, 0);
+    return (sum / validReviews.length).toFixed(1);
+  }, [reviews]);
 
   const galleryPhotos = useMemo(() => {
     if (!listing) {
@@ -602,20 +607,18 @@ export default function RoomDetailsPage() {
     });
   };
 
-  const captureSwipeStart = (event) => {
-    if (!event.changedTouches?.[0]) {
-      return;
+  const captureSwipeStart = (e) => {
+    if (e.changedTouches?.[0]) {
+      setSwipeStartX(e.changedTouches[0].clientX);
     }
-
-    setSwipeStartX(event.changedTouches[0].clientX);
   };
 
-  const captureSwipeEnd = (event) => {
-    if (!event.changedTouches?.[0] || swipeStartX == null) {
+  const captureSwipeEnd = (e) => {
+    if (!e.changedTouches?.[0] || swipeStartX == null) {
       return;
     }
 
-    const deltaX = event.changedTouches[0].clientX - swipeStartX;
+    const deltaX = e.changedTouches[0].clientX - swipeStartX;
     setSwipeStartX(null);
 
     if (Math.abs(deltaX) < 40) {
@@ -628,14 +631,6 @@ export default function RoomDetailsPage() {
       goToNextPhoto();
     }
   };
-
-  const averageRating = useMemo(() => {
-    if (reviews.length === 0) return 0;
-    const validReviews = reviews.filter((r) => typeof r?.rating === 'number' && !isNaN(r.rating));
-    if (validReviews.length === 0) return 0;
-    const sum = validReviews.reduce((acc: number, review: any) => acc + review.rating, 0);
-    return (sum / validReviews.length).toFixed(1);
-  }, [reviews]);
 
   const submitInquiry = async (event) => {
     event.preventDefault();
@@ -650,22 +645,19 @@ export default function RoomDetailsPage() {
       return;
     }
 
-    // Only allow chat if user has paid booking
-    if (!hasPaidBooking) {
-      setError('Please complete payment to chat with the landlord.');
-      return;
-    }
-
-    if (message.trim().length < 5) {
-      setError('Please write a brief message.');
-      return;
-    }
-
     setSubmittingInquiry(true);
     setError('');
 
+    // Ensure profile has a name if missing (rare but possible via social login)
+    if (!user.fullName) {
+      await updateRows('profiles', { full_name: inquiryName }, {
+        filters: [{ column: 'id', op: 'eq', value: user.userId }],
+        accessToken: token
+      }).catch(() => { });
+    }
+
     try {
-      const existing = await selectRows('room_inquiries', {
+      const existing = await selectRows('conversations', {
         select: 'id',
         filters: [
           { column: 'listing_id', op: 'eq', value: listing.id },
@@ -675,30 +667,32 @@ export default function RoomDetailsPage() {
         accessToken: token
       });
 
-      let inquiryId = existing[0]?.id;
+      let conversationId = existing[0]?.id;
 
-      if (!inquiryId) {
+      if (!conversationId) {
         const created = await insertRows(
-          'room_inquiries',
+          'conversations',
           {
             listing_id: listing.id,
             tenant_id: user.userId,
-            status: 'open'
+            lister_id: listing.listerId,
+            inquiry_status: 'open',
+            move_in_date: moveInDate || null
           },
           { accessToken: token }
         );
 
-        inquiryId = created?.[0]?.id;
+        conversationId = created?.[0]?.id;
       }
 
-      if (!inquiryId) {
-        throw new Error('Unable to open inquiry.');
+      if (!conversationId) {
+        throw new Error('Unable to open conversation.');
       }
 
       await insertRows(
         'chat_messages',
         {
-          inquiry_id: inquiryId,
+          conversation_id: conversationId,
           sender_id: user.userId,
           body: message.trim()
         },
@@ -717,22 +711,14 @@ export default function RoomDetailsPage() {
 
   if (loading) {
     return (
-      <div className="container section room-page">
-        <section className="room-hero card room-hero--skeleton">
-          <div className="room-skeleton-block room-skeleton-image" />
+      <div className="container section">
+        <section className="room-hero room-hero--skeleton">
+          <div className="room-skeleton-image room-skeleton-block" />
           <div className="room-skeleton-content">
-            <div className="room-skeleton-block room-skeleton-line room-skeleton-line--title" />
-            <div className="room-skeleton-block room-skeleton-line" />
-            <div className="room-skeleton-block room-skeleton-line room-skeleton-line--short" />
-            <div className="room-skeleton-block room-skeleton-line" />
-            <div className="room-skeleton-block room-skeleton-line room-skeleton-line--short" />
+            <div className="room-skeleton-line room-skeleton-line--title room-skeleton-block" />
+            <div className="room-skeleton-line room-skeleton-block" style={{ width: '40%' }} />
+            <div className="room-skeleton-line room-skeleton-block" style={{ width: '30%', marginTop: '1rem' }} />
           </div>
-        </section>
-
-        <section className="card room-sections">
-          <div className="room-skeleton-block room-skeleton-line room-skeleton-line--title" />
-          <div className="room-skeleton-block room-skeleton-line" />
-          <div className="room-skeleton-block room-skeleton-line" />
         </section>
       </div>
     );
@@ -766,54 +752,14 @@ export default function RoomDetailsPage() {
     );
   }
 
-  // Prevent rendering if still determining authorization for an occupied listing
-  if (listing.vacancyStatus === 'occupied' && isAuthorized === null) {
-     return (
-      <div className="container section room-page">
-        <section className="card" style={{ textAlign: 'center', padding: '4rem 1rem' }}>
-          <p>Verifying access...</p>
-        </section>
-      </div>
-     );
-  }
-
   return (
     <div className="container section room-page">
-      {/* Back to search list button */}
       <Link
-        to="/tenant/search"
-        className="back-to-search-btn"
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          padding: '0.75rem 1.25rem',
-          marginBottom: '1.5rem',
-          background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%)',
-          border: '1px solid rgba(29, 158, 117, 0.2)',
-          borderRadius: '12px',
-          color: '#1D9E75',
-          fontWeight: 600,
-          fontSize: '0.95rem',
-          textDecoration: 'none',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(29, 158, 117, 0.1)',
-          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          position: 'relative',
-          overflow: 'hidden'
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'translateY(-2px)';
-          e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(29, 158, 117, 0.2), 0 0 20px rgba(29, 158, 117, 0.15)';
-          e.currentTarget.style.borderColor = 'rgba(29, 158, 117, 0.4)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(29, 158, 117, 0.1)';
-          e.currentTarget.style.borderColor = 'rgba(29, 158, 117, 0.2)';
-        }}
+        to="/search"
+        className="btn btn--ghost btn--small"
+        style={{ width: 'fit-content', marginBottom: '1rem' }}
       >
-        <ArrowLeft size={18} />
-        <span>Back to search list</span>
+        ← {t('roomDetails.backToSearch')}
       </Link>
 
       <section className="room-hero card">
@@ -918,14 +864,11 @@ export default function RoomDetailsPage() {
                 />
               ) : (
                 <div className="room-lister-avatar room-lister-avatar--fallback">
-                  {(listerProfile?.full_name || 'L')
-                    .trim()
-                    .charAt(0)
-                    .toUpperCase()}
+                  {listerProfile?.full_name?.[0] || 'L'}
                 </div>
               )}
               <div>
-                <h2>{listerProfile?.full_name || t('roomDetails.verifiedLister')}</h2>
+                <h3>{listerProfile?.full_name || 'Asha Owner'}</h3>
                 <p className="muted">
                   {listerProfile?.lister_type ? humanize(listerProfile.lister_type) : 'Lister'} • {humanize(listerProfile?.verification_status || 'pending')} • {t('roomDetails.memberSince', { date: formatShortDate(listerProfile?.created_at) })}
                 </p>
@@ -963,30 +906,6 @@ export default function RoomDetailsPage() {
             )}
           </section>
 
-          {listing?.listerType === 'dalali' && listing?.ownerName ? (
-            <section className="card" style={{ marginTop: '1rem', padding: '1.5rem', border: '1px solid #E5E5E0' }}>
-              <h3 style={{ margin: '0 0 1rem' }}>Property Owner</h3>
-              <p style={{ margin: '0 0 0.5rem' }}>
-                <strong>{listing.ownerName}</strong>
-              </p>
-              {hasPaidBooking && listing?.ownerPhone ? (
-                <p style={{ margin: '0', fontSize: '0.9rem' }}>
-                  <strong>Phone:</strong> {listing.ownerPhone}
-                </p>
-              ) : !hasPaidBooking ? (
-                <div style={{ marginTop: '0.5rem', padding: '0.75rem 1rem', background: 'linear-gradient(135deg, #FEF3C7, #F9FAFB)', borderRadius: '10px', display: 'flex', gap: '0.6rem', alignItems: 'center', border: '1px solid #E5E7EB' }}>
-                  <span style={{ fontSize: '1.1rem' }}>🔒</span>
-                  <p style={{ margin: 0, fontSize: '0.8rem', color: '#6B7280', lineHeight: 1.4 }}>
-                    Reserve / pay to view owner contact details.
-                  </p>
-                </div>
-              ) : null}
-              <p style={{ margin: '0.5rem 0 0', fontSize: '0.85rem', color: '#6B6B5A' }}>
-                (Listed by {listerProfile?.full_name || 'agent'})
-              </p>
-            </section>
-          ) : null}
-
           <div className="room-actions">
             <button
               type="button"
@@ -995,27 +914,26 @@ export default function RoomDetailsPage() {
             >
               {saved ? t('listingCard.saved') : t('listingCard.save')}
             </button>
-            {canReserveListing ? (
+            {canReserveListing && listing.vacancyStatus === 'available' ? (
               <Link
                 to="/tenant/payments"
-                className="btn btn--large"
-                style={{ flex: 2, textAlign: 'center' }}
+                className="btn"
                 state={{
                   listingId: listing.id,
-                  listerId: listing.listerId,
                   price: listing.priceMonthly,
                   title: listing.title,
                   availableFrom: listing.availableFrom,
                   coverPhoto: Array.isArray(listing?.photos) ? listing.photos[0] : null,
                   address: listing.location || listing.district || listing.ward || '',
+                  listerId: listing.listerId,
                 }}
               >
                 Reserve / Pay
               </Link>
             ) : null}
-            <button 
-              type="button" 
-              className="btn btn--ghost" 
+            <button
+              type="button"
+              className="btn btn--ghost"
               onClick={() => {
                 if (!isAuthenticated) {
                   navigate('/login', { state: { from: { pathname: `/rooms/${roomId}` } } });
@@ -1050,27 +968,19 @@ export default function RoomDetailsPage() {
           {facts.map((fact) => (
             <article className="room-fact" key={fact.label}>
               <p>{fact.label}</p>
-              <strong>{fact.value}</strong>
+              <strong>{fact.value || 'Not specified'}</strong>
             </article>
           ))}
         </div>
       </section>
 
-      <section className="room-sections">
+      <section className="room-sections" style={{ gridTemplateColumns: '1fr 1fr' }}>
         <article className="card room-section-card">
           <h2>{t('roomDetails.amenities')}</h2>
           {amenities.length > 0 ? (
-            <div className="room-chip-row" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div className="room-chip-row">
               {amenities.map((item) => (
-                <span
-                  key={item.label}
-                  className="room-chip room-chip--amenity"
-                  style={{
-                    background: item.enabled ? '#EDF7F1' : '#F5F5F0',
-                    border: `1px solid ${item.enabled ? '#1D9E75' : '#E5E5E0'}`,
-                    color: item.enabled ? '#1A1A2E' : '#9999 99'
-                  }}
-                >
+                <span key={item.label} className="room-chip room-chip--amenity">
                   <span className="room-chip__emoji" aria-hidden="true">
                     {item.emoji}
                   </span>
@@ -1082,8 +992,6 @@ export default function RoomDetailsPage() {
             <p className="muted">{t('roomDetails.noAmenities')}</p>
           )}
         </article>
-
-        {/* Habitability section removed as per Task 4 */}
 
         <article className="card room-section-card">
           <h2>{t('roomDetails.houseRules')}</h2>
@@ -1097,162 +1005,43 @@ export default function RoomDetailsPage() {
             <p>{t('roomDetails.noHouseRules')}</p>
           )}
         </article>
+      </section>
 
-        <article className="card room-section-card">
-          <h2>Lease Terms & Payment</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', fontSize: '0.9rem' }}>
-            <div>
-              <p style={{ margin: '0 0 0.3rem', color: '#6B6B5A' }}>Monthly Rent</p>
-              <p style={{ margin: '0', fontWeight: '700', fontSize: '1rem', color: '#1D9E75' }}>
-                TZS {new Intl.NumberFormat('en-TZ').format(listing?.priceMonthly || 0)}
-              </p>
-            </div>
-            {listing?.securityDeposit ? (
-              <div>
-                <p style={{ margin: '0 0 0.3rem', color: '#6B6B5A' }}>Security Deposit</p>
-                <p style={{ margin: '0', fontWeight: '700', fontSize: '1rem' }}>
-                  TZS {new Intl.NumberFormat('en-TZ').format(listing.securityDeposit)}
-                </p>
-              </div>
-            ) : null}
-            {listing?.minLeaseMonths ? (
-              <div>
-                <p style={{ margin: '0 0 0.3rem', color: '#6B6B5A' }}>Minimum Lease</p>
-                <p style={{ margin: '0', fontWeight: '700' }}>{listing.minLeaseMonths} month{listing.minLeaseMonths !== 1 ? 's' : ''}</p>
-              </div>
-            ) : null}
-            {listing?.paymentSchedule ? (
-              <div>
-                <p style={{ margin: '0 0 0.3rem', color: '#6B6B5A' }}>Payment Schedule</p>
-                <p style={{ margin: '0', fontWeight: '700' }}>{humanize(listing.paymentSchedule)}</p>
-              </div>
-            ) : null}
-            {listing?.lateFeePolicy ? (
-              <div style={{ gridColumn: '1 / -1' }}>
-                <p style={{ margin: '0 0 0.3rem', color: '#6B6B5A' }}>Late Fee Policy</p>
-                <p style={{ margin: '0' }}>{listing.lateFeePolicy}</p>
-              </div>
-            ) : null}
-          </div>
-        </article>
-
-        <article className="room-section-card" style={{ padding: '2rem 0', border: 'none', background: 'transparent', gridColumn: '1 / -1' }}>
-          <div style={{ padding: '0 1.5rem' }}>
-            <h2>{t('roomDetails.location')}</h2>
-            <p>{listing.location}</p>
-          </div>
-          <div className="room-location-map-full" style={{ borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-            <ListingMap listings={[listing]} onMarkerSelect={() => { }} height="400px" />
-          </div>
+      <section className="card room-location-section" style={{ marginTop: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+          <h2 style={{ margin: 0 }}>{t('roomDetails.location')}</h2>
+          <p className="muted" style={{ margin: 0, fontSize: '0.9rem' }}>{listing.location}</p>
+        </div>
+        <div className="room-location-map" style={{ height: '400px', borderRadius: '16px', overflow: 'hidden' }}>
+          <ListingMap listings={[listing]} onMarkerSelect={() => { }} center={[listing.lat, listing.lng]} zoom={15} />
+        </div>
+        <div style={{ marginTop: '1rem' }}>
           {nearestUniversity ? (
-            <p className="muted">
+            <p className="muted" style={{ fontSize: '0.85rem' }}>
               {t('roomDetails.nearestCampus', { name: nearestUniversity.name, distance: nearestUniversity.displayDistance })}
             </p>
           ) : null}
           {listing.nearUniversities?.length ? (
-            <div className="room-chip-row">
+            <div className="room-chip-row" style={{ marginTop: '0.5rem' }}>
               {listing.nearUniversities.map((university) => (
-                <span key={university} className="room-chip">
-                  {university}
-                </span>
+                <span key={university} className="room-chip">🎓 {university}</span>
               ))}
             </div>
           ) : null}
-          {nearestUniversity ? (
-            <div className="room-chip-row">
-              {UNIVERSITY_COORDINATES
-                .map((university) => ({
-                  label: university.label,
-                  distanceKm: haversineDistanceKm(
-                    Number(listing.lat), Number(listing.lng),
-                    university.lat, university.lng
-                  )
-                }))
-                .sort((a, b) => a.distanceKm - b.distanceKm)
-                .slice(0, 3)
-                .map((uni) => (
-                  <span key={uni.label} className="room-chip">
-                    {uni.label} ({uni.distanceKm.toFixed(1)} km)
-                  </span>
-                ))}
-            </div>
-          ) : null}
-          {listing.lat && listing.lng ? (
-            <a
-              href={`https://maps.google.com/?q=${listing.lat},${listing.lng}`}
-              target="_blank"
-              rel="noreferrer"
-              className="btn btn--ghost btn--small"
-            >
-              {t('roomDetails.openMapPin')}
-            </a>
-          ) : null}
-        </article>
-      </section>
-
-      <section className="card room-related">
-        <div className="room-related__header">
-          <h2>{t('roomDetails.similarRooms')}</h2>
-          <Link
-            className="btn btn--ghost btn--small"
-            to={`/search?q=${encodeURIComponent(listing.district || listing.region || '')}`}
-          >
-            {t('roomDetails.viewMore')}
-          </Link>
         </div>
-
-        {relatedLoading ? (
-          <div className="room-related-grid">
-            {Array.from({ length: 3 }).map((_, index) => (
-              <div key={`related-skeleton-${index}`} className="room-skeleton-block room-skeleton-card" />
-            ))}
-          </div>
-        ) : null}
-
-        {!relatedLoading && relatedListings.filter(r => r.vacancyStatus !== 'available_soon' && r.vacancyStatus !== 'listed_occupied').length > 0 ? (
-          <div className="room-related-grid">
-            {relatedListings.filter(r => r.vacancyStatus !== 'available_soon' && r.vacancyStatus !== 'listed_occupied').map((item) => (
-              <ListingCard
-                key={item.id}
-                listing={item}
-              />
-            ))}
-          </div>
-        ) : null}
-
-        {!relatedLoading && relatedListings.filter(r => r.vacancyStatus === 'available_soon' || r.vacancyStatus === 'listed_occupied').length > 0 ? (
-          <>
-            {relatedListings.filter(r => r.vacancyStatus !== 'available_soon' && r.vacancyStatus !== 'listed_occupied').length > 0 && (
-              <hr style={{ margin: '1.5rem 0', border: 'none', borderTop: '1px solid var(--border)' }} />
-            )}
-            <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', color: 'var(--ink)' }}>Coming Soon</h3>
-            <div className="room-related-grid">
-              {relatedListings.filter(r => r.vacancyStatus === 'available_soon' || r.vacancyStatus === 'listed_occupied').map((item) => (
-                <ListingCard
-                  key={item.id}
-                  listing={item}
-                />
-              ))}
-            </div>
-          </>
-        ) : null}
-
-        {!relatedLoading && relatedListings.length === 0 ? (
-          <p className="muted">{t('roomDetails.noSimilarRooms')}</p>
-        ) : null}
       </section>
 
       {/* Reviews Section */}
-      <section className="card room-reviews">
-        <div className="room-reviews__header">
-          <h2>{t('roomDetails.reviewsAndRatings')}</h2>
+      <section className="card room-reviews" style={{ marginTop: '1.5rem' }}>
+        <div className="room-reviews__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <h2 style={{ margin: 0 }}>{t('roomDetails.reviewsAndRatings')}</h2>
           {reviews.length > 0 ? (
-            <div className="room-reviews__summary">
-              <span className="room-reviews__avg">
+            <div className="room-reviews__summary" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <span className="room-reviews__avg" style={{ color: '#f59e0b', letterSpacing: '2px' }}>
                 {'★'.repeat(Math.round(Number(averageRating)))}
                 {'☆'.repeat(5 - Math.round(Number(averageRating)))}
               </span>
-              <span className="room-reviews__score">{averageRating}</span>
+              <span className="room-reviews__score" style={{ fontWeight: 700, fontSize: '1.2rem' }}>{averageRating}</span>
               <span className="muted">({reviews.length} review{reviews.length !== 1 ? 's' : ''})</span>
             </div>
           ) : null}
@@ -1268,50 +1057,45 @@ export default function RoomDetailsPage() {
         ) : null}
 
         {!reviewsLoading && reviews.length > 0 ? (
-          <div className="room-reviews__list">
-            {reviews.slice(0, 3).map((review: any) => (
-              <article key={review.id} className="room-review-card">
-                <div className="room-review-card__header">
+          <div className="room-reviews__list" style={{ display: 'grid', gap: '1.5rem' }}>
+            {reviews.slice(0, 3).map((review) => (
+              <article key={review.id} className="room-review-card" style={{ paddingBottom: '1.5rem', borderBottom: '1px solid #f1f5f9' }}>
+                <div className="room-review-card__header" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '0.75rem' }}>
                   {review.authorPhotoUrl ? (
-                    <img src={review.authorPhotoUrl} alt={review.authorName} className="room-review-avatar" />
+                    <img src={review.authorPhotoUrl} alt={review.authorName} className="room-review-avatar" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
                   ) : (
-                    <div className="room-review-avatar room-review-avatar--fallback">
+                    <div className="room-review-avatar room-review-avatar--fallback" style={{ width: 40, height: 40, borderRadius: '50%', background: '#eef2ff', display: 'grid', placeItems: 'center', fontWeight: 600, color: '#4f46e5' }}>
                       {(review.authorName || 'T').charAt(0).toUpperCase()}
                     </div>
                   )}
-                  <div>
-                    <strong>{review.authorName}</strong>
-                    <span className="room-review-stars">
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <strong>{review.authorName}</strong>
+                      <span className="muted room-review-date" style={{ fontSize: '0.8rem' }}>{formatShortDate(review.createdAt)}</span>
+                    </div>
+                    <span className="room-review-stars" style={{ color: '#f59e0b', fontSize: '0.9rem' }}>
                       {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
                     </span>
                   </div>
-                  <span className="muted room-review-date">{formatShortDate(review.createdAt)}</span>
                 </div>
-                {review.comment ? <p>{review.comment}</p> : null}
+                {review.comment ? <p style={{ margin: 0, color: '#4b5563', lineHeight: 1.5 }}>{review.comment}</p> : null}
               </article>
             ))}
 
-            <Link to={`/reviews?listing=${listing.id}`} className="btn btn--ghost" style={{ marginTop: '1rem', display: 'inline-block' }}>
+            <Link to={`/reviews?listing=${listing.id}`} className="btn btn--ghost" style={{ marginTop: '0.5rem', alignSelf: 'flex-start' }}>
               See all {reviews.length} reviews
             </Link>
           </div>
         ) : null}
       </section>
 
-      {/* Booking Status */}
-      {existingBooking ? (
-        <section className="card room-booking-status">
-          <h2>{t('roomDetails.yourBookingRequest')}</h2>
-          <div className="room-booking-status__info">
-            <p>
-              <strong>{t('roomDetails.status')}:</strong>{' '}
-              <span className={`room-booking-badge room-booking-badge--${existingBooking.status}`}>
-                {humanize(existingBooking.status)}
-              </span>
-            </p>
-            <p><strong>{t('roomDetails.moveIn')}:</strong> {formatDate(existingBooking.moveInDate)}</p>
-            <p><strong>{t('roomDetails.duration')}:</strong> {existingBooking.durationMonths} month{existingBooking.durationMonths !== 1 ? 's' : ''}</p>
-            <p className="muted">{t('roomDetails.requestedOn', { date: formatShortDate(existingBooking.createdAt) })}</p>
+      {relatedListings.length > 0 ? (
+        <section className="room-related" style={{ marginTop: '2.5rem' }}>
+          <h2>{t('roomDetails.similarRooms')}</h2>
+          <div className="listing-grid">
+            {relatedListings.map((item) => (
+              <ListingCard key={item.id} listing={item} />
+            ))}
           </div>
         </section>
       ) : null}
@@ -1327,98 +1111,95 @@ export default function RoomDetailsPage() {
             className="sheet"
             role="dialog"
             aria-modal="true"
-            aria-label={hasPaidBooking ? "Chat with Landlord" : "Payment Required"}
+            aria-label="Send inquiry"
             tabIndex={-1}
             onClick={(event) => event.stopPropagation()}
             onKeyDown={(e) => e.stopPropagation()}
           >
-            {hasPaidBooking ? (
-              // PAID USER - Simple Chat Interface
-              <>
-                <h2>Chat with Landlord</h2>
-                <p className="muted">
-                  Send a message to {listerProfile?.full_name || 'the landlord'} about this room
-                </p>
-                <form onSubmit={submitInquiry}>
-                  <label>
-                    Your Message
-                    <textarea
-                      value={message}
-                      onChange={(event) => setMessage(event.target.value)}
-                      placeholder="Hi, I'm interested in this room and would like to know more..."
-                      maxLength={400}
-                      required
-                      style={{ minHeight: '120px' }}
-                    />
-                  </label>
-
-                  <p className="muted">{message.trim().length}/400 characters</p>
-
-                  {error ? <p className="error-text" style={{ marginTop: '1rem', marginBottom: '1rem' }}>{error}</p> : null}
-
-                  <div className="sheet__actions">
-                    <button type="button" className="btn btn--ghost" onClick={() => setOpenInquiry(false)}>
-                      Cancel
-                    </button>
-                    <button type="submit" className="btn" disabled={submittingInquiry}>
-                      {submittingInquiry ? 'Sending...' : 'Send Message'}
-                    </button>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+              <h2 style={{ margin: 0 }}>{t('roomDetails.sendInquiry')}</h2>
+              <button type="button" className="btn btn--ghost" onClick={() => setOpenInquiry(false)} style={{ border: 'none', fontSize: '1.5rem' }}>&times;</button>
+            </div>
+            
+            <form onSubmit={submitInquiry}>
+              <label>
+                {t('roomDetails.yourName')}
+                {editingName ? (
+                  <input
+                    value={inquiryName}
+                    onChange={(event) => setInquiryName(event.target.value)}
+                    onBlur={() => setEditingName(false)}
+                    autoFocus
+                    required
+                  />
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                    <span>{inquiryName || 'Anonymous'}</span>
+                    <button type="button" className="btn btn--ghost btn--small" onClick={() => setEditingName(true)}>Change</button>
                   </div>
-                </form>
-              </>
-            ) : (
-              // UNPAID USER - Payment Required
-              <>
-                <h2>🔒 Payment Required</h2>
-                <div style={{
-                  background: '#FEF3C7',
-                  border: '1px solid #FDE68A',
-                  borderRadius: 12,
-                  padding: '1.5rem',
-                  margin: '1rem 0',
-                  textAlign: 'center'
-                }}>
-                  <p style={{ margin: '0 0 1rem', fontSize: '1rem', color: '#92400E', fontWeight: 600 }}>
-                    Complete payment to chat with the landlord
-                  </p>
-                  <p style={{ margin: '0 0 1.5rem', fontSize: '0.9rem', color: '#B45309' }}>
-                    To ensure serious inquiries only, payment verification is required before starting a conversation. This also unlocks the landlord's phone number and WhatsApp.
-                  </p>
-                  <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
-                    <button 
-                      type="button" 
-                      className="btn btn--ghost" 
-                      onClick={() => setOpenInquiry(false)}
-                    >
-                      Maybe Later
-                    </button>
-                    {listing.vacancyStatus === 'occupied' ? (
-                      <button className="btn" disabled style={{ background: 'var(--mid)', cursor: 'not-allowed', width: '100%' }}>
-                        Room Already Occupied
-                      </button>
-                    ) : (
-                      <Link
-                        to="/tenant/payments"
-                        className="btn"
-                        style={{ textAlign: 'center', textDecoration: 'none' }}
-                        state={{
-                          listingId: listing.id,
-                          price: listing.priceMonthly,
-                          title: listing.title,
-                          availableFrom: listing.availableFrom,
-                          coverPhoto: Array.isArray(listing?.photos) ? listing.photos[0] : null,
-                          address: listing.location || listing.district || listing.ward || '',
-                          listerId: listing.listerId,
-                        }}
-                        onClick={() => setOpenInquiry(false)}
-                      >
-                        Pay Now to Chat
-                      </Link>
-                    )}
-                  </div>
-                </div>
-              </>
-            )}
+                )}
+              </label>
+
+              <label>
+                {t('roomDetails.moveInDate')}
+                <input
+                  type="date"
+                  value={moveInDate}
+                  onChange={(event) => setMoveInDate(event.target.value)}
+                />
+              </label>
+
+              <label>
+                {t('roomDetails.duration')}
+                <select
+                  value={durationMonths}
+                  onChange={(event) => setDurationMonths(event.target.value)}
+                >
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((months) => (
+                    <option key={months} value={months}>
+                      {months} month{months !== 1 ? 's' : ''}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
+                {t('roomDetails.message')}
+                <textarea
+                  value={message}
+                  onChange={(event) => setMessage(event.target.value)}
+                  placeholder="Hi, I am interested in this listing..."
+                  maxLength={400}
+                  required
+                  rows={4}
+                />
+              </label>
+
+              <div className="room-message-templates" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
+                {MESSAGE_TEMPLATES.map((template) => (
+                  <button
+                    key={template}
+                    type="button"
+                    className="btn btn--ghost btn--small"
+                    onClick={() => setMessage(template)}
+                    style={{ fontSize: '0.75rem', padding: '0.4rem 0.75rem', borderRadius: '20px' }}
+                  >
+                    {template}
+                  </button>
+                ))}
+              </div>
+
+              {error ? <p className="error-text" style={{ marginTop: '1rem', marginBottom: '1rem' }}>{error}</p> : null}
+
+              <div className="sheet__actions" style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+                <button type="button" className="btn btn--ghost" onClick={() => setOpenInquiry(false)} style={{ flex: 1 }}>
+                  {t('roomDetails.cancel')}
+                </button>
+                <button type="submit" className="btn" disabled={submittingInquiry} style={{ flex: 2 }}>
+                  {submittingInquiry ? 'Sending...' : t('roomDetails.send')}
+                </button>
+              </div>
+            </form>
           </article>
         </section>
       ) : null}
@@ -1429,6 +1210,7 @@ export default function RoomDetailsPage() {
           role="presentation"
           onClick={() => setLightboxOpen(false)}
           onKeyDown={(e) => e.key === 'Escape' && setLightboxOpen(false)}
+          style={{ background: 'rgba(0,0,0,0.95)' }}
         >
           <article
             className="room-lightbox__dialog"
@@ -1438,13 +1220,15 @@ export default function RoomDetailsPage() {
             tabIndex={-1}
             onClick={(event) => event.stopPropagation()}
             onKeyDown={(e) => e.stopPropagation()}
+            style={{ maxWidth: '90vw', maxHeight: '90vh' }}
           >
             <button
               type="button"
               className="btn btn--ghost btn--small room-lightbox__close"
               onClick={() => setLightboxOpen(false)}
+              style={{ position: 'absolute', top: '-3rem', right: 0, color: '#fff', border: 'none', fontSize: '2rem' }}
             >
-              {t('roomDetails.close')}
+              &times;
             </button>
             <img
               src={activePhoto?.public_url || listing.imageUrl}
@@ -1452,16 +1236,17 @@ export default function RoomDetailsPage() {
               className="room-lightbox__image"
               onTouchStart={captureSwipeStart}
               onTouchEnd={captureSwipeEnd}
+              style={{ width: '100%', height: 'auto', maxHeight: '80vh', objectFit: 'contain', borderRadius: '12px' }}
             />
-            <p className="muted">
+            <p style={{ color: '#fff', textAlign: 'center', marginTop: '1rem' }}>
               {humanize(activePhoto?.angle || 'main')} • {activePhotoIndex + 1}/{galleryPhotos.length}
             </p>
             {galleryPhotos.length > 1 ? (
-              <div className="room-lightbox__actions">
-                <button type="button" className="btn btn--ghost" onClick={goToPrevPhoto}>
+              <div className="room-lightbox__actions" style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '1rem' }}>
+                <button type="button" className="btn btn--ghost" onClick={goToPrevPhoto} style={{ color: '#fff', borderColor: '#fff' }}>
                   {t('roomDetails.previous')}
                 </button>
-                <button type="button" className="btn" onClick={goToNextPhoto}>
+                <button type="button" className="btn" onClick={goToNextPhoto} style={{ background: '#fff', color: '#000' }}>
                   {t('roomDetails.next')}
                 </button>
               </div>
@@ -1469,9 +1254,6 @@ export default function RoomDetailsPage() {
           </article>
         </section>
       ) : null}
-
-      {error ? <p className="error-text">{error}</p> : null}
-      {notice ? <p className="success-text">{notice}</p> : null}
 
       {openReport ? (
         <section

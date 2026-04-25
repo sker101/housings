@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { selectRows, updateRows, deleteRows } from '../lib/supabase';
+import { mapListingRow, fetchPhotosForListings } from '../lib/listings';
 import PaymentModal from '../components/PaymentModal';
 
 export default function LandlordListingsPage() {
@@ -27,8 +28,8 @@ export default function LandlordListingsPage() {
       setLoading(true);
       try {
         // Fetch listings
-        const listingRows = await selectRows('listings', {
-          select: 'id,title,room_type,price_monthly,status,vacancy_status,view_count,featured',
+        const rows = await selectRows('listings', {
+          select: '*',
           filters: [{ column: 'lister_id', op: 'eq', value: user.userId }],
           order: 'created_at.desc',
           limit: 1000,
@@ -37,12 +38,21 @@ export default function LandlordListingsPage() {
 
         if (!mounted) return;
 
-        if (listingRows.length === 0) {
+        if (rows.length === 0) {
           setListings([]);
           return;
         }
 
-        const listingIds = listingRows.map((r) => r.id);
+        const rawRows = rows as any[];
+        const listingIds = rawRows.map(r => r.id);
+
+        // Fetch photos for these listings
+        const photosMap = await fetchPhotosForListings(listingIds, token);
+
+        const listingRows = rawRows.map(r => {
+          const photos = photosMap.get(r.id) || [];
+          return mapListingRow(r, photos);
+        });
 
         // Fetch saves
         const savedRows = await selectRows('saved_listings', {
@@ -107,38 +117,10 @@ export default function LandlordListingsPage() {
         }
       );
       setListings((prev) =>
-        prev.map((l) => (l.id === listingId ? { ...l, vacancy_status: nextStatus } : l))
+        prev.map((l) => (l.id === listingId ? { ...l, vacancy_status: nextStatus, vacancyStatus: nextStatus } : l))
       );
     } catch (err: any) {
       console.error('Failed to update vacancy status', err);
-    } finally {
-      setActingId(null);
-    }
-  };
-
-  const handleDelete = async (listingId: string) => {
-    if (!window.confirm('Are you sure you want to delete this listing? This action cannot be undone.')) {
-      return;
-    }
-    setActingId(listingId);
-    try {
-      await deleteRows('listings', {
-        filters: [{ column: 'id', op: 'eq', value: listingId }, { column: 'lister_id', op: 'eq', value: user.userId }],
-        accessToken: token
-      });
-      setListings((prev) => prev.filter(l => l.id !== listingId));
-    } catch (err: any) {
-      console.error('Failed to delete listing', err);
-      // Fallback to soft delete if DB constraints block hard delete
-      try {
-        await updateRows('listings', { status: 'rejected' }, {
-          filters: [{ column: 'id', op: 'eq', value: listingId }],
-          accessToken: token
-        });
-        setListings((prev) => prev.filter(l => l.id !== listingId));
-      } catch (_e) {
-        alert('Failed to delete listing due to active tenant records.');
-      }
     } finally {
       setActingId(null);
     }
@@ -174,10 +156,10 @@ export default function LandlordListingsPage() {
     return matchesSearch && matchesFilter;
   });
 
-  const totalViews = listings.reduce((sum, l) => sum + (Number(l.view_count) || 0), 0);
-  const vacantCount = listings.filter((l) => l.vacancy_status === 'available').length;
+  const totalViews = listings.reduce((sum, l) => sum + (Number(l.viewCount) || 0), 0);
+  const vacantCount = listings.filter((l) => l.vacancyStatus === 'available').length;
   const approvedCount = listings.filter((l) => l.status === 'approved').length;
-  const maxViews = Math.max(...listings.map((l) => Number(l.view_count) || 0), 1);
+  const maxViews = Math.max(...listings.map((l) => Number(l.viewCount) || 0), 1);
 
   return (
     <>
@@ -283,8 +265,8 @@ export default function LandlordListingsPage() {
               <table className="lst-table">
                 <thead>
                   <tr>
-                    <th>Listing</th>
-                    <th>Price</th>
+                    <th>Property</th>
+                    <th>Rent</th>
                     <th>Status</th>
                     <th>Vacancy</th>
                     <th>Views</th>
@@ -299,21 +281,32 @@ export default function LandlordListingsPage() {
                     return (
                       <tr key={l.id}>
                         <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <Link to={`/rooms/${l.id}`} className="l-name">
-                              {l.title}
-                            </Link>
-                            {l.featured ? (
-                              <span className="pill p-boosted" style={{ marginLeft: 6 }}>
-                                ⚡ Boosted
-                              </span>
-                            ) : null}
+                          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                            <div style={{ width: 44, height: 44, borderRadius: 8, overflow: 'hidden', background: '#f1f5f9', flexShrink: 0, border: '1px solid var(--border)' }}>
+                              <img 
+                                src={l.imageUrl || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1200&q=80'} 
+                                alt="" 
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                              />
+                            </div>
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center' }}>
+                                <Link to={`/listings/${l.id}`} className="l-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '180px' }}>
+                                  {l.title}
+                                </Link>
+                                {l.featured ? (
+                                  <span className="pill p-boosted" style={{ marginLeft: 6 }}>
+                                    ⚡ Boosted
+                                  </span>
+                                ) : null}
+                              </div>
+                              <div className="l-type">{String(t(`rooms.type.${l.roomType}`, l.roomType))}</div>
+                            </div>
                           </div>
-                          <div className="l-type">{String(t(`rooms.type.${l.room_type}`, l.room_type))}</div>
                         </td>
                         <td>
                           <span style={{ fontWeight: 500 }}>
-                            TZS {new Intl.NumberFormat('sw-TZ').format(Number(l.price_monthly || 0))}
+                            TZS {new Intl.NumberFormat('sw-TZ').format(Number(l.priceMonthly || 0))}
                           </span>{' '}
                           <span style={{ fontSize: 10, color: 'var(--mid)' }}>/mo</span>
                         </td>
@@ -324,18 +317,18 @@ export default function LandlordListingsPage() {
                           </span>
                         </td>
                         <td>
-                          <span className={`pill p-${l.vacancy_status}`}>
+                          <span className={`pill p-${l.vacancyStatus}`}>
                             <span className="p-dot" />
-                            {l.vacancy_status ? l.vacancy_status.charAt(0).toUpperCase() + l.vacancy_status.slice(1) : '-'}
+                            {l.vacancyStatus ? l.vacancyStatus.charAt(0).toUpperCase() + l.vacancyStatus.slice(1) : '-'}
                           </span>
                         </td>
                         <td>
-                          <div>{l.view_count || 0}</div>
+                          <div>{l.viewCount || 0}</div>
                           <div className="vbar-wrap">
                             <div
-                              className={`vbar${Number(l.view_count || 0) < maxViews * 0.15 ? ' low' : ''}`}
+                              className={`vbar${Number(l.viewCount || 0) < maxViews * 0.15 ? ' low' : ''}`}
                               style={{
-                                width: `${Math.round((Number(l.view_count || 0) / maxViews) * 100)}%`
+                                width: `${Math.round((Number(l.viewCount || 0) / maxViews) * 100)}%`
                               }}
                             />
                           </div>
@@ -356,11 +349,11 @@ export default function LandlordListingsPage() {
                               <button
                                 className="act-btn"
                                 disabled={actingId === l.id}
-                                onClick={() => toggleVacancy(l.id, l.vacancy_status)}
+                                onClick={() => toggleVacancy(l.id, l.vacancyStatus)}
                               >
                                 {actingId === l.id
                                   ? 'Saving...'
-                                  : l.vacancy_status === 'available'
+                                  : l.vacancyStatus === 'available'
                                     ? 'Mark occupied'
                                     : 'Mark available'}
                               </button>
@@ -375,13 +368,6 @@ export default function LandlordListingsPage() {
                                 Boosted
                               </button>
                             ) : null}
-                            <button
-                                className="act-btn act-delete"
-                                disabled={actingId === l.id}
-                                onClick={() => handleDelete(l.id)}
-                              >
-                                Delete
-                            </button>
                           </div>
                         </td>
                       </tr>

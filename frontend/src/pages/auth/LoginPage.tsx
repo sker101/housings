@@ -82,7 +82,7 @@ const LoginPage: React.FC = () => {
     if (!email.trim()) return;
     
     // Check if admin email
-    const adminEmails = ['admin@campusstay.co', 'admin@irent.co.tz'];
+    const adminEmails = ['admin@campusstay.co', 'admin@irent.co.tz', 'admin@campusstaytz.com', 'admin@campusstay.co.tz'];
     if (adminEmails.includes(email.toLowerCase().trim())) {
       setStep('admin');
       return;

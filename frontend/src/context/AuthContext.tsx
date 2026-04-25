@@ -16,6 +16,7 @@ import {
   signUpWithPassword,
   verifyOTP,
   writeStoredSession,
+  updateRows,
   SUPABASE_URL,
   SUPABASE_ANON_KEY,
 } from '../lib/supabase';
@@ -81,7 +82,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 function normalizeVerificationStatus(rawStatus: unknown): string {
   const normalized = String(rawStatus || '').trim().toLowerCase();
   if (!normalized) return '';
-  return normalized.toUpperCase();
+  return normalized; // keep lowercase so comparisons like === 'verified' work
 }
 
 function buildSessionObject(authPayload: Record<string, unknown>): Record<string, unknown> | null {
@@ -140,27 +141,52 @@ function buildCurrentUser(
 async function fetchProfile(userId: string, accessToken: string): Promise<Profile | null> {
   if (!userId || !accessToken) return null;
 
+  const columns = [
+    'id', 'role', 'roles', 'lister_type', 'full_name', 'phone', 'phone_verified',
+    'university', 'profile_photo_url', 'id_doc_url', 'selfie_url',
+    'verification_status', 'subscription_plan', 'preferred_language',
+    'commission_rate_pct', 'created_at',
+  ];
+
   try {
-    const rows = await selectRows('profiles', {
-      select: [
-        'id', 'role', 'roles', 'lister_type', 'full_name', 'phone', 'phone_verified',
-        'university', 'profile_photo_url', 'id_doc_url', 'selfie_url',
-        'verification_status', 'subscription_plan', 'preferred_language',
-        'commission_rate_pct', 'created_at',
-      ].join(','),
-      filters: [{ column: 'id', op: 'eq', value: userId }],
-      limit: 1,
-      accessToken,
-    });
+    try {
+      const rows = await selectRows('profiles', {
+        select: columns.join(','),
+        filters: [{ column: 'id', op: 'eq', value: userId }],
+        limit: 1,
+        accessToken,
+      });
 
-    const profile = rows[0] as any;
-    if (profile) {
-      // Map verification_status to suspended flag
-      profile.suspended = profile.verification_status === 'suspended';
-      profile.id_document_url = profile.id_doc_url;
+      const profile = rows[0] as any;
+      if (profile) {
+        // Map verification_status to suspended flag
+        profile.suspended = profile.verification_status === 'suspended';
+        profile.id_document_url = profile.id_doc_url;
+      }
+
+      return (profile as Profile) || null;
+    } catch (err: any) {
+      // If the error is likely because the 'roles' column is missing, retry without it
+      const errorMsg = String(err?.message || err || '').toLowerCase();
+      if (errorMsg.includes('roles') || errorMsg.includes('400') || errorMsg.includes('bad request')) {
+        console.warn('[Auth] Retrying profile fetch without "roles" column...');
+        const legacyColumns = columns.filter(c => c !== 'roles');
+        const rows = await selectRows('profiles', {
+          select: legacyColumns.join(','),
+          filters: [{ column: 'id', op: 'eq', value: userId }],
+          limit: 1,
+          accessToken,
+        });
+
+        const profile = rows[0] as any;
+        if (profile) {
+          profile.suspended = profile.verification_status === 'suspended';
+          profile.id_document_url = profile.id_doc_url;
+        }
+        return (profile as Profile) || null;
+      }
+      throw err;
     }
-
-    return (profile as Profile) || null;
   } catch (err) {
     console.error('Failed to fetch profile during auth:', err);
     return null;
@@ -221,10 +247,61 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const currentFlowId = flowId ?? authFlowIdRef.current;
 
       try {
-        const fetchedProfile = await fetchProfile(
+        let fetchedProfile = await fetchProfile(
           (activeSession.user as Record<string, unknown>)?.id as string,
           activeSession.access_token as string
         );
+
+        // Check for pending role upgrade from session storage
+        const pendingRole = sessionStorage.getItem('oauth_signup_role');
+        const effectiveRequestedRole = requestedRole || pendingRole || undefined;
+
+        if (fetchedProfile && effectiveRequestedRole && effectiveRequestedRole !== 'tenant' && effectiveRequestedRole !== fetchedProfile.role) {
+          console.log('[Auth] Hydrate: Upgrading role to', effectiveRequestedRole);
+          try {
+            const currentRoles = (fetchedProfile as unknown as Record<string, unknown>)?.roles as string[] || [fetchedProfile.role || 'tenant'];
+            if (!currentRoles.includes(effectiveRequestedRole)) {
+              const newRoles = [...currentRoles, effectiveRequestedRole];
+              
+              try {
+                // Try updating both columns (roles and role)
+                await updateRows('profiles', {
+                  role: effectiveRequestedRole,
+                  roles: newRoles,
+                  lister_type: 'owner',
+                }, {
+                  filters: [{ column: 'id', op: 'eq', value: (activeSession.user as Record<string, unknown>).id }],
+                  accessToken: activeSession.access_token as string,
+                  prefer: 'return=minimal'
+                });
+              } catch (patchErr) {
+                console.warn('[Auth] Multi-role update failed, falling back to single role:', patchErr);
+                // Fallback to updating only the single 'role' column
+                await updateRows('profiles', {
+                  role: effectiveRequestedRole,
+                  lister_type: 'owner',
+                }, {
+                  filters: [{ column: 'id', op: 'eq', value: (activeSession.user as Record<string, unknown>).id }],
+                  accessToken: activeSession.access_token as string,
+                  prefer: 'return=minimal'
+                });
+              }
+              
+              // Refetch profile
+              fetchedProfile = await fetchProfile(
+                (activeSession.user as Record<string, unknown>)?.id as string,
+                activeSession.access_token as string
+              );
+            }
+          } catch (err) {
+            console.error('[Auth] Failed to update profile roles during hydrate:', err);
+          }
+        }
+
+        // Clean up the pending role if it was consumed
+        if (pendingRole) {
+          sessionStorage.removeItem('oauth_signup_role');
+        }
 
         if (!fetchedProfile) {
           // Profile may not exist yet (race condition with DB trigger)
@@ -236,8 +313,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             email: (sessionUser.email as string) || '',
             phone: '',
             phoneVerified: false,
-            role: requestedRole || APP_ROLE.TENANT,
-            roles: requestedRole ? ['tenant', requestedRole] : [APP_ROLE.TENANT],
+            role: effectiveRequestedRole || APP_ROLE.TENANT,
+            roles: effectiveRequestedRole ? ['tenant', effectiveRequestedRole] : [APP_ROLE.TENANT],
             roleRaw: 'tenant',
             listerType: '',
             landlordVerificationStatus: '',
@@ -250,7 +327,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         setProfile(fetchedProfile);
-        const nextUser = buildCurrentUser(activeSession, fetchedProfile, requestedRole);
+        const nextUser = buildCurrentUser(activeSession, fetchedProfile, effectiveRequestedRole);
         setUser(nextUser);
         applySession(activeSession, rememberMe);
         return nextUser;
@@ -270,6 +347,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const hasCode = window.location.search.includes('code=');
       const hasToken = window.location.hash.includes('access_token=');
       if (hasCode || hasToken) {
+        console.log('[Auth] initialize: OAuth callback detected, unlocking loading guard');
+        setLoading(false);
         return;
       }
     }
@@ -439,12 +518,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refreshMe = useCallback(async (): Promise<AuthUser | null> => {
     const flowId = beginAuthFlow();
     if (!session?.access_token || !(session?.user as Record<string, unknown>)?.id) return null;
+    setLoading(true);
     try {
       const authUser = await fetchAuthUser(session.access_token as string) as Record<string, unknown>;
       const nextSession = { ...session, user: authUser } as Record<string, unknown>;
-      return await hydrateUser(nextSession, persistent, flowId);
+      const res = await hydrateUser(nextSession, persistent, flowId);
+      if (isCurrentAuthFlow(flowId)) setLoading(false);
+      return res;
     } catch {
-      if (isCurrentAuthFlow(flowId)) applySession(null);
+      if (isCurrentAuthFlow(flowId)) {
+        applySession(null);
+        setLoading(false);
+      }
       return null;
     }
   }, [session, persistent, hydrateUser, applySession, beginAuthFlow, isCurrentAuthFlow]);
@@ -523,20 +608,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (!currentRoles.includes(requestedRole)) {
               const newRoles = [...currentRoles, requestedRole];
               console.log('[Auth] New roles array:', newRoles);
-              await fetch(`${SUPABASE_URL}/rest/v1/profiles`, {
-                method: 'PATCH',
-                headers: {
-                  'apikey': SUPABASE_ANON_KEY,
-                  'Authorization': `Bearer ${nextSession.access_token as string}`,
-                  'Content-Type': 'application/json',
-                  'Prefer': 'return=minimal',
-                },
-                body: JSON.stringify({
-                  id: sessionUser.id,
+              try {
+                await updateRows('profiles', {
+                  role: requestedRole,
                   roles: newRoles,
                   lister_type: 'owner',
-                }),
-              });
+                }, {
+                  filters: [{ column: 'id', op: 'eq', value: sessionUser.id }],
+                  accessToken: nextSession.access_token as string,
+                  prefer: 'return=minimal'
+                });
+              } catch (err) {
+                console.warn('[Auth] Role update failed, trying fallback:', err);
+                await updateRows('profiles', {
+                  role: requestedRole,
+                  lister_type: 'owner',
+                }, {
+                  filters: [{ column: 'id', op: 'eq', value: sessionUser.id }],
+                  accessToken: nextSession.access_token as string,
+                  prefer: 'return=minimal'
+                });
+              }
               console.log('[Auth] Profile roles updated successfully');
               // Refresh profile after update
               fetchedProfile = await fetchProfile(
@@ -559,26 +651,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // Build roles array based on requested role
             const roles = requestedRole === 'tenant' ? ['tenant'] : ['tenant', requestedRole];
 
-            await fetch(`${SUPABASE_URL}/rest/v1/profiles`, {
-              method: 'POST',
-              headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': `Bearer ${nextSession.access_token as string}`,
-                'Content-Type': 'application/json',
-                'Prefer': 'return=minimal',
-              },
-              body: JSON.stringify({
-                id: sessionUser.id,
-                role: requestedRole,
-                roles,
-                full_name: metadata.full_name || metadata.name || '',
-                email: sessionUser.email,
-                phone: '', // Will require completion
-                phone_verified: false,
-                profile_photo_url: metadata.avatar_url || metadata.picture || '',
-                verification_status: 'pending_profile_completion',
-              }),
-            });
+            const profileData: Record<string, any> = {
+              id: sessionUser.id,
+              role: requestedRole,
+              full_name: metadata.full_name || metadata.name || '',
+              email: sessionUser.email,
+              phone: '',
+              phone_verified: false,
+              profile_photo_url: metadata.avatar_url || metadata.picture || '',
+              verification_status: 'pending_profile_completion',
+            };
+
+            try {
+              // Try with roles column
+              await insertRows('profiles', { ...profileData, roles }, {
+                accessToken: nextSession.access_token as string,
+                prefer: 'return=minimal'
+              });
+            } catch (postErr) {
+              console.warn('[Auth] OAuth profile creation fallback:', postErr);
+              // Fallback without roles column
+              await insertRows('profiles', profileData, {
+                accessToken: nextSession.access_token as string,
+                prefer: 'return=minimal'
+              });
+            }
           } catch (err) {
             console.error('Failed to create profile:', err);
           }
@@ -673,20 +770,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const currentRoles = (fetchedProfile as unknown as Record<string, unknown>)?.roles as string[] || [fetchedProfile.role || 'tenant'];
             if (!currentRoles.includes(requestedRole)) {
               const newRoles = [...currentRoles, requestedRole];
-              await fetch(`${SUPABASE_URL}/rest/v1/profiles`, {
-                method: 'PATCH',
-                headers: {
-                  'apikey': SUPABASE_ANON_KEY,
-                  'Authorization': `Bearer ${nextSession.access_token as string}`,
-                  'Content-Type': 'application/json',
-                  'Prefer': 'return=minimal',
-                },
-                body: JSON.stringify({
-                  id: sessionUser.id,
+              try {
+                await updateRows('profiles', {
+                  role: requestedRole,
                   roles: newRoles,
                   lister_type: 'owner',
-                }),
-              });
+                }, {
+                  filters: [{ column: 'id', op: 'eq', value: sessionUser.id }],
+                  accessToken: nextSession.access_token as string,
+                  prefer: 'return=minimal'
+                });
+              } catch (err) {
+                console.warn('[Auth] Role update failed (OTP), trying fallback:', err);
+                await updateRows('profiles', {
+                  role: requestedRole,
+                  lister_type: 'owner',
+                }, {
+                  filters: [{ column: 'id', op: 'eq', value: sessionUser.id }],
+                  accessToken: nextSession.access_token as string,
+                  prefer: 'return=minimal'
+                });
+              }
               console.log('[Auth] Profile roles updated successfully via OTP');
               
               fetchedProfile = await fetchProfile(
@@ -710,26 +814,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           try {
             const roles = requestedRole === 'tenant' ? ['tenant'] : ['tenant', requestedRole];
             
-            await fetch(`${SUPABASE_URL}/rest/v1/profiles`, {
-              method: 'POST',
-              headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': `Bearer ${nextSession.access_token as string}`,
-                'Content-Type': 'application/json',
-                'Prefer': 'return=minimal',
-              },
-              body: JSON.stringify({
-                id: sessionUser.id,
-                role: requestedRole,
-                roles,
-                full_name: displayName,
-                email: email,
-                phone: '', // Will require completion
-                phone_verified: false,
-                profile_photo_url: '',
-                verification_status: 'pending_profile_completion',
-              }),
-            });
+            const profileData: Record<string, any> = {
+              id: sessionUser.id,
+              role: requestedRole,
+              full_name: displayName,
+              email: email,
+              phone: '',
+              phone_verified: false,
+              profile_photo_url: '',
+              verification_status: 'pending_profile_completion',
+            };
+
+            try {
+              // Try with roles column
+              await insertRows('profiles', { ...profileData, roles }, {
+                accessToken: nextSession.access_token as string,
+                prefer: 'return=minimal'
+              });
+            } catch (postErr) {
+              console.warn('[Auth] OTP profile creation fallback:', postErr);
+              // Fallback without roles column
+              await insertRows('profiles', profileData, {
+                accessToken: nextSession.access_token as string,
+                prefer: 'return=minimal'
+              });
+            }
             
             // Fetch the newly created profile
             fetchedProfile = await fetchProfile(
@@ -785,10 +894,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Cannot switch to role:', newRole, 'User does not have this role');
       return;
     }
+    
+    // Set loading immediately
+    setLoading(true);
+    
+    // Persist active role
+    console.log('[Auth] switchRole: switching to', newRole);
     setActiveRole(newRole);
-    // Refresh user to get updated active role
-    refreshMe();
-  }, [user, refreshMe]);
+    
+    // Redirect to appropriate dashboard to force a clean UI/Theme state
+    let targetPath = '/';
+    if (newRole === 'landlord') targetPath = '/landlord/dashboard';
+    else if (newRole === 'property_manager') targetPath = '/manager/dashboard';
+    else if (newRole === 'admin') targetPath = '/admin';
+    else targetPath = '/tenant/dashboard';
+
+    // Using window.location.href forces a clean reload, solving potential CSS/State staleness
+    window.location.href = targetPath;
+  }, [user]);
 
   const canSwitchRolesValue = useMemo(() => {
     return canSwitchRoles(user?.roles || []);
