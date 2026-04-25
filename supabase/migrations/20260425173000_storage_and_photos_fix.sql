@@ -1,4 +1,4 @@
--- 1. Create missing storage buckets for listings
+[-- 1. Create missing storage buckets for listings
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('listing-photos', 'listing-photos', true)
 ON CONFLICT (id) DO NOTHING;
@@ -63,3 +63,4 @@ FOR ALL USING (
 
 -- 5. Refresh PostgREST cache
 NOTIFY pgrst, 'reload schema';
+]

@@ -119,11 +119,17 @@ function isUnsupportedJwtAlgorithm(payload) {
   return message.includes('es256') || message.includes('unsupported jwt algorithm');
 }
 
-async function refreshStoredAccessToken(accessToken?: string, isAuthRequest = false) {
+async function refreshStoredAccessToken(accessToken?: string | null, isAuthRequest = false) {
   // Never send cookies/tokens for initial sign-in to the Cloud
   if (isAuthRequest) return undefined;
   
-  if (!accessToken) {
+  // Explicit null means "anonymous request - do not use stored token"
+  if (accessToken === null) {
+    return undefined;
+  }
+  
+  // Undefined means "use stored token if available"
+  if (accessToken === undefined) {
     const { session } = readStoredSession();
     return session?.access_token;
   }
@@ -353,7 +359,7 @@ async function request(path: string, options: RequestOptions = {}) {
     extraHeaders = {}
   } = options;
 
-  const resolvedAccessToken = await refreshStoredAccessToken(accessToken, isAuthRequest);
+  const resolvedAccessToken = await refreshStoredAccessToken(accessToken as string | undefined | null, isAuthRequest);
   const target = new URL(path, SUPABASE_URL);
   if (query) {
     Object.entries(query).forEach(([key, value]) => {

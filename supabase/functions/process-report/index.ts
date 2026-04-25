@@ -1,71 +1,129 @@
-import { corsHeaders, json, withCors } from '../_shared/cors.ts';
-import { createRequestClient, createServiceClient } from '../_shared/supabase.ts';
+import { corsHeaders } from '../_shared/cors.ts';
+
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 Deno.serve(async (req) => {
-    if (req.method === 'OPTIONS') return withCors('ok', 200, corsHeaders);
-    if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
+  // Handle CORS
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+  
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), { 
+      status: 405, 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    });
+  }
 
-    const payload = await req.json().catch(() => null);
-    const { listing_id, reason, description, evidence_urls } = payload ?? {};
+  const body = await req.json().catch(() => ({}));
+  console.log('[process-report] Received:', body);
+  
+  const { listingId, reason, details } = body;
 
-    if (!payload) {
-        return json({ error: 'Invalid or missing JSON payload' }, 400);
-    }
+  if (!listingId || !reason) {
+    return new Response(JSON.stringify({ error: 'listingId and reason are required' }), { 
+      status: 400, 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    });
+  }
 
-    if (!listing_id) {
-        return json({ error: 'listing_id is required' }, 400);
-    }
+  try {
+    // Get auth header if present (optional)
+    const authHeader = req.headers.get('Authorization') || '';
+    let reporterId = null;
+    let reporterHasBooking = false;
     
-    if (!reason) {
-        return json({ error: 'reason is required' }, 400);
-    }
-
-    try {
-        const userClient = createRequestClient(req);
-        const supabase = createServiceClient();
-
-        // Get current user 
-        let reporterId = null;
-        try {
-            const authHeader = req.headers.get('Authorization');
-            if (authHeader && authHeader.trim().length > 10 && !authHeader.includes('null') && !authHeader.includes('undefined')) {
-                const { data: { user }, error: authError } = await userClient.auth.getUser();
-                if (!authError) {
-                    reporterId = user?.id ?? null;
-                }
-            }
-        } catch (e) {
-            // Ignore invalid JWTs — process as anonymous report
-        }
-
-        let reporterHasBooking = false;
-
-        if (reporterId) {
-            const { data: booking } = await supabase
-                .from('bookings')
-                .select('id')
-                .eq('listing_id', listing_id)
-                .eq('tenant_id', reporterId)
-                .in('status', ['approved', 'completed'])
-                .limit(1)
-                .single();
-            reporterHasBooking = !!booking;
-        }
-
-        const { error } = await supabase.from('listing_reports').insert({
-            listing_id,
-            reporter_id: reporterId,
-            reason,
-            description: description ?? '',
-            evidence_urls: Array.isArray(evidence_urls) ? evidence_urls : [],
-            reporter_has_booking: reporterHasBooking,
-            status: 'pending',
+    // Try to get user from auth header
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.replace('Bearer ', '');
+      try {
+        // Verify token via REST
+        const authResponse = await fetch(`${supabaseUrl}/auth/v1/user`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'apikey': serviceKey
+          }
         });
-
-        if (error) return json({ error: error.message }, 400);
-
-        return json({ ok: true, message: 'Thank you for your report. We will review it shortly.' });
-    } catch (err) {
-        return json({ error: err instanceof Error ? err.message : 'Unexpected error' }, 500);
+        
+        if (authResponse.ok) {
+          const userData = await authResponse.json();
+          reporterId = userData.id;
+          
+          // Check for booking using REST
+          const bookingResponse = await fetch(
+            `${supabaseUrl}/rest/v1/bookings?select=id&listing_id=eq.${listingId}&tenant_id=eq.${reporterId}&status=eq.paid&limit=1`,
+            {
+              headers: {
+                'Authorization': `Bearer ${serviceKey}`,
+                'apikey': serviceKey
+              }
+            }
+          );
+          
+          if (bookingResponse.ok) {
+            const bookings = await bookingResponse.json();
+            reporterHasBooking = bookings && bookings.length > 0;
+          }
+        }
+      } catch (e) {
+        console.log('[process-report] Auth check failed, proceeding as guest');
+      }
     }
+
+    console.log('[process-report] Inserting:', { listingId, reporterId, reason, reporterHasBooking });
+
+    // Insert report via REST API
+    const insertResponse = await fetch(`${supabaseUrl}/rest/v1/listing_reports`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${serviceKey}`,
+        'apikey': serviceKey,
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify({
+        listing_id: listingId,
+        reporter_id: reporterId,
+        reason,
+        details: details || null,
+        reporter_has_booking: reporterHasBooking,
+        status: 'pending'
+      })
+    });
+
+    if (!insertResponse.ok) {
+      const errorText = await insertResponse.text();
+      console.error('[process-report] Insert failed:', errorText);
+      return new Response(JSON.stringify({ 
+        error: 'Failed to submit report', 
+        details: errorText 
+      }), { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
+    }
+
+    const report = await insertResponse.json();
+    console.log('[process-report] Success:', report);
+
+    return new Response(JSON.stringify({ 
+      success: true, 
+      reportId: report[0]?.id,
+      message: 'Report submitted successfully. Thank you for helping keep our community safe.'
+    }), { 
+      status: 200, 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    });
+
+  } catch (error) {
+    console.error('[process-report] Error:', error);
+    return new Response(JSON.stringify({ 
+      error: 'Failed to process report', 
+      details: error instanceof Error ? error.message : 'Unknown error' 
+    }), { 
+      status: 500, 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    });
+  }
 });

@@ -227,9 +227,9 @@ export default function RoomDetailsPage() {
     setReportError('');
     try {
       await invokeFunction('process-report', {
-        listing_id: listing.id,
+        listingId: listing.id,
         reason: reportReason,
-        description: reportDescription,
+        details: reportDescription,
       }, token);
       setReportSuccess(true);
       setReportDescription('');
@@ -268,8 +268,11 @@ export default function RoomDetailsPage() {
         setListerProfile(payload.listerProfile);
         setActivePhotoIndex(0);
 
-        invokeFunction('increment-view', { listingId: payload.listing.id }, token).catch(() => {
-          // Best-effort analytics update.
+        // Only pass token if user is authenticated, otherwise use null for anonymous
+        const viewToken = isAuthenticated ? token : null;
+        invokeFunction('increment-view', { listingId: payload.listing.id }, viewToken).catch((err) => {
+          // Best-effort analytics update - silently ignore errors
+          console.log('[RoomDetails] View count update failed (non-critical):', err?.message);
         });
 
         const [related, listingCount, reviewsList] = await Promise.all([
