@@ -77,7 +77,7 @@ export default function LandlordDashboard() {
 
         // Active leases
         const leaseRows = await selectRows('tenant_leases', {
-          select: 'id, room_id, days_remaining, lease_end_date, status, renewal_decision, tenant:tenants(profile:profiles(full_name)), room:rooms(room_number, property:properties(title))',
+          select: 'id, room_id, days_remaining, lease_end_date, status, renewal_decision, tenant:tenants(profile:profiles(full_name)), room:rooms!room_id(room_number, property:properties(title))',
           filters: [
             { column: 'landlord_id', op: 'eq', value: lId },
             { column: 'status',      op: 'eq', value: 'active' },

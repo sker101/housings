@@ -101,7 +101,7 @@ export default function MapboxListingMap({
 
     const map = new mapboxgl.Map({
       container: containerRef.current,
-      style: mapStyle === 'light' ? 'mapbox://styles/mapbox/light-v11' : 'mapbox://styles/mapbox/satellite-streets-v12',
+      style: mapStyle === 'light' ? 'mapbox://styles/mapbox/light-v11' : 'mapbox://styles/mapbox/satellite-v9',
       center: DAR_ES_SALAAM_CENTRE,
       zoom: 12,
       attributionControl: false,
@@ -137,7 +137,7 @@ export default function MapboxListingMap({
   // Update style when mapStyle state changes
   useEffect(() => {
     if (!mapRef.current || !mapLoaded) return;
-    const newStyle = mapStyle === 'light' ? 'mapbox://styles/mapbox/light-v11' : 'mapbox://styles/mapbox/satellite-streets-v12';
+    const newStyle = mapStyle === 'light' ? 'mapbox://styles/mapbox/light-v11' : 'mapbox://styles/mapbox/satellite-v9';
     mapRef.current.setStyle(newStyle);
   }, [mapStyle, mapLoaded]);
 

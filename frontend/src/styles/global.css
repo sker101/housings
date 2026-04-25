@@ -1,5 +1,30 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
+/* Responsive Utilities */
+.hide-on-mobile {
+  display: none !important;
+}
+
+@media (min-width: 1024px) {
+  .hide-on-mobile {
+    display: block !important;
+  }
+  
+  .hide-on-desktop {
+    display: none !important;
+  }
+  
+  .show-on-mobile {
+    display: none !important;
+  }
+}
+
+@media (max-width: 1023px) {
+  .show-on-desktop {
+    display: none !important;
+  }
+}
+
 :root {
   --ink: #222222;
   --paper: #ffffff;
@@ -327,19 +352,29 @@ label {
 }
 
 .brand-mark {
-  width: 30px;
-  height: 30px;
-  border-radius: 9px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   display: grid;
   place-items: center;
-  background: linear-gradient(140deg, var(--jade), var(--jade-light));
-  color: #fff;
-  font-size: 0.84rem;
+  background: #ffffff;
+  color: var(--jade);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.brand-text {
+  font-size: 1.15rem;
+  letter-spacing: -0.035em;
+  color: #000000 !important;
+  font-weight: 700;
+  margin-left: -2px;
 }
 
 .brand-text em {
   font-style: normal;
-  color: var(--jade-light);
+  color: var(--jade);
+  font-weight: 800;
+  margin-right: 1px;
 }
 
 .topbar__nav {
@@ -6279,6 +6314,18 @@ tbody td {
     transform: translateX(0);
     opacity: 1;
   }
+}
+
+.brand-mark {
+  width: 32px;
+  height: 32px;
+  background: #ffffff;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--jade);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 
 .install-popup-close {

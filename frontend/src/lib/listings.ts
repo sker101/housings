@@ -96,7 +96,7 @@ export async function fetchPhotosForListings(listingIds, accessToken) {
   }
 
   const photos = await selectRows('listing_photos', {
-    select: 'id,listing_id,angle,public_url,created_at',
+    select: 'id,listing_id,angle,public_url,position,caption,is_cover,created_at',
     filters: [
       {
         column: 'listing_id',
@@ -104,7 +104,7 @@ export async function fetchPhotosForListings(listingIds, accessToken) {
         value: `(${listingIds.join(',')})`
       }
     ],
-    order: 'created_at.asc',
+    order: 'position.asc,created_at.asc',
     accessToken
   });
 

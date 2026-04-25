@@ -52,29 +52,27 @@ export default function LandlordDashboardPage() {
 
       const [profileRows, listingRows, conversationRows, bookingRows, approvedBookings] = await Promise.all([
         selectRows('profiles', {
-          select:
-            'id,full_name,verification_status,lister_type,subscription_plan,commission_rate_pct,payout_provider,payout_reference,phone_verified',
+          select: 'id,full_name,verification_status,lister_type,subscription_plan,commission_rate_pct,payout_provider,payout_reference,phone_verified',
           filters: [{ column: 'id', op: 'eq', value: user.userId }],
           limit: 1,
           accessToken: token
-        }),
+        }).catch(() => []),
         selectRows('listings', {
           select: '*',
           filters: [{ column: 'lister_id', op: 'eq', value: user.userId }],
           order: 'created_at.desc',
           limit: 200,
           accessToken: token
-        }),
-        selectRows('room_inquiries', {
-          select: 'id,tenant_id,status,created_at',
-          filters: [{ column: 'tenant_id', op: 'neq', value: user.userId }], // Placeholder for landlord-side filtering
-          order: 'created_at.desc',
-          limit: 200,
+        }).catch(() => []),
+        selectRows('conversations', {
+          select: 'id,tenant_id,inquiry_status,created_at,last_message_at',
+          filters: [{ column: 'lister_id', op: 'eq', value: user.userId }],
+          order: 'last_message_at.desc',
+          limit: 10,
           accessToken: token
-        }),
+        }).catch(() => []),
         realLandlordId ? selectRows('bookings', {
-          select:
-            'id,listing_id,tenant_id,landlord_id,move_in_date,months_duration,message,contact_preference,status,created_at',
+          select: 'id,listing_id,tenant_id,landlord_id,move_in_date,months_duration,message,contact_preference,status,created_at',
           filters: [
             { column: 'landlord_id', op: 'eq', value: realLandlordId },
             { column: 'status', op: 'in', value: '(pending,requested,approved,confirmed,completed)' }
@@ -82,7 +80,7 @@ export default function LandlordDashboardPage() {
           order: 'created_at.desc',
           limit: 50,
           accessToken: token
-        }) : Promise.resolve([]),
+        }).catch(() => []) : Promise.resolve([]),
         realLandlordId ? selectRows('bookings', {
           select: 'id,listing_id,created_at',
           filters: [
@@ -92,7 +90,7 @@ export default function LandlordDashboardPage() {
           order: 'created_at.desc',
           limit: 200,
           accessToken: token
-        }) : Promise.resolve([])
+        }).catch(() => []) : Promise.resolve([])
       ]);
 
       const conversationIds = conversationRows.map((row) => row.id).filter(Boolean);

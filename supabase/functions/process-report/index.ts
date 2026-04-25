@@ -8,8 +8,16 @@ Deno.serve(async (req) => {
     const payload = await req.json().catch(() => null);
     const { listing_id, reason, description, evidence_urls } = payload ?? {};
 
-    if (!listing_id || !reason) {
-        return json({ error: 'listing_id and reason are required' }, 400);
+    if (!payload) {
+        return json({ error: 'Invalid or missing JSON payload' }, 400);
+    }
+
+    if (!listing_id) {
+        return json({ error: 'listing_id is required' }, 400);
+    }
+    
+    if (!reason) {
+        return json({ error: 'reason is required' }, 400);
     }
 
     try {

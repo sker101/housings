@@ -35,7 +35,7 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
   const profileTarget = isAuthenticated ? '/profile' : '/auth/login';
 
   const [homeViewMode, setHomeViewMode] = useState('grid');
-
+  
   const toggleHomePageView = () => {
     const newMode = homeViewMode === 'grid' ? 'map' : 'grid';
     setHomeViewMode(newMode);
@@ -447,11 +447,11 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
             limit: 1000, accessToken: token
           });
           const tenantRows = await selectRows('bookings', {
-            select: 'id', filters: [{ column: 'landlord_id', op: 'eq', value: user.userId }, { column: 'status', op: 'eq', value: 'approved' }],
+            select: 'id', filters: [{ column: 'lister_id', op: 'eq', value: user.userId }, { column: 'status', op: 'eq', value: 'approved' }],
             limit: 1000, accessToken: token
           });
           const pendingRows = await selectRows('bookings', {
-            select: 'id', filters: [{ column: 'landlord_id', op: 'eq', value: user.userId }, { column: 'status', op: 'eq', value: 'requested' }],
+            select: 'id', filters: [{ column: 'lister_id', op: 'eq', value: user.userId }, { column: 'status', op: 'eq', value: 'requested' }],
             limit: 1000, accessToken: token
           });
           if (mounted) {
@@ -531,98 +531,184 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
       <Toaster position="top-right" />
       <div className="app-shell">
 
-        {!hideHeader ? (
-          <header className={`topbar ${isHomePage ? 'topbar--on-homepage' : ''}`}>
-            <div className="topbar__inner">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                {isAuthenticated && user?.role === APP_ROLE.ADMIN && (
-                  <button 
-                    type="button" 
-                    className="topbar-action-btn"
-                    onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                    style={{ marginLeft: '-0.5rem', marginRight: '0.25rem' }}
-                  >
-                    <Menu size={20} />
-                  </button>
-                )}
-                <Link to="/" className="brand-link">
-                  <div className="brand-mark">
-                    <Home size={18} />
-                  </div>
-                  <span className="brand-text"><em>i</em>Rent</span>
-                </Link>
-              </div>
-
-              <div className="topbar__nav">
-                <div className="show-on-desktop">
-                  {isAuthenticated ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                      <Link to="/profile" className="muted" style={{ fontSize: '0.8rem', fontWeight: 600 }}>
+      {!hideHeader ? (
+        <header className={`topbar ${isHomePage ? 'topbar--on-homepage' : ''}`} style={{ display: 'flex', flexDirection: 'column', padding: 0 }}>
+          <div className="topbar-content" style={{ width: '100%', padding: '0.5rem 0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+            <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center' }}>
+              <button
+                type="button"
+                className="topbar-action-btn"
+                onClick={() => navigate('/')}
+                title="Home"
+                style={{ padding: '0.35rem' }}
+              >
+                <img
+                  src="/icon-192.png"
+                  alt="iRent"
+                  style={{
+                    width: '46px',
+                    height: '46px',
+                    objectFit: 'contain',
+                    borderRadius: '10px'
+                  }}
+                />
+              </button>
+            </div>
+            <div style={{ flex: '1 1 auto', display: 'flex', justifyContent: 'center', alignItems: 'center', minWidth: 0, maxWidth: '600px' }}>
+              {!isAuthenticated && (
+                <div
+                  role="button"
+                  onClick={() => setIsSearchModalOpen(true)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+                    padding: '0.4rem 0.9rem',
+                    borderRadius: '999px',
+                    cursor: 'pointer',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    boxShadow: '0 3px 12px rgba(34, 197, 94, 0.35)',
+                    transition: 'transform 0.2s, box-shadow 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.02)';
+                    e.currentTarget.style.boxShadow = '0 4px 16px rgba(34, 197, 94, 0.45)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.boxShadow = '0 3px 12px rgba(34, 197, 94, 0.35)';
+                  }}
+                >
+                  {/* Shiny effect overlay */}
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: '-100%',
+                    width: '100%',
+                    height: '100%',
+                    background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%)',
+                    animation: 'shine 2.5s infinite'
+                  }} />
+                  <style>{`
+                    @keyframes shine {
+                      0% { left: -100%; }
+                      100% { left: 100%; }
+                    }
+                  `}</style>
+                  <Home size={14} style={{ color: '#fff', flexShrink: 0, position: 'relative', zIndex: 1 }} />
+                  <span style={{
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    color: '#fff',
+                    whiteSpace: 'nowrap',
+                    position: 'relative',
+                    zIndex: 1
+                  }}>Find your perfect home</span>
+                </div>
+              )}
+            </div>
+            <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.4rem', position: 'relative' }} ref={a11yRef}>
+              {!isMobileOrTablet && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginRight: '0.5rem' }}>
+                  {isAuthenticated && (
+                    <Link to="/profile" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', marginRight: '0.5rem' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--mid)', marginRight: '0.8rem' }}>
                         {t('layout.greeting', 'Hi')}, {user?.fullName?.split(' ')[0] || 'User'}
-                      </Link>
-                      {topActionLink}
-                      <button type="button" className="btn btn--ghost btn--small" onClick={logout}>
-                        {t('nav.logout', 'Logout')}
-                      </button>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <Link to="/auth/login" style={{ fontWeight: 600, fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}>
-                        {t('nav.login', 'Login')}
-                      </Link>
-                      <Link to="/auth/register" className="btn btn--small">
-                        {t('nav.register', 'Join iRent')}
-                      </Link>
-                    </div>
+                      </span>
+                    </Link>
+                  )}
+                  {topActionLink}
+                  {isAuthenticated && (
+                    <button type="button" className="btn btn--ghost btn--small" onClick={logout}>
+                      {t('nav.logout', 'Logout')}
+                    </button>
                   )}
                 </div>
+              )}
 
-                {/* Show map toggle on homepage */}
-                {isHomePage && (
-                  <button type="button" className="topbar-action-btn" onClick={toggleHomePageView} title="Toggle View">
-                    {homeViewMode === 'map' ? <LayoutGrid size={18} /> : <Map size={18} />}
+              {/* Show search modal button and map toggle when appropriate */}
+              {(isHomePage || isAuthenticated) && (
+                <>
+                  <button type="button" className="topbar-action-btn" onClick={() => setIsSearchModalOpen(true)} title="Search Listings">
+                    <Search size={18} />
                   </button>
-                )}
-
-                {isAuthenticated && (
-                  <button
-                    type="button"
-                    className="topbar-action-btn"
-                    onClick={() => navigate('/notifications')}
-                    title="Notifications"
-                  >
-                    <Bell size={18} />
-                    {notifCount > 0 && (
-                      <span className="notification-badge">{notifCount > 99 ? '99+' : notifCount}</span>
-                    )}
-                  </button>
-                )}
-
-                <button
-                  type="button"
-                  className={`topbar-action-btn ${isA11yOpen ? 'is-active' : ''}`}
-                  onClick={() => setIsA11yOpen(!isA11yOpen)}
-                  title="Accessibility"
+                  
+                  {isHomePage && (
+                    <button type="button" className="topbar-action-btn" onClick={toggleHomePageView} title="Toggle View">
+                      {homeViewMode === 'map' ? <LayoutGrid size={18} /> : <Map size={18} />}
+                    </button>
+                  )}
+                </>
+              )}
+              
+              {isAuthenticated && (
+                <button 
+                  type="button" 
+                  className="topbar-action-btn" 
+                  onClick={() => navigate('/notifications')} 
+                  title="Notifications"
                 >
-                  <Accessibility size={18} />
+                  <Bell size={18} />
+                  {notifCount > 0 && (
+                    <span className="notification-badge">{notifCount > 99 ? '99+' : notifCount}</span>
+                  )}
                 </button>
+              )}
+              
+              {/* For non-authenticated non-homepage: show theme and language directly */}
+              {!isAuthenticated && !isHomePage && (
+                <>
+                  <button 
+                    type="button" 
+                    className="topbar-action-btn" 
+                    onClick={toggleDarkMode}
+                    title="Toggle Theme"
+                  >
+                    {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+                  </button>
+                  <button 
+                    type="button" 
+                    className="topbar-action-btn" 
+                    onClick={toggleLanguage}
+                    title="Change Language"
+                  >
+                    <Globe size={18} />
+                  </button>
+                </>
+              )}
+              
+              {/* Show accessibility menu for homepage or authenticated users */}
+              {(isHomePage || isAuthenticated) && (
+                <>
+                  <button 
+                    type="button" 
+                    className={`topbar-action-btn ${isA11yOpen ? 'is-active' : ''}`} 
+                    onClick={() => setIsA11yOpen(!isA11yOpen)} 
+                    title="Accessibility" 
+                    aria-expanded={isA11yOpen} 
+                    aria-haspopup="menu"
+                  >
+                    <Accessibility size={18} />
+                  </button>
 
-                {isA11yOpen && (
-                  <div className="a11y-menu" ref={a11yRef}>
-                    <button type="button" className="a11y-menu__item" onClick={() => { toggleDarkMode(); setIsA11yOpen(false); }}>
-                      {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
-                      <span>{t('layout.toggleTheme', 'Toggle theme')}</span>
-                    </button>
-                    <button type="button" className="a11y-menu__item" onClick={() => { toggleLanguage(); setIsA11yOpen(false); }}>
-                      <Globe size={16} />
-                      <span>{t('layout.changeLanguage', 'Change language')}</span>
-                    </button>
-                  </div>
-                )}
-              </div>
+                  {isA11yOpen && (
+                    <div className="a11y-menu">
+                      <button type="button" className="a11y-menu__item" onClick={() => { toggleDarkMode(); setIsA11yOpen(false); }}>
+                        {isDarkMode ? <Sun size={16} /> : <Moon size={16} />} 
+                        <span>{t('layout.toggleTheme', 'Toggle theme')}</span>
+                      </button>
+                      <button type="button" className="a11y-menu__item" onClick={() => { toggleLanguage(); setIsA11yOpen(false); }}>
+                        <Globe size={16} /> 
+                        <span>{t('layout.changeLanguage', 'Change language')}</span>
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
 
-<<<<<<< Updated upstream
           </div>
 
           {/* NOTIFICATION ROW - Always displays image and text */}
@@ -658,151 +744,70 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
                 Discover your perfect home with iRent. Tanzania's #1 rental platform. Browse verified listings, connect with landlords, and book your stay with confidence.
               </p>
             </div>
-=======
-            {isMobileOrTablet && (
-              <div className={`install-popup ${deferredPrompt ? 'show' : ''}`}>
-                <div className="install-popup__inner">
-                  <div className="install-popup__text">Install iRent for faster access and offline support.</div>
-                  <div className="install-popup__actions">
-                    <button className="install-popup__install" onClick={handleInstallClick}>Install</button>
-                    <button className="install-popup__dismiss" onClick={() => setDeferredPrompt(null)}>Dismiss</button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* PROMOTIONAL BANNER - ONLY ON HOME PAGE */}
-            {isHomePage && (
-              <div
-                className="notification-row"
-                style={{
-                  overflow: 'hidden',
-                  position: 'relative',
-                  minHeight: isMobileOrTablet && showInstallPopup ? 'auto' : '100px',
-                  backgroundColor: isMobileOrTablet && showInstallPopup ? '#ffffff' : 'transparent',
-                  backgroundImage: isMobileOrTablet && showInstallPopup
-                    ? 'none'
-                    : `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.4)), url("${topImage}")`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  backgroundRepeat: 'no-repeat',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderBottom: '1px solid var(--border)'
-                }}
-              >
-                {isMobileOrTablet && showInstallPopup && (
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.5rem',
-                      padding: '0.6rem 1rem',
-                      background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(22, 163, 74, 0.05) 100%)',
-                      border: '1px solid var(--jade)',
-                      borderRadius: '12px',
-                      color: 'var(--jade)',
-                      fontSize: '0.85rem',
-                      fontWeight: 600,
-                      margin: '0.5rem',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
-                    }}
-                  >
-                    <Download size={16} />
-                    <span>Experience iRent as an App</span>
-                    <button
-                      onClick={() => setShowInstallPopup(false)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        color: 'var(--mid)',
-                        padding: '0.2rem'
-                      }}
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-                )}
-                {(!isMobileOrTablet || !showInstallPopup) && (
-                  <div style={{ maxWidth: '800px', padding: '1.5rem', textAlign: 'center' }}>
-                    <h2 style={{ color: '#fff', fontSize: '1.5rem', fontWeight: 800, marginBottom: '0.5rem', textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
-                      Tanzania's #1 Rental Platform
-                    </h2>
-                    <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.9rem', fontWeight: 500, textShadow: '0 1px 2px rgba(0,0,0,0.2)' }}>
-                      Browse verified listings, connect with verified landlords, and book your stay with 100% confidence.
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-          </header>
-        ) : null}
-
-        {networkError ? (
-          <div style={{ background: '#cf222e', color: 'white', padding: '0.75rem', textAlign: 'center', fontSize: '0.9rem', position: 'sticky', top: '60px', zIndex: 90 }}>
-            {t('layout.networkError')}
-            <button
-              type="button"
-              onClick={() => { setNetworkError(false); window.location.reload(); }}
-              style={{ marginLeft: '1rem', background: 'transparent', border: '1px solid white', color: 'white', padding: '0.15rem 0.5rem', borderRadius: '4px', cursor: 'pointer' }}
-            >
-              {t('layout.retry')}
-            </button>
           </div>
-        ) : null}
+        </header>
+      ) : null}
 
-        <div style={{ display: 'flex', minHeight: 'calc(100vh - 64px)', position: 'relative', width: '100%', maxWidth: '100vw' }}>
-          {/* Sidebars - hidden on homepage or when hideSidebar is true */}
-          {!hideSidebar && isAuthenticated && !isAuthPage && !isHomePage && user?.role === APP_ROLE.LANDLORD && !location.pathname.startsWith('/admin') ? (
-            <LandlordSidebar
-              unreadMessages={unreadCount}
-              unreadNotifs={notifCount}
-              activeListings={activeListings}
-              tenantCount={tenantCount}
-              occupancyRate={occupancyRate}
-              pendingInquiries={pendingInquiries}
-              mtdEarnings={mtdEarnings}
-              subscriptionTier={subscriptionTier as 'free' | 'verified' | 'premium'}
-              isCollapsed={!isSidebarOpen}
-              mobileDrawerOpen={isSidebarOpen}
-              onMobileDrawerClose={() => setIsSidebarOpen(false)}
-            />
-          ) : null}
-          {!hideSidebar && isAuthenticated && !isAuthPage && !isHomePage && user?.role === APP_ROLE.TENANT && !location.pathname.startsWith('/admin') && !isMobileOrTablet ? (
-            <StudentSidebar
-              unreadMessages={unreadCount}
-              unreadNotifs={notifCount}
-              savedCount={savedCount}
-              activeBookings={activeBookings}
-              isCollapsed={!isSidebarOpen}
-              mobileDrawerOpen={isSidebarOpen}
-              onMobileDrawerClose={() => setIsSidebarOpen(false)}
-            />
-          ) : null}
-          {isAuthenticated && !isAuthPage && !isHomePage && user?.role === APP_ROLE.ADMIN ? (
-            <AdminSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-          ) : null}
-
-          <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
-            <main className="main-content" style={{ flex: 1, minWidth: 0, transition: 'all 0.3s ease', padding: isHomePage ? 0 : undefined }}>
-              {children ?? <Outlet />}
-            </main>
-
-            {/* Footer on all pages unless hideFooter is true */}
-            {!hideFooter && (
-              <div className="footer-wrapper">
-                <Footer />
-              </div>
-            )}
->>>>>>> Stashed changes
-          </div>
+      {networkError ? (
+        <div style={{ background: '#cf222e', color: 'white', padding: '0.75rem', textAlign: 'center', fontSize: '0.9rem', position: 'sticky', top: '60px', zIndex: 90 }}>
+          {t('layout.networkError')}
+          <button
+            type="button"
+            onClick={() => { setNetworkError(false); window.location.reload(); }}
+            style={{ marginLeft: '1rem', background: 'transparent', border: '1px solid white', color: 'white', padding: '0.15rem 0.5rem', borderRadius: '4px', cursor: 'pointer' }}
+          >
+            {t('layout.retry')}
+          </button>
         </div>
+      ) : null}
+
+      <div style={{ display: 'flex', minHeight: 'calc(100vh - 64px)', position: 'relative', width: '100%', maxWidth: '100vw' }}>
+        {/* Sidebars - hidden on homepage or when hideSidebar is true */}
+        {!hideSidebar && isAuthenticated && !isAuthPage && !isHomePage && user?.role === APP_ROLE.LANDLORD && !location.pathname.startsWith('/admin') ? (
+          <LandlordSidebar
+            unreadMessages={unreadCount}
+            unreadNotifs={notifCount}
+            activeListings={activeListings}
+            tenantCount={tenantCount}
+            occupancyRate={occupancyRate}
+            pendingInquiries={pendingInquiries}
+            mtdEarnings={mtdEarnings}
+            subscriptionTier={subscriptionTier as 'free' | 'verified' | 'premium'}
+            isCollapsed={!isSidebarOpen}
+            mobileDrawerOpen={isSidebarOpen}
+            onMobileDrawerClose={() => setIsSidebarOpen(false)}
+          />
+        ) : null}
+        {!hideSidebar && isAuthenticated && !isAuthPage && !isHomePage && user?.role === APP_ROLE.TENANT && !location.pathname.startsWith('/admin') && !isMobileOrTablet ? (
+          <StudentSidebar
+            unreadMessages={unreadCount}
+            unreadNotifs={notifCount}
+            savedCount={savedCount}
+            activeBookings={activeBookings}
+            isCollapsed={!isSidebarOpen}
+            mobileDrawerOpen={isSidebarOpen}
+            onMobileDrawerClose={() => setIsSidebarOpen(false)}
+          />
+        ) : null}
+        {isAuthenticated && !isAuthPage && !isHomePage && user?.role === APP_ROLE.ADMIN ? (
+          <AdminSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+        ) : null}
+
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
+          <main className="main-content" style={{ flex: 1, minWidth: 0, transition: 'all 0.3s ease', padding: isHomePage ? 0 : undefined }}>
+            {children ?? <Outlet />}
+          </main>
+
+          {/* Footer on all pages unless hideFooter is true */}
+          {!hideFooter && (
+            <div className="footer-wrapper">
+              <Footer />
+            </div>
+          )}
+        </div>
+      </div>
 
 
-<<<<<<< Updated upstream
       {/* Admin Mobile Bottom Nav - hidden on homepage */}
       {isAuthenticated && !isHomePage && user?.role === APP_ROLE.ADMIN ? (
         <nav
@@ -876,103 +881,56 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
               flex: 1, textAlign: 'center', background: 'none', border: 'none', 
               color: '#b91c1c', fontSize: '0.72rem', fontWeight: 800,
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px'
-=======
-        {/* Admin Mobile Bottom Nav - hidden on homepage */}
-        {isAuthenticated && !isHomePage && user?.role === APP_ROLE.ADMIN ? (
-          <nav
-            className="bottom-nav mobile-only"
-            aria-label="Admin Navigation"
-            style={{
-              display: 'flex', justifyContent: 'space-around', alignItems: 'center',
-              gap: '0.25rem', background: 'rgba(255, 255, 255, 0.95)',
-              backdropFilter: 'blur(10px)',
-              borderTop: '1px solid rgba(0,0,0,0.05)',
-              boxShadow: '0 -4px 20px rgba(0,0,0,0.04)',
-              padding: '0.6rem 0.25rem',
-              position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100
->>>>>>> Stashed changes
             }}
           >
-            <NavLink
-              to="/messages"
-              className={({ isActive }) => (isActive ? 'is-active' : '')}
-              style={({ isActive }) => ({
-                flex: 1, textAlign: 'center', fontSize: '0.72rem', fontWeight: 800,
-                color: isActive ? '#1D9E75' : '#64748b',
-                textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px'
-              })}
-            >
-              <span style={{ fontSize: '1.2rem' }}>💬</span>
-              <span>Messages</span>
-              {unreadCount > 0 && <span className="nav-badge" style={{ position: 'absolute', top: 5, right: '15%' }}>{unreadCount}</span>}
-            </NavLink>
-            <NavLink
-              to="/admin/landlords"
-              className={({ isActive }) => (isActive ? 'is-active' : '')}
-              style={({ isActive }) => ({
-                flex: 1, textAlign: 'center', fontSize: '0.72rem', fontWeight: 800,
-                color: isActive ? '#1D9E75' : '#64748b',
-                textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px'
-              })}
-            >
-              <span style={{ fontSize: '1.2rem' }}>🤝</span>
-              <span>Vetting</span>
-            </NavLink>
-            <NavLink
-              to="/admin/listings"
-              className={({ isActive }) => (isActive ? 'is-active' : '')}
-              style={({ isActive }) => ({
-                flex: 1, textAlign: 'center', fontSize: '0.72rem', fontWeight: 800,
-                color: isActive ? '#1D9E75' : '#64748b',
-                textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px'
-              })}
-            >
-              <span style={{ fontSize: '1.2rem' }}>🏠</span>
-              <span>Listings</span>
-            </NavLink>
-            <button
-              type="button"
-              onClick={logout}
-              style={{
-                flex: 1, textAlign: 'center', background: 'none', border: 'none',
-                color: '#b91c1c', fontSize: '0.72rem', fontWeight: 800,
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px'
-              }}
-            >
-              <span style={{ fontSize: '1.2rem' }}>🚪</span>
-              <span>Logout</span>
-            </button>
-          </nav>
-        ) : null}
+            <span style={{ fontSize: '1.2rem' }}>🚪</span>
+            <span>Logout</span>
+          </button>
+        </nav>
+      ) : null}
 
-        {/* Mobile Bottom Navigation - Only visible on mobile */}
-        <div className={`mobile-bottom-nav-container ${isSearchModalOpen ? 'search-modal-open' : ''}`}>
-          {/* Scroll handle above the search bar */}
-          {isHomePage && (
+      {/* Mobile Bottom Navigation - Only visible on mobile */}
+      <div className={`mobile-bottom-nav-container ${isSearchModalOpen ? 'search-modal-open' : ''}`}>
+        {/* Scroll handle above the search bar */}
+        {isHomePage && (
+          <>
+            <div
+              ref={handleRef}
+              className="mobile-search-handle"
+              role="button"
+              aria-label="Open search"
+              onClick={() => handleOpenSearch(false)}
+              onTouchStart={onTouchStartHandler}
+              onTouchMove={onTouchMoveHandler}
+              onTouchEnd={onTouchEndHandler}
+            />
+            {/* Search Bar - Only on Homepage */}
+            <div ref={bottomBarRef} className={`mobile-bottom-search-bar ${searchPressed ? 'is-pressed' : ''}`} onClick={() => {
+              if (!searchOpenedOnce) {
+                handleOpenSearch(false);
+              } else {
+                handleOpenSearch(true);
+              }
+            }}
+            onTouchStart={onTouchStartHandler}
+            onTouchMove={onTouchMoveHandler}
+            onTouchEnd={onTouchEndHandler}
+            >
+              <Search size={18} className="mobile-bottom-search-icon" />
+              <span className="mobile-bottom-search-placeholder">find your perfect home</span>
+            </div>
+          </>
+        )}
+        
+        {/* Bottom Menu Bar */}
+        <nav className="mobile-bottom-menu-bar">
+          {isAuthenticated && user?.role === APP_ROLE.TENANT ? (
             <>
-              <div
-                ref={handleRef}
-                className="mobile-search-handle"
-                role="button"
-                aria-label="Open search"
-                onClick={() => handleOpenSearch(false)}
-                onTouchStart={onTouchStartHandler}
-                onTouchMove={onTouchMoveHandler}
-                onTouchEnd={onTouchEndHandler}
-              />
-              {/* Search Bar - Only on Homepage */}
-              <div ref={bottomBarRef} className={`mobile-bottom-search-bar ${searchPressed ? 'is-pressed' : ''}`} onClick={() => {
-                if (!searchOpenedOnce) {
-                  handleOpenSearch(false);
-                } else {
-                  handleOpenSearch(true);
-                }
-              }}
-                onTouchStart={onTouchStartHandler}
-                onTouchMove={onTouchMoveHandler}
-                onTouchEnd={onTouchEndHandler}
+              <NavLink
+                to={userDashboardPath}
+                className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                style={({ isActive }) => ({ color: isActive ? '#22c55e' : '#6b7280' })}
               >
-<<<<<<< Updated upstream
                 <LayoutGrid size={22} />
                 <span>Dashboard</span>
               </NavLink>
@@ -1077,15 +1035,11 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
                   <span>Install App</span>
                 </button>
               )}
-=======
-                <Search size={18} className="mobile-bottom-search-icon" />
-                <span className="mobile-bottom-search-placeholder">find your perfect home</span>
-              </div>
->>>>>>> Stashed changes
             </>
           )}
+        </nav>
+      </div>
 
-<<<<<<< Updated upstream
       {/* Mobile Search Filter Modal */}
       {isSearchModalOpen && (
         <div 
@@ -1096,329 +1050,221 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
           <div 
             className={`mobile-search-modal ${isSearchModalClosing ? 'is-closing' : ''}`} 
             onClick={(e) => e.stopPropagation()}
-=======
-          {/* Bottom Menu Bar */}
-          <nav className="mobile-bottom-menu-bar">
-            {isAuthenticated && user?.role === APP_ROLE.TENANT ? (
-              <>
-                <NavLink
-                  to={userDashboardPath}
-                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
-                  style={({ isActive }) => ({ color: isActive ? '#22c55e' : '#6b7280' })}
-                >
-                  <LayoutGrid size={22} />
-                  <span>Dashboard</span>
-                </NavLink>
-
-                <NavLink
-                  to="/saved"
-                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
-                  style={({ isActive }) => ({ color: isActive ? '#22c55e' : '#6b7280' })}
-                >
-                  <Heart size={22} />
-                  <span>Wishlist</span>
-                </NavLink>
-
-                <NavLink
-                  to="/messages"
-                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
-                  style={({ isActive }) => ({ color: isActive ? '#22c55e' : '#6b7280' })}
-                >
-                  <MessageCircle size={22} />
-                  <span>Messages</span>
-                  {unreadCount > 0 && isAuthenticated && <span className="mobile-bottom-nav-badge">{unreadCount}</span>}
-                </NavLink>
-
-                <NavLink
-                  to={profileTarget}
-                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
-                  style={({ isActive }) => ({ color: isActive ? '#22c55e' : '#6b7280' })}
-                >
-                  <User size={22} />
-                  <span>{profileLabel}</span>
-                </NavLink>
-              </>
-            ) : (
-              <>
-                <NavLink
-                  to={isAuthenticated ? userDashboardPath : '/'}
-                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
-                  style={({ isActive }) => ({ color: isActive ? '#22c55e' : '#6b7280' })}
-                >
-                  {isAuthenticated ? <LayoutGrid size={22} /> : <Home size={22} strokeWidth={isHomePage ? 2.5 : 2} />}
-                  <span>{isAuthenticated ? 'Dashboard' : 'Home'}</span>
-                </NavLink>
-
-                <NavLink
-                  to="/saved"
-                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
-                  style={({ isActive }) => ({ color: isActive ? '#22c55e' : '#6b7280' })}
-                  onClick={(e) => {
-                    if (!isAuthenticated) {
-                      e.preventDefault();
-                      navigate('/auth/login');
-                    }
-                  }}
-                >
-                  <Heart size={22} strokeWidth={location.pathname === '/saved' ? 2.5 : 2} />
-                  <span>Wishlist</span>
-                </NavLink>
-
-                <NavLink
-                  to="/messages"
-                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
-                  style={({ isActive }) => ({ color: isActive ? '#22c55e' : '#6b7280' })}
-                  onClick={(e) => {
-                    if (!isAuthenticated) {
-                      e.preventDefault();
-                      navigate('/auth/login');
-                    }
-                  }}
-                >
-                  <MessageCircle size={22} strokeWidth={location.pathname === '/messages' ? 2.5 : 2} />
-                  <span>Messages</span>
-                  {unreadCount > 0 && isAuthenticated && <span className="mobile-bottom-nav-badge">{unreadCount}</span>}
-                </NavLink>
-
-                <NavLink
-                  to={profileTarget}
-                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
-                  style={({ isActive }) => ({ color: isActive ? '#22c55e' : '#6b7280' })}
-                >
-                  <User size={22} strokeWidth={isAuthPage ? 2.5 : 2} />
-                  <span>{profileLabel}</span>
-                </NavLink>
-              </>
-            )}
-          </nav>
-        </div>
-
-        {/* Mobile Search Filter Modal */}
-        {isSearchModalOpen && (
-          <div
-            className={`mobile-search-modal-overlay ${isSearchModalClosing ? 'is-closing' : ''}`}
-            onClick={closeSearchModal}
->>>>>>> Stashed changes
           >
-            <div
-              className={`mobile-search-modal ${isSearchModalClosing ? 'is-closing' : ''}`}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Modal Header */}
-              <div className="mobile-search-modal-header">
-                <h3><Filter size={20} /> Search & Filter</h3>
-                <button className="mobile-search-modal-close" onClick={closeSearchModal}>
-                  <X size={20} />
-                </button>
-              </div>
+            {/* Modal Header */}
+            <div className="mobile-search-modal-header">
+              <h3><Filter size={20} /> Search & Filter</h3>
+              <button className="mobile-search-modal-close" onClick={closeSearchModal}>
+                <X size={20} />
+              </button>
+            </div>
 
-              {/* Search Input */}
-              <div className="mobile-search-input-wrapper" onClick={(e) => {
-                // If this modal was opened without focus (first open), a click here should focus the input
-                if (!focusOnOpen) {
-                  setFocusOnOpen(true);
-                  // focus after a tiny delay to allow any scroll animation
-                  setTimeout(() => searchInputRef.current?.focus(), 220);
-                }
-              }}>
-                <Search size={20} className="mobile-search-input-icon" />
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  placeholder="Search location, property type..."
-                  className="mobile-search-input"
-                  // only autofocus when explicitly requested (second click)
-                  autoFocus={focusOnOpen}
-                  value={filters.searchQuery}
-                  onChange={(e) => setFilters(prev => ({ ...prev, searchQuery: e.target.value }))}
-                />
-              </div>
+            {/* Search Input */}
+            <div className="mobile-search-input-wrapper" onClick={(e) => {
+              // If this modal was opened without focus (first open), a click here should focus the input
+              if (!focusOnOpen) {
+                setFocusOnOpen(true);
+                // focus after a tiny delay to allow any scroll animation
+                setTimeout(() => searchInputRef.current?.focus(), 220);
+              }
+            }}>
+              <Search size={20} className="mobile-search-input-icon" />
+              <input 
+                ref={searchInputRef}
+                type="text" 
+                placeholder="Search location, property type..."
+                className="mobile-search-input"
+                // only autofocus when explicitly requested (second click)
+                autoFocus={focusOnOpen}
+                value={filters.searchQuery}
+                onChange={(e) => setFilters(prev => ({ ...prev, searchQuery: e.target.value }))}
+              />
+            </div>
 
 
 
-              {/* Price Range */}
-              <div className="mobile-filter-section">
-                <h4 className="mobile-filter-section-title">Price Range (TSh)</h4>
-                <div className="mobile-price-range">
-                  <div className="mobile-price-inputs">
-                    <input
-                      type="number"
-                      placeholder="Min"
-                      className="mobile-price-input"
-                      value={filters.priceMin}
-                      onChange={(e) => handlePriceRangeChange(Number(e.target.value), filters.priceMax)}
-                    />
-                    <span className="mobile-price-separator">-</span>
-                    <input
-                      type="number"
-                      placeholder="Max"
-                      className="mobile-price-input"
-                      value={filters.priceMax}
-                      onChange={(e) => handlePriceRangeChange(filters.priceMin, Number(e.target.value))}
-                    />
-                  </div>
-                  <input
-                    type="range"
-                    className="mobile-price-slider"
-                    min="0"
-                    max="5000000"
-                    step="50000"
+            {/* Price Range */}
+            <div className="mobile-filter-section">
+              <h4 className="mobile-filter-section-title">Price Range (TSh)</h4>
+              <div className="mobile-price-range">
+                <div className="mobile-price-inputs">
+                  <input 
+                    type="number" 
+                    placeholder="Min" 
+                    className="mobile-price-input"
+                    value={filters.priceMin}
+                    onChange={(e) => handlePriceRangeChange(Number(e.target.value), filters.priceMax)}
+                  />
+                  <span className="mobile-price-separator">-</span>
+                  <input 
+                    type="number" 
+                    placeholder="Max" 
+                    className="mobile-price-input"
                     value={filters.priceMax}
                     onChange={(e) => handlePriceRangeChange(filters.priceMin, Number(e.target.value))}
                   />
                 </div>
-              </div>
-
-              {/* Room Type Grid */}
-              <div className="mobile-filter-section">
-                <h4 className="mobile-filter-section-title">Room Type</h4>
-                <div className="mobile-room-type-grid">
-                  <label className="mobile-room-type-item">
-                    <input
-                      type="radio"
-                      name="roomType"
-                      checked={filters.roomType === 'all'}
-                      onChange={() => handleRoomTypeChange('all')}
-                    />
-                    <span>All Types</span>
-                  </label>
-                  <label className="mobile-room-type-item">
-                    <input
-                      type="radio"
-                      name="roomType"
-                      checked={filters.roomType === 'Single Room'}
-                      onChange={() => handleRoomTypeChange('Single Room')}
-                    />
-                    <span>Single Room</span>
-                  </label>
-                  <label className="mobile-room-type-item">
-                    <input
-                      type="radio"
-                      name="roomType"
-                      checked={filters.roomType === 'Shared Room'}
-                      onChange={() => handleRoomTypeChange('Shared Room')}
-                    />
-                    <span>Shared Room</span>
-                  </label>
-                  <label className="mobile-room-type-item">
-                    <input
-                      type="radio"
-                      name="roomType"
-                      checked={filters.roomType === 'Self Contained'}
-                      onChange={() => handleRoomTypeChange('Self Contained')}
-                    />
-                    <span>Self Contained</span>
-                  </label>
-                  <label className="mobile-room-type-item">
-                    <input
-                      type="radio"
-                      name="roomType"
-                      checked={filters.roomType === 'Studio'}
-                      onChange={() => handleRoomTypeChange('Studio')}
-                    />
-                    <span>Studio</span>
-                  </label>
-                  <label className="mobile-room-type-item">
-                    <input
-                      type="radio"
-                      name="roomType"
-                      checked={filters.roomType === '1 Bedroom'}
-                      onChange={() => handleRoomTypeChange('1 Bedroom')}
-                    />
-                    <span>1 Bedroom</span>
-                  </label>
-                  <label className="mobile-room-type-item">
-                    <input
-                      type="radio"
-                      name="roomType"
-                      checked={filters.roomType === '2 Bedroom'}
-                      onChange={() => handleRoomTypeChange('2 Bedroom')}
-                    />
-                    <span>2 Bedroom</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Amenities */}
-              <div className="mobile-filter-section">
-                <h4 className="mobile-filter-section-title">Amenities</h4>
-                <div className="mobile-amenities-grid">
-                  <label className="mobile-amenity-item">
-                    <input
-                      type="checkbox"
-                      checked={filters.amenities.includes('WiFi')}
-                      onChange={() => handleAmenityChange('WiFi')}
-                    />
-                    <Wifi size={16} />
-                    <span>WiFi</span>
-                  </label>
-                  <label className="mobile-amenity-item">
-                    <input
-                      type="checkbox"
-                      checked={filters.amenities.includes('Parking')}
-                      onChange={() => handleAmenityChange('Parking')}
-                    />
-                    <Car size={16} />
-                    <span>Parking</span>
-                  </label>
-                  <label className="mobile-amenity-item">
-                    <input
-                      type="checkbox"
-                      checked={filters.amenities.includes('Water')}
-                      onChange={() => handleAmenityChange('Water')}
-                    />
-                    <Droplets size={16} />
-                    <span>Water</span>
-                  </label>
-                  <label className="mobile-amenity-item">
-                    <input
-                      type="checkbox"
-                      checked={filters.amenities.includes('Security')}
-                      onChange={() => handleAmenityChange('Security')}
-                    />
-                    <Shield size={16} />
-                    <span>Security</span>
-                  </label>
-                  <label className="mobile-amenity-item">
-                    <input
-                      type="checkbox"
-                      checked={filters.amenities.includes('Kitchen')}
-                      onChange={() => handleAmenityChange('Kitchen')}
-                    />
-                    <Utensils size={16} />
-                    <span>Kitchen</span>
-                  </label>
-                  <label className="mobile-amenity-item">
-                    <input
-                      type="checkbox"
-                      checked={filters.amenities.includes('Laundry')}
-                      onChange={() => handleAmenityChange('Laundry')}
-                    />
-                    <Shirt size={16} />
-                    <span>Laundry</span>
-                  </label>
-                </div>
-              </div>
-
-
-
-              {/* Action Buttons */}
-              <div className="mobile-filter-actions">
-                <button className="mobile-filter-clear" onClick={handleClearFilters}>
-                  Clear All
-                </button>
-                <button
-                  className="mobile-filter-apply"
-                  onClick={handleApplyFilters}
-                >
-                  Show Results
-                </button>
+                <input 
+                  type="range" 
+                  className="mobile-price-slider" 
+                  min="0" 
+                  max="5000000" 
+                  step="50000"
+                  value={filters.priceMax}
+                  onChange={(e) => handlePriceRangeChange(filters.priceMin, Number(e.target.value))}
+                />
               </div>
             </div>
-          </div>
-        )}
 
-<<<<<<< Updated upstream
+            {/* Room Type Grid */}
+            <div className="mobile-filter-section">
+              <h4 className="mobile-filter-section-title">Room Type</h4>
+              <div className="mobile-room-type-grid">
+                <label className="mobile-room-type-item">
+                  <input 
+                    type="radio" 
+                    name="roomType"
+                    checked={filters.roomType === 'all'}
+                    onChange={() => handleRoomTypeChange('all')}
+                  />
+                  <span>All Types</span>
+                </label>
+                <label className="mobile-room-type-item">
+                  <input 
+                    type="radio" 
+                    name="roomType"
+                    checked={filters.roomType === 'Single Room'}
+                    onChange={() => handleRoomTypeChange('Single Room')}
+                  />
+                  <span>Single Room</span>
+                </label>
+                <label className="mobile-room-type-item">
+                  <input 
+                    type="radio"
+                    name="roomType"
+                    checked={filters.roomType === 'Shared Room'}
+                    onChange={() => handleRoomTypeChange('Shared Room')}
+                  />
+                  <span>Shared Room</span>
+                </label>
+                <label className="mobile-room-type-item">
+                  <input 
+                    type="radio"
+                    name="roomType"
+                    checked={filters.roomType === 'Self Contained'}
+                    onChange={() => handleRoomTypeChange('Self Contained')}
+                  />
+                  <span>Self Contained</span>
+                </label>
+                <label className="mobile-room-type-item">
+                  <input 
+                    type="radio"
+                    name="roomType"
+                    checked={filters.roomType === 'Studio'}
+                    onChange={() => handleRoomTypeChange('Studio')}
+                  />
+                  <span>Studio</span>
+                </label>
+                <label className="mobile-room-type-item">
+                  <input 
+                    type="radio"
+                    name="roomType"
+                    checked={filters.roomType === '1 Bedroom'}
+                    onChange={() => handleRoomTypeChange('1 Bedroom')}
+                  />
+                  <span>1 Bedroom</span>
+                </label>
+                <label className="mobile-room-type-item">
+                  <input 
+                    type="radio"
+                    name="roomType"
+                    checked={filters.roomType === '2 Bedroom'}
+                    onChange={() => handleRoomTypeChange('2 Bedroom')}
+                  />
+                  <span>2 Bedroom</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Amenities */}
+            <div className="mobile-filter-section">
+              <h4 className="mobile-filter-section-title">Amenities</h4>
+              <div className="mobile-amenities-grid">
+                <label className="mobile-amenity-item">
+                  <input 
+                    type="checkbox"
+                    checked={filters.amenities.includes('WiFi')}
+                    onChange={() => handleAmenityChange('WiFi')}
+                  />
+                  <Wifi size={16} />
+                  <span>WiFi</span>
+                </label>
+                <label className="mobile-amenity-item">
+                  <input 
+                    type="checkbox"
+                    checked={filters.amenities.includes('Parking')}
+                    onChange={() => handleAmenityChange('Parking')}
+                  />
+                  <Car size={16} />
+                  <span>Parking</span>
+                </label>
+                <label className="mobile-amenity-item">
+                  <input 
+                    type="checkbox"
+                    checked={filters.amenities.includes('Water')}
+                    onChange={() => handleAmenityChange('Water')}
+                  />
+                  <Droplets size={16} />
+                  <span>Water</span>
+                </label>
+                <label className="mobile-amenity-item">
+                  <input 
+                    type="checkbox"
+                    checked={filters.amenities.includes('Security')}
+                    onChange={() => handleAmenityChange('Security')}
+                  />
+                  <Shield size={16} />
+                  <span>Security</span>
+                </label>
+                <label className="mobile-amenity-item">
+                  <input 
+                    type="checkbox"
+                    checked={filters.amenities.includes('Kitchen')}
+                    onChange={() => handleAmenityChange('Kitchen')}
+                  />
+                  <Utensils size={16} />
+                  <span>Kitchen</span>
+                </label>
+                <label className="mobile-amenity-item">
+                  <input 
+                    type="checkbox"
+                    checked={filters.amenities.includes('Laundry')}
+                    onChange={() => handleAmenityChange('Laundry')}
+                  />
+                  <Shirt size={16} />
+                  <span>Laundry</span>
+                </label>
+              </div>
+            </div>
+
+
+
+            {/* Action Buttons */}
+            <div className="mobile-filter-actions">
+              <button className="mobile-filter-clear" onClick={handleClearFilters}>
+                Clear All
+              </button>
+              <button 
+                className="mobile-filter-apply" 
+                onClick={handleApplyFilters}
+              >
+                Show Results
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Install Instructions Panel */}
       {isInstallPanelOpen && (
         <div 
@@ -1728,25 +1574,6 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
         />
       )}
     </div>
-=======
-        {/* PWA Install Modal */}
-        {isPwaModalOpen && (
-          <InstallPwaModal
-            isOpen={isPwaModalOpen}
-            onClose={() => setIsPwaModalOpen(false)}
-            onInstall={() => {
-              if (deferredPrompt) {
-                deferredPrompt.prompt();
-                deferredPrompt.userChoice.then(({ outcome }: any) => {
-                  if (outcome === 'accepted') setDeferredPrompt(null);
-                });
-              }
-            }}
-            isAndroid={isAndroid}
-          />
-        )}
-      </div>
->>>>>>> Stashed changes
     </>
   );
 }

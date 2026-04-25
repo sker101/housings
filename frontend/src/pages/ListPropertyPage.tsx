@@ -12,7 +12,7 @@ import {
   invokeFunction,
   publicObjectUrl
 } from '../lib/supabase';
-import ListingMap from '../components/ListingMap';
+import MapboxListingMap from '../components/MapboxListingMap';
 import { sanitizeInput } from '../utils/format';
 import imageCompression from 'browser-image-compression';
 import {
@@ -45,14 +45,14 @@ const formSchema = z.object({
   roomType: z.string(),
   propertyType: z.string().optional(),
   floor: z.string().optional(),
-  totalRooms: z.coerce.number().min(1).max(200).optional(),
+  totalRooms: z.preprocess((val) => (val === '' || val === null || val === undefined ? undefined : val), z.coerce.number().min(1).max(200).optional()),
   furnished: z.preprocess((val) => val === 'true' || val === true, z.boolean()),
   genderPreference: z.string(),
   availableFrom: z.string().optional(),
 
   // Step 2: Pricing
   priceMonthly: z.coerce.number().min(50000, 'Min 50,000 TZS'),
-  securityDeposit: z.coerce.number().min(0).optional(),
+  securityDeposit: z.preprocess((val) => (val === '' || val === null || val === undefined ? 0 : val), z.coerce.number().min(0).optional()),
   minLeaseMonths: z.coerce.number().min(1).max(24),
   paymentSchedule: z.enum(['monthly', 'quarterly', 'annually']),
   lateFeePolicy: z.string().optional(),
@@ -272,10 +272,11 @@ export default function ListPropertyPage() {
     if (!formValues.lat || !formValues.lng) return [];
     return [{
       id: 'preview',
-      lat: formValues.lat,
-      lng: formValues.lng,
+      latitude: Number(formValues.lat),
+      longitude: Number(formValues.lng),
       title: formValues.title || 'Property Location',
-      priceMonthly: formValues.priceMonthly || 0
+      price_tzs: Number(formValues.priceMonthly || 0),
+      availability_status: 'available' as const
     }];
   }, [formValues.lat, formValues.lng, formValues.title, formValues.priceMonthly]);
 
@@ -379,7 +380,15 @@ export default function ListPropertyPage() {
               lng: row.lng ? String(row.lng) : '',
               university: (row.near_universities?.[0]) || 'UDSM',
               accessibilityNotes: row.accessibility_notes || '',
-              amenities: { ...DEFAULT_AMENITIES, ...(typeof row.amenities === 'string' ? (() => { try { return JSON.parse(row.amenities); } catch { return {}; } })()  : (row.amenities || {})) },
+              amenities: (() => {
+                const raw = typeof row.amenities === 'string' ? (() => { try { return JSON.parse(row.amenities); } catch { return {}; } })() : (row.amenities || {});
+                // Coerce all values to boolean to satisfy Zod
+                const coerced = { ...DEFAULT_AMENITIES };
+                Object.keys(raw).forEach(k => {
+                  coerced[k] = raw[k] === true || raw[k] === 'true';
+                });
+                return coerced;
+              })(),
               houseRules: row.house_rules || '',
               videoTourUrl: row.video_tour_url || '',
               availableFrom: row.available_from ? new Date(row.available_from).toISOString().split('T')[0] : '',
@@ -829,7 +838,9 @@ export default function ListPropertyPage() {
           </p>
           
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-            <Link to="/dashboard" className="btn btn--primary">Go to Dashboard</Link>
+            <Link to={`/${user?.role === 'landlord' ? 'landlord' : user?.role === 'property_manager' ? 'manager' : 'tenant'}/dashboard`} className="btn btn--primary">
+              Go to Dashboard
+            </Link>
             <button onClick={() => window.location.reload()} className="btn btn--outline">Post Another</button>
           </div>
         </div>
@@ -1170,10 +1181,10 @@ export default function ListPropertyPage() {
 
               <div style={{ gridColumn: '1 / -1' }}>
                 <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '0.6rem', color: '#1A1A2E' }}>Location Preview</div>
-                <div style={{ height: '260px', width: '100%', borderRadius: '12px', overflow: 'hidden', border: '1px solid #E5E5E0', background: '#f5f5f0' }}>
-                  <ListingMap 
-                    listings={mapPreviewListings} 
-                    onMarkerSelect={() => {}} 
+                <div style={{ height: '300px', width: '100%', borderRadius: '12px', overflow: 'hidden', border: '1px solid #E5E5E0', background: '#f5f5f0', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)' }}>
+                  <MapboxListingMap 
+                    rooms={mapPreviewListings} 
+                    onRoomClick={() => {}} 
                   />
                 </div>
                 {!formValues.lat && (
@@ -1288,11 +1299,12 @@ export default function ListPropertyPage() {
                   fontSize: '0.9rem', 
                   color: '#1A1A2E' 
                 }}>
-                  <input 
-                    type="checkbox" 
-                    {...register('policyAccepted')} 
-                    style={{ width: '20px', height: '20px', marginTop: '2px', cursor: 'pointer' }} 
-                  />
+                    <input 
+                      type="checkbox" 
+                      {...register('policyAccepted')} 
+                      defaultChecked={false}
+                      style={{ width: '20px', height: '20px', marginTop: '2px', cursor: 'pointer' }} 
+                    />
                   I confirm that all information provided is accurate and I have the authority to list this property. I agree to iRent's terms and conditions.
                 </div>
                 {errors.policyAccepted && <p style={{ color: '#C0392B', fontSize: '0.85rem', marginTop: '0.5rem' }}>{errors.policyAccepted.message}</p>}
