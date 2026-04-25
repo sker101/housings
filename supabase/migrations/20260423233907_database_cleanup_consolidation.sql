@@ -10,7 +10,7 @@ DROP TABLE IF EXISTS public.system_settings CASCADE;
 -- room_inquiries and chat_messages are the active tables with data.
 -- We use CASCADE to drop dependent objects like foreign keys or views.
 DROP TABLE IF EXISTS public.messages CASCADE;
-DROP VIEW IF EXISTS public.conversations CASCADE;
+-- Use DROP TABLE for conversations (works for both table and view)
 DROP TABLE IF EXISTS public.conversations CASCADE;
 
 -- 3. Drop truly duplicate/unused tables

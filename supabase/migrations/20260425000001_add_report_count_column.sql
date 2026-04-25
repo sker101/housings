@@ -1,38 +1,59 @@
 -- Add report_count column to listings table if it doesn't exist
 -- This column tracks how many reports have been submitted for a listing
+-- Only run if listings is a table (not a view)
 
 DO $$
 BEGIN
-    -- Check if column exists
-    IF NOT EXISTS (
+    -- Check if listings is a table (not a view)
+    IF EXISTS (
         SELECT 1 
-        FROM information_schema.columns 
+        FROM information_schema.tables 
         WHERE table_name = 'listings' 
-        AND column_name = 'report_count'
+        AND table_type = 'BASE TABLE'
     ) THEN
-        -- Add the column
-        ALTER TABLE public.listings 
-        ADD COLUMN report_count integer NOT NULL DEFAULT 0;
-        
-        RAISE NOTICE 'Added report_count column to listings table';
+        -- Check if column exists
+        IF NOT EXISTS (
+            SELECT 1 
+            FROM information_schema.columns 
+            WHERE table_name = 'listings' 
+            AND column_name = 'report_count'
+        ) THEN
+            -- Add the column
+            ALTER TABLE public.listings 
+            ADD COLUMN report_count integer NOT NULL DEFAULT 0;
+            
+            RAISE NOTICE 'Added report_count column to listings table';
+        ELSE
+            RAISE NOTICE 'report_count column already exists';
+        END IF;
     ELSE
-        RAISE NOTICE 'report_count column already exists';
+        RAISE NOTICE 'listings is not a table, skipping report_count column addition';
     END IF;
 END $$;
 
 -- Also ensure upheld_claims_count exists
 DO $$
 BEGIN
-    IF NOT EXISTS (
+    -- Check if listings is a table (not a view)
+    IF EXISTS (
         SELECT 1 
-        FROM information_schema.columns 
+        FROM information_schema.tables 
         WHERE table_name = 'listings' 
-        AND column_name = 'upheld_claims_count'
+        AND table_type = 'BASE TABLE'
     ) THEN
-        ALTER TABLE public.listings 
-        ADD COLUMN upheld_claims_count integer NOT NULL DEFAULT 0;
-        
-        RAISE NOTICE 'Added upheld_claims_count column to listings table';
+        IF NOT EXISTS (
+            SELECT 1 
+            FROM information_schema.columns 
+            WHERE table_name = 'listings' 
+            AND column_name = 'upheld_claims_count'
+        ) THEN
+            ALTER TABLE public.listings 
+            ADD COLUMN upheld_claims_count integer NOT NULL DEFAULT 0;
+            
+            RAISE NOTICE 'Added upheld_claims_count column to listings table';
+        END IF;
+    ELSE
+        RAISE NOTICE 'listings is not a table, skipping upheld_claims_count column addition';
     END IF;
 END $$;
 
@@ -54,15 +75,18 @@ CREATE TABLE IF NOT EXISTS public.listing_reports (
 ALTER TABLE public.listing_reports ENABLE ROW LEVEL SECURITY;
 
 -- Create policies for listing_reports
-CREATE POLICY IF NOT EXISTS "Anyone can submit reports"
+DROP POLICY IF EXISTS "Anyone can submit reports" ON public.listing_reports;
+CREATE POLICY "Anyone can submit reports"
     ON public.listing_reports FOR INSERT
     WITH CHECK (true);
 
-CREATE POLICY IF NOT EXISTS "Reporter can read own reports"
+DROP POLICY IF EXISTS "Reporter can read own reports" ON public.listing_reports;
+CREATE POLICY "Reporter can read own reports"
     ON public.listing_reports FOR SELECT
     USING (reporter_id = auth.uid());
 
-CREATE POLICY IF NOT EXISTS "Admin can manage all reports"
+DROP POLICY IF EXISTS "Admin can manage all reports" ON public.listing_reports;
+CREATE POLICY "Admin can manage all reports"
     ON public.listing_reports FOR ALL
     USING (
         EXISTS (

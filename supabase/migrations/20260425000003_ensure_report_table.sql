@@ -4,10 +4,10 @@
 -- Drop and recreate the table to ensure clean state
 DROP TABLE IF EXISTS public.listing_reports CASCADE;
 
--- Create the listing_reports table
-CREATE TABLE public.listing_reports (
+-- Create the listing_reports table (without FK to listings since it might be a view)
+CREATE TABLE IF NOT EXISTS public.listing_reports (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    listing_id uuid NOT NULL REFERENCES public.listings(id) ON DELETE CASCADE,
+    listing_id uuid NOT NULL,
     reporter_id uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
     reason text NOT NULL,
     details text,
@@ -52,24 +52,36 @@ CREATE INDEX IF NOT EXISTS idx_listing_reports_listing
 CREATE INDEX IF NOT EXISTS idx_listing_reports_reporter 
     ON public.listing_reports(reporter_id, created_at DESC);
 
--- Ensure report_count column exists on listings
+-- Ensure report_count column exists on listings (only if it's a table)
 DO $$
 BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_name = 'listings' AND column_name = 'report_count'
+    IF EXISTS (
+        SELECT 1 FROM information_schema.tables 
+        WHERE table_name = 'listings' AND table_type = 'BASE TABLE'
     ) THEN
-        ALTER TABLE public.listings ADD COLUMN report_count integer NOT NULL DEFAULT 0;
+        IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns 
+            WHERE table_name = 'listings' AND column_name = 'report_count'
+        ) THEN
+            ALTER TABLE public.listings ADD COLUMN report_count integer NOT NULL DEFAULT 0;
+        END IF;
     END IF;
 END $$;
 
--- Recreate the trigger function
+-- Recreate the trigger function (handles both table and view cases)
 CREATE OR REPLACE FUNCTION public.handle_listing_report_threshold()
 RETURNS TRIGGER AS $$
 DECLARE
     v_report_count integer;
     v_critical_report boolean;
+    listings_is_table boolean;
 BEGIN
+    -- Check if listings is a table
+    SELECT EXISTS (
+        SELECT 1 FROM information_schema.tables 
+        WHERE table_name = 'listings' AND table_type = 'BASE TABLE'
+    ) INTO listings_is_table;
+    
     -- Only act on newly inserted reports
     IF TG_OP = 'INSERT' THEN
         -- Count verified reports (with reporter_id - not anonymous)
@@ -83,17 +95,20 @@ BEGIN
         v_critical_report := NEW.reason IN ('fraud', 'unsafe', 'harassment') 
                             AND NEW.reporter_id IS NOT NULL;
         
-        -- Update listing status if threshold met
-        IF v_critical_report OR NEW.reporter_has_booking OR v_report_count >= 3 THEN
-            UPDATE public.listings
-            SET status = 'flagged',
-                report_count = COALESCE(report_count, 0) + 1
-            WHERE id = NEW.listing_id;
-        ELSE
-            -- Just increment report count
-            UPDATE public.listings
-            SET report_count = COALESCE(report_count, 0) + 1
-            WHERE id = NEW.listing_id;
+        -- Only update listings if it's a table
+        IF listings_is_table THEN
+            -- Update listing status if threshold met
+            IF v_critical_report OR NEW.reporter_has_booking OR v_report_count >= 3 THEN
+                UPDATE public.listings
+                SET status = 'flagged',
+                    report_count = COALESCE(report_count, 0) + 1
+                WHERE id = NEW.listing_id;
+            ELSE
+                -- Just increment report count
+                UPDATE public.listings
+                SET report_count = COALESCE(report_count, 0) + 1
+                WHERE id = NEW.listing_id;
+            END IF;
         END IF;
     END IF;
     
@@ -108,3 +123,6 @@ CREATE TRIGGER trigger_listing_report_threshold
     AFTER INSERT ON public.listing_reports
     FOR EACH ROW
     EXECUTE FUNCTION public.handle_listing_report_threshold();
+
+-- Refresh PostgREST schema cache so new columns are recognized
+NOTIFY pgrst, 'reload schema';

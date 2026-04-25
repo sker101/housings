@@ -32,8 +32,10 @@ FOR EACH ROW EXECUTE FUNCTION sync_profiles_verification_status();
 ALTER TABLE profiles 
 ADD COLUMN IF NOT EXISTS profile_photo_url text;
 
--- Sync profile_photo_url with avatar_url
-UPDATE profiles SET profile_photo_url = avatar_url;
+-- Sync profile_photo_url with avatar_url (only for valid profiles)
+UPDATE profiles 
+SET profile_photo_url = avatar_url
+WHERE id IN (SELECT id FROM auth.users);
 
 -- Add trigger for profile_photo_url
 CREATE OR REPLACE FUNCTION sync_profiles_photo_url() 
