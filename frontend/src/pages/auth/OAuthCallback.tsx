@@ -128,25 +128,11 @@ export default function OAuthCallback() {
         const pendingRole = sessionStorage.getItem('oauth_signup_role');
         let roleForRedirect = pendingRole || userData.role || userMetadata.role || 'tenant';
         
-        const redirectTarget = isNewUser 
-          ? '/auth/complete-profile' 
-<<<<<<< HEAD
-          : (userData.role || userMetadata.role || 'tenant') === 'landlord' || (userData.role || userMetadata.role || 'tenant') === 'property_manager'
-            ? '/landlord/dashboard'
-            : '/tenant/dashboard';
-        
-        console.log('[OAuthCallback] Implicit flow processing', {
-          isNewUser,
-          userRole: userData.role || userMetadata.role,
-          redirectTarget,
-          targetUrl: `${window.location.origin}${redirectTarget}`,
-        });
-        
-=======
+        const redirectTarget = isNewUser
+          ? '/auth/complete-profile'
           : roleForRedirect === 'landlord' || roleForRedirect === 'property_manager'
             ? '/landlord/dashboard'
             : '/tenant/dashboard';
->>>>>>> 4c78e6b35c8744ce24d3ed4a9f94d8c614f2c300
         sessionStorage.setItem('oauth_redirect_target', redirectTarget);
         
         // Trigger session refresh event so AuthContext picks up the new session

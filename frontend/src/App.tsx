@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import ProtectedRoute from './components/ProtectedRoute';
 import PageErrorBoundary from './components/PageErrorBoundary';
+import AuthLoader from './components/AuthLoader';
 
 // ── Public pages ──────────────────────────────────────────────
 import Layout from './components/Layout';
@@ -83,27 +84,7 @@ export default function App() {
   const { loading } = useAuth();
 
   if (loading) {
-    return (
-      <div style={{ 
-        height: '100vh', 
-        width: '100vw', 
-        display: 'flex', 
-        flexDirection: 'column',
-        alignItems: 'center', 
-        justifyContent: 'center',
-        background: 'var(--paper)',
-        gap: '1.5rem'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <img src="/icon-192.png" alt="iRent" style={{ width: 40, height: 40, borderRadius: '8px' }} />
-          <span style={{ fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--brand)' }}>iRent</span>
-        </div>
-        <div className="spinner" style={{ width: 30, height: 30, border: '3px solid var(--border)', borderTopColor: 'var(--jade)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-        <style>{`
-          @keyframes spin { to { transform: rotate(360deg); } }
-        `}</style>
-      </div>
-    );
+    return <AuthLoader title="Loading" subtitle="Please wait…" />;
   }
 
   return (

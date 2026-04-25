@@ -403,7 +403,7 @@ export default function MyRoomPage() {
         {/* ── Green header banner ── */}
         <div style={{
           background: '#1D9E75', borderRadius: 16, padding: '1.25rem 1.5rem',
-          marginBottom: '1rem', color: '#fff'
+          marginBottom: '1rem', color: '#fff', marginLeft: '0.75rem', marginRight: '0.75rem'
         }}>
           <p style={{ margin: 0, fontSize: '0.85rem', color: '#9FE1CB' }}>
             Hi {user?.fullName?.split(' ')[0] || 'there'} — your room is confirmed
@@ -502,7 +502,7 @@ export default function MyRoomPage() {
             {activeTab === 'overview' && (
               <div style={{ display: 'grid', gap: '0.75rem' }}>
                 {/* Photo Gallery - Hero Image */}
-                <div style={{ borderRadius: 14, overflow: 'hidden', position: 'relative', background: '#f5f5f0' }}>
+                <div style={{ borderRadius: 14, overflow: 'hidden', position: 'relative', background: '#f5f5f0', marginLeft: '0.75rem', marginRight: '0.75rem' }}>
                   <img
                     src={photos?.[activePhotoIndex] || (listing as any)?.imageUrl || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1200&q=80'}
                     alt={listing?.title || 'Room'}
@@ -532,7 +532,9 @@ export default function MyRoomPage() {
                 {photos && photos.length > 1 && (
                   <div style={{
                     display: 'grid', gap: '0.5rem',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))'
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+                    marginLeft: '0.75rem',
+                    marginRight: '0.75rem'
                   }}>
                     {photos.map((photo, idx) => (
                       <div
@@ -558,7 +560,7 @@ export default function MyRoomPage() {
                   </div>
                 )}
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginLeft: '0.75rem', marginRight: '0.75rem' }}>
                   <div style={{ background: '#E8F6EF', borderRadius: 12, padding: '1rem', textAlign: 'center' }}>
                     <p style={{ margin: 0, fontSize: '1.8rem', fontWeight: 700, color: '#085041' }}>{daysRemaining ?? '—'}</p>
                     <p style={{ margin: '0.2rem 0 0', fontSize: '0.78rem', color: '#0F6E56' }}>days remaining</p>
@@ -573,7 +575,7 @@ export default function MyRoomPage() {
                   </div>
                 </div>
 
-                <div className="card" style={{ padding: '0.9rem', borderRadius: 12 }}>
+                <div className="card" style={{ padding: '0.9rem', borderRadius: 12, marginLeft: '0.75rem', marginRight: '0.75rem' }}>
                   <p style={{ margin: '0 0 0.5rem', fontSize: '0.85rem', color: 'var(--mid)' }}>Lease progress</p>
                   <div style={{ background: 'var(--cream)', borderRadius: 999, height: 8, overflow: 'hidden' }}>
                     <div style={{ background: '#1D9E75', width: `${leaseProgressPct}%`, height: '100%', borderRadius: 999 }} />
@@ -792,7 +794,7 @@ export default function MyRoomPage() {
                 </div>
 
                 {/* ── Referral Card ── */}
-                <div className="card" style={{ padding: '0.9rem', borderRadius: 12, background: 'linear-gradient(135deg, #f0fdf4, #ecfdf5)', border: '1.5px solid #86efac' }}>
+                <div className="card" style={{ padding: '0.9rem', borderRadius: 12, background: 'linear-gradient(135deg, #f0fdf4, #ecfdf5)', border: '1.5px solid #86efac', marginLeft: '0.75rem', marginRight: '0.75rem' }}>
                   <p style={{ margin: '0 0 0.4rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>🎁 Refer a friend to iRent</p>
                   <p style={{ margin: 0, fontSize: '0.85rem', color: '#166534', lineHeight: 1.5 }}>
                     Share your referral link with friends. When they book a room, you earn <strong>TZS 5,000</strong> in rewards!

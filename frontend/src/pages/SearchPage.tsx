@@ -507,11 +507,11 @@ export default function SearchPage() {
   const mapRooms = useMemo(() => {
     return mapListings.map((l: any) => ({
       id: l.id,
-      lat: Number(l.lat),
-      lng: Number(l.lng),
+      latitude: Number(l.lat),
+      longitude: Number(l.lng),
       title: l.title,
-      priceMonthly: l.priceMonthly,
-      imageUrl: l.imageUrl
+      price_tzs: Number(l.priceMonthly),
+      availability_status: l.vacancyStatus || 'available'
     }));
   }, [mapListings]);
 
@@ -597,8 +597,7 @@ export default function SearchPage() {
         </div>
       </header>
 
-<<<<<<< HEAD
-      {/* Modern Filter Container - Compact Mobile Style */}
+{/* Modern Filter Container - Compact Mobile Style */}
       <div style={{
         background: 'white',
         borderRadius: 12,
@@ -619,27 +618,6 @@ export default function SearchPage() {
           marginBottom: '0.75rem'
         }}>
           <Search size={18} style={{ color: '#6b7280', flexShrink: 0 }} />
-=======
-      <div style={{
-        background: 'var(--surface)',
-        borderRadius: 16,
-        padding: '1.25rem 1.5rem',
-        boxShadow: 'var(--shadow-soft)',
-        border: '1px solid var(--border)',
-        marginBottom: '1.5rem'
-      }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.75rem',
-          padding: '0.75rem 1rem',
-          background: 'var(--cream)',
-          borderRadius: 12,
-          border: '2px solid var(--border)',
-          marginBottom: '1rem'
-        }}>
-          <Search size={20} style={{ color: 'var(--mid)', flexShrink: 0 }} />
->>>>>>> 4c78e6b35c8744ce24d3ed4a9f94d8c614f2c300
           <input
             type="text"
             value={searchQuery}
@@ -651,12 +629,8 @@ export default function SearchPage() {
               background: 'transparent',
               fontSize: '0.9rem',
               outline: 'none',
-<<<<<<< HEAD
               color: '#111827',
               boxShadow: 'none'
-=======
-              color: 'var(--ink)'
->>>>>>> 4c78e6b35c8744ce24d3ed4a9f94d8c614f2c300
             }}
             onFocus={(e) => { e.target.style.outline = 'none'; e.target.style.boxShadow = 'none'; }}
           />
@@ -689,33 +663,19 @@ export default function SearchPage() {
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-<<<<<<< HEAD
                   gap: '0.25rem',
                   padding: '0.4rem 0.6rem',
                   minWidth: '65px',
                   border: isActive ? '1.5px solid #22c55e' : '1.5px solid #e5e7eb',
                   borderRadius: 10,
                   background: isActive ? '#f0fdf4' : 'white',
-=======
-                  gap: '0.35rem',
-                  padding: '0.6rem 1rem',
-                  minWidth: '90px',
-                  border: isActive ? '2px solid var(--jade)' : '2px solid var(--border)',
-                  borderRadius: 12,
-                  background: isActive ? 'var(--jade-muted)' : 'var(--surface)',
->>>>>>> 4c78e6b35c8744ce24d3ed4a9f94d8c614f2c300
                   cursor: 'pointer',
                   flexShrink: 0,
                   transition: 'all 0.2s'
                 }}
               >
-<<<<<<< HEAD
                 <Icon size={18} style={{ color: isActive ? '#22c55e' : '#6b7280' }} />
                 <span style={{ fontSize: '0.7rem', fontWeight: isActive ? 600 : 500, color: isActive ? '#166534' : '#6b7280' }}>
-=======
-                <Icon size={22} style={{ color: isActive ? 'var(--jade)' : 'var(--mid)' }} />
-                <span style={{ fontSize: '0.75rem', fontWeight: isActive ? 600 : 500, color: isActive ? 'var(--jade-dark)' : 'var(--mid)' }}>
->>>>>>> 4c78e6b35c8744ce24d3ed4a9f94d8c614f2c300
                   {type.label}
                 </span>
               </button>
@@ -729,33 +689,19 @@ export default function SearchPage() {
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-<<<<<<< HEAD
               gap: '0.25rem',
               padding: '0.4rem 0.6rem',
               minWidth: '65px',
               border: showMoreFilters ? '1.5px solid #22c55e' : '1.5px solid #e5e7eb',
               borderRadius: 10,
               background: showMoreFilters ? '#f0fdf4' : 'white',
-=======
-              gap: '0.35rem',
-              padding: '0.6rem 1rem',
-              minWidth: '80px',
-              border: showMoreFilters ? '2px solid var(--jade)' : '2px solid var(--border)',
-              borderRadius: 12,
-              background: showMoreFilters ? 'var(--jade-muted)' : 'var(--surface)',
->>>>>>> 4c78e6b35c8744ce24d3ed4a9f94d8c614f2c300
               cursor: 'pointer',
               flexShrink: 0,
               position: 'relative'
             }}
           >
-<<<<<<< HEAD
             <SlidersHorizontal size={18} style={{ color: showMoreFilters ? '#22c55e' : '#6b7280' }} />
             <span style={{ fontSize: '0.7rem', fontWeight: showMoreFilters ? 600 : 500, color: showMoreFilters ? '#166534' : '#6b7280' }}>
-=======
-            <SlidersHorizontal size={22} style={{ color: showMoreFilters ? 'var(--jade)' : 'var(--mid)' }} />
-            <span style={{ fontSize: '0.75rem', fontWeight: showMoreFilters ? 600 : 500, color: showMoreFilters ? 'var(--jade-dark)' : 'var(--mid)' }}>
->>>>>>> 4c78e6b35c8744ce24d3ed4a9f94d8c614f2c300
               Filters
             </span>
             {activeFiltersCount > 0 && (

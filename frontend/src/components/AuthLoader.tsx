@@ -26,7 +26,7 @@ export default function AuthLoader({
               <circle cx="20" cy="20" r="16" stroke="url(#greenGradient)" strokeWidth="3" strokeLinecap="round" strokeDasharray="40 60" fill="none" />
             </svg>
           </div>
-          <div style={logoInner}>🏠</div>
+          <img src="/icon-192.png" alt="iRent" style={{ width: '2rem', height: '2rem', borderRadius: '8px' }} />
         </div>
 
         <h1 style={titleStyle}>{title}</h1>
