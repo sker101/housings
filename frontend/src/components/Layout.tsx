@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { APP_ROLE } from '../lib/roles';
@@ -9,11 +9,12 @@ import StudentSidebar from './StudentSidebar';
 import AdminSidebar from './AdminSidebar';
 import Footer from './Footer';
 import InstallPwaModal from './InstallPwaModal';
-import { Menu, Globe, UserPlus, LogIn, HelpCircle, X, Home, User, Download, Moon, Sun, Map, Accessibility, Search, Heart, MessageCircle, Wifi, Car, Droplets, Shield, Utensils, Shirt, Filter, Star, LayoutGrid } from 'lucide-react';
+import { Menu, Globe, UserPlus, LogIn, HelpCircle, X, Home, User, Download, Moon, Sun, Map, Accessibility, Search, Heart, MessageCircle, Wifi, Car, Droplets, Shield, Utensils, Shirt, Filter, Star, LayoutGrid, Bell } from 'lucide-react';
+import { dashboardDefaultPath } from '../lib/roles';
 import { Toaster } from 'react-hot-toast';
 import topImage from '../images/modern-home-exterior-with-landscaping-driveway.jpg';
 
-export default function Layout({ children, hideSidebar = false, hideHeader = false, hideFooter = false }) {
+export default function Layout({ children, hideSidebar = false, hideHeader = false, hideFooter = false }: { children?: React.ReactNode; hideSidebar?: boolean; hideHeader?: boolean; hideFooter?: boolean }) {
   const { user, token, isAuthenticated, logout, networkError, setNetworkError } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifCount, setNotifCount] = useState(0);
@@ -28,6 +29,10 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
     location.pathname.startsWith('/register/');
 
   const isHomePage = location.pathname === '/';
+
+  const userDashboardPath = user?.role ? dashboardDefaultPath(user.role) : '/';
+  const profileLabel = isAuthenticated ? 'Profile' : 'Login';
+  const profileTarget = isAuthenticated ? '/profile' : '/auth/login';
 
   const [homeViewMode, setHomeViewMode] = useState('grid');
   
@@ -474,7 +479,7 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
               <button
                 type="button"
                 className="topbar-action-btn"
-                onClick={() => navigate('/')}
+                onClick={() => navigate(isAuthenticated ? userDashboardPath : '/')}
                 title="Home"
                 style={{ padding: '0.35rem' }}
               >
@@ -491,57 +496,59 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
               </button>
             </div>
             <div style={{ flex: '1 1 auto', display: 'flex', justifyContent: 'center', alignItems: 'center', minWidth: 0, maxWidth: '600px' }}>
-              <div
-                role="button"
-                onClick={() => setIsSearchModalOpen(true)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.35rem',
-                  background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
-                  padding: '0.4rem 0.9rem',
-                  borderRadius: '999px',
-                  cursor: 'pointer',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  boxShadow: '0 3px 12px rgba(34, 197, 94, 0.35)',
-                  transition: 'transform 0.2s, box-shadow 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'scale(1.02)';
-                  e.currentTarget.style.boxShadow = '0 4px 16px rgba(34, 197, 94, 0.45)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'scale(1)';
-                  e.currentTarget.style.boxShadow = '0 3px 12px rgba(34, 197, 94, 0.35)';
-                }}
-              >
-                {/* Shiny effect overlay */}
-                <div style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: '-100%',
-                  width: '100%',
-                  height: '100%',
-                  background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%)',
-                  animation: 'shine 2.5s infinite'
-                }} />
-                <style>{`
-                  @keyframes shine {
-                    0% { left: -100%; }
-                    100% { left: 100%; }
-                  }
-                `}</style>
-                <Home size={14} style={{ color: '#fff', flexShrink: 0, position: 'relative', zIndex: 1 }} />
-                <span style={{
-                  fontSize: '0.8rem',
-                  fontWeight: 600,
-                  color: '#fff',
-                  whiteSpace: 'nowrap',
-                  position: 'relative',
-                  zIndex: 1
-                }}>Find your perfect home</span>
-              </div>
+              {!isAuthenticated && (
+                <div
+                  role="button"
+                  onClick={() => setIsSearchModalOpen(true)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+                    padding: '0.4rem 0.9rem',
+                    borderRadius: '999px',
+                    cursor: 'pointer',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    boxShadow: '0 3px 12px rgba(34, 197, 94, 0.35)',
+                    transition: 'transform 0.2s, box-shadow 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.02)';
+                    e.currentTarget.style.boxShadow = '0 4px 16px rgba(34, 197, 94, 0.45)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.boxShadow = '0 3px 12px rgba(34, 197, 94, 0.35)';
+                  }}
+                >
+                  {/* Shiny effect overlay */}
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: '-100%',
+                    width: '100%',
+                    height: '100%',
+                    background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%)',
+                    animation: 'shine 2.5s infinite'
+                  }} />
+                  <style>{`
+                    @keyframes shine {
+                      0% { left: -100%; }
+                      100% { left: 100%; }
+                    }
+                  `}</style>
+                  <Home size={14} style={{ color: '#fff', flexShrink: 0, position: 'relative', zIndex: 1 }} />
+                  <span style={{
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    color: '#fff',
+                    whiteSpace: 'nowrap',
+                    position: 'relative',
+                    zIndex: 1
+                  }}>Find your perfect home</span>
+                </div>
+              )}
             </div>
             <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.4rem', position: 'relative' }} ref={a11yRef}>
               {!isMobileOrTablet && (
@@ -562,37 +569,84 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
                 </div>
               )}
 
-              {isHomePage ? (
-                <button type="button" className="topbar-action-btn" onClick={toggleHomePageView} title="Toggle View">
-                  {homeViewMode === 'map' ? <LayoutGrid size={18} /> : <Map size={18} />}
-                </button>
-              ) : (
-                <button type="button" className="topbar-action-btn" onClick={() => navigate('/listings')} title="Browse Listings">
-                  <Map size={18} />
+              {/* Show search/map on homepage or when authenticated, hide on auth pages */}
+              {(isHomePage || isAuthenticated) && (
+                <>
+                  {isHomePage ? (
+                    <button type="button" className="topbar-action-btn" onClick={toggleHomePageView} title="Toggle View">
+                      {homeViewMode === 'map' ? <LayoutGrid size={18} /> : (isAuthenticated ? <Search size={18} /> : <Map size={18} />)}
+                    </button>
+                  ) : (
+                    <button type="button" className="topbar-action-btn" onClick={() => navigate('/listings')} title="Browse Listings">
+                      <Search size={18} />
+                    </button>
+                  )}
+                </>
+              )}
+              
+              {isAuthenticated && (
+                <button 
+                  type="button" 
+                  className="topbar-action-btn" 
+                  onClick={() => navigate('/notifications')} 
+                  title="Notifications"
+                >
+                  <Bell size={18} />
+                  {notifCount > 0 && (
+                    <span className="notification-badge">{notifCount > 99 ? '99+' : notifCount}</span>
+                  )}
                 </button>
               )}
-              <button 
-                type="button" 
-                className={`topbar-action-btn ${isA11yOpen ? 'is-active' : ''}`} 
-                onClick={() => setIsA11yOpen(!isA11yOpen)} 
-                title="Accessibility" 
-                aria-expanded={isA11yOpen} 
-                aria-haspopup="menu"
-              >
-                <Accessibility size={18} />
-              </button>
+              
+              {/* For non-authenticated non-homepage: show theme and language directly */}
+              {!isAuthenticated && !isHomePage && (
+                <>
+                  <button 
+                    type="button" 
+                    className="topbar-action-btn" 
+                    onClick={toggleDarkMode}
+                    title="Toggle Theme"
+                  >
+                    {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+                  </button>
+                  <button 
+                    type="button" 
+                    className="topbar-action-btn" 
+                    onClick={toggleLanguage}
+                    title="Change Language"
+                  >
+                    <Globe size={18} />
+                  </button>
+                </>
+              )}
+              
+              {/* Show accessibility menu for homepage or authenticated users */}
+              {(isHomePage || isAuthenticated) && (
+                <>
+                  <button 
+                    type="button" 
+                    className={`topbar-action-btn ${isA11yOpen ? 'is-active' : ''}`} 
+                    onClick={() => setIsA11yOpen(!isA11yOpen)} 
+                    title="Accessibility" 
+                    aria-expanded={isA11yOpen} 
+                    aria-haspopup="menu"
+                  >
+                    <Accessibility size={18} />
+                  </button>
 
-              {isA11yOpen && (
-                <div className="a11y-menu">
-                  <button type="button" className="a11y-menu__item" onClick={() => { toggleDarkMode(); setIsA11yOpen(false); }}>
-                    {isDarkMode ? <Sun size={16} /> : <Moon size={16} />} 
-                    <span>{t('layout.toggleTheme', 'Toggle theme')}</span>
-                  </button>
-                  <button type="button" className="a11y-menu__item" onClick={() => { toggleLanguage(); setIsA11yOpen(false); }}>
-                    <Globe size={16} /> 
-                    <span>{t('layout.changeLanguage', 'Change language')}</span>
-                  </button>
-                </div>
+                  {isA11yOpen && (
+                    <div className="a11y-menu">
+                      <button type="button" className="a11y-menu__item" onClick={() => { toggleDarkMode(); setIsA11yOpen(false); }}>
+                        {isDarkMode ? <Sun size={16} /> : <Moon size={16} />} 
+                        <span>{t('layout.toggleTheme', 'Toggle theme')}</span>
+                      </button>
+                      <button type="button" className="a11y-menu__item" onClick={() => { toggleLanguage(); setIsA11yOpen(false); }}>
+                        <Globe size={16} /> 
+                        <span>{t('layout.changeLanguage', 'Change language')}</span>
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
@@ -729,7 +783,7 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
             onMobileDrawerClose={() => setIsSidebarOpen(false)}
           />
         ) : null}
-        {!hideSidebar && isAuthenticated && !isAuthPage && !isHomePage && user?.role === APP_ROLE.TENANT && !location.pathname.startsWith('/admin') ? (
+        {!hideSidebar && isAuthenticated && !isAuthPage && !isHomePage && user?.role === APP_ROLE.TENANT && !location.pathname.startsWith('/admin') && !isMobileOrTablet ? (
           <StudentSidebar
             unreadMessages={unreadCount}
             unreadNotifs={notifCount}
@@ -746,7 +800,7 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
 
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
           <main className="main-content" style={{ flex: 1, minWidth: 0, transition: 'all 0.3s ease', padding: isHomePage ? 0 : undefined }}>
-            {children}
+            {children ?? <Outlet />}
           </main>
 
           {/* Footer on all pages unless hideFooter is true */}
@@ -861,64 +915,97 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
         
         {/* Bottom Menu Bar */}
         <nav className="mobile-bottom-menu-bar">
-          <NavLink 
-            to="/" 
-            className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
-            style={({ isActive }) => ({ 
-              color: isActive ? '#22c55e' : '#6b7280',
-            })}
-          >
-            <Home size={22} strokeWidth={isHomePage ? 2.5 : 2} />
-            <span>Home</span>
-          </NavLink>
-          
-          <NavLink 
-            to="/saved" 
-            className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
-            style={({ isActive }) => ({ 
-              color: isActive ? '#22c55e' : '#6b7280',
-            })}
-            onClick={(e) => {
-              if (!isAuthenticated) {
-                e.preventDefault();
-                navigate('/auth/login');
-              }
-            }}
-          >
-            <Heart size={22} strokeWidth={location.pathname === '/saved' ? 2.5 : 2} />
-            <span>Wishlist</span>
-          </NavLink>
-          
-          <NavLink 
-            to="/messages" 
-            className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
-            style={({ isActive }) => ({ 
-              color: isActive ? '#22c55e' : '#6b7280',
-            })}
-            onClick={(e) => {
-              if (!isAuthenticated) {
-                e.preventDefault();
-                navigate('/auth/login');
-              }
-            }}
-          >
-            <MessageCircle size={22} strokeWidth={location.pathname === '/messages' ? 2.5 : 2} />
-            <span>Messages</span>
-            {unreadCount > 0 && isAuthenticated && (
-              <span className="mobile-bottom-nav-badge">{unreadCount}</span>
-            )}
-          </NavLink>
-          
-          <NavLink 
-            to="/auth/login" 
-            className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
-            style={({ isActive }) => ({ 
-              color: isActive ? '#22c55e' : '#6b7280',
-            })}
-          >
-            <User size={22} strokeWidth={isAuthPage ? 2.5 : 2} />
-            <span>Profile</span>
-          </NavLink>
+          {isAuthenticated && user?.role === APP_ROLE.TENANT ? (
+            <>
+              <NavLink
+                to={userDashboardPath}
+                className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                style={({ isActive }) => ({ color: isActive ? '#22c55e' : '#6b7280' })}
+              >
+                <LayoutGrid size={22} />
+                <span>Dashboard</span>
+              </NavLink>
+
+              <NavLink
+                to="/saved"
+                className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                style={({ isActive }) => ({ color: isActive ? '#22c55e' : '#6b7280' })}
+              >
+                <Heart size={22} />
+                <span>Wishlist</span>
+              </NavLink>
+
+              <NavLink
+                to="/messages"
+                className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                style={({ isActive }) => ({ color: isActive ? '#22c55e' : '#6b7280' })}
+              >
+                <MessageCircle size={22} />
+                <span>Messages</span>
+                {unreadCount > 0 && isAuthenticated && <span className="mobile-bottom-nav-badge">{unreadCount}</span>}
+              </NavLink>
+
+              <NavLink
+                to={profileTarget}
+                className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                style={({ isActive }) => ({ color: isActive ? '#22c55e' : '#6b7280' })}
+              >
+                <User size={22} />
+                <span>{profileLabel}</span>
+              </NavLink>
+            </>
+          ) : (
+            <>
+              <NavLink
+                to={isAuthenticated ? userDashboardPath : '/'}
+                className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                style={({ isActive }) => ({ color: isActive ? '#22c55e' : '#6b7280' })}
+              >
+                {isAuthenticated ? <LayoutGrid size={22} /> : <Home size={22} strokeWidth={isHomePage ? 2.5 : 2} />}
+                <span>{isAuthenticated ? 'Dashboard' : 'Home'}</span>
+              </NavLink>
+
+              <NavLink
+                to="/saved"
+                className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                style={({ isActive }) => ({ color: isActive ? '#22c55e' : '#6b7280' })}
+                onClick={(e) => {
+                  if (!isAuthenticated) {
+                    e.preventDefault();
+                    navigate('/auth/login');
+                  }
+                }}
+              >
+                <Heart size={22} strokeWidth={location.pathname === '/saved' ? 2.5 : 2} />
+                <span>Wishlist</span>
+              </NavLink>
+
+              <NavLink
+                to="/messages"
+                className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                style={({ isActive }) => ({ color: isActive ? '#22c55e' : '#6b7280' })}
+                onClick={(e) => {
+                  if (!isAuthenticated) {
+                    e.preventDefault();
+                    navigate('/auth/login');
+                  }
+                }}
+              >
+                <MessageCircle size={22} strokeWidth={location.pathname === '/messages' ? 2.5 : 2} />
+                <span>Messages</span>
+                {unreadCount > 0 && isAuthenticated && <span className="mobile-bottom-nav-badge">{unreadCount}</span>}
+              </NavLink>
+
+              <NavLink
+                to={profileTarget}
+                className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                style={({ isActive }) => ({ color: isActive ? '#22c55e' : '#6b7280' })}
+              >
+                <User size={22} strokeWidth={isAuthPage ? 2.5 : 2} />
+                <span>{profileLabel}</span>
+              </NavLink>
+            </>
+          )}
         </nav>
       </div>
 

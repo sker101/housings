@@ -20,7 +20,6 @@ import CompleteProfilePage from './pages/auth/CompleteProfilePage';
 import VerifyEmailPage    from './pages/auth/VerifyEmailPage';
 
 // ── Shared Dashboard Layout (Role-based) ──────────────────────
-import RoleBasedLayout from './components/RoleBasedLayout';
 
 // ── Tenant pages ──────────────────────────────────────────────
 import TenantDashboard   from './pages/tenant/Dashboard';
@@ -105,7 +104,7 @@ export default function App() {
         <Route path="/list-property/*"   element={<Navigate to="/landlord/properties/new" replace />} />
 
         {/* ── Authenticated Routes ────── */}
-        <Route element={<RoleBasedLayout />}>
+        <Route element={<Layout />}>
           
           {/* Shared multi-role */}
           <Route path="/profile"            element={<ProtectedRoute roles={ALL}><ProfilePage /></ProtectedRoute>} />

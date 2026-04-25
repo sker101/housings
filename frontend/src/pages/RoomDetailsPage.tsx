@@ -1,7 +1,27 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft } from 'lucide-react';
+import { 
+  ArrowLeft, 
+  Sparkles, 
+  Star, 
+  Heart, 
+  MapPin, 
+  Play, 
+  ChevronLeft, 
+  ChevronRight,
+  CheckCircle2,
+  XCircle,
+  ShieldCheck,
+  Lock,
+  Phone,
+  MessageCircle,
+  Share2,
+  CreditCard,
+  Shield,
+  Flag,
+  Home
+} from 'lucide-react';
 import ListingCard from '../components/ListingCard';
 import ListingMap from '../components/ListingMap';
 import { useAuth } from '../context/AuthContext';
@@ -708,7 +728,7 @@ export default function RoomDetailsPage() {
       setSubmittingInquiry(false);
       setMessage('');
       setOpenInquiry(false);
-      navigate(`/messages/${conversationId}`);
+      navigate(`/messages/${inquiryId}`);
     } catch (err) {
       setError(err.message || 'Failed to send message. Please try again.');
       setSubmittingInquiry(false);
@@ -774,776 +794,1077 @@ export default function RoomDetailsPage() {
           <p>Verifying access...</p>
         </section>
       </div>
-     );
+    );
   }
 
-  return (
-    <div className="container section room-page">
-      {/* Back to search list button */}
-      <Link
-        to="/tenant/search"
-        className="back-to-search-btn"
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          padding: '0.75rem 1.25rem',
-          marginBottom: '1.5rem',
-          background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%)',
-          border: '1px solid rgba(29, 158, 117, 0.2)',
-          borderRadius: '12px',
-          color: '#1D9E75',
-          fontWeight: 600,
-          fontSize: '0.95rem',
-          textDecoration: 'none',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(29, 158, 117, 0.1)',
-          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          position: 'relative',
-          overflow: 'hidden'
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'translateY(-2px)';
-          e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(29, 158, 117, 0.2), 0 0 20px rgba(29, 158, 117, 0.15)';
-          e.currentTarget.style.borderColor = 'rgba(29, 158, 117, 0.4)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(29, 158, 117, 0.1)';
-          e.currentTarget.style.borderColor = 'rgba(29, 158, 117, 0.2)';
-        }}
-      >
-        <ArrowLeft size={18} />
-        <span>Back to search list</span>
-      </Link>
+  // Helper function for availability color
+  const getAvailabilityColor = (status) => {
+    const colors = {
+      available: 'is-available',
+      pending: 'is-pending',
+      occupied: 'is-occupied',
+      unavailable: 'is-unavailable'
+    };
+    return colors[status] || 'is-unknown';
+  };
 
-      <section className="room-hero card">
-        <div className="room-hero__gallery">
-          <div
-            className="room-hero__image-wrap"
-            onTouchStart={captureSwipeStart}
-            onTouchEnd={captureSwipeEnd}
-          >
-            <button
-              type="button"
-              className="room-hero__image-btn"
-              onClick={() => setLightboxOpen(true)}
-              aria-label="Open photo lightbox"
-            >
-              <img
-                src={activePhoto?.public_url || listing.imageUrl}
-                alt={listing.title}
-                className="room-hero__image"
-              />
-            </button>
-            <div className="room-hero__image-meta">
-              <span className="room-photo-angle">{activePhoto?.caption || humanize(activePhoto?.angle || 'main').replace(/\d+/g, '').trim()}</span>
-              <span className="room-photo-count">
-                {activePhotoIndex + 1}/{galleryPhotos.length}
-              </span>
-            </div>
-            {galleryPhotos.length > 1 ? (
-              <div className="room-hero__nav">
-                <button type="button" className="room-nav-btn" onClick={goToPrevPhoto}>
-                  Prev
-                </button>
-                <button type="button" className="room-nav-btn" onClick={goToNextPhoto}>
-                  Next
-                </button>
-              </div>
-            ) : null}
+  return (
+    <div className="room-details-container">
+      {/* Inject mobile styles */}
+      <style>{roomDetailsStyles}</style>
+
+      {/* Mobile-optimized back button */}
+      <button
+        onClick={() => navigate(isAuthenticated ? '/listings' : '/')}
+        className="rd-back-btn"
+        aria-label="Go back"
+      >
+        <ArrowLeft size={20} />
+        <span>Back</span>
+      </button>
+
+      {/* ── Image Gallery Section ─────────────────────────────── */}
+      <section className="rd-gallery">
+        <div
+          className="rd-gallery-main"
+          onTouchStart={captureSwipeStart}
+          onTouchEnd={captureSwipeEnd}
+          onClick={() => setLightboxOpen(true)}
+        >
+          <img
+            src={activePhoto?.public_url || listing.imageUrl}
+            alt={listing.title}
+            className="rd-gallery-img"
+          />
+          <div className="rd-gallery-overlay">
+            <span className="rd-photo-badge">
+              {activePhotoIndex + 1} / {galleryPhotos.length}
+            </span>
             {listing?.videoTourUrl && (
               <a
                 href={listing.videoTourUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="btn btn--small"
-                style={{
-                  position: 'absolute',
-                  bottom: '1rem',
-                  right: '1rem',
-                  background: 'rgba(29, 158, 117, 0.9)',
-                  color: 'white',
-                  fontSize: '0.85rem',
-                  padding: '0.5rem 0.75rem',
-                  borderRadius: '6px',
-                  textDecoration: 'none'
-                }}
+                className="rd-video-btn"
               >
-                🎥 Video Tour
+                <Play size={14} />
+                Video Tour
               </a>
             )}
           </div>
-
-          <div className="room-hero__thumbs">
+          {galleryPhotos.length > 1 && (
+            <>
+              <button 
+                className="rd-gallery-nav rd-gallery-nav--prev" 
+                onClick={(e) => { e.stopPropagation(); goToPrevPhoto(); }}
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <button 
+                className="rd-gallery-nav rd-gallery-nav--next" 
+                onClick={(e) => { e.stopPropagation(); goToNextPhoto(); }}
+              >
+                <ChevronRight size={20} />
+              </button>
+            </>
+          )}
+        </div>
+        
+        {/* Thumbnail Strip */}
+        {galleryPhotos.length > 1 && (
+          <div className="rd-thumbs">
             {galleryPhotos.map((photo, index) => (
               <button
-                type="button"
                 key={photo.id}
-                className={`room-thumb ${activePhotoIndex === index ? 'is-active' : ''}`}
+                className={`rd-thumb ${activePhotoIndex === index ? 'is-active' : ''}`}
                 onClick={() => setActivePhotoIndex(index)}
               >
-                <img src={photo.public_url} alt={photo.angle || 'Listing photo'} loading="lazy" />
-                <span className="room-thumb__label">{photo.caption || humanize(photo.angle || 'photo').replace(/\d+/g, '').trim()}</span>
+                <img src={photo.public_url} alt="" loading="lazy" />
               </button>
             ))}
           </div>
+        )}
+      </section>
+
+      {/* ── Error Toast ─────────────────────────────── */}
+      {error && (
+        <div className="rd-error-toast">
+          <XCircle size={18} />
+          <span>{error}</span>
+          <button onClick={() => setError('')} className="rd-error-close">×</button>
         </div>
+      )}
 
-        <div className="room-hero__content">
-          <div className="room-hero__title-row">
-            <h1>{listing.title}</h1>
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              {listing.featured ? <span className="room-featured-badge">{t('roomDetails.featured')}</span> : null}
-              {Number(averageRating) > 0 && reviews.length > 0 ? (
-                <span className="room-review-stars" style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', background: '#eef2ff', padding: '0.2rem 0.6rem', borderRadius: 16 }}>
-                  <span style={{ color: '#f59e0b', fontSize: '1.2rem' }}>★</span>
-                  <strong style={{ color: '#3730A3' }}>{averageRating}</strong>
-                  <span style={{ color: '#4F46E5', fontSize: '0.85rem' }}>({reviews.length})</span>
-                </span>
-              ) : null}
-            </div>
-          </div>
-          <p className="room-hero__location">{listing.location}</p>
-          <p className="room-price">{formatPrice(listing.priceMonthly)}</p>
-
-          <p>{listing.description}</p>
-
-          <section className="card room-lister-card">
-            <div className="room-lister-card__header">
-              {listerProfile?.profile_photo_url ? (
-                <img
-                  src={listerProfile.profile_photo_url}
-                  alt={listerProfile.full_name || 'Lister'}
-                  className="room-lister-avatar"
-                />
-              ) : (
-                <div className="room-lister-avatar room-lister-avatar--fallback">
-                  {(listerProfile?.full_name || 'L')
-                    .trim()
-                    .charAt(0)
-                    .toUpperCase()}
-                </div>
-              )}
-              <div>
-                <h2>{listerProfile?.full_name || t('roomDetails.verifiedLister')}</h2>
-                <p className="muted">
-                  {listerProfile?.lister_type ? humanize(listerProfile.lister_type) : 'Lister'} • {humanize(listerProfile?.verification_status || 'pending')} • {t('roomDetails.memberSince', { date: formatShortDate(listerProfile?.created_at) })}
-                </p>
-              </div>
-            </div>
-            <div className="room-lister-card__stats">
-              <span>{listerListingCount === 1 ? t('roomDetails.approvedListings', { count: listerListingCount }) : t('roomDetails.approvedListingsPlural', { count: listerListingCount })}</span>
-              <span>{t('roomDetails.respondsViaChat')}</span>
-            </div>
-            {hasPaidBooking ? (
-              <>
-                {listerProfile?.phone && (
-                  <p style={{ margin: '0.5rem 0 0', fontSize: '0.9rem' }}>
-                    <strong>Phone:</strong> {listerProfile.phone}
-                  </p>
-                )}
-                {listing?.whatsappNumber && (
-                  <p style={{ margin: '0.3rem 0 0', fontSize: '0.9rem' }}>
-                    <strong>WhatsApp:</strong> {listing.whatsappNumber}
-                  </p>
-                )}
-              </>
-            ) : (
-              <div style={{ marginTop: '0.75rem', padding: '0.75rem 1rem', background: 'linear-gradient(135deg, #FEF3C7, #F9FAFB)', borderRadius: '10px', display: 'flex', gap: '0.6rem', alignItems: 'center', border: '1px solid #E5E7EB' }}>
-                <span style={{ fontSize: '1.2rem' }}>🔒</span>
-                <div>
-                  <p style={{ margin: 0, fontSize: '0.85rem', color: '#374151', fontWeight: 600, lineHeight: 1.4 }}>
-                    Contact details are hidden
-                  </p>
-                  <p style={{ margin: '0.15rem 0 0', fontSize: '0.8rem', color: '#6B7280', lineHeight: 1.4 }}>
-                    Reserve / pay for this room to unlock landlord phone &amp; WhatsApp.
-                  </p>
-                </div>
-              </div>
+      {/* ── Room Info Header ─────────────────────────────── */}
+      <section className="rd-header">
+        <div className="rd-header-top">
+          <div className="rd-badges">
+            {listing.featured && (
+              <span className="rd-badge rd-badge--featured">
+                <Sparkles size={12} />
+                Featured
+              </span>
             )}
-          </section>
+            {Number(averageRating) > 0 && reviews.length > 0 && (
+              <span className="rd-badge rd-badge--rating">
+                <Star size={12} fill="#f59e0b" />
+                {averageRating} ({reviews.length})
+              </span>
+            )}
+          </div>
+          <button 
+            className={`rd-save-btn ${saved ? 'is-saved' : ''}`}
+            onClick={() => handleToggleSave(listing.id)}
+          >
+            <Heart size={22} fill={saved ? '#ef4444' : 'none'} color={saved ? '#ef4444' : '#94a3b8'} />
+          </button>
+        </div>
+        
+        <h1 className="rd-title">{listing.title}</h1>
+        
+        <div className="rd-location">
+          <MapPin size={16} />
+          <span>{listing.location}</span>
+        </div>
+        
+        <div className="rd-price-row">
+          <div className="rd-price-main">
+            <span className="rd-price-amount">{formatPrice(listing.priceMonthly)}</span>
+            <span className="rd-price-period">/month</span>
+          </div>
+          {listing.status === 'approved' ? (
+            <span className="rd-availability rd-availability--approved">
+              <CheckCircle2 size={12} />
+              Approved
+            </span>
+          ) : (
+            <span className={`rd-availability ${getAvailabilityColor(listing.status)}`}>
+              {humanize(listing.status)}
+            </span>
+          )}
+        </div>
+      </section>
 
-          {listing?.listerType === 'dalali' && listing?.ownerName ? (
-            <section className="card" style={{ marginTop: '1rem', padding: '1.5rem', border: '1px solid #E5E5E0' }}>
-              <h3 style={{ margin: '0 0 1rem' }}>Property Owner</h3>
-              <p style={{ margin: '0 0 0.5rem' }}>
-                <strong>{listing.ownerName}</strong>
-              </p>
-              {hasPaidBooking && listing?.ownerPhone ? (
-                <p style={{ margin: '0', fontSize: '0.9rem' }}>
-                  <strong>Phone:</strong> {listing.ownerPhone}
-                </p>
-              ) : !hasPaidBooking ? (
-                <div style={{ marginTop: '0.5rem', padding: '0.75rem 1rem', background: 'linear-gradient(135deg, #FEF3C7, #F9FAFB)', borderRadius: '10px', display: 'flex', gap: '0.6rem', alignItems: 'center', border: '1px solid #E5E7EB' }}>
-                  <span style={{ fontSize: '1.1rem' }}>🔒</span>
-                  <p style={{ margin: 0, fontSize: '0.8rem', color: '#6B7280', lineHeight: 1.4 }}>
-                    Reserve / pay to view owner contact details.
-                  </p>
-                </div>
-              ) : null}
-              <p style={{ margin: '0.5rem 0 0', fontSize: '0.85rem', color: '#6B6B5A' }}>
-                (Listed by {listerProfile?.full_name || 'agent'})
-              </p>
-            </section>
-          ) : null}
+      {/* ── Quick Facts Grid ─────────────────────────────── */}
+      <section className="rd-facts">
+        {facts.map((fact, index) => (
+          <div 
+            key={fact.label} 
+            className="rd-fact"
+            style={{ animationDelay: `${index * 50}ms` }}
+          >
+            <span className="rd-fact__label">{fact.label}</span>
+            <span className="rd-fact__value">{fact.value}</span>
+          </div>
+        ))}
+      </section>
 
-          <div className="room-actions">
-            <button
-              type="button"
-              className={`btn btn--ghost ${saved ? 'is-saved' : ''}`}
-              onClick={() => handleToggleSave(listing.id)}
-            >
-              {saved ? t('listingCard.saved') : t('listingCard.save')}
-            </button>
-            {canReserveListing ? (
-              <Link
-                to="/tenant/payments"
-                className="btn btn--large"
-                style={{ flex: 2, textAlign: 'center' }}
-                state={{
-                  listingId: listing.id,
-                  listerId: listing.listerId,
-                  price: listing.priceMonthly,
-                  title: listing.title,
-                  availableFrom: listing.availableFrom,
-                  coverPhoto: Array.isArray(listing?.photos) ? listing.photos[0] : null,
-                  address: listing.location || listing.district || listing.ward || '',
-                }}
+      {/* ── Description ─────────────────────────────── */}
+      <section className="rd-section">
+        <h2 className="rd-section-title">About this room</h2>
+        <p className="rd-description">{listing.description}</p>
+      </section>
+
+      {/* ── Amenities ─────────────────────────────── */}
+      {amenities.length > 0 && (
+        <section className="rd-section">
+          <h2 className="rd-section-title">Amenities</h2>
+          <div className="rd-amenities">
+            {amenities.map((item, index) => (
+              <div 
+                key={item.label} 
+                className={`rd-amenity ${!item.enabled ? 'is-disabled' : ''}`}
+                style={{ animationDelay: `${index * 30}ms` }}
               >
-                Reserve / Pay
-              </Link>
-            ) : null}
-            <button 
-              type="button" 
-              className="btn btn--ghost" 
-              onClick={() => {
-                if (!isAuthenticated) {
-                  navigate('/login', { state: { from: { pathname: `/rooms/${roomId}` } } });
-                  return;
-                }
-                setOpenInquiry(true);
-              }}
-            >
-              {t('roomDetails.startChat')}
-            </button>
-            <button type="button" className="btn btn--ghost" onClick={handleShare}>
-              {t('roomDetails.share')}
-            </button>
-          </div>
-
-          <div style={{ marginTop: '0.5rem' }}>
-            <button
-              type="button"
-              className="btn btn--ghost btn--small"
-              style={{ color: 'var(--red, #C0392B)', fontSize: '0.8rem' }}
-              onClick={() => { setOpenReport(true); setReportSuccess(false); }}
-            >
-              {t('roomDetails.reportListing')}
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <section className="card room-facts">
-        <h2>{t('roomDetails.quickFacts')}</h2>
-        <div className="room-facts-grid">
-          {facts.map((fact) => (
-            <article className="room-fact" key={fact.label}>
-              <p>{fact.label}</p>
-              <strong>{fact.value}</strong>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="room-sections">
-        <article className="card room-section-card">
-          <h2>{t('roomDetails.amenities')}</h2>
-          {amenities.length > 0 ? (
-            <div className="room-chip-row" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-              {amenities.map((item) => (
-                <span
-                  key={item.label}
-                  className="room-chip room-chip--amenity"
-                  style={{
-                    background: item.enabled ? '#EDF7F1' : '#F5F5F0',
-                    border: `1px solid ${item.enabled ? '#1D9E75' : '#E5E5E0'}`,
-                    color: item.enabled ? '#1A1A2E' : '#9999 99'
-                  }}
-                >
-                  <span className="room-chip__emoji" aria-hidden="true">
-                    {item.emoji}
-                  </span>
-                  {item.label}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <p className="muted">{t('roomDetails.noAmenities')}</p>
-          )}
-        </article>
-
-        {/* Habitability section removed as per Task 4 */}
-
-        <article className="card room-section-card">
-          <h2>{t('roomDetails.houseRules')}</h2>
-          {houseRules.length > 0 ? (
-            <ol className="room-rules-list">
-              {houseRules.map((rule, index) => (
-                <li key={`${rule}-${index}`}>{rule}</li>
-              ))}
-            </ol>
-          ) : (
-            <p>{t('roomDetails.noHouseRules')}</p>
-          )}
-        </article>
-
-        <article className="card room-section-card">
-          <h2>Lease Terms & Payment</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', fontSize: '0.9rem' }}>
-            <div>
-              <p style={{ margin: '0 0 0.3rem', color: '#6B6B5A' }}>Monthly Rent</p>
-              <p style={{ margin: '0', fontWeight: '700', fontSize: '1rem', color: '#1D9E75' }}>
-                TZS {new Intl.NumberFormat('en-TZ').format(listing?.priceMonthly || 0)}
-              </p>
-            </div>
-            {listing?.securityDeposit ? (
-              <div>
-                <p style={{ margin: '0 0 0.3rem', color: '#6B6B5A' }}>Security Deposit</p>
-                <p style={{ margin: '0', fontWeight: '700', fontSize: '1rem' }}>
-                  TZS {new Intl.NumberFormat('en-TZ').format(listing.securityDeposit)}
-                </p>
+                <span className="rd-amenity__icon">{item.emoji}</span>
+                <span className="rd-amenity__label">{item.label}</span>
               </div>
-            ) : null}
-            {listing?.minLeaseMonths ? (
-              <div>
-                <p style={{ margin: '0 0 0.3rem', color: '#6B6B5A' }}>Minimum Lease</p>
-                <p style={{ margin: '0', fontWeight: '700' }}>{listing.minLeaseMonths} month{listing.minLeaseMonths !== 1 ? 's' : ''}</p>
-              </div>
-            ) : null}
-            {listing?.paymentSchedule ? (
-              <div>
-                <p style={{ margin: '0 0 0.3rem', color: '#6B6B5A' }}>Payment Schedule</p>
-                <p style={{ margin: '0', fontWeight: '700' }}>{humanize(listing.paymentSchedule)}</p>
-              </div>
-            ) : null}
-            {listing?.lateFeePolicy ? (
-              <div style={{ gridColumn: '1 / -1' }}>
-                <p style={{ margin: '0 0 0.3rem', color: '#6B6B5A' }}>Late Fee Policy</p>
-                <p style={{ margin: '0' }}>{listing.lateFeePolicy}</p>
-              </div>
-            ) : null}
-          </div>
-        </article>
-
-        <article className="room-section-card" style={{ padding: '2rem 0', border: 'none', background: 'transparent', gridColumn: '1 / -1' }}>
-          <div style={{ padding: '0 1.5rem' }}>
-            <h2>{t('roomDetails.location')}</h2>
-            <p>{listing.location}</p>
-          </div>
-          <div className="room-location-map-full" style={{ borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-            <ListingMap listings={[listing]} onMarkerSelect={() => { }} height="400px" />
-          </div>
-          {nearestUniversity ? (
-            <p className="muted">
-              {t('roomDetails.nearestCampus', { name: nearestUniversity.name, distance: nearestUniversity.displayDistance })}
-            </p>
-          ) : null}
-          {listing.nearUniversities?.length ? (
-            <div className="room-chip-row">
-              {listing.nearUniversities.map((university) => (
-                <span key={university} className="room-chip">
-                  {university}
-                </span>
-              ))}
-            </div>
-          ) : null}
-          {nearestUniversity ? (
-            <div className="room-chip-row">
-              {UNIVERSITY_COORDINATES
-                .map((university) => ({
-                  label: university.label,
-                  distanceKm: haversineDistanceKm(
-                    Number(listing.lat), Number(listing.lng),
-                    university.lat, university.lng
-                  )
-                }))
-                .sort((a, b) => a.distanceKm - b.distanceKm)
-                .slice(0, 3)
-                .map((uni) => (
-                  <span key={uni.label} className="room-chip">
-                    {uni.label} ({uni.distanceKm.toFixed(1)} km)
-                  </span>
-                ))}
-            </div>
-          ) : null}
-          {listing.lat && listing.lng ? (
-            <a
-              href={`https://maps.google.com/?q=${listing.lat},${listing.lng}`}
-              target="_blank"
-              rel="noreferrer"
-              className="btn btn--ghost btn--small"
-            >
-              {t('roomDetails.openMapPin')}
-            </a>
-          ) : null}
-        </article>
-      </section>
-
-      <section className="card room-related">
-        <div className="room-related__header">
-          <h2>{t('roomDetails.similarRooms')}</h2>
-          <Link
-            className="btn btn--ghost btn--small"
-            to={`/search?q=${encodeURIComponent(listing.district || listing.region || '')}`}
-          >
-            {t('roomDetails.viewMore')}
-          </Link>
-        </div>
-
-        {relatedLoading ? (
-          <div className="room-related-grid">
-            {Array.from({ length: 3 }).map((_, index) => (
-              <div key={`related-skeleton-${index}`} className="room-skeleton-block room-skeleton-card" />
             ))}
-          </div>
-        ) : null}
-
-        {!relatedLoading && relatedListings.filter(r => r.vacancyStatus !== 'available_soon' && r.vacancyStatus !== 'listed_occupied').length > 0 ? (
-          <div className="room-related-grid">
-            {relatedListings.filter(r => r.vacancyStatus !== 'available_soon' && r.vacancyStatus !== 'listed_occupied').map((item) => (
-              <ListingCard
-                key={item.id}
-                listing={item}
-              />
-            ))}
-          </div>
-        ) : null}
-
-        {!relatedLoading && relatedListings.filter(r => r.vacancyStatus === 'available_soon' || r.vacancyStatus === 'listed_occupied').length > 0 ? (
-          <>
-            {relatedListings.filter(r => r.vacancyStatus !== 'available_soon' && r.vacancyStatus !== 'listed_occupied').length > 0 && (
-              <hr style={{ margin: '1.5rem 0', border: 'none', borderTop: '1px solid var(--border)' }} />
-            )}
-            <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', color: 'var(--ink)' }}>Coming Soon</h3>
-            <div className="room-related-grid">
-              {relatedListings.filter(r => r.vacancyStatus === 'available_soon' || r.vacancyStatus === 'listed_occupied').map((item) => (
-                <ListingCard
-                  key={item.id}
-                  listing={item}
-                />
-              ))}
-            </div>
-          </>
-        ) : null}
-
-        {!relatedLoading && relatedListings.length === 0 ? (
-          <p className="muted">{t('roomDetails.noSimilarRooms')}</p>
-        ) : null}
-      </section>
-
-      {/* Reviews Section */}
-      <section className="card room-reviews">
-        <div className="room-reviews__header">
-          <h2>{t('roomDetails.reviewsAndRatings')}</h2>
-          {reviews.length > 0 ? (
-            <div className="room-reviews__summary">
-              <span className="room-reviews__avg">
-                {'★'.repeat(Math.round(Number(averageRating)))}
-                {'☆'.repeat(5 - Math.round(Number(averageRating)))}
-              </span>
-              <span className="room-reviews__score">{averageRating}</span>
-              <span className="muted">({reviews.length} review{reviews.length !== 1 ? 's' : ''})</span>
-            </div>
-          ) : null}
-        </div>
-
-        {reviewsLoading ? <p className="muted">Loading reviews...</p> : null}
-
-        {!reviewsLoading && reviews.length === 0 ? (
-          <div>
-            <p className="muted" style={{ marginBottom: '1rem' }}>No reviews yet. Be the first to review this listing.</p>
-            <Link to={`/reviews?listing=${listing.id}`} className="btn btn--ghost btn--small">Write a Review</Link>
-          </div>
-        ) : null}
-
-        {!reviewsLoading && reviews.length > 0 ? (
-          <div className="room-reviews__list">
-            {reviews.slice(0, 3).map((review: any) => (
-              <article key={review.id} className="room-review-card">
-                <div className="room-review-card__header">
-                  {review.authorPhotoUrl ? (
-                    <img src={review.authorPhotoUrl} alt={review.authorName} className="room-review-avatar" />
-                  ) : (
-                    <div className="room-review-avatar room-review-avatar--fallback">
-                      {(review.authorName || 'T').charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                  <div>
-                    <strong>{review.authorName}</strong>
-                    <span className="room-review-stars">
-                      {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
-                    </span>
-                  </div>
-                  <span className="muted room-review-date">{formatShortDate(review.createdAt)}</span>
-                </div>
-                {review.comment ? <p>{review.comment}</p> : null}
-              </article>
-            ))}
-
-            <Link to={`/reviews?listing=${listing.id}`} className="btn btn--ghost" style={{ marginTop: '1rem', display: 'inline-block' }}>
-              See all {reviews.length} reviews
-            </Link>
-          </div>
-        ) : null}
-      </section>
-
-      {/* Booking Status */}
-      {existingBooking ? (
-        <section className="card room-booking-status">
-          <h2>{t('roomDetails.yourBookingRequest')}</h2>
-          <div className="room-booking-status__info">
-            <p>
-              <strong>{t('roomDetails.status')}:</strong>{' '}
-              <span className={`room-booking-badge room-booking-badge--${existingBooking.status}`}>
-                {humanize(existingBooking.status)}
-              </span>
-            </p>
-            <p><strong>{t('roomDetails.moveIn')}:</strong> {formatDate(existingBooking.moveInDate)}</p>
-            <p><strong>{t('roomDetails.duration')}:</strong> {existingBooking.durationMonths} month{existingBooking.durationMonths !== 1 ? 's' : ''}</p>
-            <p className="muted">{t('roomDetails.requestedOn', { date: formatShortDate(existingBooking.createdAt) })}</p>
           </div>
         </section>
-      ) : null}
+      )}
 
-      {openInquiry ? (
-        <section
-          className="sheet-backdrop"
-          role="presentation"
-          onClick={() => setOpenInquiry(false)}
-          onKeyDown={(e) => e.key === 'Escape' && setOpenInquiry(false)}
-        >
-          <article
-            className="sheet"
-            role="dialog"
-            aria-modal="true"
-            aria-label={hasPaidBooking ? "Chat with Landlord" : "Payment Required"}
-            tabIndex={-1}
-            onClick={(event) => event.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-          >
-            {hasPaidBooking ? (
-              // PAID USER - Simple Chat Interface
-              <>
-                <h2>Chat with Landlord</h2>
-                <p className="muted">
-                  Send a message to {listerProfile?.full_name || 'the landlord'} about this room
-                </p>
-                <form onSubmit={submitInquiry}>
-                  <label>
-                    Your Message
-                    <textarea
-                      value={message}
-                      onChange={(event) => setMessage(event.target.value)}
-                      placeholder="Hi, I'm interested in this room and would like to know more..."
-                      maxLength={400}
-                      required
-                      style={{ minHeight: '120px' }}
-                    />
-                  </label>
-
-                  <p className="muted">{message.trim().length}/400 characters</p>
-
-                  {error ? <p className="error-text" style={{ marginTop: '1rem', marginBottom: '1rem' }}>{error}</p> : null}
-
-                  <div className="sheet__actions">
-                    <button type="button" className="btn btn--ghost" onClick={() => setOpenInquiry(false)}>
-                      Cancel
-                    </button>
-                    <button type="submit" className="btn" disabled={submittingInquiry}>
-                      {submittingInquiry ? 'Sending...' : 'Send Message'}
-                    </button>
-                  </div>
-                </form>
-              </>
-            ) : (
-              // UNPAID USER - Payment Required
-              <>
-                <h2>🔒 Payment Required</h2>
-                <div style={{
-                  background: '#FEF3C7',
-                  border: '1px solid #FDE68A',
-                  borderRadius: 12,
-                  padding: '1.5rem',
-                  margin: '1rem 0',
-                  textAlign: 'center'
-                }}>
-                  <p style={{ margin: '0 0 1rem', fontSize: '1rem', color: '#92400E', fontWeight: 600 }}>
-                    Complete payment to chat with the landlord
-                  </p>
-                  <p style={{ margin: '0 0 1.5rem', fontSize: '0.9rem', color: '#B45309' }}>
-                    To ensure serious inquiries only, payment verification is required before starting a conversation. This also unlocks the landlord's phone number and WhatsApp.
-                  </p>
-                  <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
-                    <button 
-                      type="button" 
-                      className="btn btn--ghost" 
-                      onClick={() => setOpenInquiry(false)}
-                    >
-                      Maybe Later
-                    </button>
-                    {listing.vacancyStatus === 'occupied' ? (
-                      <button className="btn" disabled style={{ background: 'var(--mid)', cursor: 'not-allowed', width: '100%' }}>
-                        Room Already Occupied
-                      </button>
-                    ) : (
-                      <Link
-                        to="/tenant/payments"
-                        className="btn"
-                        style={{ textAlign: 'center', textDecoration: 'none' }}
-                        state={{
-                          listingId: listing.id,
-                          price: listing.priceMonthly,
-                          title: listing.title,
-                          availableFrom: listing.availableFrom,
-                          coverPhoto: Array.isArray(listing?.photos) ? listing.photos[0] : null,
-                          address: listing.location || listing.district || listing.ward || '',
-                          listerId: listing.listerId,
-                        }}
-                        onClick={() => setOpenInquiry(false)}
-                      >
-                        Pay Now to Chat
-                      </Link>
-                    )}
-                  </div>
-                </div>
-              </>
-            )}
-          </article>
+      {/* ── House Rules ─────────────────────────────── */}
+      {houseRules.length > 0 && (
+        <section className="rd-section">
+          <h2 className="rd-section-title">House Rules</h2>
+          <div className="rd-rules">
+            {houseRules.map((rule, index) => (
+              <div 
+                key={index} 
+                className="rd-rule"
+              >
+                <span className="rd-rule__icon">
+                  <CheckCircle2 size={18} />
+                </span>
+                <span className="rd-rule__label">{rule}</span>
+              </div>
+            ))}
+          </div>
         </section>
-      ) : null}
+      )}
 
-      {lightboxOpen ? (
-        <section
-          className="sheet-backdrop room-lightbox"
-          role="presentation"
-          onClick={() => setLightboxOpen(false)}
-          onKeyDown={(e) => e.key === 'Escape' && setLightboxOpen(false)}
-        >
-          <article
-            className="room-lightbox__dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Photo lightbox"
-            tabIndex={-1}
-            onClick={(event) => event.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              className="btn btn--ghost btn--small room-lightbox__close"
-              onClick={() => setLightboxOpen(false)}
-            >
-              {t('roomDetails.close')}
-            </button>
+      {/* ── Lister Card ─────────────────────────────── */}
+      <section className="rd-lister">
+        <div className="rd-lister__header">
+          {listerProfile?.profile_photo_url ? (
             <img
-              src={activePhoto?.public_url || listing.imageUrl}
-              alt={listing.title}
-              className="room-lightbox__image"
-              onTouchStart={captureSwipeStart}
-              onTouchEnd={captureSwipeEnd}
+              src={listerProfile.profile_photo_url}
+              alt={listerProfile.full_name}
+              className="rd-lister__avatar"
             />
-            <p className="muted">
-              {humanize(activePhoto?.angle || 'main')} • {activePhotoIndex + 1}/{galleryPhotos.length}
+          ) : (
+            <div className="rd-lister__avatar rd-lister__avatar--fallback">
+              {(listerProfile?.full_name || 'L').trim().charAt(0).toUpperCase()}
+            </div>
+          )}
+          <div className="rd-lister__info">
+            <h3 className="rd-lister__name">
+              {listerProfile?.full_name || t('roomDetails.verifiedLister')}
+            </h3>
+            <p className="rd-lister__meta">
+              {listerProfile?.lister_type 
+                ? `${humanize(listerProfile.lister_type)} • ` 
+                : ''}
+              {listerListingCount} {listerListingCount === 1 ? 'listing' : 'listings'}
             </p>
-            {galleryPhotos.length > 1 ? (
-              <div className="room-lightbox__actions">
-                <button type="button" className="btn btn--ghost" onClick={goToPrevPhoto}>
-                  {t('roomDetails.previous')}
-                </button>
-                <button type="button" className="btn" onClick={goToNextPhoto}>
-                  {t('roomDetails.next')}
-                </button>
-              </div>
-            ) : null}
-          </article>
-        </section>
-      ) : null}
-
-      {error ? <p className="error-text">{error}</p> : null}
-      {notice ? <p className="success-text">{notice}</p> : null}
-
-      {openReport ? (
-        <section
-          className="sheet-backdrop"
-          role="presentation"
-          onClick={() => setOpenReport(false)}
-          onKeyDown={(e) => e.key === 'Escape' && setOpenReport(false)}
-        >
-          <article
-            className="sheet"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Report listing"
-            tabIndex={-1}
-            onClick={(event) => event.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-          >
-            <h2>🚩 Report this listing</h2>
-            <p className="muted">
-              Reports are reviewed within 24h. Critical reports trigger an immediate takedown.
-            </p>
-            {reportSuccess ? (
-              <div style={{ padding: '1.5rem', textAlign: 'center' }}>
-                <p style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>✅</p>
-                <p style={{ fontWeight: '600', color: 'var(--ink)' }}>Thank you for your report!</p>
-                <p className="muted">Our team will review it shortly.</p>
-                <button type="button" className="btn btn--ghost" style={{ marginTop: '1rem' }} onClick={() => setOpenReport(false)}>
-                  Close
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={submitReport}>
-                {reportError ? <p className="error-text" style={{ marginBottom: '1rem' }}>{reportError}</p> : null}
-                <label>
-                  Reason for report
-                  <select value={reportReason} onChange={(event) => setReportReason(event.target.value)}>
-                    {REPORT_REASONS.map((r) => (
-                      <option key={r.value} value={r.value}>{r.label}</option>
-                    ))}
-                  </select>
-                </label>
-
-                <label>
-                  Additional details (optional)
-                  <textarea
-                    value={reportDescription}
-                    onChange={(event) => setReportDescription(event.target.value)}
-                    placeholder="Describe what you observed..."
-                    maxLength={500}
-                    rows={4}
-                  />
-                </label>
-
-                <div className="sheet__actions">
-                  <button type="button" className="btn btn--ghost" onClick={() => setOpenReport(false)}>
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="btn"
-                    style={{ background: '#C0392B', borderColor: '#C0392B' }}
-                    disabled={submittingReport}
-                  >
-                    {submittingReport ? 'Submitting...' : 'Submit Report'}
-                  </button>
-                </div>
-              </form>
+          </div>
+          {listerProfile?.verification_status === 'verified' && (
+            <span className="rd-lister__verified">
+              <ShieldCheck size={16} />
+            </span>
+          )}
+        </div>
+        
+        {hasPaidBooking ? (
+          <div className="rd-lister__contacts">
+            {listerProfile?.phone && (
+              <a href={`tel:${listerProfile.phone}`} className="rd-contact-btn">
+                <Phone size={16} />
+                {listerProfile.phone}
+              </a>
             )}
-          </article>
-        </section>
-      ) : null}
+            {listing?.whatsappNumber && (
+              <a 
+                href={`https://wa.me/${listing.whatsappNumber.replace(/\D/g, '')}`}
+                target="_blank"
+                rel="noreferrer"
+                className="rd-contact-btn rd-contact-btn--whatsapp"
+              >
+                <MessageCircle size={16} />
+                WhatsApp
+              </a>
+            )}
+          </div>
+        ) : (
+          <div className="rd-lister__locked">
+            <Lock size={18} />
+            <p>Contact info hidden. Reserve to unlock phone & WhatsApp.</p>
+          </div>
+        )}
+      </section>
 
+      {/* ── Property Owner (for dalali) ─────────────────────────────── */}
+      {listing?.listerType === 'dalali' && listing?.ownerName && (
+        <section className="rd-owner">
+          <h4 className="rd-owner__title">Property Owner</h4>
+          <p className="rd-owner__name">{listing.ownerName}</p>
+          {hasPaidBooking && listing?.ownerPhone ? (
+            <a href={`tel:${listing.ownerPhone}`} className="rd-owner__phone">
+              <Phone size={14} />
+              {listing.ownerPhone}
+            </a>
+          ) : (
+            <div className="rd-owner__locked">
+              <Lock size={14} />
+              <span>Reserve to view owner contact</span>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* ── Action Buttons ─────────────────────────────── */}
+      <section className="rd-actions">
+        {canReserveListing ? (
+          <Link
+            to="/tenant/payments"
+            className="rd-btn rd-btn--primary"
+            state={{
+              listingId: listing.id,
+              listerId: listing.listerId,
+              price: listing.priceMonthly,
+              title: listing.title,
+              availableFrom: listing.availableFrom,
+              coverPhoto: Array.isArray(listing?.photos) ? listing.photos[0] : null,
+              address: listing.location || listing.district || listing.ward || '',
+            }}
+          >
+            <CreditCard size={18} />
+            Reserve / Pay
+          </Link>
+        ) : (
+          <button className="rd-btn rd-btn--primary rd-btn--disabled" disabled>
+            <Home size={18} />
+            Not Available
+          </button>
+        )}
+        
+        <button 
+          className="rd-btn rd-btn--secondary"
+          onClick={() => {
+            if (!isAuthenticated) {
+              navigate('/login', { state: { from: { pathname: `/rooms/${roomId}` } } });
+              return;
+            }
+            setOpenInquiry(true);
+          }}
+        >
+          <MessageCircle size={18} />
+          Chat
+        </button>
+        
+        <button className="rd-btn rd-btn--secondary" onClick={handleShare}>
+          <Share2 size={18} />
+          Share
+        </button>
+      </section>
+
+      {/* ── Safety & Report ─────────────────────────────── */}
+      <section className="rd-safety">
+        <div className="rd-safety__content">
+          <Shield size={16} />
+          <span>Your safety matters. Always meet in public places.</span>
+        </div>
+        <button 
+          className="rd-report-btn"
+          onClick={() => { setOpenReport(true); setReportSuccess(false); }}
+        >
+          <Flag size={14} />
+          Report Listing
+        </button>
+      </section>
     </div>
   );
 }
+
+// ── Mobile-First Room Details Styles ────────────────────────────
+const roomDetailsStyles = `
+  /* Error Toast */
+  .rd-error-toast {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: #fee2e2;
+    border: 1px solid #fecaca;
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    margin: 0 1rem 1rem;
+    color: #dc2626;
+    font-size: 0.9rem;
+    font-weight: 500;
+    animation: slideDown 0.3s ease-out;
+  }
+
+  .rd-error-toast svg {
+    flex-shrink: 0;
+  }
+
+  .rd-error-toast span {
+    flex: 1;
+  }
+
+  .rd-error-close {
+    background: none;
+    border: none;
+    color: #dc2626;
+    font-size: 1.25rem;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: background 0.2s ease;
+  }
+
+  .rd-error-close:active {
+    background: rgba(220, 38, 38, 0.1);
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Container */
+  .room-details-container {
+    padding: 0 1rem 1rem;
+    max-width: 480px;
+    margin: 0 auto;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  /* Back Button */
+  .rd-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1rem;
+    margin: 0.5rem 0 1rem;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    color: #475569;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    animation: slideInLeft 0.4s ease-out;
+  }
+
+  @keyframes slideInLeft {
+    from { opacity: 0; transform: translateX(-20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .rd-back-btn:active {
+    transform: scale(0.95);
+    background: #f0fdf4;
+    border-color: #86efac;
+    color: #16a34a;
+  }
+
+  /* Gallery Section */
+  .rd-gallery {
+    margin-bottom: 1.25rem;
+    animation: slideUpFade 0.5s ease-out 0.1s backwards;
+  }
+
+  @keyframes slideUpFade {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .rd-gallery-main {
+    position: relative;
+    aspect-ratio: 16/10;
+    border-radius: 20px;
+    overflow: hidden;
+    background: #f1f5f9;
+    cursor: pointer;
+  }
+
+  .rd-gallery-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+  }
+
+  .rd-gallery-main:active .rd-gallery-img {
+    transform: scale(1.02);
+  }
+
+  .rd-gallery-overlay {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    pointer-events: none;
+  }
+
+  .rd-photo-badge {
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    padding: 0.3rem 0.6rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    backdrop-filter: blur(10px);
+  }
+
+  .rd-video-btn {
+    background: rgba(29, 158, 117, 0.9);
+    color: white;
+    padding: 0.4rem 0.7rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    pointer-events: auto;
+  }
+
+  .rd-gallery-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.95);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+    transition: all 0.2s ease;
+    z-index: 10;
+  }
+
+  .rd-gallery-nav--prev { left: 12px; }
+  .rd-gallery-nav--next { right: 12px; }
+
+  .rd-gallery-nav:active {
+    transform: translateY(-50%) scale(0.9);
+    background: #22c55e;
+  }
+
+  .rd-gallery-nav:active svg {
+    color: white;
+  }
+
+  .rd-thumbs {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+    animation: slideUpFade 0.5s ease-out 0.15s backwards;
+  }
+
+  .rd-thumb {
+    flex-shrink: 0;
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .rd-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .rd-thumb.is-active {
+    border-color: #22c55e;
+  }
+
+  /* Header Section */
+  .rd-header {
+    margin-bottom: 1.25rem;
+    animation: slideUpFade 0.5s ease-out 0.2s backwards;
+  }
+
+  .rd-header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.75rem;
+  }
+
+  .rd-badges {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .rd-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.7rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .rd-badge--featured {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    color: #92400e;
+  }
+
+  .rd-badge--rating {
+    background: linear-gradient(135deg, #eef2ff, #c7d2fe);
+    color: #4338ca;
+  }
+
+  .rd-save-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: white;
+    border: 1.5px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .rd-save-btn:active {
+    transform: scale(0.95);
+  }
+
+  .rd-save-btn.is-saved {
+    background: #fef2f2;
+    border-color: #fecaca;
+  }
+
+  .rd-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 0.5rem 0;
+    line-height: 1.3;
+  }
+
+  .rd-location {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: #64748b;
+    font-size: 0.85rem;
+    margin: 0 0 0.75rem 0;
+  }
+
+  .rd-price-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .rd-price-main {
+    display: flex;
+    align-items: baseline;
+    gap: 0.25rem;
+  }
+
+  .rd-price-amount {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #1e293b;
+  }
+
+  .rd-price-period {
+    font-size: 0.85rem;
+    color: #64748b;
+  }
+
+  .rd-availability {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 0.6rem;
+    border-radius: 12px;
+  }
+
+  .rd-availability.is-available {
+    background: #dcfce7;
+    color: #16a34a;
+  }
+
+  .rd-availability.is-pending {
+    background: #fef3c7;
+    color: #d97706;
+  }
+
+  .rd-availability.is-occupied {
+    background: #fee2e2;
+    color: #dc2626;
+  }
+
+  .rd-availability--approved {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+    color: #16a34a;
+  }
+
+  /* Quick Facts */
+  .rd-facts {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+    animation: slideUpFade 0.5s ease-out 0.25s backwards;
+  }
+
+  .rd-fact {
+    background: white;
+    padding: 0.875rem;
+    border-radius: 14px;
+    border: 1px solid #f1f5f9;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .rd-fact__label {
+    font-size: 0.7rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+
+  .rd-fact__value {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1e293b;
+  }
+
+  /* Section */
+  .rd-section {
+    background: white;
+    border-radius: 20px;
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+    border: 1px solid #f1f5f9;
+    animation: slideUpFade 0.5s ease-out 0.3s backwards;
+  }
+
+  .rd-section-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 0.75rem 0;
+  }
+
+  .rd-description {
+    font-size: 0.9rem;
+    color: #64748b;
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  /* Amenities */
+  .rd-amenities {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .rd-amenity {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid #f1f5f9;
+    transition: all 0.2s ease;
+  }
+
+  .rd-amenity:active {
+    background: #f1f5f9;
+    transform: scale(0.98);
+  }
+
+  .rd-amenity__icon {
+    font-size: 1.25rem;
+  }
+
+  .rd-amenity__label {
+    font-size: 0.8rem;
+    color: #475569;
+    font-weight: 500;
+  }
+
+  .rd-amenity.is-disabled {
+    opacity: 0.5;
+  }
+
+  /* House Rules */
+  .rd-rules {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .rd-rule {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: #f8fafc;
+    border-radius: 12px;
+  }
+
+  .rd-rule.is-allowed {
+    border: 1px solid #dcfce7;
+  }
+
+  .rd-rule.is-not-allowed {
+    border: 1px solid #fee2e2;
+  }
+
+  .rd-rule__icon {
+    flex-shrink: 0;
+  }
+
+  .rd-rule.is-allowed .rd-rule__icon {
+    color: #16a34a;
+  }
+
+  .rd-rule.is-not-allowed .rd-rule__icon {
+    color: #dc2626;
+  }
+
+  .rd-rule__label {
+    font-size: 0.85rem;
+    color: #475569;
+  }
+
+  /* Lister Card */
+  .rd-lister {
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+    border-radius: 20px;
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+    border: 1px solid #e2e8f0;
+    animation: slideUpFade 0.5s ease-out 0.35s backwards;
+  }
+
+  .rd-lister__header {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    margin-bottom: 1rem;
+  }
+
+  .rd-lister__avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.25rem;
+    font-weight: 700;
+  }
+
+  .rd-lister__avatar--fallback {
+    background: linear-gradient(135deg, #94a3b8, #64748b);
+  }
+
+  .rd-lister__info {
+    flex: 1;
+  }
+
+  .rd-lister__name {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 0.25rem 0;
+  }
+
+  .rd-lister__meta {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin: 0;
+  }
+
+  .rd-lister__verified {
+    color: #22c55e;
+  }
+
+  .rd-lister__contacts {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .rd-contact-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.6rem;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #475569;
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+
+  .rd-contact-btn:active {
+    background: #f8fafc;
+    transform: scale(0.98);
+  }
+
+  .rd-contact-btn--whatsapp {
+    background: #25d366;
+    color: white;
+    border-color: #25d366;
+  }
+
+  .rd-lister__locked {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    border-radius: 12px;
+  }
+
+  .rd-lister__locked p {
+    font-size: 0.8rem;
+    color: #92400e;
+    margin: 0;
+  }
+
+  /* Owner Section */
+  .rd-owner {
+    background: white;
+    border-radius: 16px;
+    padding: 1rem;
+    margin-bottom: 1.25rem;
+    border: 1px solid #f1f5f9;
+    animation: slideUpFade 0.5s ease-out 0.4s backwards;
+  }
+
+  .rd-owner__title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #64748b;
+    margin: 0 0 0.5rem 0;
+  }
+
+  .rd-owner__name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0 0 0.5rem 0;
+  }
+
+  .rd-owner__phone {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: #22c55e;
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-decoration: none;
+  }
+
+  .rd-owner__locked {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.8rem;
+    color: #64748b;
+  }
+
+  /* Action Buttons */
+  .rd-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+    animation: slideUpFade 0.5s ease-out 0.45s backwards;
+  }
+
+  .rd-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1rem;
+    border-radius: 14px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+  }
+
+  .rd-btn--primary {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: white;
+    box-shadow: 0 4px 14px rgba(34, 197, 94, 0.35);
+  }
+
+  .rd-btn--primary:active {
+    transform: scale(0.96);
+    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
+  }
+
+  .rd-btn--primary.rd-btn--disabled {
+    background: #94a3b8;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  .rd-btn--secondary {
+    background: white;
+    color: #475569;
+    border: 1.5px solid #e2e8f0;
+  }
+
+  .rd-btn--secondary:active {
+    background: #f8fafc;
+    transform: scale(0.96);
+  }
+
+  /* Safety Section */
+  .rd-safety {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: linear-gradient(135deg, #fefce8, #fef9c3);
+    border-radius: 12px;
+    border: 1px solid #fde047;
+    margin-bottom: 1.25rem;
+    animation: slideUpFade 0.5s ease-out 0.5s backwards;
+  }
+
+  .rd-safety__content {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    color: #854d0e;
+  }
+
+  .rd-report-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.5rem 0.75rem;
+    background: transparent;
+    border: none;
+    color: #854d0e;
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .rd-report-btn:active {
+    color: #dc2626;
+  }
+`;

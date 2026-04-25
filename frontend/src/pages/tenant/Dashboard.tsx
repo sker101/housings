@@ -8,8 +8,11 @@ import { useState, useEffect, type ElementType, type CSSProperties } from 'react
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  Heart, Calendar, Zap, TrendingUp, Clock,
-  ArrowRight, Sparkles, Search, MapPin, Gift, Home,
+  Search, Heart, CreditCard, UserCircle2, ShieldCheck,
+  Building2, Calendar, Wallet, Bookmark, ChevronRight,
+  Gift, Home, Filter, X, Clock, CheckCircle2, AlertCircle,
+  Building, TrendingUpIcon, Activity, MapPin, HelpCircle as Help,
+  FileText as File, MessageSquare as Message, Mail as Email
 } from 'lucide-react';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { StatusPill } from '../../components/StatusPill';
@@ -22,27 +25,72 @@ import { fetchSavedListings } from '../../lib/listings';
 import { logSignInOnce } from '../../lib/activity';
 import ExitListingModal from '../../components/ExitListingModal';
 
-function KpiCard({ label, value, sub, icon: Icon, color }: {
-  label: string; value: string | number; sub?: string;
-  icon: ElementType; color: string;
+// ── Mobile-First Stat Card Component ────────────────────────────
+function StatCard({ 
+  label, 
+  value, 
+  sub, 
+  icon: Icon, 
+  color, 
+  delay = 0,
+  onClick 
+}: {
+  label: string; 
+  value: string | number; 
+  sub?: string;
+  icon: ElementType; 
+  color: string;
+  delay?: number;
+  onClick?: () => void;
 }) {
   return (
-    <div className="kpi-card" style={{ '--kpi-color': color } as CSSProperties}>
-      <div className="kpi-icon-wrapper"><Icon size={20} /></div>
-      <div className="kpi-content">
-        <p className="kpi-label">{label}</p>
-        <p className="kpi-value">{value}</p>
-        {sub && <p className="kpi-sub">{sub}</p>}
+    <div 
+      className="stat-card-mobile" 
+      style={{ 
+        '--card-color': color,
+        '--delay': `${delay}ms`
+      } as CSSProperties}
+      onClick={onClick}
+    >
+      <div className="stat-icon-bg" style={{ background: `${color}15` }}>
+        <Icon size={18} color={color} />
+      </div>
+      <div className="stat-content">
+        <p className="stat-label">{label}</p>
+        <p className="stat-value" style={{ color }}>{value}</p>
+        {sub && <p className="stat-sub">{sub}</p>}
       </div>
     </div>
   );
 }
 
-// ── Ward quick-filter chips ──────────────────────────────────────
-const POPULAR_WARDS = [
-  'Msasani', 'Masaki', 'Upanga', 'Mikocheni',
-  'Kariakoo', 'Sinza', 'Kinondoni', 'Mbezi',
-];
+// ── Quick Action Button Component ──────────────────────────────
+function QuickAction({ 
+  icon: Icon, 
+  label, 
+  color, 
+  delay = 0,
+  onClick 
+}: {
+  icon: ElementType;
+  label: string;
+  color: string;
+  delay?: number;
+  onClick?: () => void;
+}) {
+  return (
+    <button 
+      className="quick-action-btn"
+      style={{ '--delay': `${delay}ms` } as CSSProperties}
+      onClick={onClick}
+    >
+      <div className="quick-icon" style={{ background: color }}>
+        <Icon size={16} color="white" />
+      </div>
+      <span className="quick-label">{label}</span>
+    </button>
+  );
+}
 
 interface ActiveLease {
   id: string;
@@ -96,91 +144,112 @@ export default function TenantDashboard() {
           filters: [{ column: 'profile_id', op: 'eq', value: userId! }],
           accessToken: token!,
         });
-        if (!mounted || !tenants.length) return;
-        const tenant = tenants[0] as { id: string; referral_earnings_tzs: number };
-        setTenantId(tenant.id);
-        setReferralEarnings(tenant.referral_earnings_tzs ?? 0);
+        if (!mounted) return;
+        
+        if (tenants.length) {
+          const tenant = tenants[0] as { id: string; referral_earnings_tzs: number };
+          setTenantId(tenant.id);
+          setReferralEarnings(tenant.referral_earnings_tzs ?? 0);
 
-        // Get active lease
-        const leases = await selectRows('tenant_leases', {
-          select: 'id, room_id, lease_end_date, days_remaining, renewal_decision',
-          filters: [
-            { column: 'tenant_id', op: 'eq', value: tenant.id },
-            { column: 'status',    op: 'eq', value: 'active' },
-          ],
-          order: 'created_at.desc',
-          limit: 1,
-          accessToken: token!,
-        });
-        if (mounted && leases.length) {
-          setActiveLease(leases[0] as ActiveLease);
-          
-          // Fetch next payment due
-          const payments = await selectRows('payments', {
-            select: 'due_date',
-            filters: [
-              { column: 'status', op: 'neq', value: 'paid' },
-              { column: 'due_date', op: 'gte', value: new Date().toISOString().split('T')[0] }
-            ],
-            order: 'due_date.asc',
-            limit: 1,
-            accessToken: token!
-          });
-          
-          if (payments.length) {
-            const rawDate = payments[0].due_date;
-            setNextPaymentDate(rawDate);
-            const dueDate = new Date(rawDate);
-            const today = new Date();
-            const diff = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-            setDaysUntilRentDue(diff);
-          }
-        } else if (mounted) {
-          // If no active lease, check for a confirmed/paid booking
-          const bookings = await selectRows('bookings', {
-            select: 'id, move_in_date, status',
+          // Get active lease
+          const leases = await selectRows('tenant_leases', {
+            select: 'id, room_id, lease_end_date, days_remaining, renewal_decision',
             filters: [
               { column: 'tenant_id', op: 'eq', value: tenant.id },
-              { column: 'status', op: 'in', value: '(paid,confirmed,approved)' }
+              { column: 'status',    op: 'eq', value: 'active' },
             ],
             order: 'created_at.desc',
             limit: 1,
-            accessToken: token!
+            accessToken: token!,
           });
-          if (bookings.length) {
-            const b = bookings[0];
-            const isTodayOrPast = new Date(b.move_in_date) <= new Date();
-            setActiveLease({
-              id: b.id,
-              room_id: '', // Not needed for KPI
-              lease_end_date: b.move_in_date,
-              days_remaining: 0, 
-              renewal_decision: isTodayOrPast ? 'active' : 'incoming'
+          if (mounted && leases.length) {
+            setActiveLease(leases[0] as ActiveLease);
+            
+            // Fetch next payment due
+            const payments = await selectRows('payments', {
+              select: 'due_date',
+              filters: [
+                { column: 'status', op: 'neq', value: 'paid' },
+                { column: 'due_date', op: 'gte', value: new Date().toISOString().split('T')[0] }
+              ],
+              order: 'due_date.asc',
+              limit: 1,
+              accessToken: token!
             });
+            
+            if (payments.length) {
+              const rawDate = payments[0].due_date;
+              setNextPaymentDate(rawDate);
+              const dueDate = new Date(rawDate);
+              const today = new Date();
+              const diff = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+              setDaysUntilRentDue(diff);
+            }
+          } else if (mounted) {
+            // If no active lease, check for a confirmed/paid booking
+            const bookings = await selectRows('bookings', {
+              select: 'id, move_in_date, status',
+              filters: [
+                { column: 'tenant_id', op: 'eq', value: tenant.id },
+                { column: 'status', op: 'in', value: '(paid,confirmed,approved)' }
+              ],
+              order: 'created_at.desc',
+              limit: 1,
+              accessToken: token!
+            });
+            if (bookings.length) {
+              const b = bookings[0];
+              const isTodayOrPast = new Date(b.move_in_date) <= new Date();
+              setActiveLease({
+                id: b.id,
+                room_id: '', // Not needed for KPI
+                lease_end_date: b.move_in_date,
+                days_remaining: 0, 
+                renewal_decision: isTodayOrPast ? 'active' : 'incoming'
+              });
+            }
           }
         }
 
-        // Fetch Saved Listings (Resilient)
+        // Fetch Saved Listings (Resilient) - fetch even if tenant record doesn't exist
         setSavedLoading(true);
-        const [saved, savedIds] = await Promise.all([
-          fetchSavedListings(userId!, token!, { limit: 3 }).catch(() => []),
-          selectRows('saved_listings', {
-            select: 'count',
-            filters: [{ column: 'tenant_id', op: 'eq', value: userId! }],
-            accessToken: token!
-          }).catch(() => [])
-        ]);
-        if (mounted) {
-          setSavedRooms(saved);
-          setSavedCount(savedIds?.[0]?.count ?? savedIds.length ?? 0);
-          setSavedLoading(false);
+        try {
+          const savedListings = await Promise.race([
+            fetchSavedListings(userId!, token!, { limit: 3 }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000))
+          ]) as any[];
+          console.log('Saved listings fetched:', savedListings);
           
-          setReferralEarnings((tenant as any).referral_earnings_tzs || 0);
-          setPendingReferrals(0);
+          const savedCountResult = await Promise.race([
+            selectRows('saved_listings', {
+              select: 'count',
+              filters: [{ column: 'tenant_id', op: 'eq', value: userId! }],
+              accessToken: token!
+            }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
+          ]);
+          console.log('Saved count:', savedCountResult);
+          
+          if (mounted) {
+            setSavedRooms(savedListings || []);
+            setSavedCount(savedCountResult?.[0]?.count ?? savedCountResult.length ?? 0);
+            setSavedLoading(false);
+          }
+        } catch (savedErr) {
+          console.error('TenantDashboard: failed to fetch saved listings', savedErr);
+          if (mounted) {
+            setSavedRooms([]);
+            setSavedCount(0);
+            setSavedLoading(false);
+          }
         }
       } catch (err) {
         console.error('TenantDashboard: failed to fetch tenant data', err);
-        if (mounted) setSavedLoading(false);
+        if (mounted) {
+          setSavedLoading(false);
+          setSavedRooms([]);
+          setSavedCount(0);
+        }
       }
     }
     fetchTenantData();
@@ -224,300 +293,218 @@ export default function TenantDashboard() {
   }
 
   return (
-    <div className={`dashboard-container ${isVisible ? 'is-visible' : ''}`}>
+    <div className={`dashboard-mobile ${isVisible ? 'is-visible' : ''}`}>
+      <style>{mobileDashboardStyles}</style>
 
-      {/* ── Welcome header ─────────────────────────────────── */}
-      <div className="dashboard-welcome" style={{ animationDelay: '0.05s' }}>
-        <div className="welcome-content">
-          <div className="welcome-badge">
-            <Sparkles size={14} />
-            <span>Tenant Dashboard — iRent</span>
-          </div>
-          <h1 className="welcome-title">
-            {t('studentDashboard.welcomeBack', 'Welcome back')}, {firstName}{' '}
-            <span className="wave-emoji">👋</span>
-          </h1>
-          <p className="welcome-subtitle">
-            {t('studentDashboard.subtitle', "Here's everything you need to find your perfect stay")}
-          </p>
+      {/* ── Header Greeting ─────────────────────────────────── */}
+      <header className="dashboard-header">
+        <div className="greeting-section">
+          <p className="greeting-label">Welcome,</p>
+          <h1 className="user-name">{firstName}</h1>
         </div>
-        <div className="welcome-actions">
-          <Link to="/tenant/search" className="welcome-btn primary">
-            <Search size={18} />
-            {t('studentDashboard.findRooms', 'Find Rooms')}
-          </Link>
-        </div>
-      </div>
-
-      {/* ── Exit Listing success banner ─────────────────────── */}
-      {exitSuccess && (
-        <div style={{
-          background: 'linear-gradient(135deg,#f0fdf4,#dcfce7)',
-          border: '1.5px solid #86efac', borderRadius: '14px',
-          padding: '1rem 1.25rem', display: 'flex', gap: '0.75rem',
-          alignItems: 'center', marginBottom: '1.25rem',
-        }}>
-          <Gift size={22} color="#16a34a" />
-          <div>
-            <strong style={{ color: '#15803d', fontSize: '0.95rem' }}>
-              Room listed! Your move-out date is set for {exitSuccess}.
-            </strong>
-            <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: '#166534' }}>
-              Your room now appears in search with a "Coming Soon" badge. If someone pre-books, you earn <strong>20,000 TZS</strong>.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* ── Active Lease card ───────────────────────────────── */}
-      {activeLease && (
-        <div
-          className="active-stay-card"
-          onClick={() => navigate('/my-room')}
-          style={{ 
-            animationDelay: '0.1s', 
-            cursor: 'pointer', 
-            position: 'relative',
-            padding: '1.5rem 2rem',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '1rem'
-          }}
-          role="presentation"
+        <button 
+          className="profile-btn"
+          onClick={() => navigate('/tenant/profile')}
         >
-          <div className="active-stay-content">
-            <h3 className="active-stay-title" style={{ margin: 0 }}>
-              {activeLease.renewal_decision === 'incoming' ? 'Incoming Move-in' : 'Your Current Room'}
-            </h3>
+          <span className="profile-initials">
+            {firstName ? firstName.slice(0, 2).toUpperCase() : 'U'}
+          </span>
+        </button>
+      </header>
+
+      {/* ── Stats Cards ────────────────────────────────────── */}
+      <section className="stats-section">
+        <h2 className="section-heading">Overview</h2>
+        <div className="stats-grid">
+          <StatCard
+            label="Lease"
+            value={activeLease ? (activeLease.renewal_decision === 'incoming' ? 'Incoming' : 'Active') : 'None'}
+            sub={activeLease 
+              ? (activeLease.renewal_decision === 'incoming' 
+                  ? `Move-in: ${new Date(activeLease.lease_end_date).toLocaleDateString('sw-TZ')}`
+                  : (activeLease.renewal_decision === 'active' 
+                     ? 'Current Stay' 
+                     : `Expires ${new Date(activeLease.lease_end_date).toLocaleDateString('sw-TZ')}`))
+              : 'No lease'}
+            icon={Home}
+            color="#22c55e"
+            delay={100}
+            onClick={() => activeLease && navigate('/my-room')}
+          />
+          <StatCard
+            label="Rent Due"
+            value={nextPaymentDate ? new Date(nextPaymentDate).toLocaleDateString('sw-TZ') : (activeLease?.renewal_decision === 'incoming' ? '—' : 'None')}
+            sub={daysUntilRentDue !== null ? (daysUntilRentDue <= 0 ? 'Due today!' : `${daysUntilRentDue} days left`) : (activeLease?.renewal_decision === 'incoming' ? 'Waiting' : 'No payments')}
+            icon={Calendar}
+            color={daysUntilRentDue !== null && daysUntilRentDue <= 5 ? '#ef4444' : '#22c55e'}
+            delay={200}
+          />
+          <StatCard
+            label="Earnings"
+            value={new Intl.NumberFormat('sw-TZ', { style: 'currency', currency: 'TZS', maximumFractionDigits: 0 }).format(referralEarnings)}
+            sub={pendingReferrals > 0 ? `${TZSFormat(pendingReferrals)} pending` : 'Referral rewards'}
+            icon={Wallet}
+            color="#8b5cf6"
+            delay={300}
+          />
+          <StatCard
+            label="Activity"
+            value={events.length}
+            sub={events.length === 1 ? 'recent event' : 'recent events'}
+            icon={Activity}
+            color="#3b82f6"
+            delay={400}
+            onClick={() => navigate('/tenant/activity')}
+          />
+        </div>
+      </section>
+
+      {/* ── Active Room Card ───────────────────────────────── */}
+      {activeLease && (
+        <section className="active-room-section" style={{ animationDelay: '200ms' }}>
+          <div className="section-header-row">
+            <h2 className="section-heading">Your Room</h2>
+            <Link to="/my-room" className="view-all-link">
+              Manage <ChevronRight size={16} />
+            </Link>
           </div>
-          
-          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-            {/* "Moving soon?" CTA */}
+          <div 
+            className="active-room-card"
+            onClick={() => navigate('/my-room')}
+          >
+            <div className="room-status-badge">
+              {activeLease.renewal_decision === 'incoming' ? 'Incoming' : 'Active'}
+            </div>
+            <h3 className="room-title">
+              {activeLease.renewal_decision === 'incoming' ? 'Upcoming Move-in' : 'Current Stay'}
+            </h3>
+            <p className="room-date">
+              {activeLease.renewal_decision === 'incoming' 
+                ? `Move-in: ${new Date(activeLease.lease_end_date).toLocaleDateString('sw-TZ')}`
+                : `Lease ends: ${new Date(activeLease.lease_end_date).toLocaleDateString('sw-TZ')}`}
+            </p>
             {canListRoom && (
               <button
+                className="exit-list-btn"
                 onClick={e => { e.stopPropagation(); setShowExitModal(true); }}
-                style={{
-                  background: '#f0fdf4', border: '1.5px solid #86efac',
-                  borderRadius: '10px', padding: '0.5rem 1rem',
-                  fontSize: '0.85rem', fontWeight: 600, color: '#16a34a',
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
-                  fontFamily: "'Inter', sans-serif",
-                }}
               >
                 <Gift size={14} /> Moving soon?
               </button>
             )}
-            
-            <Link to="/my-room" className="active-stay-btn" onClick={e => e.stopPropagation()} style={{ margin: 0 }}>
-              Manage Room <ArrowRight size={16} />
-            </Link>
           </div>
-
-        </div>
-      )}
-
-      {isPaymentSuccess && !activeLease && retryCount < 5 && (
-        <p className="muted" style={{ fontSize: '0.85rem', marginBottom: '1rem' }}>
-          {t('studentDashboard.syncingPayment', 'Syncing your booking…')} ({retryCount}/5)
-        </p>
-      )}
-
-      {/* ── KPI Grid ────────────────────────────────────────── */}
-      <div className="kpi-grid">
-        <KpiCard
-          label="Active Lease"
-          value={activeLease ? (activeLease.renewal_decision === 'incoming' ? 'Incoming' : 'Active') : 'None'}
-          sub={activeLease 
-            ? (activeLease.renewal_decision === 'incoming' 
-                ? `Move-in: ${new Date(activeLease.lease_end_date).toLocaleDateString('sw-TZ')}`
-                : (activeLease.renewal_decision === 'active' 
-                   ? `Current Stay` 
-                   : `Expires ${new Date(activeLease.lease_end_date).toLocaleDateString('sw-TZ')}`))
-            : 'No current lease'}
-          icon={Home}
-          color="#22c55e"
-        />
-        <KpiCard
-          label="Next Rent Due"
-          value={nextPaymentDate ? new Date(nextPaymentDate).toLocaleDateString('sw-TZ') : (activeLease?.renewal_decision === 'incoming' ? '—' : 'None')}
-          sub={daysUntilRentDue !== null ? (daysUntilRentDue <= 0 ? 'Due today!' : `${daysUntilRentDue} days remaining`) : (activeLease?.renewal_decision === 'incoming' ? 'Waiting for move-in' : 'No upcoming payments')}
-          icon={Calendar}
-          color={daysUntilRentDue !== null && daysUntilRentDue <= 5 ? '#ef4444' : '#22c55e'}
-        />
-        <KpiCard
-          label="Referral Earnings"
-          value={new Intl.NumberFormat('sw-TZ', { style: 'currency', currency: 'TZS', maximumFractionDigits: 0 }).format(referralEarnings)}
-          sub={pendingReferrals > 0 ? `${TZSFormat(pendingReferrals)} pending rewards` : 'Lifetime referral rewards'}
-          icon={Gift}
-          color="#8b5cf6"
-        />
-        <KpiCard
-          label={t('studentDashboard.savedRooms', 'Saved Rooms')}
-          value={savedCount}
-          sub={t('studentDashboard.listingsSaved', 'listings saved')}
-          icon={Heart}
-          color="#ef4444"
-        />
-      </div>
-
-      {/* ── Profile completion ───────────────────────────────── */}
-      {completion.percent < 100 && (
-        <div className="profile-completion-card">
-          <div className="completion-header">
-            <div className="completion-title-group">
-              <TrendingUp size={20} className="completion-icon" />
-              <div>
-                <h3 className="completion-title">
-                  {t('studentDashboard.completeYourProfile', 'Complete your profile')}
-                </h3>
-                <p className="completion-subtitle">
-                  {t('studentDashboard.completeProfileSubtitle', 'Finish setting up your profile to get better room recommendations')}
-                </p>
-              </div>
-            </div>
-            <span className="completion-percent">{completion.percent}%</span>
-          </div>
-          <div className="completion-progress">
-            <div className="completion-progress-bar" style={{ width: `${completion.percent}%` }} />
-          </div>
-          <div className="completion-fields">
-            {completion.fields.map(f => (
-              <span key={f.key} className={`completion-field ${f.done ? 'done' : 'pending'}`}>
-                {f.done ? <Sparkles size={12} /> : <Clock size={12} />}
-                {f.label}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ── Ward filter chips ────────────────────────────────── */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <p style={{ fontSize: '0.8rem', fontWeight: 600, color: '#64748b', marginBottom: '0.5rem' }}>
-          🗺 Quick search by ward:
-        </p>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-          {POPULAR_WARDS.map(ward => (
-            <button
-              key={ward}
-              onClick={() => navigate(`/tenant/search?ward=${encodeURIComponent(ward)}`)}
-              style={{
-                padding: '0.4rem 0.9rem', borderRadius: '999px',
-                border: '1.5px solid #e2e8f0', background: 'white',
-                fontSize: '0.8rem', fontWeight: 600, color: '#475569',
-                cursor: 'pointer', fontFamily: "'Inter', sans-serif",
-                transition: 'all 0.15s ease',
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.background = '#22c55e';
-                e.currentTarget.style.color = 'white';
-                e.currentTarget.style.border = '1.5px solid #22c55e';
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.background = 'white';
-                e.currentTarget.style.color = '#475569';
-                e.currentTarget.style.border = '1.5px solid #e2e8f0';
-              }}
-            >
-              <MapPin size={11} style={{ marginRight: 4 }} />
-              {ward}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Content grid ────────────────────────────────────── */}
-      <div className="dashboard-grid">
-        {/* Saved Rooms */}
-        <section className="dashboard-section">
-          <div className="section-header">
-            <div className="section-title-group">
-              <div className="section-icon saved"><Heart size={18} /></div>
-              <h3 className="section-title">{t('studentDashboard.savedRoomsTitle', 'Saved Rooms')}</h3>
-            </div>
-            <Link to="/tenant/saved" className="section-link">
-              {t('studentDashboard.viewAll', 'View all')} →
-            </Link>
-          </div>
-          {savedLoading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
-              <LoadingSpinner size="medium" text="Loading…" />
-            </div>
-          ) : savedRooms.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-icon">🏠</div>
-              <p className="empty-text">{t('studentDashboard.noSavedRooms', 'No saved rooms yet')}</p>
-              <Link to="/tenant/search" className="empty-btn">{t('studentDashboard.findRooms', 'Find rooms')}</Link>
-            </div>
-          ) : (
-            <div className="saved-list">
-              {savedRooms.map(item => {
-                const l = item.listing;
-                if (!l) return null;
-                return (
-                  <Link key={l.id} to={`/rooms/${l.id}`} className="saved-room-card">
-                    <div className="saved-room-image">
-                      {l.imageUrl ? (
-                        <img src={l.imageUrl} alt={l.title} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }} />
-                      ) : (
-                        <MapPin size={20} />
-                      )}
-                    </div>
-                    <div className="saved-room-info">
-                      <p className="saved-room-title">{l.title}</p>
-                      <p className="saved-room-location">
-                        {l.ward || l.district} · {TZSFormat(l.priceMonthly)}/mo
-                      </p>
-                    </div>
-                    <StatusPill variant="available" size="sm" />
-                  </Link>
-                );
-              })}
-            </div>
-          )}
         </section>
+      )}
 
-        {/* Recent Activity */}
-        <section className="dashboard-section">
-          <div className="section-header">
-            <div className="section-title-group">
-              <div className="section-icon activity"><Zap size={18} /></div>
-              <h3 className="section-title">{t('studentDashboard.recentActivity', 'Recent Activity')}</h3>
-            </div>
+      {/* ── Saved Rooms Preview ─────────────────────────────── */}
+      <section className="saved-preview-section" style={{ animationDelay: '300ms' }}>
+        <div className="section-header-row">
+          <h2 className="section-heading">Saved Rooms</h2>
+          {savedCount > 0 && (
+            <Link to="/tenant/saved" className="view-all-link">
+              See all <ChevronRight size={16} />
+            </Link>
+          )}
+        </div>
+        
+        {savedLoading ? (
+          <div className="loading-state">
+            <LoadingSpinner size="small" />
           </div>
-          {actLoading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
-              <LoadingSpinner size="medium" text="Loading…" />
+        ) : savedRooms.length === 0 ? (
+          <div className="empty-card" onClick={() => navigate('/listings')}>
+            <div className="empty-icon-wrapper">
+              <Heart size={32} className="empty-icon" />
             </div>
-          ) : events.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-icon">⚡</div>
-              <p className="empty-text">
-                {t('studentDashboard.noActivity', 'No activity yet. Start by searching for a room!')}
-              </p>
-              <Link to="/tenant/search" className="empty-btn">
-                {t('studentDashboard.searchNow', 'Search now')}
-              </Link>
-            </div>
-          ) : (
-            <div className="activity-list">
-              {events.map(ev => (
-                <div key={ev.id} className="activity-item">
-                  <div className="activity-icon-wrapper"><Zap size={14} /></div>
-                  <div className="activity-content">
-                    <p className="activity-description">{ev.description}</p>
-                    <p className="activity-date">{formatDate(ev.created_at)}</p>
+            <p className="empty-text">No saved rooms yet</p>
+            <span className="empty-action">Browse listings →</span>
+          </div>
+        ) : (
+          <div className="saved-rooms-scroll">
+            {savedRooms.slice(0, 3).map((item, index) => {
+              const l = item.listing;
+              if (!l) return null;
+              return (
+                <Link 
+                  key={l.id} 
+                  to={`/rooms/${l.id}`} 
+                  className="saved-room-preview"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  <div className="room-thumb">
+                    {l.imageUrl ? (
+                      <img src={l.imageUrl} alt={l.title} />
+                    ) : (
+                      <Building2 size={20} />
+                    )}
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      </div>
+                  <div className="room-preview-info">
+                    <p className="preview-title">{l.title}</p>
+                    <p className="preview-price">{TZSFormat(l.priceMonthly)}/mo</p>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </section>
 
-      {/* ── Exit Listing Modal ──────────────────────────────── */}
+      {/* ── Profile Completion ─────────────────────────────── */}
+      {completion.percent < 100 && (
+        <section className="profile-completion-section" style={{ animationDelay: '400ms' }}>
+          <div className="completion-card">
+            <div className="completion-header">
+              <ShieldCheck size={20} color="#22c55e" />
+              <span className="completion-percent">{completion.percent}%</span>
+            </div>
+            <p className="completion-text">Complete your profile</p>
+            <div className="completion-bar">
+              <div className="completion-fill" style={{ width: `${completion.percent}%` }} />
+            </div>
+            <button 
+              className="completion-btn"
+              onClick={() => navigate('/tenant/profile')}
+            >
+              Complete Now
+            </button>
+          </div>
+        </section>
+      )}
+
+      {/* ── Footer Links ───────────────────────────────────── */}
+      <section className="footer-links-section" style={{ animationDelay: '500ms' }}>
+        <div className="footer-links-grid">
+          <button 
+            className="footer-link-item"
+            onClick={() => navigate('/help')}
+          >
+            <Help size={18} />
+            <span>Help Centre</span>
+          </button>
+          <button 
+            className="footer-link-item"
+            onClick={() => navigate('/terms')}
+          >
+            <File size={18} />
+            <span>Terms & Privacy</span>
+          </button>
+          <button 
+            className="footer-link-item"
+            onClick={() => navigate('/faqs')}
+          >
+            <Message size={18} />
+            <span>FAQs</span>
+          </button>
+          <button 
+            className="footer-link-item"
+            onClick={() => navigate('/contact')}
+          >
+            <Email size={18} />
+            <span>Contact Us</span>
+          </button>
+        </div>
+      </section>
+
+      {/* ── Exit Listing Modal ─────────────────────────────── */}
       {showExitModal && activeLease && tenantId && (
         <ExitListingModal
           leaseId={activeLease.id}
@@ -530,3 +517,596 @@ export default function TenantDashboard() {
     </div>
   );
 }
+
+// ── Mobile Dashboard Styles ────────────────────────────────────
+const mobileDashboardStyles = `
+  .dashboard-mobile {
+    padding: 0.75rem;
+    max-width: 100%;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .dashboard-mobile.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Header */
+  .dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0.25rem 1rem;
+    animation: slideInDown 0.5s ease-out;
+  }
+
+  @keyframes slideInDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .greeting-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .greeting-label {
+    font-size: 0.85rem;
+    color: #65a30d;
+    font-weight: 500;
+    margin: 0;
+  }
+
+  .user-name {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #166534;
+    margin: 0;
+    letter-spacing: -0.02em;
+  }
+
+  .profile-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: none;
+    background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+    color: #22c55e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.15);
+  }
+
+  .profile-btn:active {
+    transform: scale(0.95);
+    box-shadow: 0 1px 4px rgba(34, 197, 94, 0.2);
+  }
+
+  .profile-initials {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #16a34a;
+    letter-spacing: 0.05em;
+  }
+
+  /* Quick Actions */
+  .quick-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+    margin-bottom: 1rem;
+  }
+
+  .quick-action-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.25rem;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+    animation-delay: var(--delay, 0ms);
+  }
+
+  @keyframes popIn {
+    from { opacity: 0; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .quick-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .quick-action-btn:active .quick-icon {
+    transform: scale(0.92);
+  }
+
+  .quick-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #475569;
+  }
+
+  /* Section Styles */
+  .section-heading {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 0.75rem 0;
+  }
+
+  .section-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+
+  .view-all-link {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #22c55e;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    transition: opacity 0.2s;
+  }
+
+  .view-all-link:active {
+    opacity: 0.6;
+  }
+
+  /* Stats Section */
+  .stats-section {
+    margin-bottom: 1.25rem;
+    animation: fadeInUp 0.5s ease-out;
+    animation-delay: 0.1s;
+    animation-fill-mode: backwards;
+  }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .stat-card-mobile {
+    background: white;
+    border-radius: 16px;
+    padding: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    animation: slideInUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+    animation-delay: var(--delay, 0ms);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .stat-card-mobile:active {
+    transform: scale(0.98);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  }
+
+  @keyframes slideInUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .stat-icon-bg {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .stat-label {
+    font-size: 0.7rem;
+    color: #64748b;
+    font-weight: 500;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+
+  .stat-value {
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin: 0;
+  }
+
+  .stat-sub {
+    font-size: 0.7rem;
+    color: #94a3b8;
+    margin: 0;
+  }
+
+  /* Active Room Section */
+  .active-room-section {
+    margin-bottom: 1.25rem;
+    animation: fadeInUp 0.5s ease-out backwards;
+    animation-delay: 0.2s;
+  }
+
+  .active-room-card {
+    background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+    border-radius: 20px;
+    padding: 1.25rem;
+    position: relative;
+    border: 1px solid rgba(34, 197, 94, 0.2);
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .active-room-card:active {
+    transform: scale(0.98);
+  }
+
+  .room-status-badge {
+    display: inline-block;
+    background: #22c55e;
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 0.25rem 0.6rem;
+    border-radius: 20px;
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+
+  .room-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #166534;
+    margin: 0 0 0.5rem 0;
+  }
+
+  .room-date {
+    font-size: 0.8rem;
+    color: #65a30d;
+    margin: 0;
+  }
+
+  .exit-list-btn {
+    position: absolute;
+    bottom: 1rem;
+    right: 1rem;
+    background: white;
+    border: 1.5px solid #86efac;
+    border-radius: 10px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #16a34a;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    transition: all 0.2s ease;
+  }
+
+  .exit-list-btn:active {
+    transform: scale(0.95);
+    background: #f0fdf4;
+  }
+
+  /* Saved Rooms Section */
+  .saved-preview-section {
+    margin-bottom: 1.25rem;
+    animation: fadeInUp 0.5s ease-out backwards;
+    animation-delay: 0.3s;
+  }
+
+  .saved-rooms-scroll {
+    display: flex;
+    gap: 0.75rem;
+    overflow-x: auto;
+    padding: 0.25rem 0.25rem 0.5rem;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .saved-rooms-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  .saved-room-preview {
+    flex-shrink: 0;
+    width: 140px;
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    text-decoration: none;
+    animation: slideInRight 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+    animation-delay: var(--delay, 0ms);
+    transition: transform 0.2s ease;
+  }
+
+  .saved-room-preview:active {
+    transform: scale(0.95);
+  }
+
+  @keyframes slideInRight {
+    from { opacity: 0; transform: translateX(30px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .room-thumb {
+    width: 100%;
+    height: 90px;
+    background: #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    overflow: hidden;
+  }
+
+  .room-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .room-preview-info {
+    padding: 0.75rem;
+  }
+
+  .preview-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0 0 0.25rem 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .preview-price {
+    font-size: 0.75rem;
+    color: #22c55e;
+    font-weight: 700;
+    margin: 0;
+  }
+
+  /* Empty Card */
+  .empty-card {
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+    border-radius: 16px;
+    padding: 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    border: 2px dashed #cbd5e1;
+    transition: all 0.3s ease;
+  }
+
+  .empty-card:active {
+    transform: scale(0.98);
+    background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+    border-color: #86efac;
+  }
+
+  .empty-icon-wrapper {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 1rem;
+    background: linear-gradient(135deg, #e5e7eb, #d1d5db);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .empty-icon {
+    color: #6b7280;
+  }
+
+  .empty-icon-large {
+    font-size: 2rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .empty-text {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #475569;
+    margin: 0 0 0.5rem 0;
+  }
+
+  .empty-action {
+    font-size: 0.75rem;
+    color: #22c55e;
+    font-weight: 600;
+  }
+
+  /* Profile Completion */
+  .profile-completion-section {
+    margin-bottom: 1.25rem;
+    animation: fadeInUp 0.5s ease-out backwards;
+    animation-delay: 0.4s;
+  }
+
+  .completion-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .completion-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .completion-percent {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #22c55e;
+  }
+
+  .completion-text {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #475569;
+    margin: 0;
+  }
+
+  .completion-bar {
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .completion-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #22c55e, #16a34a);
+    border-radius: 3px;
+    transition: width 0.5s ease;
+  }
+
+  .completion-btn {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 0.5rem;
+  }
+
+  .completion-btn:active {
+    transform: scale(0.96);
+    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
+  }
+
+  /* Footer Links */
+  .footer-links-section {
+    margin-bottom: 0;
+    animation: fadeInUp 0.5s ease-out backwards;
+    animation-delay: 0.5s;
+  }
+
+  .footer-links-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .footer-link-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .footer-link-item:active {
+    transform: scale(0.96);
+    background: #f8fafc;
+    border-color: #cbd5e1;
+  }
+
+  .footer-link-item svg {
+    color: #64748b;
+  }
+
+  /* Wards Section */
+  .wards-section {
+    margin-bottom: 1.25rem;
+    animation: fadeInUp 0.5s ease-out backwards;
+    animation-delay: 0.5s;
+  }
+
+  .wards-scroll {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding: 0.25rem 0.25rem 0.5rem;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .wards-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  .ward-chip {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.6rem 1rem;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+    animation-delay: var(--delay, 0ms);
+    transition: all 0.2s ease;
+  }
+
+  .ward-chip:active {
+    transform: scale(0.95);
+    background: #f0fdf4;
+    border-color: #86efac;
+    color: #16a34a;
+  }
+
+  /* Loading State */
+  .loading-state {
+    display: flex;
+    justify-content: center;
+    padding: 2rem;
+  }
+`;

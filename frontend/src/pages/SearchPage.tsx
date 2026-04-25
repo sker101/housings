@@ -1,17 +1,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import MapboxListingMap from '../components/MapboxListingMap';
-import ListingCard from '../components/ListingCard';
 import { useAuth } from '../context/AuthContext';
 
 import {
-  fetchApprovedListings
+  fetchApprovedListings,
+  fetchSavedListingIds,
+  toggleSavedListing
 } from '../lib/listings';
+import { TZSFormat } from '../utils/format';
 import {
   Search, Users, Bed, Bath, Wifi, Car, Droplets, Utensils,
   Dumbbell, Shirt, Shield, Snowflake, Flame, Waves, SlidersHorizontal,
-  X,
+  X, Heart, ChevronLeft, ChevronRight, Map as MapIcon, Grid3X3,
+  LayoutDashboard, MapPin, Star
 } from 'lucide-react';
 
 // University options
@@ -71,6 +74,218 @@ function getDistanceKm(lat1, lon1, lat2, lon2) {
 
 const PAGE_SIZE = 24;
 
+// Search Page Styles - defined here to be available in component
+const searchPageStyles = `
+  .search-header {
+    background: white;
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .search-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+  }
+
+  .search-breadcrumb-item {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: #64748b;
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+
+  .search-breadcrumb-item:active {
+    color: #22c55e;
+  }
+
+  .search-breadcrumb-separator {
+    color: #cbd5e1;
+  }
+
+  .search-breadcrumb-current {
+    color: #1e293b;
+    font-weight: 600;
+  }
+
+  .view-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: #f1f5f9;
+    padding: 0.25rem;
+    border-radius: 10px;
+  }
+
+  .view-toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: #64748b;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .view-toggle-btn.is-active {
+    background: white;
+    color: #22c55e;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .view-toggle-btn:active {
+    transform: scale(0.96);
+  }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    .search-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .view-toggle {
+      align-self: stretch;
+      justify-content: center;
+    }
+
+    .view-toggle-btn {
+      flex: 1;
+      justify-content: center;
+    }
+  }
+`;
+
+// Room Card Component - matches homepage style
+interface RoomCardProps {
+  listing: any;
+  savedIds: Set<string>;
+  imageIndexes: Record<string, number>;
+  onToggleSave: (id: string, e: React.MouseEvent) => void;
+  onNextImage: (id: string, total: number) => void;
+  onPrevImage: (id: string, total: number) => void;
+  onClick: () => void;
+}
+
+function RoomCard({ listing, savedIds, imageIndexes, onToggleSave, onNextImage, onPrevImage, onClick }: RoomCardProps) {
+  const photos = listing.photos || listing.photo_urls || [];
+  const currentImageIndex = imageIndexes[listing.id] || 0;
+
+  // Get image URL from various possible sources
+  const getImageUrl = () => {
+    // First try photos array
+    if (photos.length > 0) {
+      const photo = photos[currentImageIndex];
+      if (typeof photo === 'string') return photo;
+      if (photo?.public_url) return photo.public_url;
+      if (photo?.url) return photo.url;
+      if (photo?.image_url) return photo.image_url;
+    }
+    // Then try primary image fields
+    if (listing.primaryImage) return listing.primaryImage;
+    if (listing.primary_image) return listing.primary_image;
+    if (listing.imageUrl) return listing.imageUrl;
+    if (listing.image_url) return listing.image_url;
+    if (listing.thumbnail) return listing.thumbnail;
+    // Fallback to placeholder
+    return '/placeholder-room.jpg';
+  };
+
+  const currentImage = getImageUrl();
+  const isSaved = savedIds.has(listing.id);
+
+  return (
+    <div className="room-card" onClick={onClick}>
+      <div className="room-card__image-wrapper">
+        <img
+          src={currentImage}
+          alt={listing.title}
+          className="room-card__image"
+          loading="lazy"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = '/placeholder-room.jpg';
+          }}
+        />
+
+        {listing.featured && (
+          <span className="room-card__badge room-card__badge--featured">Featured</span>
+        )}
+
+        <button
+          className={`room-card__save-btn ${isSaved ? 'is-saved' : ''}`}
+          onClick={(e) => onToggleSave(listing.id, e)}
+        >
+          <Heart size={22} fill={isSaved ? '#ef4444' : 'none'} color={isSaved ? '#ef4444' : 'white'} />
+        </button>
+
+        {photos.length > 1 && (
+          <>
+            <button
+              className="room-card__nav-btn room-card__nav-btn--prev"
+              onClick={(e) => { e.stopPropagation(); onPrevImage(listing.id, photos.length); }}
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <button
+              className="room-card__nav-btn room-card__nav-btn--next"
+              onClick={(e) => { e.stopPropagation(); onNextImage(listing.id, photos.length); }}
+            >
+              <ChevronRight size={18} />
+            </button>
+            <div className="room-card__dots">
+              {photos.map((_, idx) => (
+                <span key={idx} className={`room-card__dot ${idx === currentImageIndex ? 'is-active' : ''}`} />
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+
+      <div className="room-card__content" style={{ padding: '0.15rem 0.25rem 0.4rem', display: 'flex', flexDirection: 'column', gap: '0.2rem', minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+          <h3 style={{ margin: '0', fontSize: '0.9rem', fontWeight: 600, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>
+            {listing.title}
+          </h3>
+          {listing.rating && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexShrink: 0 }}>
+              <Star size={14} fill="#f59e0b" color="#f59e0b" />
+              <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{listing.rating}</span>
+            </div>
+          )}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#64748b', fontSize: '0.8rem' }}>
+          <MapPin size={14} />
+          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{listing.location}</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#64748b', fontSize: '0.75rem' }}>
+          <Bed size={14} />
+          <span>{listing.roomType || 'Room'}</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.25rem', marginTop: '0.15rem' }}>
+          <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#22c55e' }}>
+            {TZSFormat(listing.priceMonthly)}
+          </span>
+          <span style={{ fontSize: '0.75rem', color: '#64748b' }}>/month</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function SearchPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -97,6 +312,69 @@ export default function SearchPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
   const loadMoreRef = useRef(null);
+
+  // Saved listings state
+  const { user, isAuthenticated } = useAuth();
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const [imageIndexes, setImageIndexes] = useState<Record<string, number>>({});
+
+  // Load saved listing IDs
+  useEffect(() => {
+    let mounted = true;
+    async function loadSavedIds() {
+      if (!user?.userId || !token) {
+        setSavedIds(new Set());
+        return;
+      }
+      try {
+        const ids = await fetchSavedListingIds(user.userId, token);
+        if (mounted) setSavedIds(new Set(ids));
+      } catch {
+        if (mounted) setSavedIds(new Set());
+      }
+    }
+    loadSavedIds();
+    return () => { mounted = false; };
+  }, [user?.userId, token]);
+
+  // Handle toggle save
+  const handleToggleSave = useCallback(async (listingId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isAuthenticated || !user?.userId) {
+      navigate('/login');
+      return;
+    }
+    try {
+      const nextSaved = await toggleSavedListing({
+        tenantId: user.userId,
+        listingId,
+        accessToken: token
+      });
+      setSavedIds(prev => {
+        const next = new Set(prev);
+        if (nextSaved) next.add(listingId);
+        else next.delete(listingId);
+        return next;
+      });
+    } catch (err: any) {
+      setError(err.message);
+    }
+  }, [isAuthenticated, user?.userId, token, navigate]);
+
+  // Image navigation
+  const nextImage = useCallback((listingId: string, totalPhotos: number) => {
+    setImageIndexes(prev => ({
+      ...prev,
+      [listingId]: ((prev[listingId] || 0) + 1) % totalPhotos
+    }));
+  }, []);
+
+  const prevImage = useCallback((listingId: string, totalPhotos: number) => {
+    setImageIndexes(prev => ({
+      ...prev,
+      [listingId]: ((prev[listingId] || 0) - 1 + totalPhotos) % totalPhotos
+    }));
+  }, []);
 
   // Build filters object for API call
   const buildFilters = useCallback(() => {
@@ -297,72 +575,84 @@ export default function SearchPage() {
 
 
   return (
-    <div className="container section">
-      <div className="section__header">
-        <div>
-          <h1>{t('search.title')}</h1>
-          <p>{resultCountLabel}</p>
-        </div>
+    <div className="container section" style={{ padding: '1rem' }}>
+      <style>{searchPageStyles}</style>
 
-        <div className="segmented-control">
+      {/* Breadcrumb Header - Matches Saved Page Style */}
+      <header className="search-header">
+        <nav className="search-breadcrumb">
+          <Link to="/tenant/dashboard" className="search-breadcrumb-item">
+            <LayoutDashboard size={16} />
+            <span>Dashboard</span>
+          </Link>
+          <ChevronRight size={16} className="search-breadcrumb-separator" />
+          <span className="search-breadcrumb-current">Listings</span>
+        </nav>
+
+        {/* View Toggle */}
+        <div className="view-toggle">
           <button
             type="button"
-            className={viewMode === 'list' ? 'is-active' : ''}
+            className={`view-toggle-btn ${viewMode === 'list' ? 'is-active' : ''}`}
             onClick={() => setViewMode('list')}
           >
-            List
+            <Grid3X3 size={18} />
+            <span>Grid</span>
           </button>
           <button
             type="button"
-            className={viewMode === 'map' ? 'is-active' : ''}
+            className={`view-toggle-btn ${viewMode === 'map' ? 'is-active' : ''}`}
             onClick={() => setViewMode('map')}
           >
-            Map
+            <MapIcon size={18} />
+            <span>Map</span>
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* Modern Filter Container - Homepage Style */}
+      {/* Modern Filter Container - Compact Mobile Style */}
       <div style={{
         background: 'white',
-        borderRadius: 16,
-        padding: '1.25rem 1.5rem',
-        marginBottom: '1.5rem',
-        boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+        borderRadius: 12,
+        padding: '0.75rem 1rem',
+        marginBottom: '1rem',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
         border: '1px solid #e5e7eb'
       }}>
-        {/* Main Search Bar */}
+        {/* Main Search Bar - Compact */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '0.75rem',
-          padding: '0.75rem 1rem',
+          gap: '0.5rem',
+          padding: '0.2rem 0.75rem 0.2rem 1.25rem',
           background: '#f9fafb',
-          borderRadius: 12,
-          border: '2px solid #e5e7eb',
-          marginBottom: '1rem'
+          borderRadius: 40,
+          border: '1px solid #e5e7eb',
+          marginBottom: '0.75rem'
         }}>
-          <Search size={20} style={{ color: '#6b7280', flexShrink: 0 }} />
+          <Search size={18} style={{ color: '#6b7280', flexShrink: 0 }} />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={t('search.placeholder') || 'Search for your perfect home...'}
+            placeholder={t('search.placeholder') || 'Search...'}
             style={{
               flex: 1,
               border: 'none',
               background: 'transparent',
-              fontSize: '1rem',
+              fontSize: '0.9rem',
               outline: 'none',
-              color: '#111827'
+              color: '#111827',
+              boxShadow: 'none'
             }}
+            onFocus={(e) => { e.target.style.outline = 'none'; e.target.style.boxShadow = 'none'; }}
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }}
             >
-              <X size={18} style={{ color: '#6b7280' }} />
+              <X size={16} style={{ color: '#6b7280' }} />
             </button>
           )}
         </div>
@@ -387,18 +677,18 @@ export default function SearchPage() {
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  gap: '0.35rem',
-                  padding: '0.6rem 1rem',
-                  minWidth: '80px',
-                  border: isActive ? '2px solid #22c55e' : '2px solid #e5e7eb',
-                  borderRadius: 12,
+                  gap: '0.25rem',
+                  padding: '0.4rem 0.6rem',
+                  minWidth: '65px',
+                  border: isActive ? '1.5px solid #22c55e' : '1.5px solid #e5e7eb',
+                  borderRadius: 10,
                   background: isActive ? '#f0fdf4' : 'white',
                   cursor: 'pointer',
                   flexShrink: 0
                 }}
               >
-                <Icon size={22} style={{ color: isActive ? '#22c55e' : '#6b7280' }} />
-                <span style={{ fontSize: '0.75rem', fontWeight: isActive ? 600 : 500, color: isActive ? '#166534' : '#6b7280' }}>
+                <Icon size={18} style={{ color: isActive ? '#22c55e' : '#6b7280' }} />
+                <span style={{ fontSize: '0.7rem', fontWeight: isActive ? 600 : 500, color: isActive ? '#166534' : '#6b7280' }}>
                   {type.label}
                 </span>
               </button>
@@ -412,19 +702,19 @@ export default function SearchPage() {
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: '0.35rem',
-              padding: '0.6rem 1rem',
-              minWidth: '80px',
-              border: showMoreFilters ? '2px solid #22c55e' : '2px solid #e5e7eb',
-              borderRadius: 12,
+              gap: '0.25rem',
+              padding: '0.4rem 0.6rem',
+              minWidth: '65px',
+              border: showMoreFilters ? '1.5px solid #22c55e' : '1.5px solid #e5e7eb',
+              borderRadius: 10,
               background: showMoreFilters ? '#f0fdf4' : 'white',
               cursor: 'pointer',
               flexShrink: 0,
               position: 'relative'
             }}
           >
-            <SlidersHorizontal size={22} style={{ color: showMoreFilters ? '#22c55e' : '#6b7280' }} />
-            <span style={{ fontSize: '0.75rem', fontWeight: showMoreFilters ? 600 : 500, color: showMoreFilters ? '#166534' : '#6b7280' }}>
+            <SlidersHorizontal size={18} style={{ color: showMoreFilters ? '#22c55e' : '#6b7280' }} />
+            <span style={{ fontSize: '0.7rem', fontWeight: showMoreFilters ? 600 : 500, color: showMoreFilters ? '#166534' : '#6b7280' }}>
               Filters
             </span>
             {activeFiltersCount > 0 && (
@@ -643,7 +933,16 @@ export default function SearchPage() {
                     {availableListings.length > 0 && (
                       <div className="room-grid">
                         {availableListings.map((listing: any) => (
-                          <ListingCard key={listing.id} listing={listing} />
+                          <RoomCard
+                            key={listing.id}
+                            listing={listing}
+                            savedIds={savedIds}
+                            imageIndexes={imageIndexes}
+                            onToggleSave={handleToggleSave}
+                            onNextImage={nextImage}
+                            onPrevImage={prevImage}
+                            onClick={() => navigate(`/rooms/${listing.id}`)}
+                          />
                         ))}
                       </div>
                     )}
@@ -657,7 +956,16 @@ export default function SearchPage() {
                         <h3 style={{ fontSize: '1.25rem', marginBottom: '1rem', color: 'var(--ink)' }}>Coming Soon</h3>
                         <div className="room-grid">
                           {comingSoonListings.map((listing: any) => (
-                            <ListingCard key={listing.id} listing={listing} />
+                            <RoomCard
+                              key={listing.id}
+                              listing={listing}
+                              savedIds={savedIds}
+                              imageIndexes={imageIndexes}
+                              onToggleSave={handleToggleSave}
+                              onNextImage={nextImage}
+                              onPrevImage={prevImage}
+                              onClick={() => navigate(`/rooms/${listing.id}`)}
+                            />
                           ))}
                         </div>
                       </>

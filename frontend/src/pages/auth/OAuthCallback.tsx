@@ -3,7 +3,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { writeStoredSession, AUTH_SESSION_REFRESH_EVENT } from '../../lib/supabase';
 import { toast } from 'react-hot-toast';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
+import AuthLoader from '../../components/AuthLoader';
 
 // Parse hash fragment parameters (e.g., #access_token=xyz&refresh_token=abc)
 function parseHashParams(hash: string): Record<string, string> {
@@ -72,8 +73,6 @@ export default function OAuthCallback() {
             setError('Failed to authenticate');
             return;
           }
-
-          toast.success(isNewUser ? 'Welcome to iRent! 🎉' : 'Welcome back! 👋', { duration: 2000 });
 
           // Redirect based on profile completion status
           if (isNewUser) {
@@ -146,8 +145,6 @@ export default function OAuthCallback() {
           detail: { session, persistent: true } 
         }));
         
-        toast.success(isNewUser ? 'Welcome to iRent! 🎉' : 'Welcome back! 👋', { duration: 2000 });
-        
         // Wait a bit for AuthContext to process, then navigate
         setTimeout(() => {
           console.log('[OAuthCallback] Navigating to:', redirectTarget);
@@ -185,15 +182,7 @@ export default function OAuthCallback() {
     );
   }
 
-  return (
-    <div className="oauth-callback-page" style={styles.container}>
-      <div style={styles.card}>
-        <Loader2 size={48} style={styles.spinner} />
-        <h1 style={styles.title}>Completing Sign In...</h1>
-        <p style={styles.subtitle}>Please wait while we authenticate you</p>
-      </div>
-    </div>
-  );
+  return <AuthLoader title="Completing Sign In..." subtitle="Please wait while we authenticate you" />;
 }
 
 const styles: Record<string, React.CSSProperties> = {

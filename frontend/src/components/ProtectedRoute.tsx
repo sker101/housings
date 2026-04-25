@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import AuthLoader from './AuthLoader';
 import { getProfile } from '../lib/auth';
 import {
   appRoleFromProfile,
@@ -69,30 +70,7 @@ export default function ProtectedRoute({ children, roles }: ProtectedRouteProps)
 
   if (authLoading || checking) {
     return (
-      <div
-        style={{
-          minHeight: '100vh',
-          display: 'grid',
-          placeItems: 'center',
-          background: 'var(--paper)',
-        }}
-      >
-        <div style={{ textAlign: 'center', color: 'var(--mid)' }}>
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              border: '3px solid var(--border)',
-              borderTopColor: 'var(--jade)',
-              borderRadius: '50%',
-              animation: 'spin 0.8s linear infinite',
-              margin: '0 auto 0.75rem',
-            }}
-          />
-          <p style={{ fontSize: '0.88rem' }}>Verifying access…</p>
-          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        </div>
-      </div>
+      <AuthLoader title="Verifying access…" subtitle="Checking permissions and preparing your dashboard" />
     );
   }
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-hot-toast';
+import AuthLoader from '../../components/AuthLoader';
 
 // ─────────────────────────────────────────────────────────────
 // Airbnb-style Unified Login / Signup
@@ -140,7 +141,6 @@ const LoginPage: React.FC = () => {
     try {
       const authUser = await verifyEmailCode(email.trim(), code);
       if (authUser) {
-        toast.success('Welcome! 🎉', { duration: 2000 });
         const dest = getDashboard(authUser.role);
         navigate(dest, { replace: true });
       } else {
@@ -176,7 +176,6 @@ const LoginPage: React.FC = () => {
     setError('');
     try {
       await login({ email: email.trim(), password: adminPassword });
-      toast.success('Welcome, Admin!', { duration: 2000 });
       navigate('/admin', { replace: true });
     } catch (err: any) {
       setError(err?.message || 'Invalid admin credentials');
@@ -188,6 +187,9 @@ const LoginPage: React.FC = () => {
   // ─── RENDER ─────────────────────────────────────────────────
   return (
     <div style={S.page}>
+      {(busy || authLoading) && (
+        <AuthLoader title={step === 'otp' ? 'Verifying code…' : 'Signing in…'} subtitle="Please wait while we finish authentication" />
+      )}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         @keyframes spin { to { transform: rotate(360deg); } }

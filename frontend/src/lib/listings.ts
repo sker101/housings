@@ -296,54 +296,104 @@ export async function fetchRelatedListings(baseListing, accessToken, limit = 6) 
 }
 
 export async function toggleSavedListing({ tenantId, listingId, accessToken }) {
-  const existing = await selectRows('saved_listings', {
-    select: 'tenant_id,listing_id,saved_at',
-    filters: [
-      { column: 'tenant_id', op: 'eq', value: tenantId },
-      { column: 'listing_id', op: 'eq', value: listingId }
-    ],
-    limit: 1,
-    accessToken
-  });
-
-  if (existing.length > 0) {
-    await deleteRows('saved_listings', {
+  // First check if already saved
+  let existing = [];
+  try {
+    existing = await selectRows('saved_listings', {
+      select: 'tenant_id,listing_id,saved_at',
       filters: [
         { column: 'tenant_id', op: 'eq', value: tenantId },
         { column: 'listing_id', op: 'eq', value: listingId }
       ],
+      limit: 1,
       accessToken
     });
+  } catch (err) {
+    console.error('Error checking existing saved listing:', err);
+  }
+
+  const isSaved = existing.length > 0;
+
+  if (isSaved) {
+    // Unsave - delete the record
+    try {
+      await deleteRows('saved_listings', {
+        filters: [
+          { column: 'tenant_id', op: 'eq', value: tenantId },
+          { column: 'listing_id', op: 'eq', value: listingId }
+        ],
+        accessToken
+      });
+      // Record activity
+      await logActivity(
+        tenantId,
+        'interaction',
+        'Removed a listing from your saved rooms',
+        { listing_id: listingId, action: 'unsave' },
+        accessToken
+      );
+      return false;
+    } catch (err) {
+      console.error('Error deleting saved listing:', err);
+      // If delete fails, assume it was already deleted
+      return false;
+    }
+  }
+
+  // Save - insert new record with conflict handling
+  try {
+    // Add saved_at timestamp
+    const payload = {
+      tenant_id: tenantId,
+      listing_id: listingId,
+      saved_at: new Date().toISOString()
+    };
+
+    await upsertRows(
+      'saved_listings',
+      payload,
+      { 
+        accessToken,
+        onConflict: 'tenant_id,listing_id'
+      }
+    );
+
     // Record activity
     await logActivity(
       tenantId,
       'interaction',
-      'Removed a listing from your saved rooms',
-      { listing_id: listingId, action: 'unsave' },
+      'Saved a new listing to your collection',
+      { listing_id: listingId, action: 'save' },
       accessToken
     );
-    return false;
+
+    return true;
+  } catch (err) {
+    console.error('Error saving listing:', err);
+    
+    const errorStr = String(err).toLowerCase();
+    
+    // Check for any kind of conflict error
+    if (errorStr.includes('409') || 
+        errorStr.includes('conflict') || 
+        errorStr.includes('duplicate') ||
+        errorStr.includes('unique') ||
+        errorStr.includes('already exists')) {
+      console.log('Listing already saved (detected from error), treating as success');
+      return true;
+    }
+    
+    // Foreign key constraint - listing doesn't exist
+    if (errorStr.includes('foreign key') || 
+        errorStr.includes('fkey') ||
+        errorStr.includes('violates')) {
+      console.error('Listing does not exist in database');
+      throw new Error('This room cannot be saved. It may have been removed or is no longer available.');
+    }
+    
+    // Re-throw if it's a different error
+    throw err;
   }
-
-  await insertRows(
-    'saved_listings',
-    {
-      tenant_id: tenantId,
-      listing_id: listingId
-    },
-    { accessToken }
-  );
-
-  // Record activity
-  await logActivity(
-    tenantId,
-    'interaction',
-    'Saved a new listing to your collection',
-    { listing_id: listingId, action: 'save' },
-    accessToken
-  );
-
-  return true;
 }
 
 export async function fetchSavedListings(tenantId, accessToken, options: { limit?: number } = {}) {

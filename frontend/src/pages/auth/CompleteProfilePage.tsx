@@ -84,8 +84,6 @@ export default function CompleteProfilePage() {
       // Refresh user data
       await refreshMe();
 
-      toast.success('Profile updated! Welcome to iRent 🎉');
-      
       // Redirect to dashboard
       navigate(dashboardDefaultPath(profile?.role || 'tenant'), { replace: true });
     } catch (err) {

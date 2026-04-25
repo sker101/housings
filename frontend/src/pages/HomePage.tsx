@@ -650,7 +650,7 @@ export default function HomePage() {
                 <input
                   type="text"
                   className="search-bar-main__input"
-                  placeholder="search for your perfect home"
+                  placeholder="find your perfect home"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}

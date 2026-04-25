@@ -384,6 +384,31 @@ export default function ProfilePage() {
             <button className="prof-save-btn" type="submit" disabled={saving}>
               {saving ? t('dashboard.saving') : t('dashboard.saveProfile')}
             </button>
+            <div style={{ marginTop: 12 }}>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await logout();
+                    navigate('/auth/login');
+                  } catch (err) {
+                    setError('Failed to sign out.');
+                  }
+                }}
+                style={{
+                  marginLeft: 8,
+                  padding: '10px 18px',
+                  borderRadius: 10,
+                  border: '1px solid var(--border)',
+                  background: '#fff',
+                  color: '#b91c1c',
+                  cursor: 'pointer',
+                  fontWeight: 700,
+                }}
+              >
+                Sign out
+              </button>
+            </div>
           </form>
 
           <div className="otp-section">
