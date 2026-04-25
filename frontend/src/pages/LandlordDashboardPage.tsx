@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
-import { selectRows, updateRows } from '../lib/supabase';
+import { selectRows, updateRows, rpc } from '../lib/supabase';
+import { mapListingRow } from '../lib/listings';
 
 function formatDate(value) {
   if (!value) return '—';
@@ -58,8 +59,7 @@ export default function LandlordDashboardPage() {
           accessToken: token
         }),
         selectRows('listings', {
-          select:
-            'id,lister_id,title,room_type,price_monthly,region,district,ward,status,featured,view_count,created_at',
+          select: '*',
           filters: [{ column: 'lister_id', op: 'eq', value: user.userId }],
           order: 'created_at.desc',
           limit: 200,
@@ -114,7 +114,7 @@ export default function LandlordDashboardPage() {
       if (!isAlive.current) return;
 
       setProfile(profileRows[0] || null);
-      setListings(listingRows);
+      setListings((listingRows as any[]).map(r => mapListingRow(r)));
       setBookings(bookingRows);
       setAllApprovedBookings(approvedBookings);
 

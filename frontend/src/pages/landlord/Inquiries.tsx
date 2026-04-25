@@ -36,7 +36,7 @@ export default function LandlordInquiries() {
         <div style={{ display: 'grid', gap: '1.25rem' }}>
           {pending.length > 0 && (
             <section>
-              <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: '1rem', marginBottom: '0.75rem' }}>
+              <h3 style={{ fontFamily: " sans-serif", fontSize: '1rem', marginBottom: '0.75rem' }}>
                 Pending ({pending.length})
               </h3>
               <div style={{ display: 'grid', gap: '0.7rem' }}>
@@ -48,7 +48,7 @@ export default function LandlordInquiries() {
           )}
           {rest.length > 0 && (
             <section>
-              <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: '1rem', marginBottom: '0.75rem' }}>
+              <h3 style={{ fontFamily: " sans-serif", fontSize: '1rem', marginBottom: '0.75rem' }}>
                 History ({rest.length})
               </h3>
               <div style={{ display: 'grid', gap: '0.7rem' }}>

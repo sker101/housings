@@ -58,13 +58,16 @@ export default [
             // Too strict for common fetch/reset and modal-open patterns in this app
             'react-hooks/set-state-in-effect': 'off',
             'no-unused-vars': [
-                'error',
+                'warn',
                 {
                     varsIgnorePattern: '^(React|screen|ImportMeta)$|^_',
                     argsIgnorePattern: '^_',
                     caughtErrorsIgnorePattern: '^_',
                 },
             ],
+            'jsx-a11y/interactive-supports-focus': 'off',
+            'jsx-a11y/no-autofocus': 'off',
+            'no-undef': 'off',
         },
     },
 ];

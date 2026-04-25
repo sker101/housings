@@ -204,7 +204,6 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
       window.removeEventListener('resize', handleResize);
       document.removeEventListener('click', handleOutside);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Close mobile drawer on route change

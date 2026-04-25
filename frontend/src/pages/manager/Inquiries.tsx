@@ -28,7 +28,7 @@ export default function DalaliInquiries() {
         <div style={{ display: 'grid', gap: '1.25rem' }}>
           {pending.length > 0 && (
             <section>
-              <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: '1rem', marginBottom: '0.75rem' }}>Pending ({pending.length})</h3>
+              <h3 style={{ fontFamily: " sans-serif", fontSize: '1rem', marginBottom: '0.75rem' }}>Pending ({pending.length})</h3>
               <div style={{ display: 'grid', gap: '0.7rem' }}>
                 {pending.map((i) => <InquiryCard key={i.id} inquiry={i} view="host" onAccept={handleAccept} onDecline={handleDecline} />)}
               </div>
@@ -36,7 +36,7 @@ export default function DalaliInquiries() {
           )}
           {rest.length > 0 && (
             <section>
-              <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: '1rem', marginBottom: '0.75rem' }}>History ({rest.length})</h3>
+              <h3 style={{ fontFamily: " sans-serif", fontSize: '1rem', marginBottom: '0.75rem' }}>History ({rest.length})</h3>
               <div style={{ display: 'grid', gap: '0.7rem' }}>
                 {rest.map((i) => <InquiryCard key={i.id} inquiry={i} view="host" />)}
               </div>

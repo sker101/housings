@@ -63,14 +63,14 @@ function DashboardSidebarContent({
               color: '#fff',
               fontSize: '0.9rem',
               fontWeight: 800,
-              fontFamily: "'Syne', sans-serif",
+              fontFamily: " sans-serif",
             }}
           >
             iR
           </div>
           <span
             style={{
-              fontFamily: "'Syne', sans-serif",
+              fontFamily: " sans-serif",
               fontWeight: 800,
               color: 'var(--ink)',
               fontSize: '1rem',
@@ -101,7 +101,7 @@ function DashboardSidebarContent({
             display: 'grid',
             placeItems: 'center',
             color: accentColor,
-            fontFamily: "'Syne', sans-serif",
+            fontFamily: " sans-serif",
             fontWeight: 700,
             fontSize: '0.88rem',
             flexShrink: 0,
@@ -172,7 +172,7 @@ function DashboardSidebarContent({
               color: '#fff',
               borderRadius: 10,
               padding: '0.6rem',
-              fontFamily: "'Syne', sans-serif",
+              fontFamily: " sans-serif",
               fontWeight: 700,
               fontSize: '0.84rem',
               textDecoration: 'none',
@@ -343,7 +343,7 @@ export default function DashboardLayout({
             </button>
             <h1
               style={{
-                fontFamily: "'Syne', sans-serif",
+                fontFamily: " sans-serif",
                 fontSize: '1.05rem',
                 fontWeight: 700,
                 color: 'var(--ink)',

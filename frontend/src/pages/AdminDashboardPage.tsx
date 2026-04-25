@@ -637,7 +637,7 @@ export default function AdminDashboardPage() {
 
   function renderQueueListers() {
     const key = 'listers';
-    if (!queueData[key]) { loadQueue(key, 'profiles', { select: 'id,full_name,phone,verification_status,lister_type,created_at', filters: [{ column: 'role', op: 'eq', value: 'lister' }], order: 'created_at.desc', limit: 100 }); }
+    if (!queueData[key]) { loadQueue(key, 'profiles', { select: 'id,full_name,phone,verification_status,lister_type,created_at', filters: [{ column: 'role', op: 'in', value: '(landlord,property_manager)' }], order: 'created_at.desc', limit: 100 }); }
     const rows = queueData[key] || [];
     return (
       <>
@@ -667,7 +667,7 @@ export default function AdminDashboardPage() {
 
   function renderQueueListings() {
     const key = 'listings_q';
-    if (!queueData[key]) { loadQueue(key, 'listings', { select: 'id,title,status,region,district,price_monthly,created_at', order: 'created_at.desc', limit: 100 }); }
+    if (!queueData[key]) { loadQueue(key, 'listings', { select: '*', order: 'created_at.desc', limit: 100 }); }
     const rows = queueData[key] || [];
     const STATUS_COLOR: Record<string, string> = { approved: '#22c55e', pending: '#f59e0b', rejected: '#ef4444', flagged: '#f97316', draft: '#94a3b8' };
     return (

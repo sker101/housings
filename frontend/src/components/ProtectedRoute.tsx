@@ -7,6 +7,7 @@ import {
   appRoleFromProfile,
   dashboardDefaultPath,
   normalizeForRouteGuard,
+  parseRolesFromProfile,
 } from '../lib/roles';
 import type { Role } from '../types';
 
@@ -19,7 +20,7 @@ export default function ProtectedRoute({ children, roles }: ProtectedRouteProps)
   const { user, token, loading: authLoading } = useAuth();
   const location = useLocation();
 
-  const [verifiedRouteRole, setVerifiedRouteRole] = useState<Role | null>(null);
+  const [verifiedRoles, setVerifiedRoles] = useState<Role[]>([]);
   const [checking, setChecking] = useState(true);
   const [suspended, setSuspended] = useState(false);
 
@@ -43,16 +44,13 @@ export default function ProtectedRoute({ children, roles }: ProtectedRouteProps)
           return;
         }
 
-        const routeRole = (
-          profile
-            ? normalizeForRouteGuard(appRoleFromProfile(profile))
-            : normalizeForRouteGuard(user.role)
-        ) as Role;
-
-        setVerifiedRouteRole(routeRole);
+        // Get ALL roles the user has
+        const allRoles = parseRolesFromProfile(profile);
+        setVerifiedRoles(allRoles as Role[]);
       } catch {
         if (!cancelled) {
-          setVerifiedRouteRole(normalizeForRouteGuard(user.role) as Role);
+          // Fallback to the role in JWT if profile fetch fails
+          setVerifiedRoles([normalizeForRouteGuard(user.role) as Role]);
         }
       } finally {
         if (!cancelled) setChecking(false);
@@ -82,18 +80,14 @@ export default function ProtectedRoute({ children, roles }: ProtectedRouteProps)
     return <Navigate to="/auth/login?reason=suspended" replace />;
   }
 
-  const normalizedEffective = (verifiedRouteRole ||
-    (normalizeForRouteGuard(user.role) as Role)) as Role;
+  const userRoles = verifiedRoles.length > 0 
+    ? verifiedRoles 
+    : [normalizeForRouteGuard(user.role) as Role];
 
-  const isAdminRequired = roles.length === 1 && roles.includes('admin');
-  const hasAdminRole = normalizedEffective === 'admin';
+  // If ANY of the user's roles are in the allowed 'roles' list, they are authorized
+  const isAuthorized = roles.some(r => userRoles.includes(r));
 
-  if (isAdminRequired && !hasAdminRole) {
-    const correct = dashboardDefaultPath(user.role);
-    return <Navigate to={correct} replace />;
-  }
-
-  if (!roles.includes(normalizedEffective)) {
+  if (!isAuthorized) {
     const correct = dashboardDefaultPath(user.role);
     if (location.pathname === correct) return <>{children}</>;
     return <Navigate to={correct} replace />;

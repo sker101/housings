@@ -50,7 +50,7 @@
     },
     "roomDetails": {
         "notAvailable": "This listing is not available.",
-        "backToSearch": "Back to search",
+        "backToSearch": "Back to search list",
         "featured": "Featured",
         "availableFrom": "Available from {{date}}",
         "verifiedLister": "Verified lister",

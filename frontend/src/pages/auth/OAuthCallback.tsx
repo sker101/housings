@@ -125,8 +125,12 @@ export default function OAuthCallback() {
         const isNewUser = !hasPhone;
         
         // Store redirect target for after AuthContext processes session
+        const pendingRole = sessionStorage.getItem('oauth_signup_role');
+        let roleForRedirect = pendingRole || userData.role || userMetadata.role || 'tenant';
+        
         const redirectTarget = isNewUser 
           ? '/auth/complete-profile' 
+<<<<<<< HEAD
           : (userData.role || userMetadata.role || 'tenant') === 'landlord' || (userData.role || userMetadata.role || 'tenant') === 'property_manager'
             ? '/landlord/dashboard'
             : '/tenant/dashboard';
@@ -138,6 +142,11 @@ export default function OAuthCallback() {
           targetUrl: `${window.location.origin}${redirectTarget}`,
         });
         
+=======
+          : roleForRedirect === 'landlord' || roleForRedirect === 'property_manager'
+            ? '/landlord/dashboard'
+            : '/tenant/dashboard';
+>>>>>>> 4c78e6b35c8744ce24d3ed4a9f94d8c614f2c300
         sessionStorage.setItem('oauth_redirect_target', redirectTarget);
         
         // Trigger session refresh event so AuthContext picks up the new session
@@ -191,32 +200,33 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: 'var(--cream, #fafaf9)',
+    background: 'var(--paper)',
     padding: '1rem',
   },
   card: {
-    background: '#fff',
+    background: 'var(--surface)',
     borderRadius: '20px',
     padding: '3rem 2rem',
     textAlign: 'center',
     maxWidth: '400px',
     width: '100%',
-    boxShadow: '0 8px 40px rgba(0,0,0,0.07)',
+    boxShadow: '0 8px 40px rgba(0,0,0,0.2)',
+    border: '1px solid var(--border)',
   },
   spinner: {
     animation: 'spin 1s linear infinite',
-    color: 'var(--jade, #16a34a)',
+    color: 'var(--jade)',
     marginBottom: '1.5rem',
   },
   title: {
     fontSize: '1.5rem',
     fontWeight: 700,
-    color: 'var(--ink, #1c1917)',
+    color: 'var(--ink)',
     marginBottom: '0.5rem',
   },
   subtitle: {
     fontSize: '1rem',
-    color: 'var(--mid, #78716c)',
+    color: 'var(--mid)',
   },
   errorIcon: {
     marginBottom: '1.5rem',

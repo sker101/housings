@@ -2,14 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { ShieldCheck } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { selectRows, upsertRows } from '../lib/supabase';
+import { selectRows, upsertRows, updateRows, insertRows } from '../lib/supabase';
 import { calculateTenantPayment, formatTZS } from '../lib/paymentCalculations';
 import { getPaymentProvider } from '../lib/payments/factory';
 import { PaymentBreakdownComponent } from '../components/PaymentBreakdown';
 
 export default function PayPage() {
   const location = useLocation();
-  const { token, user, isAuthenticated } = useAuth();
+  const { token, user, isAuthenticated, refreshMe } = useAuth();
   const navigate = useNavigate();
   useEffect(() => {
     if (!isAuthenticated) {
@@ -49,6 +49,7 @@ export default function PayPage() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [gateway, setGateway] = useState<'selcom' | 'azampay'>('azampay');
+  const [phone, setPhone] = useState(user?.phone || '');
 
   const breakdown = useMemo(() => {
     const monthlyPrice = Number(listing?.price_monthly || 0);
@@ -58,7 +59,11 @@ export default function PayPage() {
   const [isConfirmed, setIsConfirmed] = useState(false);
 
   const handlePay = async () => {
-    if (!isConfirmed) return;
+    console.log('[Pay] handlePay called. isConfirmed:', isConfirmed);
+    if (!isConfirmed) {
+      setError('Please confirm that you have read the breakdown.');
+      return;
+    }
     if (!listing?.id) {
       setError('Select a listing before paying.');
       return;
@@ -68,11 +73,11 @@ export default function PayPage() {
       return;
     }
     
-    // 0. ENFORCE PROFILE COMPLETION
-    if (!user.phone || user.phone === '') {
-        setError('Please complete your profile with a genuine phone number before making a payment.');
-        setNotice('Redirecting to profile in 3 seconds...');
-        setTimeout(() => navigate('/profile'), 3000);
+    // 0. ENFORCE PHONE NUMBER & AUTO-SAVE TO PROFILE
+    const effectivePhone = user.phone || phone;
+    if (!effectivePhone || effectivePhone.trim() === '') {
+        setError('Please enter your phone number to receive the payment prompt.');
+        setNotice('Enter a valid mobile money number (e.g. 07XXXXXXXX)');
         return;
     }
 
@@ -81,6 +86,20 @@ export default function PayPage() {
     setLoading(true);
     
     try {
+      // Auto-save phone to profile if it was missing or different
+      if ((!user.phone || user.phone === '') && phone) {
+        try {
+            await updateRows('profiles', { phone }, {
+                filters: [{ column: 'id', op: 'eq', value: user.userId }],
+                accessToken: token || ''
+            });
+            console.log('[Pay] Phone number saved to profile:', phone);
+            refreshMe().catch(err => console.warn('[Pay] refreshMe failed:', err));
+        } catch (saveErr) {
+            console.warn('[Pay] Failed to save phone to profile (non-critical):', saveErr);
+        }
+      }
+
       const reference = `PAY-${Date.now()}-${user.userId.substring(0, 5)}`;
 
       console.log('[Pay] Listing data:', { id: listing?.id, lister_id: listing?.lister_id, title: listing?.title });
@@ -112,15 +131,61 @@ export default function PayPage() {
       }
       
       const actualListerId = listingCheck[0].lister_id;
-      console.log('[Pay] Actual lister_id from DB:', actualListerId);
+      console.log('[Pay] Actual lister_id (profile) from DB:', actualListerId);
       
-      // Use the actual lister_id from database to ensure RLS passes
-      const verifiedLandlordId = actualListerId || landlordId;
-      if (actualListerId && actualListerId !== landlordId) {
-        console.warn('[Pay] Lister ID mismatch. Using DB value:', actualListerId);
+      // 1b. Resolve the landlord_id (foreign key to landlords table)
+      let realLandlordId = null;
+      try {
+        const landlordRows = await selectRows('landlords', {
+          select: 'id',
+          filters: [{ column: 'profile_id', op: 'eq', value: actualListerId || landlordId }],
+          limit: 1,
+          accessToken: token
+        });
+        
+        if (landlordRows && landlordRows.length > 0) {
+          realLandlordId = landlordRows[0].id;
+          console.log('[Pay] Resolved real landlord_id:', realLandlordId);
+        } else {
+          console.log('[Pay] Landlord record missing, creating self-healing landlord for:', actualListerId);
+          const newLandlord = await insertRows('landlords', {
+            profile_id: actualListerId || landlordId,
+            subscription_tier: 'starter',
+            identity_verified: true,
+            property_verified: true
+          }, { accessToken: token });
+          realLandlordId = newLandlord?.[0]?.id;
+          console.log('[Pay] Created self-healing landlord record:', realLandlordId);
+        }
+      } catch (err) {
+        console.error('[Pay] Failed to resolve landlord_id:', err);
+        realLandlordId = actualListerId || landlordId;
       }
       
+      const verifiedLandlordId = realLandlordId;
+      
       // Get or create tenant record - we need the actual tenant ID (not profile ID)
+      // 1. ENSURE PROFILE EXISTS (Self-healing for broken triggers)
+      let profileRows = await selectRows('profiles', {
+          select: 'id',
+          filters: [{ column: 'id', op: 'eq', value: user.userId }],
+          limit: 1,
+          accessToken: token
+      });
+
+      if (!profileRows || profileRows.length === 0) {
+          console.log('[Pay] Profile missing, creating self-healing profile for:', user.userId);
+          await insertRows('profiles', {
+              id: user.userId,
+              full_name: user.fullName || 'New User',
+              role: user.role || 'tenant',
+              roles: user.roles || ['tenant'],
+              phone: effectivePhone,
+              verification_status: 'pending'
+          }, { accessToken: token });
+          console.log('[Pay] Self-healing profile created.');
+      }
+
       let tenantRows = await selectRows('tenants', {
         select: 'id',
         filters: [{ column: 'profile_id', op: 'eq', value: user.userId }],
@@ -134,14 +199,14 @@ export default function PayPage() {
       if (!realTenantId) {
           // Create tenant record if missing
           console.log('[Pay] Creating tenant record for:', user.userId);
-          const newTenant = await upsertRows('tenants', { 
+          const newTenant = await insertRows('tenants', { 
             profile_id: user.userId, 
             tenant_type: 'student'
           }, { accessToken: token });
           realTenantId = newTenant?.[0]?.id;
           console.log('[Pay] Created tenant record:', realTenantId);
       }
-      
+
       if (!realTenantId) {
         throw new Error('Unable to create tenant record. Please try again.');
       }
@@ -167,7 +232,6 @@ export default function PayPage() {
         const bookingData = {
           listing_id: listing.id,
           tenant_id: tenantIdForBooking,
-          landlord_id: verifiedLandlordId,
           move_in_date: moveInDate,
           months_duration: months,
           total_tzs: breakdown.totalDue,
@@ -178,7 +242,7 @@ export default function PayPage() {
           reference: reference,
           notes: `Reservation for ${listing.title} including platform deposit fee`
         };
-        console.log('[Pay] Creating booking with data:', bookingData);
+        console.log('[Pay][V2-NULL-FIX] Creating booking with data:', bookingData);
         
         try {
           // Direct insert - RLS is disabled
@@ -194,13 +258,13 @@ export default function PayPage() {
       }
 
       // 3. Initiate Payment using Provider Abstraction
-      const provider = getPaymentProvider(token || '');
+      const provider = getPaymentProvider(token || '', gateway);
       const response = await provider.initiatePayment({
         amount: breakdown.totalDue,
         reference: reference,
         customerName: user.fullName,
         customerEmail: user.email,
-        customerPhone: user.phone,
+        customerPhone: effectivePhone,
         metadata: {
           bookingId,
           listingId: listing.id,
@@ -290,6 +354,46 @@ export default function PayPage() {
               TZS {new Intl.NumberFormat('sw-TZ').format(Number(listing?.price_monthly || 0))} / month
             </p>
           </div>
+
+          <div className="card" style={{ padding: '1rem', border: '1px solid var(--border)', background: '#fff' }}>
+            <p style={{ margin: 0, color: 'var(--mid)', fontWeight: 600 }}>Payment method</p>
+            <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className={`btn ${gateway === 'azampay' ? '' : 'btn--ghost'}`}
+                onClick={() => setGateway('azampay')}
+                style={{ minWidth: 120, border: gateway === 'azampay' ? '2px solid var(--jade)' : '1px solid var(--border)' }}
+              >
+                AzamPay
+              </button>
+              <button
+                type="button"
+                className={`btn ${gateway === 'selcom' ? '' : 'btn--ghost'}`}
+                onClick={() => setGateway('selcom')}
+                style={{ minWidth: 120, border: gateway === 'selcom' ? '2px solid var(--jade)' : '1px solid var(--border)' }}
+              >
+                Selcom
+              </button>
+            </div>
+          </div>
+
+          {!user?.phone && (
+            <div className="card" style={{ padding: '1rem', border: '1px solid var(--border)', background: '#fff' }}>
+              <label style={{ display: 'grid', gap: '0.35rem' }}>
+                <span style={{ fontWeight: 600 }}>Phone number (for mobile money prompt)</span>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="e.g. 07XXXXXXXX"
+                  style={{ padding: '0.75rem', borderRadius: 8, border: '1px solid var(--border)', fontSize: '1rem' }}
+                />
+                <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--mid)' }}>
+                  This number will be used to send the payment push prompt to your phone.
+                </p>
+              </label>
+            </div>
+          )}
 
           <PaymentBreakdownComponent 
             breakdown={breakdown} 

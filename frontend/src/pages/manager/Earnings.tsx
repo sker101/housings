@@ -24,7 +24,7 @@ export default function DalaliEarnings() {
         ].map((k) => (
           <div key={k.label} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '1rem' }}>
             <p style={{ fontSize: '0.73rem', fontWeight: 600, color: 'var(--mid)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{k.label}</p>
-            <p style={{ fontFamily: "'Syne', sans-serif", fontSize: '1.55rem', fontWeight: 800, color: 'var(--amber)', lineHeight: 1.15, margin: '0.25rem 0 0' }}>{k.value}</p>
+            <p style={{ fontFamily: " sans-serif", fontSize: '1.55rem', fontWeight: 800, color: 'var(--amber)', lineHeight: 1.15, margin: '0.25rem 0 0' }}>{k.value}</p>
             <p style={{ fontSize: '0.76rem', color: 'var(--mid)', marginTop: '0.15rem' }}>{k.sub}</p>
           </div>
         ))}
@@ -32,7 +32,7 @@ export default function DalaliEarnings() {
 
       {/* Bookings Table */}
       <section>
-        <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: '1rem', marginBottom: '0.75rem' }}>All Bookings</h3>
+        <h3 style={{ fontFamily: " sans-serif", fontSize: '1rem', marginBottom: '0.75rem' }}>All Bookings</h3>
         {loading ? (
           <div style={{ display: 'grid', gap: '0.5rem' }}><SkeletonCard variant="row" count={5} /></div>
         ) : bookings.length === 0 ? (

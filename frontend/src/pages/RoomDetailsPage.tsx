@@ -183,6 +183,11 @@ export default function RoomDetailsPage() {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [swipeStartX, setSwipeStartX] = useState(null);
   const [openInquiry, setOpenInquiry] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [inquiryName, setInquiryName] = useState('');
+  const [moveInDate, setMoveInDate] = useState('');
+  const [durationMonths, setDurationMonths] = useState('6');
+  const [contactPreference, setContactPreference] = useState('in_app_chat');
   const [message, setMessage] = useState('');
   const [submittingInquiry, setSubmittingInquiry] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -263,11 +268,9 @@ export default function RoomDetailsPage() {
         setListerProfile(payload.listerProfile);
         setActivePhotoIndex(0);
 
-        if (payload.listing.vacancyStatus === 'available') {
-          invokeFunction('increment-view', { listingId: payload.listing.id }, token).catch(() => {
-            // Best-effort analytics update.
-          });
-        }
+        invokeFunction('increment-view', { listingId: payload.listing.id }, token).catch(() => {
+          // Best-effort analytics update.
+        });
 
         const [related, listingCount, reviewsList] = await Promise.all([
           fetchRelatedListings(payload.listing, token, 6).catch(() => []),
@@ -312,6 +315,11 @@ export default function RoomDetailsPage() {
     };
   }, [roomId, token]);
 
+  useEffect(() => {
+    if (user?.fullName && !inquiryName) {
+      setInquiryName(user.fullName);
+    }
+  }, [user?.fullName, inquiryName]);
 
   useEffect(() => {
     let mounted = true;
@@ -395,30 +403,19 @@ export default function RoomDetailsPage() {
   }, [listing, user?.userId, existingBooking, bookingsLoading]);
 
   const amenities = useMemo(() => {
-    if (!listing?.amenities) {
+    if (!listing?.amenities || typeof listing.amenities !== 'object') {
       return [];
     }
 
-    let parsed = [];
-    if (Array.isArray(listing.amenities)) {
-      parsed = listing.amenities.map(key => ({
+    return Object.entries(listing.amenities)
+      .map(([key, enabled]) => ({
         key,
         label: humanize(key),
         emoji: amenityEmoji(key),
-        enabled: true
-      }));
-    } else if (typeof listing.amenities === 'object') {
-      parsed = Object.entries(listing.amenities)
-        .map(([key, enabled]) => ({
-          key,
-          label: humanize(key),
-          emoji: amenityEmoji(key),
-          enabled: Boolean(enabled)
-        }))
-        .filter((item) => item.enabled);
-    }
-
-    return parsed.sort((a, b) => a.label.localeCompare(b.label));
+        enabled: Boolean(enabled)
+      }))
+      .filter((item) => item.enabled)
+      .sort((a, b) => a.label.localeCompare(b.label));
   }, [listing?.amenities]);
 
   const houseRules = useMemo(
@@ -442,6 +439,14 @@ export default function RoomDetailsPage() {
     if (existingBooking && ['paid', 'confirmed', 'approved'].includes(existingBooking.status)) return true;
     return false;
   }, [user?.userId, listing?.listerId, existingBooking]);
+
+  const averageRating = useMemo(() => {
+    if (reviews.length === 0) return 0;
+    const validReviews = reviews.filter((r) => typeof r?.rating === 'number' && !isNaN(r.rating));
+    if (validReviews.length === 0) return 0;
+    const sum = validReviews.reduce((acc: number, review: any) => acc + review.rating, 0);
+    return (sum / validReviews.length).toFixed(1);
+  }, [reviews]);
 
   const galleryPhotos = useMemo(() => {
     if (!listing) {
@@ -622,20 +627,18 @@ export default function RoomDetailsPage() {
     });
   };
 
-  const captureSwipeStart = (event) => {
-    if (!event.changedTouches?.[0]) {
-      return;
+  const captureSwipeStart = (e) => {
+    if (e.changedTouches?.[0]) {
+      setSwipeStartX(e.changedTouches[0].clientX);
     }
-
-    setSwipeStartX(event.changedTouches[0].clientX);
   };
 
-  const captureSwipeEnd = (event) => {
-    if (!event.changedTouches?.[0] || swipeStartX == null) {
+  const captureSwipeEnd = (e) => {
+    if (!e.changedTouches?.[0] || swipeStartX == null) {
       return;
     }
 
-    const deltaX = event.changedTouches[0].clientX - swipeStartX;
+    const deltaX = e.changedTouches[0].clientX - swipeStartX;
     setSwipeStartX(null);
 
     if (Math.abs(deltaX) < 40) {
@@ -648,14 +651,6 @@ export default function RoomDetailsPage() {
       goToNextPhoto();
     }
   };
-
-  const averageRating = useMemo(() => {
-    if (reviews.length === 0) return 0;
-    const validReviews = reviews.filter((r) => typeof r?.rating === 'number' && !isNaN(r.rating));
-    if (validReviews.length === 0) return 0;
-    const sum = validReviews.reduce((acc: number, review: any) => acc + review.rating, 0);
-    return (sum / validReviews.length).toFixed(1);
-  }, [reviews]);
 
   const submitInquiry = async (event) => {
     event.preventDefault();
@@ -670,22 +665,19 @@ export default function RoomDetailsPage() {
       return;
     }
 
-    // Only allow chat if user has paid booking
-    if (!hasPaidBooking) {
-      setError('Please complete payment to chat with the landlord.');
-      return;
-    }
-
-    if (message.trim().length < 5) {
-      setError('Please write a brief message.');
-      return;
-    }
-
     setSubmittingInquiry(true);
     setError('');
 
+    // Ensure profile has a name if missing (rare but possible via social login)
+    if (!user.fullName) {
+      await updateRows('profiles', { full_name: inquiryName }, {
+        filters: [{ column: 'id', op: 'eq', value: user.userId }],
+        accessToken: token
+      }).catch(() => { });
+    }
+
     try {
-      const existing = await selectRows('room_inquiries', {
+      const existing = await selectRows('conversations', {
         select: 'id',
         filters: [
           { column: 'listing_id', op: 'eq', value: listing.id },
@@ -695,30 +687,32 @@ export default function RoomDetailsPage() {
         accessToken: token
       });
 
-      let inquiryId = existing[0]?.id;
+      let conversationId = existing[0]?.id;
 
-      if (!inquiryId) {
+      if (!conversationId) {
         const created = await insertRows(
-          'room_inquiries',
+          'conversations',
           {
             listing_id: listing.id,
             tenant_id: user.userId,
-            status: 'open'
+            lister_id: listing.listerId,
+            inquiry_status: 'open',
+            move_in_date: moveInDate || null
           },
           { accessToken: token }
         );
 
-        inquiryId = created?.[0]?.id;
+        conversationId = created?.[0]?.id;
       }
 
-      if (!inquiryId) {
-        throw new Error('Unable to open inquiry.');
+      if (!conversationId) {
+        throw new Error('Unable to open conversation.');
       }
 
       await insertRows(
         'chat_messages',
         {
-          inquiry_id: inquiryId,
+          conversation_id: conversationId,
           sender_id: user.userId,
           body: message.trim()
         },
@@ -737,22 +731,14 @@ export default function RoomDetailsPage() {
 
   if (loading) {
     return (
-      <div className="container section room-page">
-        <section className="room-hero card room-hero--skeleton">
-          <div className="room-skeleton-block room-skeleton-image" />
+      <div className="container section">
+        <section className="room-hero room-hero--skeleton">
+          <div className="room-skeleton-image room-skeleton-block" />
           <div className="room-skeleton-content">
-            <div className="room-skeleton-block room-skeleton-line room-skeleton-line--title" />
-            <div className="room-skeleton-block room-skeleton-line" />
-            <div className="room-skeleton-block room-skeleton-line room-skeleton-line--short" />
-            <div className="room-skeleton-block room-skeleton-line" />
-            <div className="room-skeleton-block room-skeleton-line room-skeleton-line--short" />
+            <div className="room-skeleton-line room-skeleton-line--title room-skeleton-block" />
+            <div className="room-skeleton-line room-skeleton-block" style={{ width: '40%' }} />
+            <div className="room-skeleton-line room-skeleton-block" style={{ width: '30%', marginTop: '1rem' }} />
           </div>
-        </section>
-
-        <section className="card room-sections">
-          <div className="room-skeleton-block room-skeleton-line room-skeleton-line--title" />
-          <div className="room-skeleton-block room-skeleton-line" />
-          <div className="room-skeleton-block room-skeleton-line" />
         </section>
       </div>
     );

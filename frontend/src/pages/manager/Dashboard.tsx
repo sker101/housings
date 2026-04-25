@@ -20,7 +20,7 @@ function KpiCard({ label, value, sub, accent }: { label: string; value: string; 
   return (
     <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '1rem' }}>
       <p style={{ fontSize: '0.73rem', fontWeight: 600, color: 'var(--mid)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</p>
-      <p style={{ fontFamily: "'Syne', sans-serif", fontSize: '1.65rem', fontWeight: 800, color: accent ?? 'var(--ink)', lineHeight: 1.15, margin: '0.25rem 0 0' }}>{value}</p>
+      <p style={{ fontFamily: " sans-serif", fontSize: '1.65rem', fontWeight: 800, color: accent ?? 'var(--ink)', lineHeight: 1.15, margin: '0.25rem 0 0' }}>{value}</p>
       {sub && <p style={{ fontSize: '0.76rem', color: 'var(--mid)', marginTop: '0.15rem' }}>{sub}</p>}
     </div>
   );
@@ -67,7 +67,7 @@ export default function DalaliDashboard() {
   return (
     <>
       <div style={{ marginBottom: '1.25rem' }}>
-        <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: '1.3rem' }}>
+        <h2 style={{ fontFamily: " sans-serif", fontSize: '1.3rem' }}>
           {user?.fullName?.split(' ')[0] ?? 'Hi'}'s Broker Hub
         </h2>
         <p style={{ color: 'var(--mid)', fontSize: '0.88rem' }}>Manage your properties, commissions and subscription.</p>
@@ -82,7 +82,7 @@ export default function DalaliDashboard() {
 
       <div style={{ display: 'grid', gap: '1.25rem' }}>
         <section>
-          <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: '1rem', marginBottom: '0.75rem' }}>Subscription</h3>
+          <h3 style={{ fontFamily: " sans-serif", fontSize: '1rem', marginBottom: '0.75rem' }}>Subscription</h3>
           {subLoading ? <SkeletonCard variant="kpi" count={1} /> : (
             <div style={{
               background: subscription ? 'linear-gradient(135deg, #1a1200, #2d2000)' : 'var(--surface)',
@@ -124,7 +124,7 @@ export default function DalaliDashboard() {
 
         <section>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-            <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: '1rem' }}>Inquiry Inbox</h3>
+            <h3 style={{ fontFamily: " sans-serif", fontSize: '1rem' }}>Inquiry Inbox</h3>
             <Link to="/dalali/inquiries" style={{ fontSize: '0.82rem', color: 'var(--amber)', fontWeight: 600 }}>All →</Link>
           </div>
           {inqLoading ? <div style={{ display: 'grid', gap: '0.6rem' }}><SkeletonCard variant="row" count={3} /></div>
@@ -142,7 +142,7 @@ export default function DalaliDashboard() {
         </section>
 
         <section>
-          <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: '1rem', marginBottom: '0.75rem' }}>Recent Activity</h3>
+          <h3 style={{ fontFamily: " sans-serif", fontSize: '1rem', marginBottom: '0.75rem' }}>Recent Activity</h3>
           {actLoading ? <div style={{ display: 'grid', gap: '0.6rem' }}><SkeletonCard variant="activity" count={4} /></div>
           : events.length === 0 ? (
             <p style={{ color: 'var(--mid)', fontSize: '0.86rem' }}>No activity recorded yet.</p>

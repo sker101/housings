@@ -31,14 +31,13 @@ export default function ListingCard({ listing }: {
   const hasServiceCharge = serviceCharge > 0;
 
   return (
-    <Link to={`/rooms/${listing.id}`} className="listing-card" style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}>
-      <div className="listing-card__image-wrap" style={{ position: 'relative', width: '100%', aspectRatio: '4/3', borderRadius: '12px', overflow: 'hidden', marginBottom: '0.75rem' }}>
+    <Link to={`/rooms/${listing.id}`} className="listing-card">
+      <div className="listing-card__image-wrap">
         <img
           className="listing-card__image"
           src={listing.imageUrl}
           alt={listing.title}
           loading="lazy"
-          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
         />
         {listing.verified ? <VerifiedBadge /> : null}
 
@@ -55,19 +54,15 @@ export default function ListingCard({ listing }: {
         )}
       </div>
 
-      <div className="listing-card__content" style={{ padding: '0 0.25rem' }}>
-        <h3 style={{ margin: '0 0 0.2rem', fontSize: '1rem', fontWeight: 600, color: '#1a1a2e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {listing.title}
-        </h3>
-        <p className="listing-card__address" style={{ margin: '0 0 0.3rem', fontSize: '0.85rem', color: '#6b6b5a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {listing.location}
-        </p>
+      <div className="listing-card__content">
+        <h3>{listing.title}</h3>
+        <p className="listing-card__address">{listing.location}</p>
 
-        <div style={{ marginTop: '0.4rem', display: 'flex', alignItems: 'baseline', gap: '0.3rem' }}>
-          <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#1a1a2e' }}>
+        <div className="listing-card__price-row" style={{ display: 'flex', alignItems: 'baseline', gap: '0.3rem', marginTop: '0.2rem' }}>
+          <span style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--brand)' }}>
             {formatTZS(hasServiceCharge ? monthlyTotal : baseRent)}
           </span>
-          <span style={{ fontSize: '0.85rem', color: '#1a1a2e' }}>/ month</span>
+          <span style={{ fontSize: '0.8rem', color: 'var(--mid)', fontWeight: 500 }}>/ month</span>
         </div>
       </div>
     </Link>

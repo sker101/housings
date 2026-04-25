@@ -24,7 +24,7 @@ export default function DalaliProperties() {
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
         <div>
-          <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: '1.3rem' }}>My Properties</h2>
+          <h2 style={{ fontFamily: " sans-serif", fontSize: '1.3rem' }}>My Properties</h2>
           <p style={{ color: 'var(--mid)', fontSize: '0.86rem' }}>All listings you manage as a broker.</p>
         </div>
         <Link to="/manager/properties/new" className="btn btn--small">+ Add Property</Link>
@@ -43,7 +43,7 @@ export default function DalaliProperties() {
         <div style={{ display: 'grid', gap: '1.5rem' }}>
           {STATUS_ORDER.filter((s) => grouped[s].length > 0).map((status) => (
             <section key={status}>
-              <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: '0.95rem', marginBottom: '0.6rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <h3 style={{ fontFamily: " sans-serif", fontSize: '0.95rem', marginBottom: '0.6rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <StatusPill variant={status} size="sm" />
                 <span style={{ color: 'var(--mid)', fontWeight: 400 }}>({grouped[status].length})</span>
               </h3>

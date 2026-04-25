@@ -39,6 +39,8 @@ type Listing = {
   house_rules?: string[];
   amenities?: string[];
   lister_id?: string;
+  imageUrl?: string;
+  photos: any[];
 };
 
 type Profile = {

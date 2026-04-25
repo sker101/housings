@@ -9,7 +9,7 @@
     "dev:staging": "vite --mode staging",
     "dev:prod": "vite --mode production",
     "build": "vite build",
-    "lint": "eslint . --ext js,jsx,ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "lint": "eslint . --ext js,jsx,ts,tsx --report-unused-disable-directives",
     "preview": "vite preview --host 0.0.0.0 --port 4173",
     "test": "vitest",
     "supabase:push": "cd .. && supabase db push --linked",

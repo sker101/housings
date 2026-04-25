@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { selectRows, updateRows } from '../lib/supabase';
+import { mapListingRow } from '../lib/listings';
 import { SkeletonCard } from '../components/SkeletonCard';
 import { formatDate, TZSFormat } from '../utils/format';
 import toast from 'react-hot-toast';
@@ -13,23 +14,22 @@ import toast from 'react-hot-toast';
 type StatusTab = 'all' | 'approved' | 'pending' | 'flagged' | 'rejected' | 'removed';
 
 const STATUS_TABS: { key: StatusTab; label: string; icon: React.ReactNode }[] = [
-  { key: 'all',      label: 'All',      icon: <LayoutList size={14} /> },
-  { key: 'approved', label: 'Live',     icon: <BadgeCheck size={14} /> },
-  { key: 'pending',  label: 'Pending',  icon: <Clock size={14} /> },
-  { key: 'flagged',  label: 'Flagged',  icon: <Flag size={14} /> },
+  { key: 'all', label: 'All', icon: <LayoutList size={14} /> },
+  { key: 'approved', label: 'Live', icon: <BadgeCheck size={14} /> },
+  { key: 'pending', label: 'Pending', icon: <Clock size={14} /> },
+  { key: 'flagged', label: 'Flagged', icon: <Flag size={14} /> },
   { key: 'rejected', label: 'Rejected', icon: <XCircle size={14} /> },
-  { key: 'removed',  label: 'Removed',  icon: <Trash2 size={14} /> },
+  { key: 'removed', label: 'Removed', icon: <Trash2 size={14} /> },
 ];
 
 interface Listing {
   id: string;
-  property_id: string;
   title: string;
   region: string;
   district: string;
   ward: string;
   street: string;
-  price_monthly: number;
+  price_tzs: number;
   status: string;
   room_type: string;
   lister_id: string;
@@ -38,7 +38,7 @@ interface Listing {
   lister_role?: string;
   rejection_reason?: string;
   created_at: string;
-  views?: number;
+  view_count?: number;
 }
 
 export default function AdminListingsPage() {
@@ -59,7 +59,7 @@ export default function AdminListingsPage() {
     setLoading(true);
     try {
       const rows = await selectRows('listings', {
-        select: 'id,property_id,title,region,district,ward,street,price_monthly,status,room_type,lister_id,rejection_reason,created_at,views',
+        select: '*',
         order: 'created_at.desc',
         limit: 300,
         accessToken: token,
@@ -79,14 +79,17 @@ export default function AdminListingsPage() {
         } catch { /* non-fatal */ }
       }
 
-      const enriched = (rows as any[]).map((r) => ({
-        ...r,
-        lister_name: profileMap[r.lister_id]?.full_name || '—',
-        lister_phone: profileMap[r.lister_id]?.phone || '—',
-        lister_role: profileMap[r.lister_id]?.role || '—',
-      }));
+      const enriched = (rows as any[]).map((r) => {
+        const mapped = mapListingRow(r);
+        return {
+          ...mapped,
+          lister_name: profileMap[mapped.listerId]?.full_name || '—',
+          lister_phone: profileMap[mapped.listerId]?.phone || '—',
+          lister_role: profileMap[mapped.listerId]?.role || '—',
+        };
+      });
 
-      setListings(enriched);
+      setListings(enriched as any);
     } catch (err: any) {
       toast.error(err.message || 'Failed to load listings');
     } finally {
@@ -112,14 +115,23 @@ export default function AdminListingsPage() {
     setListings((prev) => prev.map((l) => l.id === id ? { ...l, status: newStatus } : l));
 
     try {
-      await updateRows('listings', {
+      const response = await updateRows('listings', {
         status: newStatus,
         ...(reason ? { rejection_reason: reason } : {}),
       }, {
         filters: [{ column: 'id', op: 'eq', value: id }],
         accessToken: token,
       });
+      
+      console.log('[Admin] Moderation response:', response);
+      
+      if (Array.isArray(response) && response.length === 0) {
+        console.warn('[Admin] No rows were updated. Check if the ID is correct or if RLS is blocking the update.');
+        throw new Error('Update failed: No changes were saved. This might be a permission issue.');
+      }
+
       toast.success(`Listing ${action}d successfully`);
+      await loadListings(); // Ensure full sync after update
     } catch (err: any) {
       toast.error(err.message || 'Action failed');
       await loadListings(); // revert by reloading
@@ -148,12 +160,12 @@ export default function AdminListingsPage() {
 
   // ── Counts + filter ───────────────────────────────────────────
   const counts: Record<StatusTab, number> = {
-    all:      listings.length,
+    all: listings.length,
     approved: listings.filter((l) => l.status === 'approved').length,
-    pending:  listings.filter((l) => l.status === 'pending').length,
-    flagged:  listings.filter((l) => l.status === 'flagged').length,
+    pending: listings.filter((l) => l.status === 'pending').length,
+    flagged: listings.filter((l) => l.status === 'flagged').length,
     rejected: listings.filter((l) => l.status === 'rejected').length,
-    removed:  listings.filter((l) => l.status === 'removed').length,
+    removed: listings.filter((l) => l.status === 'removed').length,
   };
 
   const filtered = listings.filter((l) => {
@@ -169,8 +181,8 @@ export default function AdminListingsPage() {
 
   const accentFor = (status: string) => {
     if (status === 'approved') return 'var(--jade)';
-    if (status === 'pending')  return 'var(--amber)';
-    if (status === 'flagged')  return '#e67e22';
+    if (status === 'pending') return 'var(--amber)';
+    if (status === 'flagged') return '#e67e22';
     if (status === 'rejected') return 'var(--red)';
     return 'var(--mid)';
   };
@@ -179,7 +191,7 @@ export default function AdminListingsPage() {
     <>
       {/* Title */}
       <div style={{ marginBottom: '1rem' }}>
-        <h2 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: '1.2rem', margin: 0 }}>
+        <h2 style={{ fontFamily: " sans-serif", fontWeight: 800, fontSize: '1.2rem', margin: 0 }}>
           All Listings
         </h2>
         <p style={{ color: 'var(--mid)', fontSize: '0.84rem', marginTop: '0.2rem' }}>
@@ -256,19 +268,19 @@ export default function AdminListingsPage() {
                 <tr key={l.id} style={{ borderTop: i > 0 ? '1px solid var(--border)' : 'none', opacity: busyId === l.id ? 0.5 : 1 }}>
                   <td style={{ padding: '0.6rem 0.75rem', fontWeight: 600, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.title}</td>
                   <td style={{ padding: '0.6rem 0.75rem', color: 'var(--mid)', whiteSpace: 'nowrap' }}>{[l.ward, l.district].filter(Boolean).join(', ')}</td>
-                  <td style={{ padding: '0.6rem 0.75rem', whiteSpace: 'nowrap', color: 'var(--jade)', fontWeight: 600 }}>{TZSFormat(l.price_monthly)}/mo</td>
+                  <td style={{ padding: '0.6rem 0.75rem', whiteSpace: 'nowrap', color: 'var(--jade)', fontWeight: 600 }}>{TZSFormat(l.price_tzs)}/mo</td>
                   <td style={{ padding: '0.6rem 0.75rem', color: 'var(--mid)' }}>{l.room_type || '—'}</td>
                   <td style={{ padding: '0.6rem 0.75rem' }}>
                     <p style={{ fontWeight: 600, fontSize: '0.81rem' }}>{l.lister_name}</p>
                     <p style={{ color: 'var(--mid)', fontSize: '0.76rem' }}>{l.lister_phone}</p>
                   </td>
                   <td style={{ padding: '0.6rem 0.75rem' }}>
-                    <span style={{ 
-                      padding: '0.15rem 0.45rem', 
-                      background: l.lister_role === 'property_manager' ? '#f5f3ff' : '#eff6ff', 
-                      color: l.lister_role === 'property_manager' ? '#7c3aed' : '#3b82f6', 
-                      borderRadius: 6, 
-                      fontSize: '0.72rem', 
+                    <span style={{
+                      padding: '0.15rem 0.45rem',
+                      background: l.lister_role === 'property_manager' ? '#f5f3ff' : '#eff6ff',
+                      color: l.lister_role === 'property_manager' ? '#7c3aed' : '#3b82f6',
+                      borderRadius: 6,
+                      fontSize: '0.72rem',
                       fontWeight: 700,
                       whiteSpace: 'nowrap'
                     }}>
@@ -341,7 +353,7 @@ export default function AdminListingsPage() {
             maxHeight: '80vh', overflow: 'auto', padding: '1.5rem',
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h3 style={{ margin: 0, fontFamily: "'Syne', sans-serif", fontSize: '1rem' }}>Listing Inspection</h3>
+              <h3 style={{ margin: 0, fontFamily: " sans-serif", fontSize: '1rem' }}>Listing Inspection</h3>
               <button onClick={() => setInspectListing(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--mid)', fontSize: '1.2rem' }}>✕</button>
             </div>
 
