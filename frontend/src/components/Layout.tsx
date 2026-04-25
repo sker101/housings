@@ -568,16 +568,16 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
                 </div>
               )}
 
-              {/* Show search/map on homepage or when authenticated, hide on auth pages */}
+              {/* Show search modal button and map toggle when appropriate */}
               {(isHomePage || isAuthenticated) && (
                 <>
-                  {isHomePage ? (
+                  <button type="button" className="topbar-action-btn" onClick={() => setIsSearchModalOpen(true)} title="Search Listings">
+                    <Search size={18} />
+                  </button>
+                  
+                  {isHomePage && (
                     <button type="button" className="topbar-action-btn" onClick={toggleHomePageView} title="Toggle View">
-                      {homeViewMode === 'map' ? <LayoutGrid size={18} /> : (isAuthenticated ? <Search size={18} /> : <Map size={18} />)}
-                    </button>
-                  ) : (
-                    <button type="button" className="topbar-action-btn" onClick={() => setIsSearchModalOpen(true)} title="Search Listings">
-                      <Search size={18} />
+                      {homeViewMode === 'map' ? <LayoutGrid size={18} /> : <Map size={18} />}
                     </button>
                   )}
                 </>
