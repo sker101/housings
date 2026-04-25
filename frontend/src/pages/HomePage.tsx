@@ -564,21 +564,51 @@ export default function HomePage() {
       <section className="room-grid-section" ref={resultsRef}>
         <div className="room-grid-section__inner">
           {error && <div className="error-box">{error}</div>}
-          {loading ? (
-            <div className="room-grid">
-              {[...Array(8)].map((_, i) => (
-                <div key={i} className="room-skeleton"><div className="room-skeleton__image" /></div>
-              ))}
+          
+          {viewMode === 'map' ? (
+            <div style={{ position: 'relative', width: '100%', height: 'calc(100vh - 220px)', borderRadius: '24px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: 'var(--shadow-soft)' }}>
+              <MapboxListingMap 
+                rooms={filteredListings.filter(l => l.lat && l.lng).map(l => ({
+                  id: l.id,
+                  latitude: Number(l.lat),
+                  longitude: Number(l.lng),
+                  title: l.title,
+                  price_tzs: Number(l.priceMonthly || 0),
+                  availability_status: l.vacancyStatus === 'available' ? 'available' : 
+                                      (l.vacancyStatus === 'available_soon' || l.vacancyStatus === 'listed_occupied' ? 'available_soon' : 'available'),
+                  ward: l.ward
+                }))}
+                searchWard={searchQuery}
+                height="100%"
+                onRoomClick={(roomId) => navigate(`/rooms/${roomId}`)}
+              />
             </div>
           ) : (
             <>
-              {availableListings.length > 0 && (
-                <div className="room-grid">{availableListings.map(renderListingCard)}</div>
-              )}
-              {comingSoonListings.length > 0 && (
+              {loading ? (
+                <div className="room-grid">
+                  {[...Array(8)].map((_, i) => (
+                    <div key={i} className="room-skeleton"><div className="room-skeleton__image" /></div>
+                  ))}
+                </div>
+              ) : (
                 <>
-                  <h3 style={{ marginTop: '2rem' }}>Coming Soon</h3>
-                  <div className="room-grid">{comingSoonListings.map(renderListingCard)}</div>
+                  {availableListings.length > 0 && (
+                    <div className="room-grid">{availableListings.map(renderListingCard)}</div>
+                  )}
+                  {comingSoonListings.length > 0 && (
+                    <>
+                      <h3 style={{ marginTop: '2rem' }}>Coming Soon</h3>
+                      <div className="room-grid">{comingSoonListings.map(renderListingCard)}</div>
+                    </>
+                  )}
+                  {filteredListings.length === 0 && !loading && (
+                    <div className="empty-state" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+                      <SearchX size={48} style={{ color: 'var(--mid)', marginBottom: '1rem' }} />
+                      <h3 style={{ fontSize: '1.25rem', color: 'var(--ink)' }}>No results found</h3>
+                      <p style={{ color: 'var(--mid)' }}>Try adjusting your filters or search query</p>
+                    </div>
+                  )}
                 </>
               )}
             </>

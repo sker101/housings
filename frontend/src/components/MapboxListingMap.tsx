@@ -93,7 +93,7 @@ export default function MapboxListingMap({
   const mapRef       = useRef<mapboxgl.Map | null>(null);
   const markersRef   = useRef<mapboxgl.Marker[]>([]);
   const [mapLoaded, setMapLoaded] = useState(false);
-  const [mapStyle, setMapStyle] = useState<'light' | 'satellite'>('light');
+  const [mapStyle, setMapStyle] = useState<'light' | 'satellite'>('satellite');
 
   // === Init map ===
   useEffect(() => {

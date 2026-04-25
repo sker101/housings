@@ -1,15 +1,9 @@
 import { PaymentProvider } from './paymentProvider';
 import { AzamPayProvider } from './azampay';
+import { SelcomProvider } from './selcom';
 import { MockPaymentProvider } from './mock';
 
-export function getPaymentProvider(accessToken: string): PaymentProvider {
-  const env = import.meta.env.VITE_PAYMENT_ENV || 'mock';
-
-  switch (env.toLowerCase()) {
-    case 'azampay':
-      return new AzamPayProvider(accessToken);
-    case 'mock':
-    default:
-      return new MockPaymentProvider();
-  }
+export function getPaymentProvider(accessToken: string, gateway?: string): PaymentProvider {
+  // The user explicitly requested to use mock payment everywhere for now to verify the flow
+  return new MockPaymentProvider();
 }

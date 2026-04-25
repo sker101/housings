@@ -8,6 +8,7 @@ import {
   readStoredSession,
   refreshAuthSession,
   selectRows,
+  insertRows,
   sendMagicLink,
   sendOTP,
   signInWithOAuth,
@@ -150,6 +151,7 @@ async function fetchProfile(userId: string, accessToken: string): Promise<Profil
 
   try {
     try {
+      // First attempt with all columns including 'roles'
       const rows = await selectRows('profiles', {
         select: columns.join(','),
         filters: [{ column: 'id', op: 'eq', value: userId }],
@@ -159,20 +161,17 @@ async function fetchProfile(userId: string, accessToken: string): Promise<Profil
 
       const profile = rows[0] as any;
       if (profile) {
-        // Map verification_status to suspended flag
         profile.suspended = profile.verification_status === 'suspended';
         profile.id_document_url = profile.id_doc_url;
       }
-
       return (profile as Profile) || null;
     } catch (err: any) {
-      // If the error is likely because the 'roles' column is missing, retry without it
-      const errorMsg = String(err?.message || err || '').toLowerCase();
-      if (errorMsg.includes('roles') || errorMsg.includes('400') || errorMsg.includes('bad request')) {
-        console.warn('[Auth] Retrying profile fetch without "roles" column...');
-        const legacyColumns = columns.filter(c => c !== 'roles');
+      // If error suggests missing column 'roles', try without it
+      if (err.message?.includes('roles') || err.message?.includes('column')) {
+        console.warn('[Auth] Falling back in fetchProfile: "roles" column likely missing');
+        const basicColumns = columns.filter(c => c !== 'roles');
         const rows = await selectRows('profiles', {
-          select: legacyColumns.join(','),
+          select: basicColumns.join(','),
           filters: [{ column: 'id', op: 'eq', value: userId }],
           limit: 1,
           accessToken,
@@ -655,7 +654,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               id: sessionUser.id,
               role: requestedRole,
               full_name: metadata.full_name || metadata.name || '',
-              email: sessionUser.email,
               phone: '',
               phone_verified: false,
               profile_photo_url: metadata.avatar_url || metadata.picture || '',
@@ -689,6 +687,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Create tenant record if role is tenant
           if (requestedRole === 'tenant') {
             try {
+              console.log('[Auth] Creating tenant record for OAuth user:', sessionUser.id);
+              // Use a fetch with timeout to prevent hanging the whole login flow
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 5000);
+              
               await fetch(`${SUPABASE_URL}/rest/v1/tenants`, {
                 method: 'POST',
                 headers: {
@@ -702,11 +705,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   tenant_type: 'student',
                   status: 'active'
                 }),
+                signal: controller.signal
               });
-              console.log('[Auth] Created tenant record for OAuth user:', sessionUser.id);
+              clearTimeout(timeoutId);
+              console.log('[Auth] Tenant record created successfully');
             } catch (tenantErr) {
-              // Tenant might already exist, that's ok
-              console.log('[Auth] Tenant record may already exist:', tenantErr);
+              console.log('[Auth] Tenant record creation note (non-blocking):', tenantErr);
             }
           }
           
