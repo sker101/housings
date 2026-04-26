@@ -192,7 +192,7 @@ export default function AdminLandlordsPage() {
     setActionLoading(id);
     try {
       const profile = allProfiles.find(p => p.id === id);
-      await updateRows('profiles', { verification_status: 'verified' }, {
+      await updateRows('profiles', { verification_status: 'verified', is_verified: true }, {
         filters: [{ column: 'id', op: 'eq', value: id }],
         accessToken: token
       });
