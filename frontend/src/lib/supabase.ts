@@ -671,12 +671,18 @@ export async function updateRows(table: string, payload: unknown, options: RowOp
   const searchParams = new URLSearchParams();
   applyFilters(searchParams, options.filters || []);
 
-  return request(`/rest/v1/${table}?${searchParams.toString()}`, {
+  const result = await request(`/rest/v1/${table}?${searchParams.toString()}`, {
     method: 'PATCH',
     accessToken: options.accessToken,
     body: payload,
-    prefer: options.prefer || 'return=representation'
+    prefer: 'return=representation'
   });
+
+  if (Array.isArray(result) && result.length === 0) {
+    throw new Error(`No ${table} record was updated. This usually means you don't have permission (RLS) or the record ID is incorrect.`);
+  }
+
+  return result;
 }
 
 export async function deleteRows(table: string, options: RowOptions = {}) {
