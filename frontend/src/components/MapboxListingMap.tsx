@@ -231,50 +231,51 @@ export default function MapboxListingMap({
     return () => window.removeEventListener('irent:room-click', handler);
   }, [onRoomClick]);
 
+  // Cycle through styles
+  const toggleStyle = () => {
+    const sequence: ('satellite' | 'streets' | 'light')[] = ['satellite', 'streets', 'light'];
+    const currentIndex = sequence.indexOf(mapStyle);
+    const nextIndex = (currentIndex + 1) % sequence.length;
+    setMapStyle(sequence[nextIndex]);
+  };
+
+  const getStyleLabel = () => {
+    if (mapStyle === 'satellite') return '🛰️ Satellite';
+    if (mapStyle === 'streets') return '🛣️ Streets';
+    return '⚪ Light';
+  };
+
   return (
     <div style={{ position: 'relative', height, width: '100%' }}>
-      {/* Map Style Switcher */}
-      <div style={{
-        position: 'absolute',
-        top: '12px',
-        left: '12px',
-        zIndex: 5,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '4px',
-        background: 'rgba(255, 255, 255, 0.9)',
-        padding: '4px',
-        borderRadius: '10px',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-        backdropFilter: 'blur(8px)',
-        border: '1px solid rgba(255,255,255,0.3)'
-      }}>
-        {[
-          { id: 'satellite', label: '🛰️ Satellite', style: 'mapbox://styles/mapbox/satellite-v9' },
-          { id: 'streets', label: '🛣️ Streets', style: 'mapbox://styles/mapbox/streets-v12' },
-          { id: 'light', label: '⚪ Light', style: 'mapbox://styles/mapbox/light-v11' }
-        ].map((style) => (
-          <button
-            key={style.id}
-            onClick={() => setMapStyle(style.id as any)}
-            style={{
-              padding: '6px 12px',
-              border: 'none',
-              borderRadius: '6px',
-              fontSize: '11px',
-              fontWeight: '700',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              textAlign: 'left',
-              transition: 'all 0.2s',
-              background: mapStyle === style.id ? '#1D9E75' : 'transparent',
-              color: mapStyle === style.id ? 'white' : '#1A1A2E',
-            }}
-          >
-            {style.label}
-          </button>
-        ))}
-      </div>
+      {/* Magic Toggle Button */}
+      <button
+        onClick={toggleStyle}
+        style={{
+          position: 'absolute',
+          top: '12px',
+          left: '12px',
+          zIndex: 5,
+          padding: '8px 16px',
+          background: 'rgba(255, 255, 255, 0.95)',
+          color: '#1A1A2E',
+          border: '1px solid rgba(0,0,0,0.1)',
+          borderRadius: '12px',
+          fontSize: '13px',
+          fontWeight: '700',
+          cursor: 'pointer',
+          boxShadow: '0 4px 15px rgba(0,0,0,0.15)',
+          backdropFilter: 'blur(10px)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          transition: 'all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.background = '#fff'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.background = 'rgba(255, 255, 255, 0.95)'; }}
+      >
+        <MapIcon size={18} />
+        {getStyleLabel()}
+      </button>
 
       <div ref={containerRef} style={{ width: '100%', height: '100%', borderRadius: '12px' }} />
 
