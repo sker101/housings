@@ -111,9 +111,9 @@ export default function AdminUsersPage() {
     }
   };
 
-  const handleVerifyId  = (id: string) => optimisticUpdate(id, { verification_status: 'verified', is_verified: true } as any,  'verify_id',  'ID verified');
-  const handleSuspend   = (id: string) => optimisticUpdate(id, { verification_status: 'suspended' } as any,    'suspend',    'Account suspended');
-  const handleUnsuspend = (id: string) => optimisticUpdate(id, { verification_status: 'unverified', is_verified: false } as any,   'unsuspend',  'Account reinstated');
+  const handleVerifyId  = (id: string) => optimisticUpdate(id, { verification_status: 'verified', is_verified: true, is_suspended: false } as any,  'verify_id',  'ID verified');
+  const handleSuspend   = (id: string) => optimisticUpdate(id, { verification_status: 'suspended', is_suspended: true, is_verified: false } as any,    'suspend',    'Account suspended');
+  const handleUnsuspend = (id: string) => optimisticUpdate(id, { verification_status: 'unverified', is_suspended: false, is_verified: false } as any,   'unsuspend',  'Account reinstated');
   // ── Filtering ────────────────────────────────────────────────
   const counts: Record<RoleTab, number> = {
     all:              profiles.length,

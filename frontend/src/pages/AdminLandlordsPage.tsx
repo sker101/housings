@@ -192,7 +192,7 @@ export default function AdminLandlordsPage() {
     setActionLoading(id);
     try {
       const profile = allProfiles.find(p => p.id === id);
-      await updateRows('profiles', { verification_status: 'verified', is_verified: true }, {
+      await updateRows('profiles', { verification_status: 'verified', is_verified: true, is_suspended: false }, {
         filters: [{ column: 'id', op: 'eq', value: id }],
         accessToken: token
       });
@@ -225,7 +225,7 @@ export default function AdminLandlordsPage() {
     setActionLoading(id);
     try {
       const profile = allProfiles.find(p => p.id === id);
-      await updateRows('profiles', { verification_status: 'rejected' }, {
+      await updateRows('profiles', { verification_status: 'rejected', is_verified: false }, {
         filters: [{ column: 'id', op: 'eq', value: id }],
         accessToken: token
       });
