@@ -257,7 +257,7 @@ export default function MyRoomPage() {
         }
       }
 
-      const [listingRows, photoRows, landlordRows, paymentRows] = await Promise.all([
+      const [listingRows, photoRows, paymentRows] = await Promise.all([
         selectRows('listings', {
           select: '*',
           filters: [{ column: 'id', op: 'eq', value: active.listing_id }],
@@ -267,12 +267,6 @@ export default function MyRoomPage() {
           select: 'public_url,angle,position,is_cover,caption',
           filters: [{ column: 'listing_id', op: 'eq', value: active.listing_id }],
           order: 'position.asc',
-          accessToken: token
-        }).catch(() => []),
-        // Get landlord profile directly using landlord_id (which is the profile ID)
-        selectRows('profiles', {
-          select: 'id,full_name,phone,verification_status,role',
-          filters: [{ column: 'id', op: 'eq', value: active.landlord_id }],
           accessToken: token
         }).catch(() => []),
         selectRows('payment_records', {
@@ -299,8 +293,21 @@ export default function MyRoomPage() {
       }
       
       setBooking(active);
-      setLandlord(landlordRows?.[0] || null);
       setPayments(paymentRows || []);
+
+      // FETCH CORRECT LANDLORD/LISTER INFO
+      // We prioritize the lister from the listing record to ensure we show the person who posted it
+      const listerId = listingData?.lister_id || active.landlord_id;
+      if (listerId) {
+        const landlordRows = await selectRows('profiles', {
+          select: 'id,full_name,phone,verification_status,role',
+          filters: [{ column: 'id', op: 'eq', value: listerId }],
+          accessToken: token
+        }).catch(() => []);
+        setLandlord(landlordRows?.[0] || null);
+      } else {
+        setLandlord(null);
+      }
     } catch (err: any) {
       if (isMounted) {
         setError(err.message || 'Failed to load your room');
