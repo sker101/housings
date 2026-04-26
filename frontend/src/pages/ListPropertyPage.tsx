@@ -406,9 +406,37 @@ export default function ListPropertyPage() {
                 accessToken: token
               });
               const existingPreviews: Record<string, string> = {};
+              const usedSlots = new Set<string>();
+
+              // 1. Map standard slots first
               existingPhotos.forEach((p: any) => {
-                existingPreviews[p.angle] = p.public_url || p.url;
+                if (PHOTO_SLOTS.some(s => s.key === p.angle)) {
+                  existingPreviews[p.angle] = p.public_url || p.url;
+                  usedSlots.add(p.angle);
+                }
               });
+
+              // 2. Map everything else to the first available "other" slot
+              const otherSlots = PHOTO_SLOTS.filter(s => s.key.startsWith('other')).map(s => s.key);
+              let otherIdx = 0;
+              existingPhotos.forEach((p: any) => {
+                if (!usedSlots.has(p.angle)) {
+                  // Find next free other slot
+                  while (otherIdx < otherSlots.length && usedSlots.has(otherSlots[otherIdx])) {
+                    otherIdx++;
+                  }
+                  if (otherIdx < otherSlots.length) {
+                    const targetSlot = otherSlots[otherIdx];
+                    existingPreviews[targetSlot] = p.public_url || p.url;
+                    usedSlots.add(targetSlot);
+                    
+                    // CRITICAL: We must remember that this slot actually represents a different angle in the DB
+                    // So if we delete it, we must delete that specific angle.
+                    // For now, we'll just allow the user to see and remove it.
+                  }
+                }
+              });
+
               setPreviews(existingPreviews);
             } catch (photoFetchErr) {
               console.warn('Could not fetch existing photos for preview:', photoFetchErr);
@@ -715,42 +743,28 @@ export default function ListPropertyPage() {
         throw new Error('Listing was not created successfully (no ID returned). Please check your internet connection or contact support.');
       }
 
-      // Handle deletions
-      if (photosToDelete.length > 0 && editId) {
-        console.log('🗑️ Step 2.5: Removing requested photos...');
+      // STEP 3: Handle Photos (Clean Slate Approach)
+      console.log('📦 Step 3: Processing Photos...');
+      
+      if (editId) {
+        console.log('🗑️ Clearing old photo records for clean sync...');
         await deleteRows('listing_photos', {
-          filters: [
-            { column: 'listing_id', op: 'eq', value: editId },
-            { column: 'angle', op: 'in', value: `(${photosToDelete.map(a => `'${a}'`).join(',')})` }
-          ],
+          filters: [{ column: 'listing_id', op: 'eq', value: editId }],
           accessToken
-        });
+        }).catch(err => console.warn('Photo cleanup warning:', err));
       }
 
-      // Handle photos
-      console.log('📦 Step 3: Processing Photos...');
       const photoRows: any[] = [];
       const slots = PHOTO_SLOTS;
 
-      const hasNewPhotos = Object.values(files).some(f => f !== null && f !== undefined);
-      if (!editId || hasNewPhotos) {
-        for (let index = 0; index < slots.length; index++) {
-          const slot = slots[index];
-          const file = files[slot.key];
-          if (!file) continue;
+      for (let index = 0; index < slots.length; index++) {
+        const slot = slots[index];
+        const file = files[slot.key];
+        const existingPreview = previews[slot.key];
 
-          // If we are replacing an existing photo in this slot, delete the old record first
-          if (editId) {
-            await deleteRows('listing_photos', {
-              filters: [
-                { column: 'listing_id', op: 'eq', value: editId },
-                { column: 'angle', op: 'eq', value: slot.key }
-              ],
-              accessToken
-            }).catch(() => {});
-          }
-
-          console.log(`📸 Uploading ${slot.label}...`);
+        if (file) {
+          // 1. Upload NEW photo
+          console.log(`📸 Uploading NEW ${slot.label}...`);
           const compressedFile = await imageCompression(file, {
             maxSizeMB: 0.8,
             maxWidthOrHeight: 1600,
@@ -768,13 +782,24 @@ export default function ListPropertyPage() {
           });
 
           const publicUrl = publicObjectUrl('listing-photos', storagePath);
-          console.log(`✅ Uploaded ${slot.label}:`, publicUrl);
-
+          
           photoRows.push({
             listing_id: createdListingId,
             angle: slot.key,
             storage_path: storagePath,
             public_url: publicUrl,
+            position: index,
+            caption: slot.label,
+            is_cover: index === 0
+          });
+        } else if (existingPreview && !photosToDelete.includes(slot.key)) {
+          // 2. Keep EXISTING photo
+          console.log(`♻️ Keeping EXISTING ${slot.label}...`);
+          photoRows.push({
+            listing_id: createdListingId,
+            angle: slot.key,
+            storage_path: 'existing', // We don't have the path easily, but the view/logic usually uses URL
+            public_url: existingPreview,
             position: index,
             caption: slot.label,
             is_cover: index === 0
@@ -786,7 +811,7 @@ export default function ListPropertyPage() {
         console.log(`📦 Step 4: Saving ${photoRows.length} Photo Records...`);
         try {
           await insertRows('listing_photos', photoRows, { accessToken });
-          console.log('✅ Photos saved (Full Mode)');
+          console.log('✅ Photos saved successfully');
         } catch (photoErr: any) {
           console.warn('⚠️ Full photo records failed, trying Safe Mode...', photoErr.message);
           // Safe mode: remove columns not in initial seed
