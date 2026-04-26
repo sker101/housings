@@ -14,9 +14,13 @@ export default function SmartInstallBanner() {
     
     if (isStandalone) return;
 
-    // 2. Check dismissal
+    // 2. Check dismissal (with bypass for localhost testing)
+    const isLocal = window.location.hostname === 'localhost' || 
+                   window.location.hostname === '127.0.0.1' || 
+                   window.location.hostname.startsWith('192.168.');
+                   
     const lastDismissed = localStorage.getItem('pwa_banner_dismissed');
-    if (lastDismissed) {
+    if (lastDismissed && !isLocal) {
       const daysSince = (Date.now() - parseInt(lastDismissed)) / (1000 * 60 * 60 * 24);
       if (daysSince < 7) return;
     }
@@ -32,16 +36,20 @@ export default function SmartInstallBanner() {
     const handler = (e: any) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      setTimeout(() => setIsVisible(true), 3000);
     };
 
     window.addEventListener('beforeinstallprompt', handler);
 
-    if (isIOS) {
-      setTimeout(() => setIsVisible(true), 4000);
-    }
+    // Guaranteed show after delay for both platforms
+    const showDelay = platform === 'ios' ? 4000 : 3000;
+    const timer = setTimeout(() => {
+      setIsVisible(true);
+    }, showDelay);
 
-    return () => window.removeEventListener('beforeinstallprompt', handler);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+      clearTimeout(timer);
+    };
   }, []);
 
   const handleDismiss = () => {
