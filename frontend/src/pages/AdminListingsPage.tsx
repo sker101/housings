@@ -29,7 +29,7 @@ interface Listing {
   district: string;
   ward: string;
   street: string;
-  price_tzs: number;
+  priceMonthly: number;
   status: string;
   room_type: string;
   lister_id: string;
@@ -350,7 +350,7 @@ export default function AdminListingsPage() {
               <div className="listing-card-meta">
                 <div className="meta-item">
                   <label>Price</label>
-                  <value style={{ color: 'var(--jade)' }}>{TZSFormat(l.price_tzs)}</value>
+                  <value style={{ color: 'var(--jade)' }}>{TZSFormat(l.priceMonthly)}</value>
                 </div>
                 <div className="meta-item">
                   <label>Lister</label>
@@ -403,7 +403,7 @@ export default function AdminListingsPage() {
                 <tr key={l.id} style={{ borderTop: i > 0 ? '1px solid var(--border)' : 'none', opacity: busyId === l.id ? 0.5 : 1 }}>
                   <td style={{ padding: '0.6rem 0.75rem', fontWeight: 600, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.title}</td>
                   <td style={{ padding: '0.6rem 0.75rem', color: 'var(--mid)', whiteSpace: 'nowrap' }}>{[l.ward, l.district].filter(Boolean).join(', ')}</td>
-                  <td style={{ padding: '0.6rem 0.75rem', whiteSpace: 'nowrap', color: 'var(--jade)', fontWeight: 600 }}>{TZSFormat(l.price_tzs)}/mo</td>
+                  <td style={{ padding: '0.6rem 0.75rem', whiteSpace: 'nowrap', color: 'var(--jade)', fontWeight: 600 }}>{TZSFormat(l.priceMonthly)}/mo</td>
                   <td style={{ padding: '0.6rem 0.75rem', color: 'var(--mid)' }}>{l.room_type || '—'}</td>
                   <td style={{ padding: '0.6rem 0.75rem' }}>
                     <p style={{ fontWeight: 600, fontSize: '0.81rem' }}>{l.lister_name}</p>
@@ -516,7 +516,7 @@ export default function AdminListingsPage() {
                     ['Title', inspectListing.title],
                     ['Status', inspectListing.status],
                     ['Type', inspectListing.room_type],
-                    ['Price', `${TZSFormat(inspectListing.price_monthly)}/mo`],
+                    ['Price', `${TZSFormat(inspectListing.priceMonthly)}/mo`],
                     ['Location', [inspectListing.ward, inspectListing.district].filter(Boolean).join(', ')],
                     ['Lister', inspectListing.lister_name],
                     ['Phone', inspectListing.lister_phone],

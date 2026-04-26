@@ -928,7 +928,6 @@ export default function RoomDetailsPage() {
         <div className="rd-price-row">
           <div className="rd-price-main">
             <span className="rd-price-amount">{formatPrice(listing.priceMonthly)}</span>
-            <span className="rd-price-period">/month</span>
           </div>
           {listing.status === 'approved' ? (
             <span className="rd-availability rd-availability--approved">
