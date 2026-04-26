@@ -230,9 +230,10 @@ export default function ListPropertyPage() {
 
   const formValues = watch();
   const [step, setStep] = useState(0);
-  const [files, setFiles] = useState<Record<string, File | null>>(
-    Object.fromEntries(PHOTO_SLOTS.map(p => [p.key, null]))
-  );
+  const [files, setFiles] = useState<Record<string, File | null>>({});
+  const [previews, setPreviews] = useState<Record<string, string | null>>({});
+  const [photosToDelete, setPhotosToDelete] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
   const [editId] = useState<string | null>(() => new URLSearchParams(location.search).get('edit'));
   const [loadingDraft, setLoadingDraft] = useState(true);
   const [savingDraft, setSavingDraft] = useState(false);
@@ -397,6 +398,22 @@ export default function ListPropertyPage() {
               whatsappNumber: row.whatsapp_number || ''
             });
             setSuccess('Listing loaded for editing. Please update and re-submit.');
+            
+            // Fetch existing photos for previews
+            try {
+              const existingPhotos = await selectRows('listing_photos', {
+                filters: [{ column: 'listing_id', op: 'eq', value: editId }],
+                accessToken: token
+              });
+              const existingPreviews: Record<string, string> = {};
+              existingPhotos.forEach((p: any) => {
+                existingPreviews[p.angle] = p.public_url || p.url;
+              });
+              setPreviews(existingPreviews);
+            } catch (photoFetchErr) {
+              console.warn('Could not fetch existing photos for preview:', photoFetchErr);
+            }
+
             setLoadingDraft(false);
             return;
           }
@@ -698,6 +715,18 @@ export default function ListPropertyPage() {
         throw new Error('Listing was not created successfully (no ID returned). Please check your internet connection or contact support.');
       }
 
+      // Handle deletions
+      if (photosToDelete.length > 0 && editId) {
+        console.log('🗑️ Step 2.5: Removing requested photos...');
+        await deleteRows('listing_photos', {
+          filters: [
+            { column: 'listing_id', op: 'eq', value: editId },
+            { column: 'angle', op: 'in', value: `(${photosToDelete.map(a => `'${a}'`).join(',')})` }
+          ],
+          accessToken
+        });
+      }
+
       // Handle photos
       console.log('📦 Step 3: Processing Photos...');
       const photoRows: any[] = [];
@@ -709,6 +738,17 @@ export default function ListPropertyPage() {
           const slot = slots[index];
           const file = files[slot.key];
           if (!file) continue;
+
+          // If we are replacing an existing photo in this slot, delete the old record first
+          if (editId) {
+            await deleteRows('listing_photos', {
+              filters: [
+                { column: 'listing_id', op: 'eq', value: editId },
+                { column: 'angle', op: 'eq', value: slot.key }
+              ],
+              accessToken
+            }).catch(() => {});
+          }
 
           console.log(`📸 Uploading ${slot.label}...`);
           const compressedFile = await imageCompression(file, {
@@ -1248,26 +1288,78 @@ export default function ListPropertyPage() {
 
               {PHOTO_SLOTS.map((slot) => (
                 <div key={slot.key} style={{
-                  border: files[slot.key] ? '2px solid #1D9E75' : '2px dashed #E5E5E0',
+                  border: (files[slot.key] || previews[slot.key]) ? '2px solid #1D9E75' : '2px dashed #E5E5E0',
                   borderRadius: '10px',
                   padding: '1rem',
                   textAlign: 'center',
                   cursor: 'pointer',
-                  transition: 'all 0.2s'
+                  transition: 'all 0.2s',
+                  position: 'relative'
                 }}>
+                  {(files[slot.key] || previews[slot.key]) && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setFiles(prev => ({ ...prev, [slot.key]: null }));
+                        setPreviews(prev => ({ ...prev, [slot.key]: null }));
+                        if (editId) setPhotosToDelete(prev => [...prev, slot.key]);
+                      }}
+                      style={{
+                        position: 'absolute',
+                        top: '5px',
+                        right: '5px',
+                        background: '#E74C3C',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '50%',
+                        width: '24px',
+                        height: '24px',
+                        cursor: 'pointer',
+                        zIndex: 10,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '12px'
+                      }}
+                    >
+                      ✕
+                    </button>
+                  )}
                   <label style={{ cursor: 'pointer', display: 'block' }}>
                     <div style={{ fontSize: '0.9rem', fontWeight: '600', marginBottom: '0.3rem' }}>
                       {slot.label} {slot.required && '*'}
                     </div>
+                    
+                    {previews[slot.key] ? (
+                      <div style={{ marginBottom: '0.5rem' }}>
+                        <img 
+                          src={previews[slot.key]!} 
+                          alt={slot.label} 
+                          style={{ width: '80px', height: '60px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #E5E5E0' }} 
+                        />
+                      </div>
+                    ) : null}
+
                     {files[slot.key] ? (
                       <div style={{ color: '#1D9E75', fontSize: '0.85rem' }}>✓ {files[slot.key]?.name}</div>
+                    ) : previews[slot.key] ? (
+                      <div style={{ color: '#1D9E75', fontSize: '0.85rem' }}>Current Photo</div>
                     ) : (
                       <div style={{ color: '#6B6B5A', fontSize: '0.85rem' }}>Click to upload</div>
                     )}
                     <input
                       type="file"
                       accept="image/jpeg,image/png,image/webp"
-                      onChange={(e) => setFiles(prev => ({ ...prev, [slot.key]: e.target.files?.[0] || null }))}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null;
+                        setFiles(prev => ({ ...prev, [slot.key]: file }));
+                        if (file) {
+                          setPreviews(prev => ({ ...prev, [slot.key]: URL.createObjectURL(file) }));
+                          setPhotosToDelete(prev => prev.filter(a => a !== slot.key));
+                        }
+                      }}
                       style={{ display: 'none' }}
                     />
                   </label>
