@@ -26,8 +26,8 @@ BEGIN
             SELECT 
                 (SELECT id FROM public.landlords WHERE profile_id = l.lister_id LIMIT 1),
                 l.title, l.description, l.street, l.ward, l.region, 
-                CASE WHEN l.lat IS NULL OR l.lat = '' THEN 0 ELSE l.lat::numeric END, 
-                CASE WHEN l.lng IS NULL OR l.lng = '' THEN 0 ELSE l.lng::numeric END,
+                CASE WHEN l.lat IS NULL OR TRIM(l.lat::text) = '' THEN 0 ELSE l.lat::text::numeric END, 
+                CASE WHEN l.lng IS NULL OR TRIM(l.lng::text) = '' THEN 0 ELSE l.lng::text::numeric END,
                 CASE WHEN l.status = 'approved' THEN 'active' ELSE 'inactive' END,
                 CASE WHEN l.status = 'approved' THEN 'verified' ELSE 'unverified' END,
                 l.created_at::timestamptz
@@ -48,10 +48,10 @@ BEGIN
                 WHEN l.room_type NOT IN ('single','double','self_contained','shared','bedsitter') THEN 'single'
                 ELSE l.room_type 
             END,
-            CASE WHEN l.price_monthly IS NULL OR l.price_monthly = '' THEN 0 ELSE l.price_monthly::int END,
+            CASE WHEN l.price_monthly IS NULL OR TRIM(l.price_monthly::text) = '' THEN 0 ELSE l.price_monthly::text::int END,
             CASE WHEN l.vacancy_status = 'coming_soon' THEN 'available_soon' ELSE l.vacancy_status END,
             (l.vacancy_status = 'available'),
-            CASE WHEN l.amenities IS NULL OR l.amenities = '' THEN '{}'::jsonb ELSE l.amenities::jsonb END,
+            CASE WHEN l.amenities IS NULL OR TRIM(l.amenities::text) = '' THEN '{}'::jsonb ELSE l.amenities::jsonb END,
             l.created_at::timestamptz
         FROM public.listings l
         JOIN property_map m ON l.id = m.old_listing_id
