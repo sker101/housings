@@ -1033,17 +1033,7 @@ export default function RoomDetailsPage() {
           )}
         </section>
 
-        {/* Related Listings Section */}
-        {relatedListings.length > 0 && (
-          <section className="rd-section" style={{ marginTop: '2rem' }}>
-            <h3 className="rd-section-title">Related Rooms</h3>
-            <div className="listing-grid">
-              {relatedListings.map((rel) => (
-                <ListingCard key={rel.id} listing={rel} />
-              ))}
-            </div>
-          </section>
-        )}
+        </section>
       </div>
 
       <div className="rd-right-col">
@@ -1368,6 +1358,23 @@ export default function RoomDetailsPage() {
             <button onClick={() => setOpenInquiry(false)} className="rd-btn rd-btn--primary" style={{ width: '100%', padding: '1rem' }}>Close</button>
           </div>
         </div>
+      )}
+
+      {/* ── Related Listings Section (Moved to Bottom) ─────────────────────────────── */}
+      {relatedListings.length > 0 && (
+        <section className="rd-section" style={{ 
+          marginTop: '4rem', 
+          padding: '0 1rem',
+          maxWidth: '1200px',
+          margin: '4rem auto 0'
+        }}>
+          <h3 className="rd-section-title" style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e293b', marginBottom: '1.5rem' }}>Related Rooms</h3>
+          <div className="listing-grid">
+            {relatedListings.map((rel) => (
+              <ListingCard key={rel.id} listing={rel} />
+            ))}
+          </div>
+        </section>
       )}
     </div>
   );
