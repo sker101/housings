@@ -52,13 +52,16 @@ export default function LandlordDashboard() {
   const { user, token } = useAuth();
   const userId = user?.userId ?? null;
 
-  const { listings, loading: listLoading } = useListings(token, { ownerId: userId ?? undefined });
+  const [listings, setListings]           = useState<any[]>([]);
+  const [listLoading, setListLoading]     = useState(true);
   const { inquiries, loading: inqLoading, acceptInquiry, declineInquiry } = useInquiries('host', userId, token);
   const { events, loading: actLoading } = useActivityLog(userId, token);
 
   const [leases, setLeases]               = useState<LeaseRow[]>([]);
   const [pendingDocs, setPendingDocs]     = useState(0);
   const [totalRevenue, setTotalRevenue]   = useState(0);
+  const [roomEarnings, setRoomEarnings]   = useState<Record<string, { title: string, amount: number }>>({});
+  const [recentPayments, setRecentPayments] = useState<any[]>([]);
 
   // ── Fetch landlord record + leases + pending docs ──────────────
   useEffect(() => {
@@ -66,6 +69,17 @@ export default function LandlordDashboard() {
     let mounted = true;
     async function load() {
       try {
+        setListLoading(true);
+        // 1. Fetch George's listings directly
+        const listingRows = await selectRows('listings', {
+          select: '*',
+          filters: [{ column: 'lister_id', op: 'eq', value: userId! }],
+          accessToken: token!,
+        });
+        const mappedListings = (listingRows as any[]).map(r => ({ ...r, status: r.status || 'approved' }));
+        if (mounted) setListings(mappedListings);
+
+        // 2. Fetch landlord record for leases
         let lId = null;
         try {
           const landlords = await selectRows('landlords', {
@@ -77,11 +91,10 @@ export default function LandlordDashboard() {
             lId = (landlords[0] as {id:string}).id;
           }
         } catch (e) {
-          console.warn('[LandlordDashboard] No "landlords" table found or fetch failed:', e);
+          console.warn('[LandlordDashboard] No "landlords" record found:', e);
         }
 
         if (mounted && lId) {
-          // Active leases
           try {
             const leaseRows = await selectRows('tenant_leases', {
               select: 'id, room_id, days_remaining, lease_end_date, status, renewal_decision, tenant:tenants(profile:profiles(full_name)), room:rooms!room_id(room_number, property:properties(title))',
@@ -93,30 +106,59 @@ export default function LandlordDashboard() {
               limit: 50,
               accessToken: token!,
             });
-            setLeases(leaseRows as LeaseRow[]);
+            if (mounted) setLeases(leaseRows as LeaseRow[]);
           } catch (e) {
-            console.warn('[LandlordDashboard] Lease fetch failed (likely missing tables):', e);
-          }
-
-          // Total revenue from payments
-          try {
-            const payments = await selectRows('payments', {
-              select: 'amount_tzs',
-              filters: [
-                { column: 'landlord_id', op: 'eq', value: lId },
-                { column: 'status',      op: 'eq', value: 'completed' },
-              ],
-              limit: 5000,
-              accessToken: token!,
-            });
-            const total = (payments as {amount_tzs:number}[]).reduce((s, p) => s + (p.amount_tzs || 0), 0);
-            setTotalRevenue(total);
-          } catch (e) {
-            console.warn('[LandlordDashboard] Revenue fetch failed:', e);
+            console.warn('[LandlordDashboard] Lease fetch failed:', e);
           }
         }
 
-        // Pending documents (doesn't require landlord ID)
+        // 3. Total revenue from BOOKINGS
+        try {
+          const listingIds = mappedListings.map(l => l.id);
+          if (listingIds.length > 0) {
+            const bookingRows = await selectRows('bookings', {
+              select: 'listing_id, total_tzs, status, created_at',
+              filters: [{ column: 'listing_id', op: 'in', value: `(${listingIds.join(',')})` }],
+              limit: 5000,
+              accessToken: token!,
+            });
+            
+            const earningsMap: Record<string, { title: string, amount: number }> = {};
+            let total = 0;
+            const successfulBookings: any[] = [];
+            
+            (bookingRows as any[]).forEach(b => {
+              if (b.status === 'paid' || b.status === 'completed') {
+                const amount = Number(b.total_tzs) || 0;
+                total += amount;
+                successfulBookings.push(b);
+                const listing = mappedListings.find(l => l.id === b.listing_id);
+                const roomKey = listing?.title || 'Property';
+                if (!earningsMap[roomKey]) earningsMap[roomKey] = { title: roomKey, amount: 0 };
+                earningsMap[roomKey].amount += amount;
+              }
+            });
+            
+            if (mounted) {
+              setTotalRevenue(total);
+              setRoomEarnings(earningsMap);
+              setRecentPayments(successfulBookings.slice(0, 5).map(b => {
+                const listing = mappedListings.find(l => l.id === b.listing_id);
+                return {
+                  ...b,
+                  amount_tzs: b.total_tzs,
+                  paid_at: b.created_at,
+                  payment_type: 'rent',
+                  room_number: listing?.room_number || 'Room'
+                };
+              }));
+            }
+          }
+        } catch (e) {
+          console.warn('[LandlordDashboard] Revenue fetch failed:', e);
+        }
+
+        // 4. Pending documents
         try {
           const docs = await selectRows('property_documents', {
             select: 'id',
@@ -125,10 +167,13 @@ export default function LandlordDashboard() {
           });
           if (mounted) setPendingDocs(docs.length);
         } catch (e) {
-           console.warn('[LandlordDashboard] property_documents fetch failed:', e);
+          console.warn('[LandlordDashboard] property_documents fetch failed:', e);
         }
+
       } catch (err) {
-        console.error('LandlordDashboard: failed to load', err);
+        console.error('[LandlordDashboard] Error loading data:', err);
+      } finally {
+        if (mounted) setListLoading(false);
       }
     }
     load();
@@ -170,12 +215,85 @@ export default function LandlordDashboard() {
       </div>
 
       {/* ── KPI Grid ──────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(155px, 1fr))', gap: '0.75rem', marginBottom: '1.5rem' }}>
-        <KpiCard label="Total Revenue"    value={TZSFormat(totalRevenue)}     sub="all-time payments"     accent="var(--jade)" />
-        <KpiCard label="Occupancy Rate"   value={`${occupancyRate}%`}         sub={`${activeListings} active rooms`} />
-        <KpiCard label="Pending Docs"     value={String(pendingDocs)}         sub="awaiting verification" accent={pendingDocs > 0 ? '#d97706' : undefined} />
-        <KpiCard label="Open Inquiries"   value={String(pendingInquiries.length)} sub="awaiting response" />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+        <KpiCard label="Total Revenue"    value={TZSFormat(totalRevenue)}     sub="verified income"     accent="var(--jade)" />
+        <KpiCard label="Occupancy Rate"   value={`${occupancyRate}%`}         sub={`${activeListings} active units`} />
+        <KpiCard label="Pending Docs"     value={String(pendingDocs)}         sub="verification status" accent={pendingDocs > 0 ? '#d97706' : undefined} />
+        <KpiCard label="Open Inquiries"   value={String(pendingInquiries.length)} sub="active leads" />
       </div>
+      {/* ── Room Earnings ─────────────────────────────────── */}
+      <section style={{ marginBottom: '1.5rem' }}>
+        <h3 style={{ fontFamily: " sans-serif", fontSize: '1rem', marginBottom: '0.75rem', color: 'var(--ink)' }}>
+          Revenue Breakdown
+        </h3>
+        {Object.keys(roomEarnings).length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '1.5rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14 }}>
+            <p style={{ color: 'var(--mid)', fontSize: '0.85rem' }}>No income generated yet.</p>
+          </div>
+        ) : (
+          <div style={{ 
+            display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '0.75rem'
+          }}>
+            {Object.values(roomEarnings).map((room, idx) => (
+              <div key={idx} style={{ 
+                background: 'white', padding: '1rem', borderRadius: '14px', border: '1px solid var(--border)',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+              }}>
+                <div style={{ minWidth: 0 }}>
+                  <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {room.title}
+                  </p>
+                  <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--mid)' }}>Occupied & Paid</p>
+                </div>
+                <p style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--jade)' }}>
+                  {TZSFormat(room.amount)}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* ── Recent Income ─────────────────────────────────── */}
+      <section style={{ marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+          <h3 style={{ fontFamily: " sans-serif", fontSize: '1rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Zap size={16} style={{ color: 'var(--jade)' }} />
+            Recent Income
+          </h3>
+        </div>
+        {recentPayments.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '1.5rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14 }}>
+            <p style={{ color: 'var(--mid)', fontSize: '0.85rem' }}>No recent payments received.</p>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gap: '0.75rem' }}>
+            {recentPayments.map((p, idx) => (
+              <div key={idx} style={{ 
+                background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '0.75rem 1rem',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{ width: '36px', height: '36px', background: 'rgba(34, 197, 94, 0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--jade)' }}>
+                    <Zap size={18} />
+                  </div>
+                  <div>
+                    <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: 'var(--ink)' }}>
+                      {p.booking?.room?.room_number || 'Room'} Payment
+                    </p>
+                    <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--mid)' }}>
+                      {p.payment_type === 'first_month' ? 'First Month' : 'Rent Payment'} • {formatDate(p.paid_at || p.created_at)}
+                    </p>
+                  </div>
+                </div>
+                <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: 'var(--jade)' }}>
+                  +{TZSFormat(p.amount_tzs)}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       <div style={{ display: 'grid', gap: '1.25rem' }}>
 

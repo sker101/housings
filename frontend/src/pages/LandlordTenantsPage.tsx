@@ -114,104 +114,60 @@ export default function LandlordTenantsPage() {
         return;
       }
 
-      setLoading(true);
-      setError('');
-
       try {
-        let normalizedTenants: TenantRow[] = [];
+        setLoading(true);
+        setError('');
 
-        const landlordRows = await selectRows('landlords', {
-          select: 'id',
-          filters: [{ column: 'profile_id', op: 'eq', value: user.userId }],
-          limit: 5,
+        // 1. Fetch George's listings directly
+        const listingRows = await selectRows('listings', {
+          select: 'id,title,room_type,price_monthly',
+          filters: [{ column: 'lister_id', op: 'eq', value: user.userId }],
           accessToken: token,
-        }).catch(() => []);
+        });
+        const listingMap = new Map((listingRows as ListingRow[]).map((row) => [row.id, row]));
+        const listingIds = (listingRows as ListingRow[]).map(l => l.id);
 
-        const landlordIds = uniqueIds((landlordRows as Array<{ id?: string }>).map((row) => row.id));
-
-        if (landlordIds.length > 0) {
-          try {
-            const modernBookingRows = await selectRows('bookings', {
-              select: 'id,tenant_id,listing_id,move_in_date,months_duration,notes,tenant:tenants(profile:profiles(id,full_name,phone))',
-              filters: [
-                landlordIds.length === 1
-                  ? { column: 'landlord_id', op: 'eq', value: landlordIds[0] }
-                  : { column: 'landlord_id', op: 'in', value: inFilterValue(landlordIds) },
-                { column: 'status', op: 'in', value: '(confirmed,completed)' },
-              ],
-              order: 'move_in_date.desc',
-              limit: 500,
-              accessToken: token,
-            });
-
-            const listingIds = uniqueIds((modernBookingRows as ModernBookingRow[]).map((row) => row.listing_id));
-            const listingRows = listingIds.length
-              ? await selectRows('listings', {
-                  select: 'id,title,room_type,price_monthly',
-                  filters: [{ column: 'id', op: 'in', value: inFilterValue(listingIds) }],
-                  accessToken: token,
-                }).catch(() => [])
-              : [];
-            const listingMap = new Map((listingRows as ListingRow[]).map((row) => [row.id, row]));
-
-            normalizedTenants = (modernBookingRows as ModernBookingRow[]).map((row) => ({
-              id: row.id,
-              move_in_date: row.move_in_date,
-              months_duration: row.months_duration,
-              contact_preference: null,
-              message: row.notes || null,
-              profile: extractTenantProfile(row.tenant),
-              listing: row.listing_id ? listingMap.get(row.listing_id) || null : null,
-            }));
-          } catch (err) {
-            console.warn('LandlordTenantsPage: modern tenant query failed, trying legacy fallback.', err);
+        if (listingIds.length === 0) {
+          if (mounted) {
+            setTenants([]);
+            setLoading(false);
           }
+          return;
         }
 
-        if (normalizedTenants.length === 0) {
-          const legacyBookingRows = await selectRows('bookings', {
-            select: 'id,tenant_id,listing_id,move_in_date,months_duration,contact_preference,message',
-            filters: [
-              { column: 'lister_id', op: 'eq', value: user.userId },
-              { column: 'status', op: 'eq', value: 'approved' },
-            ],
-            order: 'move_in_date.desc',
-            accessToken: token,
-          }).catch(() => []);
+        // 2. Fetch bookings for these listings
+        const bookingRows = await selectRows('bookings', {
+          select: 'id,listing_id,tenant_id,move_in_date,months_duration,status,notes,contact_preference,message',
+          filters: [
+            { column: 'listing_id', op: 'in', value: inFilterValue(listingIds) },
+            { column: 'status', op: 'in', value: '(paid,completed,confirmed,approved)' },
+          ],
+          order: 'move_in_date.desc',
+          limit: 500,
+          accessToken: token,
+        });
 
-          const tenantIds = uniqueIds((legacyBookingRows as LegacyBookingRow[]).map((row) => row.tenant_id));
-          const listingIds = uniqueIds((legacyBookingRows as LegacyBookingRow[]).map((row) => row.listing_id));
+        // 3. Fetch tenant profiles
+        const tenantIds = uniqueIds((bookingRows as any[]).map((row) => row.tenant_id));
+        const profileRows = tenantIds.length
+          ? await selectRows('profiles', {
+              select: 'id,full_name,phone',
+              filters: [{ column: 'id', op: 'in', value: inFilterValue(tenantIds) }],
+              accessToken: token,
+            }).catch(() => [])
+          : [];
+        const profileMap = new Map((profileRows as ProfileRow[]).map((row) => [row.id, row]));
 
-          const [profileRows, listingRows] = await Promise.all([
-            tenantIds.length
-              ? selectRows('profiles', {
-                  select: 'id,full_name,phone',
-                  filters: [{ column: 'id', op: 'in', value: inFilterValue(tenantIds) }],
-                  accessToken: token,
-                }).catch(() => [])
-              : Promise.resolve([]),
-            listingIds.length
-              ? selectRows('listings', {
-                  select: 'id,title,room_type,price_monthly',
-                  filters: [{ column: 'id', op: 'in', value: inFilterValue(listingIds) }],
-                  accessToken: token,
-                }).catch(() => [])
-              : Promise.resolve([]),
-          ]);
-
-          const profileMap = new Map((profileRows as ProfileRow[]).map((row) => [row.id, row]));
-          const listingMap = new Map((listingRows as ListingRow[]).map((row) => [row.id, row]));
-
-          normalizedTenants = (legacyBookingRows as LegacyBookingRow[]).map((row) => ({
-            id: row.id,
-            move_in_date: row.move_in_date,
-            months_duration: row.months_duration,
-            contact_preference: row.contact_preference || null,
-            message: row.message || null,
-            profile: row.tenant_id ? profileMap.get(row.tenant_id) || null : null,
-            listing: row.listing_id ? listingMap.get(row.listing_id) || null : null,
-          }));
-        }
+        // 4. Map everything together
+        const normalizedTenants = (bookingRows as any[]).map((row) => ({
+          id: row.id,
+          move_in_date: row.move_in_date,
+          months_duration: row.months_duration,
+          contact_preference: row.contact_preference || null,
+          message: row.notes || row.message || null,
+          profile: row.tenant_id ? profileMap.get(row.tenant_id) || null : null,
+          listing: row.listing_id ? listingMap.get(row.listing_id) || null : null,
+        }));
 
         if (!mounted) return;
         setTenants(normalizedTenants);

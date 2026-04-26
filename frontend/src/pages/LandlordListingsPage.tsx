@@ -65,7 +65,7 @@ export default function LandlordListingsPage() {
         // Fetch bookings
         let bookingRows: any[] = [];
         bookingRows = await selectRows('bookings', {
-          select: 'id,listing_id',
+          select: 'id,listing_id,status,total_tzs,created_at',
           filters: [{ column: 'listing_id', op: 'in', value: `(${listingIds.join(',')})` }],
           limit: 5000,
           accessToken: token
@@ -88,7 +88,10 @@ export default function LandlordListingsPage() {
         const enriched = listingRows.map((l) => ({
           ...l,
           saveCount: savesByListing[l.id] || 0,
-          bookingCount: bookingsByListing[l.id] || 0
+          bookingCount: bookingsByListing[l.id] || 0,
+          totalEarned: (bookingRows as any[])
+            .filter(b => b.listing_id === l.id && (b.status === 'paid' || b.status === 'completed'))
+            .reduce((sum, b) => sum + (Number(b.total_tzs) || 0), 0)
         }));
 
         setListings(enriched);
@@ -269,6 +272,7 @@ export default function LandlordListingsPage() {
                     <th>Rent</th>
                     <th>Status</th>
                     <th>Vacancy</th>
+                    <th>Earned</th>
                     <th>Views</th>
                     <th>Saves</th>
                     <th>Bookings</th>
@@ -320,6 +324,11 @@ export default function LandlordListingsPage() {
                           <span className={`pill p-${l.vacancyStatus}`}>
                             <span className="p-dot" />
                             {l.vacancyStatus ? l.vacancyStatus.charAt(0).toUpperCase() + l.vacancyStatus.slice(1) : '-'}
+                          </span>
+                        </td>
+                        <td>
+                          <span style={{ fontWeight: 700, color: 'var(--jade)' }}>
+                            {new Intl.NumberFormat('sw-TZ').format(l.totalEarned || 0)}
                           </span>
                         </td>
                         <td>

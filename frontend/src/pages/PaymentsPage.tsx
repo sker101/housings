@@ -152,66 +152,41 @@ export default function PaymentsPage() {
       const rate = Number(profileRows?.[0]?.commission_rate_pct || 0);
       setCommissionPct(isAdmin ? 0 : rate);
 
-      // ── Resolve Real Landlord ID ──
-      let realLandlordId = user.userId;
-      if (!isAdmin) {
-        const landlordRows = await selectRows('landlords', {
-          select: 'id',
-          filters: [{ column: 'profile_id', op: 'eq', value: user.userId }],
-          limit: 1,
-          accessToken: token
-        });
-        realLandlordId = landlordRows?.[0]?.id || user.userId;
-      }
-
-      // ── Fetch bookings using actual schema columns ──
-      const bookingRows = await selectRows('bookings', {
-        select: 'id,listing_id,tenant_id,landlord_id,move_in_date,months_duration,status,reference,created_at',
-        filters: isAdmin ? [] : [{ column: 'landlord_id', op: 'eq', value: realLandlordId }],
-        order: 'created_at.desc',
-        limit: 500,
+      // 1. Fetch George's listings directly (same as Properties page)
+      const listingRows = await selectRows('listings', {
+        select: 'id,title,price_monthly',
+        filters: isAdmin ? [] : [{ column: 'lister_id', op: 'eq', value: user.userId }],
         accessToken: token,
       });
-
-      const bookings: NormalizedBooking[] = (bookingRows as LegacyBookingRow[]).map((row) => ({
-        id: row.id,
-        listing_id: row.listing_id || '',
-        tenant_lookup_id: row.tenant_id,
-        move_in_date: row.move_in_date,
-        months_duration: row.months_duration,
-        status: row.status,
-        reference: row.reference,
-        created_at: row.created_at,
-        schema: 'legacy' as const,
-        tenant: null,
-      })).filter((row) => row.listing_id);
-
-      // ── Fetch payment_records for these bookings ──
-      const bookingIds = uniqueIds(bookings.map((booking) => booking.id));
-      const paymentRecordRows = bookingIds.length
-        ? await selectRows('payment_records', {
-            select: 'id,booking_id,amount,due_date,status,paid_at,created_at',
-            filters: [{ column: 'booking_id', op: 'in', value: inFilterValue(bookingIds) }],
-            order: 'due_date.asc',
-            accessToken: token,
-          }).catch((err) => {
-            console.warn('PaymentsPage: payment_records query failed.', err);
-            return [];
-          })
-        : [];
-
-      // ── Fetch listing details ──
-      const listingIds = uniqueIds(bookings.map((booking) => booking.listing_id));
-      const listingRows = listingIds.length
-        ? await selectRows('listings', {
-            select: 'id,title,price_monthly',
-            filters: [{ column: 'id', op: 'in', value: inFilterValue(listingIds) }],
-            accessToken: token,
-          }).catch(() => [])
-        : [];
       const listingMap = new Map((listingRows as ListingRow[]).map((row) => [row.id, row]));
+      const listingIds = (listingRows as ListingRow[]).map(l => l.id);
 
-      // ── Fetch tenant profiles ──
+      // 2. Fetch bookings associated with these listings
+      let bookings: NormalizedBooking[] = [];
+      if (listingIds.length > 0) {
+        const bookingRows = await selectRows('bookings', {
+          select: 'id,listing_id,tenant_id,status,total_tzs,created_at,move_in_date,months_duration',
+          filters: isAdmin ? [] : [{ column: 'listing_id', op: 'in', value: inFilterValue(listingIds) }],
+          order: 'created_at.desc',
+          limit: 500,
+          accessToken: token,
+        });
+
+        bookings = (bookingRows as any[]).map((row) => ({
+          id: row.id,
+          listing_id: row.listing_id || '',
+          tenant_lookup_id: row.tenant_id,
+          move_in_date: row.move_in_date,
+          months_duration: row.months_duration,
+          status: row.status,
+          total_tzs: row.total_tzs,
+          created_at: row.created_at,
+          schema: 'modern' as const,
+          tenant: null,
+        }));
+      }
+
+      // 3. Resolve tenant profiles
       const tenantIds = uniqueIds(bookings.map((booking) => booking.tenant_lookup_id));
       const tenantProfiles = tenantIds.length
         ? await selectRows('profiles', {
@@ -222,61 +197,32 @@ export default function PaymentsPage() {
         : [];
       const tenantProfileMap = new Map((tenantProfiles as ProfileRow[]).map((row) => [row.id, row]));
 
-      const bookingMap = new Map(bookings.map((booking) => [booking.id, booking]));
-
-      const resolveTenant = (booking?: NormalizedBooking | null) => {
-        if (!booking) return null;
-        return booking.tenant_lookup_id ? tenantProfileMap.get(booking.tenant_lookup_id) || null : null;
-      };
-
-      // ── Build payment records list ──
-      const chosenPayments = (paymentRecordRows as LegacyPaymentRow[]).map((row) => ({
-        id: row.id,
-        booking_id: row.booking_id,
-        amount: Number(row.amount || 0),
-        due_date: row.due_date,
-        status: row.status,
-        paid_at: row.paid_at,
-        created_at: row.created_at,
-        source: 'payment_records' as const,
-      }));
-
-      // If no payment_records exist, generate synthetic records from bookings
-      const allPayments: typeof chosenPayments = chosenPayments.length > 0
-        ? chosenPayments
-        : bookings
-            .filter((b) => b.status === 'approved' || b.status === 'completed')
-            .map((b) => {
-              const listing = listingMap.get(b.listing_id);
-              return {
-                id: `synth-${b.id}`,
-                booking_id: b.id,
-                amount: Number(listing?.price_monthly || 0) * (b.months_duration || 1),
-                due_date: b.move_in_date,
-                status: b.status === 'completed' ? 'paid' : 'pending',
-                paid_at: b.status === 'completed' ? b.created_at : undefined,
-                created_at: b.created_at,
-                source: 'payment_records' as const,
-              };
-            });
-
-      const enrichedRecords: PaymentRecord[] = allPayments.map((payment) => {
-        const booking = payment.booking_id ? bookingMap.get(payment.booking_id) || null : null;
-        const tenant = resolveTenant(booking);
+      // 4. Build synthetic payment records from bookings
+      const enrichedRecords: PaymentRecord[] = bookings.map((b) => {
+        const tenantProfile = b.tenant_lookup_id ? tenantProfileMap.get(b.tenant_lookup_id) : null;
+        const listing = listingMap.get(b.listing_id);
+        
         return {
-          ...payment,
-          listing: booking ? listingMap.get(booking.listing_id) || null : null,
-          tenant,
-          booking,
+          id: b.id,
+          booking_id: b.id,
+          amount: Number(b.total_tzs || 0),
+          due_date: b.move_in_date,
+          status: b.status === 'paid' || b.status === 'completed' ? 'paid' : 'pending',
+          paid_at: b.status === 'paid' || b.status === 'completed' ? b.created_at : undefined,
+          created_at: b.created_at,
+          source: 'payments' as const,
+          listing: listing || null,
+          tenant: tenantProfile ? { id: tenantProfile.id, full_name: tenantProfile.full_name } : null,
+          booking: b
         };
       });
 
-      const activeStatuses = new Set(['approved', 'completed', 'confirmed']);
+      const activeStatuses = new Set(['approved', 'completed', 'paid', 'confirmed']);
       const enrichedBookings = bookings
         .filter((booking) => activeStatuses.has(String(booking.status || '').toLowerCase()))
         .map((booking) => {
           const listing = listingMap.get(booking.listing_id) || null;
-          const tenant = resolveTenant(booking);
+          const tenant = tenantProfileMap.get(booking.tenant_lookup_id || '') || null;
           const commission = listing ? (Number(listing.price_monthly || 0) * rate) / 100 : 0;
           return { ...booking, listing, tenant, commission };
         });
@@ -480,8 +426,15 @@ export default function PaymentsPage() {
                       <tr key={record.id}>
                         <td>
                           <div className="tenant-cell">
-                            <div className="avatar">{initials(record.tenant?.full_name)}</div>
-                            <span>{record.tenant?.full_name || 'Tenant'}</span>
+                            <div className="avatar">
+                              {record.tenant?.full_name ? initials(record.tenant.full_name) : (record.tenant?.id ? record.tenant.id.slice(0,2).toUpperCase() : '?')}
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <span style={{ fontWeight: 600 }}>{record.tenant?.full_name || 'Unknown Tenant'}</span>
+                              {!record.tenant?.full_name && record.tenant?.id && (
+                                <span style={{ fontSize: '10px', color: 'var(--mid)' }}>ID: {record.tenant.id.slice(0,8)}</span>
+                              )}
+                            </div>
                           </div>
                         </td>
                         <td style={{ fontWeight: 500 }}>{record.listing?.title || '—'}</td>
@@ -540,7 +493,7 @@ export default function PaymentsPage() {
               {approvedBookings.map((booking: any) => (
                 <div key={booking.id} className="comm-row">
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <span style={{ fontSize: 13, fontWeight: 500 }}>{booking.tenant?.full_name || 'Tenant'}</span>
+                    <span style={{ fontSize: 13, fontWeight: 500 }}>{booking.tenant?.full_name || `Unknown Tenant (${booking.tenant?.id?.slice(0,8) || '—'})`}</span>
                     <span style={{ fontSize: 11, color: 'var(--mid)' }}>{booking.listing?.title || '—'}</span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
