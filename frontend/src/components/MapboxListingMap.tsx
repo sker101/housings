@@ -137,8 +137,12 @@ export default function MapboxListingMap({
   // Update style when mapStyle state changes
   useEffect(() => {
     if (!mapRef.current || !mapLoaded) return;
-    const newStyle = mapStyle === 'light' ? 'mapbox://styles/mapbox/light-v11' : 'mapbox://styles/mapbox/satellite-v9';
-    mapRef.current.setStyle(newStyle);
+    const styles: Record<string, string> = {
+      light: 'mapbox://styles/mapbox/light-v11',
+      satellite: 'mapbox://styles/mapbox/satellite-v9',
+      streets: 'mapbox://styles/mapbox/streets-v12'
+    };
+    mapRef.current.setStyle(styles[mapStyle] || styles.satellite);
   }, [mapStyle, mapLoaded]);
 
   // === Ward zoom ===
@@ -228,8 +232,51 @@ export default function MapboxListingMap({
   }, [onRoomClick]);
 
   return (
-    <div style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', height }}>
-      <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+    <div style={{ position: 'relative', height, width: '100%' }}>
+      {/* Map Style Switcher */}
+      <div style={{
+        position: 'absolute',
+        top: '12px',
+        left: '12px',
+        zIndex: 5,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '4px',
+        background: 'rgba(255, 255, 255, 0.9)',
+        padding: '4px',
+        borderRadius: '10px',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+        backdropFilter: 'blur(8px)',
+        border: '1px solid rgba(255,255,255,0.3)'
+      }}>
+        {[
+          { id: 'satellite', label: '🛰️ Satellite', style: 'mapbox://styles/mapbox/satellite-v9' },
+          { id: 'streets', label: '🛣️ Streets', style: 'mapbox://styles/mapbox/streets-v12' },
+          { id: 'light', label: '⚪ Light', style: 'mapbox://styles/mapbox/light-v11' }
+        ].map((style) => (
+          <button
+            key={style.id}
+            onClick={() => setMapStyle(style.id as any)}
+            style={{
+              padding: '6px 12px',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '11px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              textAlign: 'left',
+              transition: 'all 0.2s',
+              background: mapStyle === style.id ? '#1D9E75' : 'transparent',
+              color: mapStyle === style.id ? 'white' : '#1A1A2E',
+            }}
+          >
+            {style.label}
+          </button>
+        ))}
+      </div>
+
+      <div ref={containerRef} style={{ width: '100%', height: '100%', borderRadius: '12px' }} />
 
       {/* Legend */}
       <div style={{
