@@ -1032,8 +1032,6 @@ export default function RoomDetailsPage() {
             </div>
           )}
         </section>
-
-        </section>
       </div>
 
       <div className="rd-right-col">
