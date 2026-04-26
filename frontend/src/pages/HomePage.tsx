@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import MapboxListingMap from '../components/MapboxListingMap';
 import { useAuth } from '../context/AuthContext';
 import bgImage from '../images/homelanding.jpg';
-import Footer from '../components/Footer';
 import {
   fetchApprovedListings,
   fetchSavedListingIds,
@@ -11,9 +10,26 @@ import {
 } from '../lib/listings';
 import {
   Search,
-  Users,
+  Map as MapIcon,
+  List,
+  Home,
+  Building2,
+  GraduationCap,
+  MapPin,
   Bed,
   Bath,
+  Maximize,
+  Heart,
+  MessageCircle,
+  Share2,
+  Flag,
+  ChevronLeft,
+  ChevronRight,
+  Filter,
+  SearchX,
+  X,
+  Map,
+  Users,
   Wifi,
   Car,
   Droplets,
@@ -24,17 +40,7 @@ import {
   Snowflake,
   Flame,
   Waves,
-  Heart,
-  ChevronLeft,
-  ChevronRight,
   SlidersHorizontal,
-  Home,
-  Sparkles,
-  Clock,
-  MapPin,
-  SearchX,
-  Ban,
-  Map,
 } from 'lucide-react';
 
 // Room type options
@@ -128,14 +134,17 @@ export default function HomePage() {
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   useEffect(() => {
-    const handleToggleView = (e: any) => {
+    const handleToggleView = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      console.log('HomePage received toggle event:', customEvent.detail);
       setIsTransitioning(true);
       setTimeout(() => {
-        setViewMode(e.detail);
+        setViewMode(customEvent.detail);
         setIsTransitioning(false);
       }, 400);
     };
     window.addEventListener('toggleHomePageView', handleToggleView);
+    console.log('HomePage registered toggle listener');
     return () => window.removeEventListener('toggleHomePageView', handleToggleView);
   }, []);
 
@@ -575,28 +584,57 @@ export default function HomePage() {
             </div>
           ) : (
             <>
-              {availableListings.length > 0 && (
-                <div className="room-grid">{availableListings.map(renderListingCard)}</div>
-              )}
-              {comingSoonListings.length > 0 && (
-                <>
-                  <h3 style={{ marginTop: '2rem' }}>Coming Soon</h3>
-                  <div className="room-grid">{comingSoonListings.map(renderListingCard)}</div>
-                </>
-              )}
-              {filteredListings.length === 0 && !loading && (
-                <div className="empty-state" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
-                  <SearchX size={48} style={{ color: 'var(--mid)', marginBottom: '1rem' }} />
-                  <h3 style={{ fontSize: '1.25rem', color: 'var(--ink)' }}>No results found</h3>
-                  <p style={{ color: 'var(--mid)' }}>Try adjusting your filters or search query</p>
+              {viewMode === 'map' ? (
+                <div className={`map-view-container ${isTransitioning ? 'is-transitioning' : ''}`} style={{ 
+                  height: 'calc(100vh - 240px)', 
+                  width: '100%', 
+                  borderRadius: '20px', 
+                  overflow: 'hidden',
+                  boxShadow: 'var(--shadow-hard)',
+                  border: '1px solid var(--border)',
+                  position: 'relative',
+                  marginTop: '1rem',
+                  zIndex: 1
+                }}>
+                  <MapboxListingMap 
+                    rooms={availableListings.map(l => ({
+                      id: l.id,
+                      latitude: (l as any).lat,
+                      longitude: (l as any).lng,
+                      title: l.title,
+                      price_tzs: l.priceMonthly,
+                      availability_status: (l as any).vacancyStatus,
+                      ward: l.ward
+                    }))} 
+                    height="100%"
+                  />
                 </div>
+              ) : (
+                <>
+                  {availableListings.length > 0 && (
+                    <div className={`room-grid ${isTransitioning ? 'is-transitioning' : ''}`}>
+                      {availableListings.map(renderListingCard)}
+                    </div>
+                  )}
+                  {comingSoonListings.length > 0 && (
+                    <>
+                      <h3 style={{ marginTop: '2rem', marginBottom: '1rem', fontSize: '1.1rem', fontWeight: 700 }}>Coming Soon</h3>
+                      <div className="room-grid">{comingSoonListings.map(renderListingCard)}</div>
+                    </>
+                  )}
+                  {filteredListings.length === 0 && !loading && (
+                    <div className="empty-state" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+                      <SearchX size={48} style={{ color: 'var(--mid)', marginBottom: '1rem' }} />
+                      <h3 style={{ fontSize: '1.25rem', color: 'var(--ink)' }}>No results found</h3>
+                      <p style={{ color: 'var(--mid)' }}>Try adjusting your filters or search query</p>
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}
         </div>
       </section>
-
-      <Footer />
     </div>
   );
 }

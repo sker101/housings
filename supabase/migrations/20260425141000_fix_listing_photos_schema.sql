@@ -1,9 +1,16 @@
 -- Fix listing_photos table to support more angles and extra columns expected by the frontend
 -- This fixes the issue where landlords upload photos but they aren't saved due to enum/schema mismatches.
 
--- 0. Drop views that might be shadowing our tables
-DROP VIEW IF EXISTS public.listing_photos CASCADE;
-DROP VIEW IF EXISTS public.listings CASCADE;
+-- 0. Drop views that might be shadowing our tables (safely)
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.views WHERE table_schema = 'public' AND table_name = 'listing_photos') THEN
+        DROP VIEW public.listing_photos CASCADE;
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.views WHERE table_schema = 'public' AND table_name = 'listings') THEN
+        DROP VIEW public.listings CASCADE;
+    END IF;
+END $$;
 
 DO $$ 
 BEGIN

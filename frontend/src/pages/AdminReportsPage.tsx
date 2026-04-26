@@ -32,7 +32,7 @@ export default function AdminReportsPage() {
         setError('');
         try {
             const rows = await selectRows('listing_reports', {
-                select: 'id,listing_id,reporter_id,reason,description,reporter_has_booking,status,admin_note,created_at',
+                select: 'id,listing_id,reporter_id,reason,details,reporter_has_booking,status,admin_note,created_at',
                 filters: [{ column: 'status', op: 'eq', value: filter }],
                 order: 'created_at.desc',
                 limit: 200,
@@ -140,7 +140,7 @@ export default function AdminReportsPage() {
                             </strong>
                         </p>
                         <p>Reason: <strong>{REASON_LABELS[r.reason] || r.reason}</strong></p>
-                        {r.description ? <p style={{ fontSize: '0.88rem', color: 'var(--muted)' }}>&ldquo;{r.description}&rdquo;</p> : null}
+                        {r.details ? <p style={{ fontSize: '0.88rem', color: 'var(--muted)' }}>&ldquo;{r.details}&rdquo;</p> : null}
                         <p style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>
                             {r.reporter_has_booking ? '🎫 Verified tenant' : 'Anonymous reporter'} · {formatDate(r.created_at)}
                         </p>

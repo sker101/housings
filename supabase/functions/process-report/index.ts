@@ -1,7 +1,8 @@
 import { corsHeaders } from '../_shared/cors.ts';
 
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+// Get environment variables at the top level
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
+const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
 Deno.serve(async (req) => {
   // Handle CORS
@@ -16,70 +17,76 @@ Deno.serve(async (req) => {
     });
   }
 
-  const body = await req.json().catch(() => ({}));
-  console.log('[process-report] Received:', body);
-  
-  const { listingId, reason, details } = body;
-
-  if (!listingId || !reason) {
-    return new Response(JSON.stringify({ error: 'listingId and reason are required' }), { 
-      status: 400, 
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-    });
-  }
-
   try {
-    // Get auth header if present (optional)
+    // Validate environment
+    if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
+      throw new Error('Missing Supabase environment variables');
+    }
+
+    const body = await req.json().catch(() => ({}));
+    console.log('[process-report] Received:', body);
+    
+    const { listingId, reason, details } = body;
+
+    if (!listingId || !reason) {
+      return new Response(JSON.stringify({ error: 'listingId and reason are required' }), { 
+        status: 400, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
+    }
+
+    // Identify reporter if possible
     const authHeader = req.headers.get('Authorization') || '';
     let reporterId = null;
     let reporterHasBooking = false;
     
-    // Try to get user from auth header
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.replace('Bearer ', '');
-      try {
-        // Verify token via REST
-        const authResponse = await fetch(`${supabaseUrl}/auth/v1/user`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'apikey': serviceKey
-          }
+      
+      // Verify user via Auth API
+      const userResp = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'apikey': SERVICE_ROLE_KEY
+        }
+      });
+
+      if (userResp.ok) {
+        const userData = await userResp.json();
+        reporterId = userData.id;
+        
+        // Check for paid booking via REST API
+        const bookingQuery = new URLSearchParams({
+          select: 'id',
+          listing_id: `eq.${listingId}`,
+          tenant_id: `eq.${reporterId}`,
+          status: 'eq.paid',
+          limit: '1'
         });
         
-        if (authResponse.ok) {
-          const userData = await authResponse.json();
-          reporterId = userData.id;
-          
-          // Check for booking using REST
-          const bookingResponse = await fetch(
-            `${supabaseUrl}/rest/v1/bookings?select=id&listing_id=eq.${listingId}&tenant_id=eq.${reporterId}&status=eq.paid&limit=1`,
-            {
-              headers: {
-                'Authorization': `Bearer ${serviceKey}`,
-                'apikey': serviceKey
-              }
-            }
-          );
-          
-          if (bookingResponse.ok) {
-            const bookings = await bookingResponse.json();
-            reporterHasBooking = bookings && bookings.length > 0;
+        const bookingResp = await fetch(`${SUPABASE_URL}/rest/v1/bookings?${bookingQuery}`, {
+          headers: {
+            'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+            'apikey': SERVICE_ROLE_KEY
           }
+        });
+
+        if (bookingResp.ok) {
+          const bookings = await bookingResp.json();
+          reporterHasBooking = Array.isArray(bookings) && bookings.length > 0;
         }
-      } catch (e) {
-        console.log('[process-report] Auth check failed, proceeding as guest');
       }
     }
 
-    console.log('[process-report] Inserting:', { listingId, reporterId, reason, reporterHasBooking });
+    console.log('[process-report] Inserting report into database...');
 
-    // Insert report via REST API
-    const insertResponse = await fetch(`${supabaseUrl}/rest/v1/listing_reports`, {
+    // Insert the report via REST API
+    const insertResp = await fetch(`${SUPABASE_URL}/rest/v1/listing_reports`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${serviceKey}`,
-        'apikey': serviceKey,
+        'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+        'apikey': SERVICE_ROLE_KEY,
         'Prefer': 'return=representation'
       },
       body: JSON.stringify({
@@ -92,24 +99,33 @@ Deno.serve(async (req) => {
       })
     });
 
-    if (!insertResponse.ok) {
-      const errorText = await insertResponse.text();
-      console.error('[process-report] Insert failed:', errorText);
+    const resultText = await insertResp.text();
+    let result;
+    try {
+      result = JSON.parse(resultText);
+    } catch {
+      result = resultText;
+    }
+
+    if (!insertResp.ok) {
+      console.error('[process-report] Insert error:', result);
       return new Response(JSON.stringify({ 
         error: 'Failed to submit report', 
-        details: errorText 
+        details: typeof result === 'object' ? (result.message || JSON.stringify(result)) : result
       }), { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       });
     }
 
-    const report = await insertResponse.json();
-    console.log('[process-report] Success:', report);
+    // PostgREST returns an array for POST with return=representation
+    const reportId = Array.isArray(result) ? result[0]?.id : result?.id;
+
+    console.log('[process-report] Success! Report ID:', reportId);
 
     return new Response(JSON.stringify({ 
       success: true, 
-      reportId: report[0]?.id,
+      reportId: reportId,
       message: 'Report submitted successfully. Thank you for helping keep our community safe.'
     }), { 
       status: 200, 
@@ -117,9 +133,9 @@ Deno.serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('[process-report] Error:', error);
+    console.error('[process-report] Unexpected error:', error);
     return new Response(JSON.stringify({ 
-      error: 'Failed to process report', 
+      error: 'An unexpected error occurred while processing your report', 
       details: error instanceof Error ? error.message : 'Unknown error' 
     }), { 
       status: 500, 

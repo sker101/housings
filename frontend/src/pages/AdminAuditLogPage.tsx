@@ -37,7 +37,7 @@ export default function AdminAuditLogPage() {
 
       try {
         const rows = await selectRows('admin_audit_log', {
-          select: 'id,admin_id,action,target_type,target_id,reason,created_at',
+          select: 'id,admin_id,action,target_table,target_id,reason,created_at',
           order: 'created_at.desc',
           limit: 200,
           accessToken: token
@@ -71,7 +71,7 @@ export default function AdminAuditLogPage() {
         return false;
       }
 
-      if (targetFilter !== 'all' && log.target_type !== targetFilter) {
+      if (targetFilter !== 'all' && log.target_table !== targetFilter) {
         return false;
       }
 
@@ -158,7 +158,7 @@ export default function AdminAuditLogPage() {
                   </div>
                   <div style={{ marginBottom: '0.5rem' }}>
                     <span style={{ fontSize: '0.7rem', color: 'var(--mid)', textTransform: 'uppercase', fontWeight: 700, display: 'block' }}>Target</span>
-                    <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>{log.target_type} ({log.target_id})</span>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>{log.target_table} ({log.target_id})</span>
                   </div>
                   {log.reason && (
                     <div style={{ padding: '0.5rem', background: '#f9fafb', borderRadius: 8 }}>
@@ -186,7 +186,7 @@ export default function AdminAuditLogPage() {
                     <tr key={log.id} style={{ borderBottom: '1px solid var(--border)' }}>
                       <td style={{ padding: '0.75rem' }}>{formatTimestamp(log.created_at)}</td>
                       <td style={{ padding: '0.75rem', fontWeight: 600 }}>{log.action}</td>
-                      <td style={{ padding: '0.75rem' }}>{log.target_type}</td>
+                      <td style={{ padding: '0.75rem' }}>{log.target_table}</td>
                       <td style={{ padding: '0.75rem', fontSize: '0.8rem', color: 'var(--mid)' }}>{log.target_id}</td>
                       <td style={{ padding: '0.75rem' }}>{log.reason || '-'}</td>
                     </tr>

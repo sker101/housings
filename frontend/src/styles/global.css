@@ -383,6 +383,7 @@ label {
   gap: 0.42rem;
   flex-wrap: wrap;
   justify-content: flex-end;
+  position: relative;
 }
 
 .topbar__nav a,

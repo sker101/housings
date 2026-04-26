@@ -47,7 +47,7 @@ export default function AdminDisputesPage() {
     setIsLoading(true);
     try {
       const rows = await selectRows('listing_reports', {
-        select: 'id,listing_id,reporter_id,reason,description,reporter_has_booking,status,admin_note,created_at',
+        select: 'id,listing_id,reporter_id,reason,details,reporter_has_booking,status,admin_note,created_at',
         filters: [{ column: 'status', op: 'eq', value: activeTab }],
         order: 'created_at.desc',
         limit: 100,
@@ -181,9 +181,9 @@ export default function AdminDisputesPage() {
               <p style={{ marginBottom: '0.5rem', fontSize: '0.9rem' }}>
                 Reason: <strong>{REASON_LABELS[r.reason] || r.reason}</strong>
               </p>
-              {r.description && (
+              {r.details && (
                 <p style={{ color: '#6b7280', fontSize: '0.88rem', marginBottom: '0.5rem' }}>
-                  &ldquo;{r.description}&rdquo;
+                  &ldquo;{r.details}&rdquo;
                 </p>
               )}
               <p style={{ fontSize: '0.8rem', color: '#9ca3af' }}>

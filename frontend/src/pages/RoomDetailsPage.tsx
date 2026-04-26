@@ -34,7 +34,7 @@ import {
   fetchSavedListingIds,
   toggleSavedListing
 } from '../lib/listings';
-import { countRows, insertRows, invokeFunction, selectRows, updateRows } from '../lib/supabase';
+import { countRows, insertRows, invokeFunction, rpc, selectRows, updateRows } from '../lib/supabase';
 
 const MESSAGE_TEMPLATES = [
   'Hi, I am interested in this room. Is it still available?',
@@ -226,11 +226,17 @@ export default function RoomDetailsPage() {
     setSubmittingReport(true);
     setReportError('');
     try {
-      await invokeFunction('process-report', {
-        listingId: listing.id,
-        reason: reportReason,
-        details: reportDescription,
+      // Use Database RPC instead of Edge Function to avoid Docker deployment issues
+      const data = await rpc('process_listing_report', {
+        p_listing_id: listing.id,
+        p_reason: reportReason,
+        p_details: reportDescription || null
       }, token);
+
+      if (data && data.success === false) {
+        throw new Error(data.error || 'Failed to submit report');
+      }
+
       setReportSuccess(true);
       setReportDescription('');
       setTimeout(() => {
@@ -238,8 +244,10 @@ export default function RoomDetailsPage() {
         setReportSuccess(false);
         // Soft refresh: let the modal close, user doesn't need a hard reload.
       }, 2500);
-    } catch (err) {
-      setReportError(err.message || 'Failed to submit report. Please try again.');
+    } catch (err: any) {
+      // Extract details if available from the edge function response
+      const details = err.details ? `: ${err.details}` : '';
+      setReportError(`${err.message || 'Failed to submit report'}${details}`);
     } finally {
       setSubmittingReport(false);
     }

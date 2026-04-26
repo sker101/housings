@@ -248,45 +248,48 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
   const a11yRef = useRef<HTMLDivElement>(null);
   const [isA11yOpen, setIsA11yOpen] = useState(false);
 
+  // Consolidated Click Outside Handler
   useEffect(() => {
-    const handleOutside = (e: MouseEvent) => {
-      if (a11yRef.current && !a11yRef.current.contains(e.target as Node)) {
+    function handleClickOutside(event: MouseEvent) {
+      const target = event.target as Node;
+      
+      // Close accessibility menu if clicking outside
+      if (isA11yOpen && a11yRef.current && !a11yRef.current.contains(target)) {
+        // Find the toggle button - use a more specific selector
+        const toggleBtn = (target as HTMLElement).closest('.topbar-action-btn');
+        if (toggleBtn && toggleBtn.getAttribute('title') === 'Accessibility') {
+          return; // Ignore if clicking the accessibility button itself
+        }
         setIsA11yOpen(false);
       }
-    };
-    const handleResize = () => {
-      // Only force collapse on small screens, never force expansion
-      setIsSidebarOpen(false);
-    };
-    window.addEventListener('resize', handleResize);
-    document.addEventListener('click', handleOutside);
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      document.removeEventListener('click', handleOutside);
-    };
-  }, []);
+
+      // Close user menu if clicking outside
+      if (isMenuOpen && menuRef.current && !menuRef.current.contains(target)) {
+        setIsMenuOpen(false);
+      }
+    }
+
+    if (isA11yOpen || isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isA11yOpen, isMenuOpen]);
 
   // Close mobile drawer on route change
   useEffect(() => {
     setIsSidebarOpen(false);
     setIsMenuOpen(false);
+    setIsA11yOpen(false);
   }, [location.pathname, location.search]);
 
-  // Close menus when clicking outside
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsMenuOpen(false);
-      }
-      if (a11yRef.current && !a11yRef.current.contains(event.target as Node)) {
-        setIsA11yOpen(false);
-      }
-    }
-    if (isMenuOpen || isA11yOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isMenuOpen, isA11yOpen]);
+    const handleResize = () => {
+      setIsSidebarOpen(false);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const toggleLanguage = async () => {
     const nextLang = i18n.language.startsWith('en') ? 'sw' : 'en';
@@ -579,7 +582,16 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
 
                 {/* Show map toggle on homepage */}
                 {isHomePage && (
-                  <button type="button" className="topbar-action-btn" onClick={toggleHomePageView} title="Toggle View">
+                  <button 
+                    type="button" 
+                    className="topbar-action-btn" 
+                    onClick={() => {
+                      console.log('Map toggle clicked, current mode:', homeViewMode);
+                      toggleHomePageView();
+                    }} 
+                    title="Toggle View"
+                    style={{ cursor: 'pointer', pointerEvents: 'auto' }}
+                  >
                     {homeViewMode === 'map' ? <LayoutGrid size={18} /> : <Map size={18} />}
                   </button>
                 )}

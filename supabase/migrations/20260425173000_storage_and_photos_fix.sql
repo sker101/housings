@@ -5,10 +5,12 @@ ON CONFLICT (id) DO NOTHING;
 
 -- 2. Set up Storage Policies for the listing-photos bucket
 -- Allow public viewing of photos
+DROP POLICY IF EXISTS "Public Access" ON storage.objects;
 CREATE POLICY "Public Access" ON storage.objects
 FOR SELECT USING (bucket_id = 'listing-photos');
 
 -- Allow authenticated users to upload photos
+DROP POLICY IF EXISTS "Authenticated Upload" ON storage.objects;
 CREATE POLICY "Authenticated Upload" ON storage.objects
 FOR INSERT WITH CHECK (
   bucket_id = 'listing-photos' 
