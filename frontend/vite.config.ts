@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => {
         injectRegister: 'auto',
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.png', 'icon-192x192.png', 'icon-512x512.png'],
         manifest: {
-          name: 'iRent Tanzania',
+          name: 'iRent',
           short_name: 'iRent',
           description: "Tanzania's trusted property rental marketplace. Find verified rooms in Dar es Salaam — Msasani, Masaki, Upanga and beyond.",
           theme_color: '#22c55e',
