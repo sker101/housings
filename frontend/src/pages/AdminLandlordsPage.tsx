@@ -93,7 +93,7 @@ export default function AdminLandlordsPage() {
     setError('');
     try {
       const listers = await selectRows('profiles', {
-        select: 'id,full_name,role,verification_status,phone,lister_type,created_at',
+        select: 'id,full_name,role,verification_status,phone,created_at',
         filters: [{ column: 'role', op: 'in', value: '(landlord,property_manager)' }],
         order: 'created_at.desc',
         accessToken: token
@@ -118,7 +118,7 @@ export default function AdminLandlordsPage() {
         const listingIds = listings.map((l: any) => l.id);
         if (listingIds.length > 0) {
           const photos = await selectRows('listing_photos', {
-            select: 'listing_id,url,position',
+            select: 'listing_id,photo_url,position',
             filters: [{ column: 'listing_id', op: 'in', value: `(${listingIds.join(',')})` }],
             order: 'position.asc',
             accessToken: token
@@ -127,7 +127,8 @@ export default function AdminLandlordsPage() {
           const pMap: Record<string, string[]> = {};
           photos.forEach((ph: any) => {
             if (!pMap[ph.listing_id]) pMap[ph.listing_id] = [];
-            if (pMap[ph.listing_id].length < 4) pMap[ph.listing_id].push(ph.url);
+            const url = ph.photo_url || ph.url || ph.public_url;
+            if (url && pMap[ph.listing_id].length < 4) pMap[ph.listing_id].push(url);
           });
           setPhotosByListing(pMap);
         }
@@ -192,27 +193,32 @@ export default function AdminLandlordsPage() {
     setActionLoading(id);
     try {
       const profile = allProfiles.find(p => p.id === id);
-      await updateRows('profiles', { verification_status: 'verified', is_verified: true, is_suspended: false }, {
-        filters: [{ column: 'id', op: 'eq', value: id }],
-        accessToken: token
+      await toast.promise(
+        updateRows('profiles', { verification_status: 'verified', is_verified: true, is_suspended: false }, {
+          filters: [{ column: 'id', op: 'eq', value: id }],
+          accessToken: token
+        }),
+        {
+          loading: 'Verifying...',
+          success: 'Landlord verified successfully! ✅',
+          error: (err) => `Failed to verify: ${err.message}`
+        }
+      ).catch(async (err) => {
+        // Fallback for older schema if is_verified/is_suspended are missing
+        if (err.message.includes('column') || err.message.includes('400')) {
+          await updateRows('profiles', { verification_status: 'verified' }, {
+            filters: [{ column: 'id', op: 'eq', value: id }],
+            accessToken: token
+          });
+          toast.success('Verified (using legacy mode)');
+        } else {
+          throw err;
+        }
       });
       
-      await insertRows('notifications', {
-        user_id: id,
-        type: 'system',
-        title: 'Account Verified! ✅',
-        body: 'Congratulations! Your project manager account has been verified.',
-      }, { accessToken: token }).catch(() => null);
-
-      if (profile?.phone) {
-        await invokeFunction('send-sms', {
-          to: profile.phone,
-          message: `iRent: Hello ${profile.full_name}, your project manager account has been officially verified!`
-        }, token).catch(() => null);
-      }
-
       setAllProfiles(prev => prev.map(p => p.id === id ? { ...p, verification_status: 'verified' } : p));
     } catch (err: any) {
+      toast.error(err.message);
       setError(err.message);
     } finally {
       setActionLoading(null);

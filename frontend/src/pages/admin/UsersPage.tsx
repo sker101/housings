@@ -37,7 +37,7 @@ export default function AdminUsersPage() {
     setLoading(true);
     try {
       const rows = await selectRows('profiles', {
-        select: 'id,role,lister_type,full_name,phone,phone_verified,verification_status,subscription_plan,created_at',
+        select: 'id,role,full_name,phone,phone_verified,verification_status,subscription_plan,created_at',
         order: 'created_at.desc',
         limit: 500,
         accessToken: token,
@@ -100,7 +100,16 @@ export default function AdminUsersPage() {
     setBusyId(id);
     setProfiles((ps) => ps.map((p) => p.id === id ? { ...p, ...patch } : p));
     try {
-      await updateRows('profiles', patch, { filters: [{ column: 'id', op: 'eq', value: id }], accessToken: token });
+      await updateRows('profiles', patch, { filters: [{ column: 'id', op: 'eq', value: id }], accessToken: token })
+        .catch(async (err) => {
+          // Legacy fallback: try updating only verification_status if patch failed
+          if ((err.message.includes('column') || err.message.includes('400')) && patch.verification_status) {
+             await updateRows('profiles', { verification_status: patch.verification_status }, { filters: [{ column: 'id', op: 'eq', value: id }], accessToken: token });
+             toast.success(`${successMsg} (legacy mode)`);
+          } else {
+            throw err;
+          }
+        });
       await logAdminAction(action, id, { before: prev, after: { ...prev, ...patch } });
       toast.success(successMsg);
     } catch (err) {
