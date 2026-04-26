@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Download, Smartphone, Share, PlusSquare, ChevronRight } from 'lucide-react';
+import { X, Download, Smartphone, Share, PlusSquare, MoreVertical, LayoutGrid } from 'lucide-react';
 
 export default function SmartInstallBanner() {
   const [isVisible, setIsVisible] = useState(false);
@@ -56,9 +56,11 @@ export default function SmartInstallBanner() {
       const { outcome } = await deferredPrompt.userChoice;
       if (outcome === 'accepted') {
         setIsVisible(false);
+      } else {
+        // If they decline the native prompt, show our nice styled instructions as backup
+        setShowInstructions(true);
       }
     } else {
-      // Show beautiful instruction modal for iOS or if Android prompt fails
       setShowInstructions(true);
     }
   };
@@ -152,7 +154,9 @@ export default function SmartInstallBanner() {
                 <Smartphone size={32} />
               </div>
               <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: '#0f172a' }}>Install iRent</h3>
-              <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#64748b' }}>Follow these simple steps:</p>
+              <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#64748b' }}>
+                {platform === 'ios' ? 'Follow these simple steps for iPhone:' : 'Follow these simple steps for Android:'}
+              </p>
             </div>
 
             <div style={{ display: 'grid', gap: '16px' }}>
@@ -165,11 +169,15 @@ export default function SmartInstallBanner() {
                 }}>1</div>
                 <div>
                   <p style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#1e293b' }}>
-                    Tap the <span style={{ color: '#3b82f6', display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle' }}>
-                      <Share size={18} style={{ margin: '0 4px' }} /> Share
-                    </span> button
+                    {platform === 'ios' ? (
+                      <>Tap the <span style={{ color: '#3b82f6', display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle' }}><Share size={18} style={{ margin: '0 4px' }} /> Share</span> button</>
+                    ) : (
+                      <>Tap the <span style={{ color: '#64748b', display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle' }}><MoreVertical size={18} style={{ margin: '0 4px' }} /> Menu</span> icon</>
+                    )}
                   </p>
-                  <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#64748b' }}>at the bottom of your browser</p>
+                  <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#64748b' }}>
+                    {platform === 'ios' ? 'at the bottom of Safari' : 'at the top right of Chrome'}
+                  </p>
                 </div>
               </div>
 
@@ -182,9 +190,15 @@ export default function SmartInstallBanner() {
                 }}>2</div>
                 <div>
                   <p style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#1e293b' }}>
-                    Select <span style={{ fontWeight: 800 }}>"Add to Home Screen"</span>
+                    {platform === 'ios' ? (
+                      <>Select <span style={{ fontWeight: 800 }}>"Add to Home Screen"</span></>
+                    ) : (
+                      <>Select <span style={{ color: '#16a34a', display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle' }}><Download size={18} style={{ margin: '0 4px' }} /> Install App</span></>
+                    )}
                   </p>
-                  <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#64748b' }}>scroll down to find this option</p>
+                  <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#64748b' }}>
+                    {platform === 'ios' ? 'scroll down to find it' : 'or "Add to Home screen"'}
+                  </p>
                 </div>
               </div>
             </div>
@@ -193,12 +207,10 @@ export default function SmartInstallBanner() {
               onClick={() => setShowInstructions(false)}
               style={{
                 width: '100%', marginTop: '24px', padding: '14px',
-                background: '#f1f5f9', border: 'none', borderRadius: '14px',
-                fontSize: '15px', fontWeight: 700, color: '#475569', cursor: 'pointer',
-                transition: 'background 0.2s'
+                background: '#16a34a', border: 'none', borderRadius: '14px',
+                fontSize: '15px', fontWeight: 700, color: 'white', cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(22,163,74,0.2)'
               }}
-              onMouseEnter={(e) => e.currentTarget.style.background = '#e2e8f0'}
-              onMouseLeave={(e) => e.currentTarget.style.background = '#f1f5f9'}
             >
               Got it
             </button>
