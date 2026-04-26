@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ShieldCheck, MapPin, Share2, FileText, LayoutDashboard, ChevronRight } from 'lucide-react';
+import { ShieldCheck, MapPin, Share2, FileText, LayoutDashboard, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { selectRows, insertRows } from '../lib/supabase';
 import ListingMap from '../components/ListingMap';
@@ -937,10 +937,13 @@ export default function MyRoomPage() {
                       <FileText size={16} style={{ color: '#16a34a' }} />
                       <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>Rental Agreement</span>
                     </div>
-                    <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--mid)', lineHeight: 1.6 }}>
-                      Tenant: {user?.fullName || '—'}<br />
-                      Landlord/Dalali: {landlord?.full_name || '—'}<br />
-                      Period: {formatDate(booking?.move_in_date)} – {leaseEndDate ? formatDate(leaseEndDate.toISOString()) : '—'}
+                    <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--mid)', lineHeight: 1.7 }}>
+                      <strong style={{ color: '#1e293b' }}>Tenant:</strong> {user?.fullName || '—'}<br />
+                      <strong style={{ color: '#1e293b' }}>Landlord/Dalali:</strong> {landlord?.full_name || '—'}<br />
+                      <strong style={{ color: '#1e293b' }}>Property:</strong> {listing?.room_type || 'Residential Room'} ({listing?.title})<br />
+                      <strong style={{ color: '#1e293b' }}>Location:</strong> {[listing?.ward, listing?.district].filter(Boolean).join(', ') || 'Dar es Salaam'}<br />
+                      <strong style={{ color: '#1e293b' }}>Monthly Rent:</strong> {formatTZS(listing?.price_monthly)}<br />
+                      <strong style={{ color: '#1e293b' }}>Period:</strong> {formatDate(booking?.move_in_date)} – {leaseEndDate ? formatDate(leaseEndDate.toISOString()) : '—'}
                     </p>
                   </div>
                   <p style={{ margin: '0 0 0.75rem', fontSize: '0.82rem', color: 'var(--mid)', lineHeight: 1.5 }}>
@@ -984,15 +987,24 @@ export default function MyRoomPage() {
                 </div>
 
                 <div className="card" style={{ padding: '1rem', borderRadius: 14 }}>
-                  <p style={{ margin: '0 0 0.75rem', fontWeight: 700 }}>House rules</p>
-                  <ul style={{ margin: 0, paddingLeft: '1.2rem', color: 'var(--mid)', display: 'grid', gap: '0.35rem' }}>
+                  <p style={{ margin: '0 0 1rem', fontWeight: 700 }}>House rules & Conditions</p>
+                  <div style={{ display: 'grid', gap: '0.6rem' }}>
                     {(listing?.house_rules && (Array.isArray(listing.house_rules) ? listing.house_rules.length > 0 : listing.house_rules)
                       ? (Array.isArray(listing.house_rules) ? listing.house_rules : [listing.house_rules])
                       : DEFAULT_RULES
-                    ).map((rule) => (
-                      <li key={rule} style={{ fontSize: '0.9rem', lineHeight: 1.5 }}>{rule}</li>
+                    ).map((rule, idx) => (
+                      <div key={idx} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                        <div style={{ 
+                          width: '18px', height: '18px', borderRadius: '50%', background: '#eef6f3', 
+                          color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          flexShrink: 0, marginTop: '2px'
+                        }}>
+                          <CheckCircle2 size={12} />
+                        </div>
+                        <span style={{ fontSize: '0.88rem', color: '#475569', lineHeight: 1.5 }}>{rule}</span>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 </div>
 
                 <div className="card" style={{ padding: '1rem', borderRadius: 14 }}>
