@@ -248,7 +248,7 @@ export default function ListPropertyPage() {
     String(user?.landlordVerificationStatus || '').trim().toLowerCase()
   );
 
-  const hasListerRole = user?.role === 'landlord' || user?.role === 'dalali' || user?.role === 'admin';
+  const hasListerRole = user?.role === 'landlord' || user?.role === 'dalali' || user?.role === 'property_manager' || user?.role === 'admin';
   const isVerified = verificationStatus === 'approved' || verificationStatus === 'verified';
   const isRejected = verificationStatus === 'rejected';
   const verificationRequiredMessage = isRejected
