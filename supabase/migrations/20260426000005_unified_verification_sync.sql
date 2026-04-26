@@ -73,9 +73,9 @@ BEGIN
         WHERE profile_id = NEW.id;
         
         -- Update property_managers
-        UPDATE public.property_managers
-        SET is_verified = true
-        WHERE profile_id = NEW.id;
+        IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'property_managers') THEN
+            EXECUTE format('UPDATE public.property_managers SET is_verified = true WHERE profile_id = %L', NEW.id);
+        END IF;
     ELSIF NEW.verification_status != 'verified' AND (OLD.verification_status = 'verified' OR OLD.verification_status IS NULL) THEN
         -- Revert landlords
         UPDATE public.landlords 
@@ -83,9 +83,9 @@ BEGIN
         WHERE profile_id = NEW.id;
         
         -- Revert property_managers
-        UPDATE public.property_managers
-        SET is_verified = false
-        WHERE profile_id = NEW.id;
+        IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'property_managers') THEN
+            EXECUTE format('UPDATE public.property_managers SET is_verified = false WHERE profile_id = %L', NEW.id);
+        END IF;
     END IF;
     
     RETURN NEW;

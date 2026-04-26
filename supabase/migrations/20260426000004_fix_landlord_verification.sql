@@ -39,9 +39,9 @@ BEGIN
     END IF;
     
     IF (NEW.role = 'property_manager' OR 'property_manager' = ANY(NEW.roles)) THEN
-        INSERT INTO public.property_managers (profile_id)
-        VALUES (NEW.id)
-        ON CONFLICT (profile_id) DO NOTHING;
+        IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'property_managers') THEN
+            EXECUTE format('INSERT INTO public.property_managers (profile_id) VALUES (%L) ON CONFLICT (profile_id) DO NOTHING', NEW.id);
+        END IF;
     END IF;
     
     RETURN NEW;
@@ -73,9 +73,9 @@ BEGIN
 
     -- Sync is_verified in property_managers table
     IF NEW.verification_status = 'verified' AND (NEW.role = 'property_manager' OR 'property_manager' = ANY(NEW.roles)) THEN
-        UPDATE public.property_managers
-        SET is_verified = true
-        WHERE profile_id = NEW.id;
+        IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'property_managers') THEN
+            EXECUTE format('UPDATE public.property_managers SET is_verified = true WHERE profile_id = %L', NEW.id);
+        END IF;
     END IF;
 
     RETURN NEW;
@@ -92,6 +92,11 @@ UPDATE public.landlords
 SET identity_verified = true, verified_at = now()
 WHERE profile_id IN (SELECT id FROM public.profiles WHERE verification_status = 'verified');
 
-UPDATE public.property_managers
-SET is_verified = true
-WHERE profile_id IN (SELECT id FROM public.profiles WHERE verification_status = 'verified');
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'property_managers') THEN
+        UPDATE public.property_managers
+        SET is_verified = true
+        WHERE profile_id IN (SELECT id FROM public.profiles WHERE verification_status = 'verified');
+    END IF;
+END $$;
