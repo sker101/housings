@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { selectRows, updateRows, insertRows, invokeFunction } from '../lib/supabase';
+import toast from 'react-hot-toast';
 
 type Listing = {
   id: string;
