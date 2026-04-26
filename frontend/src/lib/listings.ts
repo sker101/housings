@@ -83,7 +83,9 @@ export function mapListingRow(row, photos = []) {
     createdAt: row.created_at,
     photos,
     imageUrl:
-      photos.find((photo) => Boolean(photo?.public_url))?.public_url ||
+      photos.find((photo) => Boolean(photo?.public_url || photo?.photo_url || photo?.url))?.public_url ||
+      photos.find((photo) => Boolean(photo?.photo_url))?.photo_url ||
+      photos.find((photo) => Boolean(photo?.url))?.url ||
       'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1200&q=80',
     verified: row.status === 'approved'
   };
@@ -96,7 +98,7 @@ export async function fetchPhotosForListings(listingIds, accessToken) {
   }
 
   const photos = await selectRows('listing_photos', {
-    select: 'id,listing_id,angle,public_url,position,caption,is_cover,created_at',
+    select: '*',
     filters: [
       {
         column: 'listing_id',

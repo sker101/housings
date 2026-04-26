@@ -693,6 +693,10 @@ export default function ListPropertyPage() {
           console.log('✅ Listing created (Safe Mode)');
         }
       }
+      
+      if (!createdListingId) {
+        throw new Error('Listing was not created successfully (no ID returned). Please check your internet connection or contact support.');
+      }
 
       // Handle photos
       console.log('📦 Step 3: Processing Photos...');
