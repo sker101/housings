@@ -16,8 +16,15 @@ BEGIN
         CREATE OR REPLACE FUNCTION pg_temp.safe_int(t text) RETURNS int AS $f$
         BEGIN RETURN t::int; EXCEPTION WHEN OTHERS THEN RETURN 0; END; $f$ LANGUAGE plpgsql;
 
-        CREATE OR REPLACE FUNCTION pg_temp.safe_jsonb(t text) RETURNS jsonb AS $f$
-        BEGIN RETURN t::jsonb; EXCEPTION WHEN OTHERS THEN RETURN '{}'::jsonb; END; $f$ LANGUAGE plpgsql;
+        CREATE OR REPLACE FUNCTION pg_temp.safe_amenities(t text) RETURNS text[] AS $f$
+        BEGIN 
+            RETURN ARRAY(
+                SELECT key FROM jsonb_each_text(t::jsonb) 
+                WHERE value = 'true'
+            ); 
+        EXCEPTION WHEN OTHERS THEN 
+            RETURN ARRAY[]::text[]; 
+        END; $f$ LANGUAGE plpgsql;
 
         -- A. Ensure all landlords exist for the listings
         INSERT INTO public.landlords (profile_id)
@@ -61,7 +68,7 @@ BEGIN
             pg_temp.safe_int(l.price_monthly::text),
             CASE WHEN l.vacancy_status = 'coming_soon' THEN 'available_soon' ELSE l.vacancy_status END,
             (l.vacancy_status = 'available'),
-            pg_temp.safe_jsonb(l.amenities::text),
+            pg_temp.safe_amenities(l.amenities::text),
             l.created_at::timestamptz
         FROM public.listings l
         JOIN property_map m ON l.id = m.old_listing_id
