@@ -143,7 +143,7 @@ async function fetchProfile(userId: string, accessToken: string): Promise<Profil
   if (!userId || !accessToken) return null;
 
   const columns = [
-    'id', 'role', 'roles', 'lister_type', 'full_name', 'phone', 'phone_verified',
+    'id', 'role', 'roles', 'full_name', 'phone', 'phone_verified',
     'university', 'profile_photo_url', 'id_doc_url', 'selfie_url',
     'verification_status', 'subscription_plan', 'preferred_language',
     'commission_rate_pct', 'created_at',
@@ -151,7 +151,7 @@ async function fetchProfile(userId: string, accessToken: string): Promise<Profil
 
   try {
     try {
-      // First attempt with all columns including 'roles'
+      // First attempt with standard columns
       const rows = await selectRows('profiles', {
         select: columns.join(','),
         filters: [{ column: 'id', op: 'eq', value: userId }],
@@ -163,15 +163,15 @@ async function fetchProfile(userId: string, accessToken: string): Promise<Profil
       if (profile) {
         profile.suspended = profile.verification_status === 'suspended';
         profile.id_document_url = profile.id_doc_url;
+        return profile as Profile;
       }
-      return (profile as Profile) || null;
+      return null;
     } catch (err: any) {
-      // If error suggests missing column 'roles', try without it
-      if (err.message?.includes('roles') || err.message?.includes('column')) {
-        console.warn('[Auth] Falling back in fetchProfile: "roles" column likely missing');
-        const basicColumns = columns.filter(c => c !== 'roles');
+      // Fallback: if columns are missing, try a minimal set
+      if (err.message.includes('column') || err.message.includes('400')) {
+        const minimalColumns = ['id', 'role', 'full_name', 'verification_status', 'created_at'];
         const rows = await selectRows('profiles', {
-          select: basicColumns.join(','),
+          select: minimalColumns.join(','),
           filters: [{ column: 'id', op: 'eq', value: userId }],
           limit: 1,
           accessToken,
