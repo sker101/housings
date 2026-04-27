@@ -254,12 +254,8 @@ export default function ListPropertyPage() {
     : t('hostFlow.verificationPending');
   const submitButtonLabel = submitting
     ? t('hostFlow.btnSubmitting')
-    : !isVerified
-      ? isRejected
-        ? t('hostFlow.btnVerificationRequired')
-        : t('hostFlow.awaitingAdminApproval')
-      : editId ? 'Update Listing' : t('hostFlow.btnSubmitListing');
-  const canSubmitListing = isVerified && Boolean(formValues.policyAccepted) && !submitting;
+    : editId ? 'Update Listing' : t('hostFlow.btnSubmitListing');
+  const canSubmitListing = Boolean(formValues.policyAccepted) && !submitting;
 
   useEffect(() => {
     setVerificationStatus(String(user?.landlordVerificationStatus || '').trim().toLowerCase());
