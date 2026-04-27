@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { dashboardDefaultPath } from '../../lib/roles';
 
 export default function VerifyEmailPage() {
-  const { verifyEmailCode, sendMagicLinkEmail, isAuthenticated, user } = useAuth();
+  const { verifyEmailCode, sendVerificationCode, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const emailFromUrl = params.get('email') || '';
@@ -61,7 +61,7 @@ export default function VerifyEmailPage() {
     setResendLoading(true);
     setError('');
     try {
-      await sendMagicLinkEmail(email);
+      await sendVerificationCode(email);
       alert('A new verification code has been sent to your email!');
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to resend code';

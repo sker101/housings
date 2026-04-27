@@ -509,7 +509,7 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
                       <Link to="/auth/login" style={{ fontWeight: 600, fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}>
                         {t('nav.login', 'Login')}
                       </Link>
-                      <Link to="/auth/register" className="btn btn--small">
+                      <Link to="/register" className="btn btn--small">
                         {t('nav.register', 'Join iRent')}
                       </Link>
                     </div>

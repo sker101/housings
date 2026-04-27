@@ -66,7 +66,7 @@ interface AuthContextValue {
   registerLandlord: (_payload: Record<string, string>) => Promise<Record<string, unknown>>;
   signInWithGoogle: (_role?: string) => Promise<void>;
   handleOAuthCallback: (_code: string) => Promise<{ user: AuthUser | null; isNewUser: boolean }>;
-  sendMagicLinkEmail: (_email: string) => Promise<void>;
+  sendVerificationCode: (_email: string) => Promise<void>;
   verifyEmailCode: (_email: string, _code: string) => Promise<AuthUser | null>;
   refreshMe: () => Promise<AuthUser | null>;
   switchRole: (role: string) => void;
@@ -744,10 +744,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   // ─── Magic Link / Email OTP ─────────────────────────────────
-  const sendMagicLinkEmail = useCallback(
+  const sendVerificationCode = useCallback(
     async (email: string) => {
-      const redirectTo = `${window.location.origin}/auth/verify-email`;
-      await sendMagicLink({ email, redirectTo });
+      await sendOTP({ email });
     },
     []
   );
@@ -944,7 +943,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       registerLandlord,
       signInWithGoogle,
       handleOAuthCallback,
-      sendMagicLinkEmail,
+      sendVerificationCode,
       verifyEmailCode,
       refreshMe,
       switchRole,
@@ -952,7 +951,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       networkError,
       setNetworkError,
     }),
-    [user, profile, session, loading, login, logout, registerStudent, registerLandlord, signInWithGoogle, handleOAuthCallback, sendMagicLinkEmail, verifyEmailCode, refreshMe, switchRole, canSwitchRolesValue, networkError]
+    [user, profile, session, loading, login, logout, registerStudent, registerLandlord, signInWithGoogle, handleOAuthCallback, sendVerificationCode, verifyEmailCode, refreshMe, switchRole, canSwitchRolesValue, networkError]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

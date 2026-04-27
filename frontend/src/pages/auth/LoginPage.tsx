@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-hot-toast';
 import AuthLoader from '../../components/AuthLoader';
@@ -14,7 +14,7 @@ const LoginPage: React.FC = () => {
   const location = useLocation();
   const {
     signInWithGoogle,
-    sendMagicLinkEmail,
+    sendVerificationCode,
     verifyEmailCode,
     login,
     user,
@@ -22,10 +22,13 @@ const LoginPage: React.FC = () => {
     loading: authLoading,
   } = useAuth();
 
+  const [searchParams] = useSearchParams();
+  const initialRole = searchParams.get('role') || 'tenant';
+
   const [step, setStep] = useState<Step>('entry');
   const [email, setEmail] = useState('');
   const [otpCode, setOtpCode] = useState(['', '', '', '', '', '']);
-  const [selectedRole, setSelectedRole] = useState<string>('tenant');
+  const [selectedRole, setSelectedRole] = useState<string>(initialRole);
   const [adminPassword, setAdminPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -94,7 +97,7 @@ const LoginPage: React.FC = () => {
     try {
       // Store role for new users
       sessionStorage.setItem('oauth_signup_role', selectedRole);
-      await sendMagicLinkEmail(email.trim());
+      await sendVerificationCode(email.trim());
       setStep('otp');
       setCountdown(60);
       toast.success('Verification code sent to your email!');
@@ -158,7 +161,7 @@ const LoginPage: React.FC = () => {
     if (countdown > 0) return;
     setBusy(true);
     try {
-      await sendMagicLinkEmail(email.trim());
+      await sendVerificationCode(email.trim());
       setCountdown(60);
       setOtpCode(['', '', '', '', '', '']);
       toast.success('New code sent!');
