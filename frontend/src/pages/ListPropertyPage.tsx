@@ -195,16 +195,13 @@ function validateStep(step: number, values: any, files: any): string {
       // If editing, existing photos will be kept if new ones aren't provided.
       const isEditingOffset = new URLSearchParams(window.location.search).has('edit');
       
-      let uploadedCount = Object.values(files).filter(f => f).length;
-      if (isEditingOffset) {
-        // Assume existing photos are at least 4 if editing, but technically we could check the initial state.
-        // The prompt says "Enforce a minimum of 4 photos before a listing can be published. If fewer than 4 are uploaded, show a validation error: 'Please upload at least 4 photos to publish this listing.'"
-        // We will just return if they somehow deleted photos (if that UI existed), but it doesn't.
-        return '';
-      }
+      const uploadedCount = Object.values(files).filter(f => f).length;
+      const existingCount = Object.values(previews).filter(p => p && p.startsWith('http')).length;
+      const totalPhotos = uploadedCount + existingCount;
 
-      // Photos are encouraged but not required to submit the listing draft.
-      // The listing will be in 'pending' status for admin review regardless.
+      if (totalPhotos < 4 && !isEditingOffset) {
+        return 'Please upload at least 4 photos (Outside, Bedroom, Kitchen, Bathroom) to publish this listing.';
+      }
       return '';
     },
     6: () => {
@@ -648,6 +645,10 @@ export default function ListPropertyPage() {
       
       // We try the full payload first. If it fails due to missing columns (common in local setups),
       // we fall back to a minimal payload that we know exists in all versions.
+      const formattedAmenities = Object.entries(values.amenities || {})
+        .filter(([_, enabled]) => enabled === true)
+        .map(([key]) => key);
+
       const fullListingPayload = {
         lister_id: user.userId,
         title: sanitizeInput(values.title),
@@ -673,7 +674,7 @@ export default function ListPropertyPage() {
         street: sanitizeInput(values.street),
         lat: latNum,
         lng: lngNum,
-        amenities: JSON.stringify(values.amenities),
+        amenities: formattedAmenities,
         available_from: values.availableFrom,
         vacancy_status: 'available',
         status: 'pending',
@@ -694,7 +695,7 @@ export default function ListPropertyPage() {
         street: values.street.trim(),
         lat: latNum,
         lng: lngNum,
-        amenities: JSON.stringify(values.amenities),
+        amenities: formattedAmenities,
         vacancy_status: 'available',
         status: 'pending',
         featured: false
