@@ -830,7 +830,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               id: sessionUser.id,
               role: requestedRole,
               full_name: displayName,
-              email: email,
               phone: '',
               phone_verified: false,
               profile_photo_url: '',
