@@ -768,7 +768,6 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
                 <NavLink
                   to={userDashboardPath}
                   className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
-                  style={({ isActive }) => ({ color: isActive ? '#22c55e' : '#6b7280' })}
                 >
                   <LayoutGrid size={22} />
                   <span>Dashboard</span>
@@ -777,7 +776,6 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
                 <NavLink
                   to="/saved"
                   className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
-                  style={({ isActive }) => ({ color: isActive ? '#22c55e' : '#6b7280' })}
                 >
                   <Heart size={22} />
                   <span>Wishlist</span>
@@ -786,7 +784,6 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
                 <NavLink
                   to="/messages"
                   className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
-                  style={({ isActive }) => ({ color: isActive ? '#22c55e' : '#6b7280' })}
                 >
                   <MessageCircle size={22} />
                   <span>Messages</span>
@@ -796,7 +793,6 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
                 <NavLink
                   to={profileTarget}
                   className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
-                  style={({ isActive }) => ({ color: isActive ? '#22c55e' : '#6b7280' })}
                 >
                   <User size={22} />
                   <span>{profileLabel}</span>
@@ -807,7 +803,6 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
                 <NavLink
                   to="/admin/users"
                   className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
-                  style={({ isActive }) => ({ color: isActive ? '#22c55e' : '#6b7280' })}
                 >
                   <User size={22} />
                   <span>Users</span>
@@ -816,7 +811,6 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
                 <NavLink
                   to="/admin/landlords"
                   className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
-                  style={({ isActive }) => ({ color: isActive ? '#22c55e' : '#6b7280' })}
                 >
                   <Shield size={22} />
                   <span>Vetting</span>
@@ -825,7 +819,6 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
                 <NavLink
                   to="/admin/listings"
                   className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
-                  style={({ isActive }) => ({ color: isActive ? '#22c55e' : '#6b7280' })}
                 >
                   <Home size={22} />
                   <span>Listings</span>
@@ -834,7 +827,6 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
                 <NavLink
                   to="/admin/reports"
                   className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
-                  style={({ isActive }) => ({ color: isActive ? '#22c55e' : '#6b7280' })}
                 >
                   <Bell size={22} />
                   <span>Reports</span>
@@ -845,7 +837,6 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
                 <NavLink
                   to={isAuthenticated ? userDashboardPath : '/'}
                   className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
-                  style={({ isActive }) => ({ color: isActive ? '#22c55e' : '#6b7280' })}
                 >
                   {isAuthenticated ? <LayoutGrid size={22} /> : <Home size={22} strokeWidth={isHomePage ? 2.5 : 2} />}
                   <span>{isAuthenticated ? 'Dashboard' : 'Home'}</span>
@@ -854,7 +845,6 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
                 <NavLink
                   to="/saved"
                   className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
-                  style={({ isActive }) => ({ color: isActive ? '#22c55e' : '#6b7280' })}
                   onClick={(e) => {
                     if (!isAuthenticated) {
                       e.preventDefault();
@@ -869,7 +859,6 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
                 <NavLink
                   to="/messages"
                   className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
-                  style={({ isActive }) => ({ color: isActive ? '#22c55e' : '#6b7280' })}
                   onClick={(e) => {
                     if (!isAuthenticated) {
                       e.preventDefault();
@@ -885,7 +874,6 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
                 <NavLink
                   to={profileTarget}
                   className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
-                  style={({ isActive }) => ({ color: isActive ? '#22c55e' : '#6b7280' })}
                 >
                   <User size={22} strokeWidth={isAuthPage ? 2.5 : 2} />
                   <span>{profileLabel}</span>
