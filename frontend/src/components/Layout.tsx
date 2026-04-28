@@ -183,11 +183,23 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
   const menuRef = useRef<HTMLDivElement>(null);
   const a11yRef = useRef<HTMLDivElement>(null);
   const [isA11yOpen, setIsA11yOpen] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isLogoActive, setIsLogoActive] = useState(false);
+  const [isBrandActive, setIsBrandActive] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
 
   // Consolidated Click Outside Handler
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       const target = event.target as Node;
+      
+      // Close profile menu if clicking outside
+      if (isProfileMenuOpen && profileMenuRef.current && !profileMenuRef.current.contains(target)) {
+        const profileToggleBtn = (target as HTMLElement).closest('.profile-menu-toggle');
+        if (!profileToggleBtn) {
+          setIsProfileMenuOpen(false);
+        }
+      }
       
       // Close accessibility menu if clicking outside
       if (isA11yOpen && a11yRef.current && !a11yRef.current.contains(target)) {
@@ -472,6 +484,107 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
 
         {!hideHeader ? (
           <header className={`topbar ${isHomePage ? 'topbar--on-homepage' : ''}`}>
+            {/* ROW 1: IMAGE BANNER (All Pages) */}
+            {
+              <div
+                className="notification-row"
+                style={{
+                  overflow: 'hidden',
+                  position: 'relative',
+                  minHeight: '35px',
+                  height: 'auto',
+                  backgroundImage: `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.4)), url("${topImage}")`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderBottom: '1px solid var(--border)',
+                  borderRadius: 0
+                }}
+              >
+                <style>{`
+                  @media (min-width: 769px) {
+                    .banner-container {
+                      justify-content: center !important;
+                    }
+                    .banner-logo {
+                      position: absolute;
+                      left: 1rem;
+                    }
+                    .banner-text {
+                      margin-left: 0 !important;
+                    }
+                  }
+                  @media (max-width: 768px) {
+                    .banner-container {
+                      justify-content: flex-start !important;
+                    }
+                    .banner-logo {
+                      position: relative;
+                      left: auto;
+                    }
+                  }
+                `}</style>
+                <div className="banner-container" style={{ 
+                  width: '100%',
+                  maxWidth: '1200px',
+                  padding: '0.35rem 1rem', 
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'flex-start',
+                  gap: '0.75rem',
+                  position: 'relative'
+                }}>
+                  {/* iRent Logo - Left Side */}
+                  <button
+                    type="button"
+                    className={`topbar-action-btn banner-logo ${isLogoActive ? 'is-active' : ''}`}
+                    onClick={() => {
+                      setIsLogoActive(!isLogoActive);
+                      navigate('/');
+                    }}
+                    style={{ display: 'flex', alignItems: 'center', marginLeft: '-0.5rem', padding: 0, background: 'transparent', border: 'none' }}
+                  >
+                    <img 
+                      src="/irent%20logo%20white%20(2).png" 
+                      alt="iRent" 
+                      style={{
+                        width: 'clamp(50px, 10vw, 70px)',
+                        height: 'auto',
+                        objectFit: 'contain'
+                      }}
+                    />
+                  </button>
+                  {/* Text Content */}
+                  <div className="banner-text" style={{ textAlign: 'center', marginLeft: '0.5rem' }}>
+                    <h2 style={{ 
+                      color: '#fff', 
+                      fontSize: 'clamp(0.9rem, 3vw, 1.25rem)', 
+                      fontWeight: 700, 
+                      margin: '0 0 0.15rem', 
+                      textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                      lineHeight: 1.2
+                    }}>
+                      Tanzania's #1 Rental Platform
+                    </h2>
+                    <p style={{ 
+                      color: 'rgba(255,255,255,0.9)', 
+                      fontSize: 'clamp(0.7rem, 2.5vw, 0.85rem)', 
+                      fontWeight: 500, 
+                      textShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                      margin: 0,
+                      lineHeight: 1.3
+                    }}>
+                      Browse verified listings, connect with verified landlords.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            }
+
+            {/* ROW 2: NAVBAR */}
             <div className="topbar__inner">
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 {isAuthenticated && user?.role === APP_ROLE.ADMIN && (
@@ -484,121 +597,210 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
                     <Menu size={20} />
                   </button>
                 )}
-                <Link to="/" className="brand-link">
-                  <div className="brand-mark">
-                    <Home size={18} />
-                  </div>
+                <button
+                  type="button"
+                  className={`topbar-action-btn ${isBrandActive ? 'is-active' : ''}`}
+                  onClick={() => {
+                    setIsBrandActive(!isBrandActive);
+                    navigate('/');
+                  }}
+                  style={{ padding: 0, background: 'transparent', border: 'none' }}
+                >
                   <span className="brand-text"><em>i</em>Rent</span>
-                </Link>
+                </button>
               </div>
 
               <div className="topbar__nav">
-                <div className="show-on-desktop">
-                  {isAuthenticated ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                      <Link to="/profile" className="muted" style={{ fontSize: '0.8rem', fontWeight: 600 }}>
-                        {t('layout.greeting', 'Hi')}, {user?.fullName?.split(' ')[0] || 'User'}
-                      </Link>
-                      {topActionLink}
-                      <button type="button" className="btn btn--ghost btn--small" onClick={logout}>
-                        {t('nav.logout', 'Logout')}
+                <style>{`
+                  .icon-btn {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 2px;
+                    padding: 6px 10px;
+                    border-radius: 10px;
+                    border: none;
+                    background: transparent;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    color: #64748b;
+                    font-size: 0.7rem;
+                    font-weight: 500;
+                    min-width: 56px;
+                  }
+                  .icon-btn:hover {
+                    background: #f1f5f9;
+                    color: #1e293b;
+                  }
+                  .icon-btn.is-active {
+                    background: #e2e8f0;
+                    color: #1e293b;
+                  }
+                  .icon-btn svg {
+                    transition: transform 0.2s ease;
+                  }
+                  .icon-btn:hover svg {
+                    transform: scale(1.1);
+                  }
+                  @media (max-width: 768px) {
+                    .icon-btn-label { display: none; }
+                    .icon-btn { min-width: 40px; padding: 8px; }
+                  }
+                  .profile-menu {
+                    position: absolute;
+                    right: 0;
+                    top: calc(100% + 8px);
+                    background: white;
+                    border: 1px solid #e2e8f0;
+                    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+                    border-radius: 12px;
+                    overflow: hidden;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 2px;
+                    padding: 6px;
+                    min-width: 180px;
+                    animation: slideUpFade 0.2s ease-out;
+                    z-index: 9999;
+                  }
+                  .profile-menu__item {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    background: transparent;
+                    border: none;
+                    padding: 10px 12px;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-size: 0.8rem;
+                    font-weight: 500;
+                    color: #334155;
+                    transition: all 0.2s;
+                    text-align: left;
+                    width: 100%;
+                    white-space: nowrap;
+                  }
+                  .profile-menu__item:hover {
+                    background: #f8fafc;
+                    color: #16a34a;
+                  }
+                  .profile-menu__item svg {
+                    color: #64748b;
+                    flex-shrink: 0;
+                  }
+                  .profile-menu__item:hover svg {
+                    color: #16a34a;
+                  }
+                `}</style>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                  {/* Show map toggle on homepage */}
+                  {isHomePage && (
+                    <button 
+                      type="button" 
+                      className={`icon-btn ${homeViewMode === 'map' ? 'is-active' : ''}`}
+                      onClick={() => {
+                        console.log('Map toggle clicked, current mode:', homeViewMode);
+                        toggleHomePageView();
+                      }}
+                      title="Toggle View"
+                    >
+                      {homeViewMode === 'map' ? <LayoutGrid size={20} /> : <Map size={20} />}
+                      <span className="icon-btn-label">{homeViewMode === 'map' ? 'Grid' : 'Map'}</span>
+                    </button>
+                  )}
+
+                  {isAuthenticated && (
+                    <button
+                      type="button"
+                      className="icon-btn"
+                      onClick={() => navigate('/notifications')}
+                      title="Notifications"
+                      style={{ position: 'relative' }}
+                    >
+                      <Bell size={20} />
+                      <span className="icon-btn-label">Alerts</span>
+                      {notifCount > 0 && (
+                        <span className="notification-badge" style={{ position: 'absolute', top: '2px', right: '8px' }}>{notifCount > 99 ? '99+' : notifCount}</span>
+                      )}
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    className={`icon-btn ${isA11yOpen ? 'is-active' : ''}`}
+                    onClick={() => setIsA11yOpen(!isA11yOpen)}
+                    title="Accessibility"
+                  >
+                    <Accessibility size={20} />
+                    <span className="icon-btn-label">A11y</span>
+                  </button>
+
+                  {isA11yOpen && (
+                    <div className="a11y-menu" ref={a11yRef}>
+                      <button type="button" className="a11y-menu__item" onClick={() => { toggleDarkMode(); setIsA11yOpen(false); }}>
+                        {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
+                        <span>{t('layout.toggleTheme', 'Toggle theme')}</span>
+                      </button>
+                      <button type="button" className="a11y-menu__item" onClick={() => { toggleLanguage(); setIsA11yOpen(false); }}>
+                        <Globe size={16} />
+                        <span>{t('layout.changeLanguage', 'Change language')}</span>
                       </button>
                     </div>
-                  ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <Link to="/auth/login" style={{ fontWeight: 600, fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}>
-                        {t('nav.login', 'Login')}
-                      </Link>
-                      <Link to="/register" className="btn btn--small">
-                        {t('nav.register', 'Join iRent')}
-                      </Link>
+                  )}
+
+                  {/* Profile Menu Button */}
+                  <button
+                    type="button"
+                    className={`icon-btn profile-menu-toggle ${isProfileMenuOpen ? 'is-active' : ''}`}
+                    onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                    title="Profile"
+                    style={{ position: 'relative' }}
+                  >
+                    <User size={20} />
+                    <span className="icon-btn-label">{isAuthenticated ? user?.fullName?.split(' ')[0] || 'User' : 'Login'}</span>
+                  </button>
+
+                  {/* Profile Dropdown Menu */}
+                  {isProfileMenuOpen && (
+                    <div className="profile-menu" ref={profileMenuRef}>
+                      {isAuthenticated ? (
+                        <>
+                          <div style={{ padding: '8px 12px', borderBottom: '1px solid #e2e8f0', marginBottom: '4px' }}>
+                            <p style={{ margin: 0, fontWeight: 600, color: '#1e293b', fontSize: '0.85rem' }}>{user?.fullName || 'User'}</p>
+                            <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b' }}>{user?.email}</p>
+                          </div>
+                          <Link to="/profile" className="profile-menu__item" onClick={() => setIsProfileMenuOpen(false)}>
+                            <User size={16} />
+                            <span>Profile</span>
+                          </Link>
+                          <Link to={userDashboardPath} className="profile-menu__item" onClick={() => setIsProfileMenuOpen(false)}>
+                            <LayoutGrid size={16} />
+                            <span>Dashboard</span>
+                          </Link>
+                          {/* Show Switch Account if user has multiple roles with same email - this would need backend logic */}
+                          <button type="button" className="profile-menu__item" onClick={() => { logout(); setIsProfileMenuOpen(false); }}>
+                            <LogIn size={16} style={{ transform: 'rotate(180deg)' }} />
+                            <span>Logout</span>
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <Link to="/auth/login" className="profile-menu__item" onClick={() => setIsProfileMenuOpen(false)}>
+                            <LogIn size={16} />
+                            <span>Login</span>
+                          </Link>
+                          <Link to="/register" className="profile-menu__item" onClick={() => setIsProfileMenuOpen(false)}>
+                            <UserPlus size={16} />
+                            <span>Join iRent</span>
+                          </Link>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>
-
-                {/* Show map toggle on homepage */}
-                {isHomePage && (
-                  <button 
-                    type="button" 
-                    className="topbar-action-btn" 
-                    onClick={() => {
-                      console.log('Map toggle clicked, current mode:', homeViewMode);
-                      toggleHomePageView();
-                    }} 
-                    title="Toggle View"
-                    style={{ cursor: 'pointer', pointerEvents: 'auto' }}
-                  >
-                    {homeViewMode === 'map' ? <LayoutGrid size={18} /> : <Map size={18} />}
-                  </button>
-                )}
-
-                {isAuthenticated && (
-                  <button
-                    type="button"
-                    className="topbar-action-btn"
-                    onClick={() => navigate('/notifications')}
-                    title="Notifications"
-                  >
-                    <Bell size={18} />
-                    {notifCount > 0 && (
-                      <span className="notification-badge">{notifCount > 99 ? '99+' : notifCount}</span>
-                    )}
-                  </button>
-                )}
-
-                <button
-                  type="button"
-                  className={`topbar-action-btn ${isA11yOpen ? 'is-active' : ''}`}
-                  onClick={() => setIsA11yOpen(!isA11yOpen)}
-                  title="Accessibility"
-                >
-                  <Accessibility size={18} />
-                </button>
-
-                {isA11yOpen && (
-                  <div className="a11y-menu" ref={a11yRef}>
-                    <button type="button" className="a11y-menu__item" onClick={() => { toggleDarkMode(); setIsA11yOpen(false); }}>
-                      {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
-                      <span>{t('layout.toggleTheme', 'Toggle theme')}</span>
-                    </button>
-                    <button type="button" className="a11y-menu__item" onClick={() => { toggleLanguage(); setIsA11yOpen(false); }}>
-                      <Globe size={16} />
-                      <span>{t('layout.changeLanguage', 'Change language')}</span>
-                    </button>
-                  </div>
-                )}
               </div>
             </div>
-
-
-            {/* PROMOTIONAL BANNER - ONLY ON HOME PAGE */}
-            {isHomePage && (
-              <div
-                className="notification-row"
-                style={{
-                  overflow: 'hidden',
-                  position: 'relative',
-                  minHeight: '100px',
-                  backgroundImage: `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.4)), url("${topImage}")`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  backgroundRepeat: 'no-repeat',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderBottom: '1px solid var(--border)'
-                }}
-              >
-                <div style={{ maxWidth: '800px', padding: '1.5rem', textAlign: 'center' }}>
-                  <h2 style={{ color: '#fff', fontSize: '1.5rem', fontWeight: 800, marginBottom: '0.5rem', textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
-                    Tanzania's #1 Rental Platform
-                  </h2>
-                  <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.9rem', fontWeight: 500, textShadow: '0 1px 2px rgba(0,0,0,0.2)' }}>
-                    Browse verified listings, connect with verified landlords, and book your stay with 100% confidence.
-                  </p>
-                </div>
-              </div>
-            )}
           </header>
         ) : null}
 

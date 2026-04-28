@@ -27,6 +27,7 @@ import {
   ChevronRight,
   Filter,
   SearchX,
+  Sparkles,
   X,
   Map,
   Users,
@@ -572,8 +573,13 @@ export default function HomePage() {
         </div>
       </div>
 
-      <section className="room-grid-section" ref={resultsRef}>
+      <section className="room-grid-section" ref={resultsRef} style={{ marginTop: '1.5rem' }}>
         <div className="room-grid-section__inner">
+          {/* For You Header */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', marginTop: '1rem', padding: '0 1rem' }}>
+            <Sparkles size={24} style={{ color: '#000' }} />
+            <h2 style={{ fontSize: 'clamp(1rem, 3vw, 1.25rem)', fontWeight: 700, color: '#000', margin: 0 }}>For You</h2>
+          </div>
           {error && filteredListings.length > 0 && <div className="error-box">{error}</div>}
           
           {loading ? (

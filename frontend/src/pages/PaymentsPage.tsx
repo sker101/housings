@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { LayoutDashboard, ChevronRight } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, ChevronRight, Wallet, TrendingUp, AlertCircle, Percent, Calendar, User, Home, CheckCircle2, Clock, ArrowLeft, CreditCard, BadgeCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { APP_ROLE } from '../lib/roles';
 import { selectRows, updateRows } from '../lib/supabase';
@@ -122,6 +122,7 @@ function displayStatus(status?: string) {
 }
 
 export default function PaymentsPage() {
+  const navigate = useNavigate();
   const { user, token } = useAuth();
   const [records, setRecords] = useState<PaymentRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -129,6 +130,7 @@ export default function PaymentsPage() {
   const [markingId, setMarkingId] = useState<string | null>(null);
   const [commissionPct, setCommissionPct] = useState(0);
   const [approvedBookings, setApprovedBookings] = useState<any[]>([]);
+  const [isDashboardActive, setIsDashboardActive] = useState(false);
 
   async function loadPayments() {
     if (!user?.userId || !token) {
@@ -294,9 +296,12 @@ export default function PaymentsPage() {
   return (
     <>
       {/* Breadcrumb Header */}
-      <header style={{background:'white',borderRadius:'12px',padding:'1rem 1.25rem',margin:'1rem 1rem 0',boxShadow:'0 1px 3px rgba(0,0,0,0.06)'}}>
+      <header style={{background:'white',borderRadius:'16px',padding:'1rem 1.25rem',margin:'1rem 1rem 0',boxShadow:'0 1px 3px rgba(0,0,0,0.06)'}}>
         <nav style={{display:'flex',alignItems:'center',gap:'0.5rem',fontSize:'0.9rem'}}>
-          <Link to="/tenant/dashboard" style={{display:'flex',alignItems:'center',gap:'0.35rem',color:'#64748b',textDecoration:'none'}}>
+          <Link 
+            to={backHref}
+            style={{display:'flex',alignItems:'center',gap:'0.35rem',color:'#64748b',textDecoration:'none',padding:'4px 8px',background:'transparent',border:'none',borderRadius:'8px'}}
+          >
             <LayoutDashboard size={16} />
             <span>Dashboard</span>
           </Link>
@@ -305,30 +310,89 @@ export default function PaymentsPage() {
         </nav>
       </header>
 
-      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}} @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}} .pay-page{padding:2rem;max-width:100%;animation:fadeUp 0.35s ease} .pay-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2rem} .kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:2rem} .kpi-card{background:#ffffff;border:0.5px solid var(--border);border-radius:14px;padding:16px 18px} .kpi-label{font-size:11px;color:var(--mid);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em} .kpi-value{font-size:22px;font-weight:700;line-height:1} .kpi-sub{font-size:11px;margin-top:4px;color:var(--mid)} .section-card{background:#ffffff;border:0.5px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:1.5rem} .section-card-header{padding:16px 20px;border-bottom:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:center} .section-title{font-size:14px;font-weight:600;color:var(--ink)} .section-sub{font-size:12px;color:var(--mid);margin-top:2px} .pay-table{width:100%;border-collapse:collapse;font-size:13px} .pay-table th{padding:10px 16px;text-align:left;font-size:11px;font-weight:600;color:var(--mid);text-transform:uppercase;letter-spacing:.04em;border-bottom:0.5px solid var(--border);background:#fafafa} .pay-table td{padding:12px 16px;border-bottom:0.5px solid var(--border);color:var(--ink);vertical-align:middle} .pay-table tr:last-child td{border-bottom:none} .pay-table tr:hover td{background:#fafcfb} .tenant-cell{display:flex;align-items:center;gap:8px} .avatar{width:28px;height:28px;border-radius:50%;background:#EEEDFE;color:#3C3489;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0} .status-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600} .status-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0} .mark-btn{padding:5px 12px;border-radius:8px;border:0.5px solid var(--border);background:#fff;font-size:12px;font-weight:500;cursor:pointer;color:var(--ink);transition:background 0.15s} .mark-btn:hover{background:var(--cream)} .mark-btn:disabled{opacity:0.5;cursor:not-allowed} .empty-state{padding:3rem 2rem;text-align:center;color:var(--mid);font-size:13px} .comm-row{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:0.5px solid var(--border);font-size:13px} .comm-row:last-child{border-bottom:none} .comm-row:hover{background:#fafcfb} @media(max-width:768px){.kpi-strip{grid-template-columns:1fr 1fr}.pay-page{padding:1rem}.pay-header{flex-direction:column;gap:1rem}}`}</style>
+      <style>{`
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}} 
+        @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}} 
+        .pay-page{padding:1.5rem;max-width:100%;animation:fadeUp 0.35s ease} 
+        .pay-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;gap:1rem;flex-wrap:wrap} 
+        .kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem;width:100%;box-sizing:border-box} 
+        .kpi-card{background:linear-gradient(135deg,#ffffff 0%,#f8fafc 100%);border:1px solid #e2e8f0;border-radius:16px;padding:1rem;display:flex;align-items:center;gap:0.75rem;transition:all 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.04);min-width:0;overflow:hidden} 
+        .kpi-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+        .kpi-content{flex:1;min-width:0}
+        .kpi-label{font-size:0.7rem;color:#64748b;margin-bottom:0.25rem;text-transform:uppercase;letter-spacing:0.04em;font-weight:600;white-space:nowrap} 
+        .kpi-value{font-size:1.25rem;font-weight:700;line-height:1;white-space:nowrap} 
+        .kpi-sub{font-size:0.7rem;margin-top:0.25rem;color:#94a3b8;white-space:nowrap} 
+        .section-card{background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;margin-bottom:1.5rem;box-shadow:0 1px 3px rgba(0,0,0,0.04)} 
+        .section-card-header{padding:1.25rem;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap} 
+        .section-title{font-size:1rem;font-weight:700;color:#1e293b;display:flex;align-items:center;gap:0.5rem} 
+        .section-sub{font-size:0.8rem;color:#64748b;margin-top:0.25rem;margin-left:1.75rem} 
+        .pay-table{width:100%;border-collapse:collapse;font-size:0.85rem} 
+        .pay-table th{padding:0.75rem 1rem;text-align:left;font-size:0.7rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #e2e8f0;background:#f8fafc;white-space:nowrap} 
+        .pay-table td{padding:1rem;border-bottom:1px solid #e2e8f0;color:#334155;vertical-align:middle} 
+        .pay-table tr:last-child td{border-bottom:none} 
+        .pay-table tr:hover td{background:#f8fafc} 
+        .tenant-cell{display:flex;align-items:center;gap:0.75rem} 
+        .avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#16a34a,#166534);color:white;display:flex;align-items:center;justify-content:center;flex-shrink:0} 
+        .status-pill{display:inline-flex;align-items:center;gap:0.35rem;padding:0.35rem 0.75rem;border-radius:9999px;font-size:0.75rem;font-weight:600;white-space:nowrap} 
+        .status-dot{width:6px;height:6px;border-radius:50%}
+        .comm-row{padding:1rem;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;gap:1rem;transition:all 0.2s}
+        .comm-row:hover{background:#f8fafc}
+        .empty-state{padding:2rem;text-align:center;color:#64748b;font-size:0.9rem}
+        .mark-btn{padding:0.4rem 0.75rem;border-radius:8px;border:none;background:#16a34a;color:white;font-size:0.75rem;font-weight:600;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:0.35rem}
+        .mark-btn:hover{background:#15803d}
+        .mark-btn:disabled{opacity:0.6;cursor:not-allowed}
+        @media (max-width:1024px){
+          .kpi-strip{grid-template-columns:repeat(2,1fr)}
+          .kpi-card{padding:0.875rem}
+          .kpi-icon{width:44px;height:44px}
+        }
+        @media (max-width:768px){
+          .pay-page{padding:1rem}
+          .pay-header{flex-direction:column}
+          .kpi-strip{grid-template-columns:repeat(2,1fr);gap:0.75rem}
+          .kpi-card{padding:0.75rem}
+          .kpi-icon{width:40px;height:40px}
+          .kpi-value{font-size:1.1rem}
+          .pay-table{font-size:0.8rem}
+          .pay-table th,.pay-table td{padding:0.6rem}
+          .pay-table th:nth-child(2),.pay-table td:nth-child(2){display:none}
+          .section-card-header{flex-direction:column;align-items:flex-start}
+        }
+        @media (max-width:480px){
+          .kpi-strip{grid-template-columns:1fr}
+          .kpi-card{padding:1rem}
+        }
+      `}</style>
 
       <div className="pay-page">
         <div className="pay-header">
           <div>
-            <h1 style={{ fontSize: '1.4rem', fontWeight: 700, margin: 0 }}>Payments &amp; Earnings</h1>
-            <p style={{ marginTop: 4, fontSize: 13, color: 'var(--mid)' }}>
+            <h1 style={{ fontSize: 'clamp(1.1rem, 4vw, 1.5rem)', fontWeight: 700, margin: 0, color: '#1e293b', whiteSpace: 'nowrap' }}>
+              Payments &amp; Earnings
+            </h1>
+            <p style={{ marginTop: 4, fontSize: '0.85rem', color: '#64748b' }}>
               Track rent, commissions and your monthly earnings
             </p>
           </div>
           <Link
             to={backHref}
             style={{
-              padding: '8px 16px',
+              padding: '0.6rem 1rem',
               borderRadius: 10,
-              border: '0.5px solid var(--border)',
+              border: '1px solid #e2e8f0',
               background: '#fff',
-              fontSize: 13,
+              fontSize: '0.85rem',
               fontWeight: 500,
-              color: 'var(--ink)',
+              color: '#334155',
               textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              whiteSpace: 'nowrap',
             }}
           >
-            ← Back to dashboard
+            <ArrowLeft size={16} />
+            Back
           </Link>
         </div>
 
@@ -340,9 +404,9 @@ export default function PaymentsPage() {
               <div
                 key={`kpi-skel-${index}`}
                 style={{
-                  height: 80,
-                  borderRadius: 14,
-                  background: 'var(--cream)',
+                  height: 90,
+                  borderRadius: 16,
+                  background: '#f1f5f9',
                   animation: 'pulse 1.5s ease-in-out infinite',
                 }}
               />
@@ -350,24 +414,44 @@ export default function PaymentsPage() {
           ) : (
             <>
               <div className="kpi-card">
-                <div className="kpi-label">Total received</div>
-                <div className="kpi-value" style={{ color: '#1a7f37' }}>{formatMoney(totalReceived)}</div>
-                <div className="kpi-sub">All time collected</div>
+                <div className="kpi-icon" style={{ background: '#f0fdf4', color: '#16a34a' }}>
+                  <Wallet size={24} />
+                </div>
+                <div className="kpi-content">
+                  <div className="kpi-label">Total Received</div>
+                  <div className="kpi-value" style={{ color: '#16a34a' }}>{formatMoney(totalReceived)}</div>
+                  <div className="kpi-sub">All time collected</div>
+                </div>
               </div>
               <div className="kpi-card">
-                <div className="kpi-label">Outstanding</div>
-                <div className="kpi-value" style={{ color: '#cf222e' }}>{formatMoney(totalOutstanding)}</div>
-                <div className="kpi-sub">Pending + overdue</div>
+                <div className="kpi-icon" style={{ background: '#fef2f2', color: '#dc2626' }}>
+                  <AlertCircle size={24} />
+                </div>
+                <div className="kpi-content">
+                  <div className="kpi-label">Outstanding</div>
+                  <div className="kpi-value" style={{ color: '#dc2626' }}>{formatMoney(totalOutstanding)}</div>
+                  <div className="kpi-sub">Pending + overdue</div>
+                </div>
               </div>
               <div className="kpi-card">
-                <div className="kpi-label">Commission rate</div>
-                <div className="kpi-value" style={{ color: 'var(--jade)' }}>{commissionPct}%</div>
-                <div className="kpi-sub">Your platform rate</div>
+                <div className="kpi-icon" style={{ background: '#eff6ff', color: '#2563eb' }}>
+                  <Percent size={24} />
+                </div>
+                <div className="kpi-content">
+                  <div className="kpi-label">Commission Rate</div>
+                  <div className="kpi-value" style={{ color: '#2563eb' }}>{commissionPct}%</div>
+                  <div className="kpi-sub">Your platform rate</div>
+                </div>
               </div>
               <div className="kpi-card">
-                <div className="kpi-label">Monthly commissions</div>
-                <div className="kpi-value" style={{ color: 'var(--jade)' }}>{formatMoney(monthlyCommissions)}</div>
-                <div className="kpi-sub">From active tenants</div>
+                <div className="kpi-icon" style={{ background: '#f5f3ff', color: '#7c3aed' }}>
+                  <TrendingUp size={24} />
+                </div>
+                <div className="kpi-content">
+                  <div className="kpi-label">Monthly Commissions</div>
+                  <div className="kpi-value" style={{ color: '#7c3aed' }}>{formatMoney(monthlyCommissions)}</div>
+                  <div className="kpi-sub">From active tenants</div>
+                </div>
               </div>
             </>
           )}
@@ -376,7 +460,7 @@ export default function PaymentsPage() {
         <div className="section-card">
           <div className="section-card-header">
             <div>
-              <p className="section-title">Rent Payment Records</p>
+              <p className="section-title"><CreditCard size={18} style={{ color: '#2563eb' }} /> Rent Payment Records</p>
               <p className="section-sub">{records.length} records across all bookings</p>
             </div>
           </div>
@@ -427,24 +511,32 @@ export default function PaymentsPage() {
                         <td>
                           <div className="tenant-cell">
                             <div className="avatar">
-                              {record.tenant?.full_name ? initials(record.tenant.full_name) : (record.tenant?.id ? record.tenant.id.slice(0,2).toUpperCase() : '?')}
+                              <User size={18} />
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
-                              <span style={{ fontWeight: 600 }}>{record.tenant?.full_name || 'Unknown Tenant'}</span>
+                              <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#1e293b' }}>{record.tenant?.full_name || 'Unknown Tenant'}</span>
                               {!record.tenant?.full_name && record.tenant?.id && (
-                                <span style={{ fontSize: '10px', color: 'var(--mid)' }}>ID: {record.tenant.id.slice(0,8)}</span>
+                                <span style={{ fontSize: '0.7rem', color: '#64748b' }}>ID: {record.tenant.id.slice(0,8)}</span>
                               )}
                             </div>
                           </div>
                         </td>
-                        <td style={{ fontWeight: 500 }}>{record.listing?.title || '—'}</td>
-                        <td style={{ fontWeight: 600 }}>{formatMoney(record.amount)}</td>
-                        <td style={{ color: isOverdue ? '#cf222e' : 'var(--ink)', fontWeight: isOverdue ? 500 : 400 }}>
-                          {formatDate(record.due_date || record.created_at)}
+                        <td style={{ fontWeight: 500, fontSize: '0.9rem', color: '#334155' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <Home size={14} style={{ color: '#64748b' }} />
+                            {record.listing?.title || '—'}
+                          </div>
+                        </td>
+                        <td style={{ fontWeight: 700, fontSize: '0.9rem', color: '#1e293b' }}>{formatMoney(record.amount)}</td>
+                        <td style={{ color: isOverdue ? '#dc2626' : '#334155', fontWeight: isOverdue ? 600 : 400, fontSize: '0.85rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <Calendar size={14} style={{ color: isOverdue ? '#dc2626' : '#64748b' }} />
+                            {formatDate(record.due_date || record.created_at)}
+                          </div>
                         </td>
                         <td>
                           <span className="status-pill" style={{ background: pillBg, color: pillColor }}>
-                            <span className="status-dot" style={{ background: pillColor }} />
+                            {isPaidStatus(record.status) ? <CheckCircle2 size={12} /> : <Clock size={12} />}
                             {displayStatus(record.status)}
                           </span>
                         </td>
@@ -455,14 +547,16 @@ export default function PaymentsPage() {
                               disabled={markingId === record.id}
                               onClick={() => markReceived(record)}
                             >
-                              {markingId === record.id ? 'Saving…' : '✓ Mark received'}
+                              <CheckCircle2 size={14} />
+                              {markingId === record.id ? 'Saving…' : 'Mark Received'}
                             </button>
                           ) : isPaidStatus(record.status) ? (
-                            <span style={{ fontSize: 11, color: 'var(--mid)' }}>
-                              Received {formatDate(record.paid_at)}
+                            <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                              <CheckCircle2 size={12} style={{ color: '#16a34a' }} />
+                              {formatDate(record.paid_at)}
                             </span>
                           ) : (
-                            <span style={{ fontSize: 11, color: 'var(--mid)' }}>
+                            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
                               {[record.payment_type, record.payment_method].filter(Boolean).join(' · ') || 'Awaiting payment'}
                             </span>
                           )}
@@ -479,46 +573,57 @@ export default function PaymentsPage() {
         <div className="section-card">
           <div className="section-card-header">
             <div>
-              <p className="section-title">Commission Tracking</p>
+              <p className="section-title"><BadgeCheck size={18} style={{ color: '#7c3aed' }} /> Commission Tracking</p>
               <p className="section-sub">Calculated from your active approved bookings</p>
             </div>
           </div>
 
           {approvedBookings.length === 0 ? (
             <div className="empty-state">
-              No approved bookings yet. Commissions will appear here once a tenant is confirmed.
+              <BadgeCheck size={48} style={{ color: '#cbd5e1', marginBottom: '1rem' }} />
+              <p>No approved bookings yet. Commissions will appear here once a tenant is confirmed.</p>
             </div>
           ) : (
             <>
               {approvedBookings.map((booking: any) => (
                 <div key={booking.id} className="comm-row">
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <span style={{ fontSize: 13, fontWeight: 500 }}>{booking.tenant?.full_name || `Unknown Tenant (${booking.tenant?.id?.slice(0,8) || '—'})`}</span>
-                    <span style={{ fontSize: 11, color: 'var(--mid)' }}>{booking.listing?.title || '—'}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 10, background: '#f5f3ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7c3aed' }}>
+                      <User size={20} />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#1e293b' }}>{booking.tenant?.full_name || `Unknown Tenant (${booking.tenant?.id?.slice(0,8) || '—'})`}</span>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                        <Home size={12} />
+                        {booking.listing?.title || '—'}
+                      </span>
+                    </div>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--jade)' }}>
+                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#7c3aed' }}>
                       {formatMoney(booking.commission)}
                     </span>
-                    <span style={{ fontSize: 11, color: 'var(--mid)' }}>
-                      of TZS {new Intl.NumberFormat('sw-TZ').format(Number(booking.listing?.price_monthly || 0))}/mo
+                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                      of {formatMoney(Number(booking.listing?.price_monthly || 0))}/mo
                     </span>
                   </div>
                 </div>
               ))}
               <div
                 style={{
-                  borderTop: '0.5px solid var(--border)',
-                  padding: '14px 20px',
+                  borderTop: '1px solid #e2e8f0',
+                  padding: '1rem 1.25rem',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
+                  background: '#f8fafc',
                 }}
               >
-                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
+                <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <TrendingUp size={16} style={{ color: '#7c3aed' }} />
                   Total monthly commissions
                 </span>
-                <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--jade)' }}>
+                <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#7c3aed' }}>
                   {formatMoney(monthlyCommissions)}
                 </span>
               </div>

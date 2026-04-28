@@ -56,6 +56,7 @@ export default function ProfilePage() {
   const { user, token, refreshMe, logout, switchRole, canSwitchRoles } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [isDashboardActive, setIsDashboardActive] = useState(false);
 
   const [form, setForm] = useState({
     fullName: user?.fullName || '',
@@ -592,8 +593,13 @@ export default function ProfilePage() {
 
       {/* Breadcrumb Header */}
       <header style={breadcrumbHeaderStyle}>
-        <nav style={breadcrumbNavStyle}>
-          <Link to="/tenant/dashboard" style={breadcrumbItemStyle}>
+        <nav style={{display:'flex',alignItems:'center',gap:'0.5rem',fontSize:'0.9rem'}}>
+          <Link 
+            to="/tenant/dashboard" 
+            className={`topbar-action-btn ${isDashboardActive ? 'is-active' : ''}`}
+            onClick={() => setIsDashboardActive(true)}
+            style={{display:'flex',alignItems:'center',gap:'0.35rem',color:'#64748b',textDecoration:'none',padding:'4px 8px',background:'transparent',border:'none',borderRadius:'8px'}}
+          >
             <LayoutDashboard size={16} />
             <span>Dashboard</span>
           </Link>

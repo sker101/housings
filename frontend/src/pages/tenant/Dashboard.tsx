@@ -12,7 +12,7 @@ import {
   Building2, Calendar, Wallet, Bookmark, ChevronRight,
   Gift, Home, Filter, X, Clock, CheckCircle2, AlertCircle,
   Building, TrendingUpIcon, Activity, MapPin, HelpCircle as Help,
-  FileText as File, MessageSquare as Message, Mail as Email
+  FileText as File, MessageSquare as Message, Mail as Email, Star
 } from 'lucide-react';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { StatusPill } from '../../components/StatusPill';
@@ -436,10 +436,25 @@ export default function TenantDashboard() {
                     ) : (
                       <Building2 size={20} />
                     )}
+                    {l.rating && (
+                      <div className="preview-rating">
+                        <Star size={12} fill="#f59e0b" color="#f59e0b" />
+                        <span>{l.rating}</span>
+                      </div>
+                    )}
                   </div>
                   <div className="room-preview-info">
                     <p className="preview-title">{l.title}</p>
-                    <p className="preview-price">{TZSFormat(l.priceMonthly)}/mo</p>
+                    {l.location && (
+                      <p className="preview-location">
+                        <MapPin size={12} />
+                        <span>{l.location}</span>
+                      </p>
+                    )}
+                    <p className="preview-price">
+                      {TZSFormat(l.priceMonthly)}
+                      <span className="preview-price-unit">/mo</span>
+                    </p>
                   </div>
                 </Link>
               );
@@ -843,19 +858,28 @@ const mobileDashboardStyles = `
 
   .saved-room-preview {
     flex-shrink: 0;
-    width: 140px;
+    width: 160px;
     background: white;
     border-radius: 16px;
     overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     text-decoration: none;
     animation: slideInRight 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
     animation-delay: var(--delay, 0ms);
-    transition: transform 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+    border: 1px solid #f1f5f9;
+  }
+
+  .saved-room-preview:hover {
+    transform: translateY(-6px) scale(1.02);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+    border-color: #e2e8f0;
   }
 
   .saved-room-preview:active {
-    transform: scale(0.95);
+    transform: scale(0.96);
+    transition: transform 0.15s ease;
   }
 
   @keyframes slideInRight {
@@ -865,40 +889,172 @@ const mobileDashboardStyles = `
 
   .room-thumb {
     width: 100%;
-    height: 90px;
-    background: #f1f5f9;
+    height: 100px;
+    background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
     display: flex;
     align-items: center;
     justify-content: center;
     color: #94a3b8;
     overflow: hidden;
+    position: relative;
+  }
+
+  .room-thumb::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 40%;
+    background: linear-gradient(to top, rgba(0,0,0,0.3), transparent);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .saved-room-preview:hover .room-thumb::after {
+    opacity: 1;
   }
 
   .room-thumb img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    transition: transform 0.4s ease;
+  }
+
+  .saved-room-preview:hover .room-thumb img {
+    transform: scale(1.08);
   }
 
   .room-preview-info {
-    padding: 0.75rem;
+    padding: 0.875rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
   }
 
   .preview-title {
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     font-weight: 600;
     color: #1e293b;
-    margin: 0 0 0.25rem 0;
+    margin: 0 0 0.35rem 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+  }
+
+  .preview-location {
+    font-size: 0.7rem;
+    color: #64748b;
+    margin: 0 0 0.5rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
+  .preview-location svg {
+    flex-shrink: 0;
+  }
+
   .preview-price {
-    font-size: 0.75rem;
-    color: #22c55e;
+    font-size: 0.8rem;
+    color: #16a34a;
     font-weight: 700;
     margin: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 0.25rem;
+  }
+
+  .preview-price-unit {
+    font-size: 0.65rem;
+    color: #94a3b8;
+    font-weight: 500;
+  }
+
+  .preview-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: rgba(22, 163, 74, 0.9);
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 12px;
+    backdrop-filter: blur(4px);
+    z-index: 1;
+  }
+
+  .preview-rating {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(255, 255, 255, 0.95);
+    color: #f59e0b;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    backdrop-filter: blur(4px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    z-index: 1;
+  }
+
+  .preview-rating svg {
+    fill: #f59e0b;
+    color: #f59e0b;
+  }
+
+  /* Desktop styles */
+  @media (min-width: 768px) {
+    .saved-room-preview {
+      width: 200px;
+    }
+
+    .room-thumb {
+      height: 120px;
+    }
+
+    .room-preview-info {
+      padding: 1rem;
+    }
+
+    .preview-title {
+      font-size: 0.95rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .preview-location {
+      font-size: 0.75rem;
+      margin-bottom: 0.625rem;
+    }
+
+    .preview-price {
+      font-size: 0.9rem;
+    }
+
+    .preview-price-unit {
+      font-size: 0.7rem;
+    }
+
+    .preview-badge {
+      font-size: 0.7rem;
+      padding: 4px 10px;
+    }
+
+    .preview-rating {
+      font-size: 0.75rem;
+      padding: 4px 10px;
+    }
   }
 
   /* Empty Card */

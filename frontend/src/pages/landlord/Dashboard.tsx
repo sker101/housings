@@ -5,8 +5,8 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Zap, Building2, AlertTriangle } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Zap, Building2, AlertTriangle, Home, Wallet, Calendar, Activity, ChevronRight } from 'lucide-react';
 import { SkeletonCard } from '../../components/SkeletonCard';
 import { InquiryCard } from '../../components/InquiryCard';
 import { useAuth } from '../../context/AuthContext';
@@ -18,21 +18,46 @@ import { TZSFormat, formatDate } from '../../utils/format';
 import { selectRows } from '../../lib/supabase';
 import toast from 'react-hot-toast';
 
-function KpiCard({ label, value, sub, accent }: {
-  label: string; value: string; sub?: string; accent?: string;
+function StatCard({ label, value, sub, icon: Icon, color, delay = 0, onClick }: {
+  label: string; value: string; sub?: string; icon: any; color: string; delay?: number; onClick?: () => void;
 }) {
   return (
-    <div style={{
-      background: 'var(--surface)', border: '1px solid var(--border)',
-      borderRadius: 14, padding: '1rem',
-    }}>
-      <p style={{ fontSize: '0.73rem', fontWeight: 600, color: 'var(--mid)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-        {label}
-      </p>
-      <p style={{ fontFamily: " sans-serif", fontSize: '1.65rem', fontWeight: 800, color: accent ?? 'var(--ink)', lineHeight: 1.15, margin: '0.25rem 0 0' }}>
+    <div 
+      className="stat-card" 
+      onClick={onClick}
+      style={{ 
+        background: 'white', 
+        border: '1px solid var(--border)',
+        borderRadius: 16, 
+        padding: '1rem',
+        animationDelay: `${delay}ms`,
+        cursor: onClick ? 'pointer' : 'default',
+        transition: 'all 0.2s ease',
+      }}
+      onMouseEnter={(e) => onClick && (e.currentTarget.style.transform = 'translateY(-2px)')}
+      onMouseLeave={(e) => onClick && (e.currentTarget.style.transform = 'translateY(0)')}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+        <div style={{ 
+          width: 40, 
+          height: 40, 
+          borderRadius: 12, 
+          background: `${color}15`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: color
+        }}>
+          <Icon size={20} />
+        </div>
+        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--mid)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          {label}
+        </span>
+      </div>
+      <p style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--ink)', margin: '0 0 0.25rem', lineHeight: 1.2 }}>
         {value}
       </p>
-      {sub && <p style={{ fontSize: '0.76rem', color: 'var(--mid)', marginTop: '0.15rem' }}>{sub}</p>}
+      {sub && <p style={{ fontSize: '0.8rem', color: 'var(--mid)' }}>{sub}</p>}
     </div>
   );
 }
@@ -49,7 +74,9 @@ interface LeaseRow {
 }
 
 export default function LandlordDashboard() {
+  const navigate = useNavigate();
   const { user, token } = useAuth();
+  const [isDashboardActive, setIsDashboardActive] = useState(false);
   const userId = user?.userId ?? null;
 
   const [listings, setListings]           = useState<any[]>([]);
@@ -206,26 +233,79 @@ export default function LandlordDashboard() {
 
   return (
     <>
-      {/* ── Header ────────────────────────────────────────── */}
-      <div style={{ marginBottom: '1.25rem' }}>
-        <h2 style={{ fontFamily: " sans-serif", fontSize: '1.3rem', color: 'var(--ink)' }}>
-          {user?.fullName?.split(' ')[0] ?? 'Hi'}'s iRent Dashboard
-        </h2>
-        <p style={{ color: 'var(--mid)', fontSize: '0.88rem' }}>Manage your properties, leases, and income.</p>
-      </div>
+      {/* ── Header Greeting ──────────────────────────────── */}
+      <header style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <p style={{ fontSize: '0.9rem', color: 'var(--mid)', marginBottom: '0.25rem' }}>Welcome back,</p>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--ink)', margin: 0 }}>
+            {user?.fullName?.split(' ')[0] ?? 'Landlord'}
+          </h1>
+        </div>
+        <button 
+          onClick={() => navigate('/profile')}
+          style={{ 
+            width: 48, 
+            height: 48, 
+            borderRadius: '50%', 
+            background: 'linear-gradient(135deg, #16a34a, #166534)',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'white',
+            fontWeight: 600,
+            fontSize: '1rem'
+          }}
+        >
+          {user?.fullName ? user.fullName.split(' ')[0].slice(0, 2).toUpperCase() : 'L'}
+        </button>
+      </header>
 
-      {/* ── KPI Grid ──────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-        <KpiCard label="Total Revenue"    value={TZSFormat(totalRevenue)}     sub="verified income"     accent="var(--jade)" />
-        <KpiCard label="Occupancy Rate"   value={`${occupancyRate}%`}         sub={`${activeListings} active units`} />
-        <KpiCard label="Pending Docs"     value={String(pendingDocs)}         sub="verification status" accent={pendingDocs > 0 ? '#d97706' : undefined} />
-        <KpiCard label="Open Inquiries"   value={String(pendingInquiries.length)} sub="active leads" />
-      </div>
-      {/* ── Room Earnings ─────────────────────────────────── */}
+      {/* ── Stats Section ───────────────────────────────────── */}
       <section style={{ marginBottom: '1.5rem' }}>
-        <h3 style={{ fontFamily: " sans-serif", fontSize: '1rem', marginBottom: '0.75rem', color: 'var(--ink)' }}>
-          Revenue Breakdown
-        </h3>
+        <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.75rem', color: 'var(--ink)' }}>Overview</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
+          <StatCard 
+            label="Total Revenue" 
+            value={TZSFormat(totalRevenue)} 
+            sub="verified income" 
+            icon={Wallet} 
+            color="#22c55e" 
+            delay={100}
+          />
+          <StatCard 
+            label="Occupancy Rate" 
+            value={`${occupancyRate}%`} 
+            sub={`${activeListings} active units`} 
+            icon={Home} 
+            color="#3b82f6" 
+            delay={200}
+          />
+          <StatCard 
+            label="Pending Docs" 
+            value={String(pendingDocs)} 
+            sub="verification status" 
+            icon={Calendar} 
+            color={pendingDocs > 0 ? '#d97706' : '#22c55e'} 
+            delay={300}
+          />
+          <StatCard 
+            label="Open Inquiries" 
+            value={String(pendingInquiries.length)} 
+            sub="active leads" 
+            icon={Activity} 
+            color="#8b5cf6" 
+            delay={400}
+            onClick={() => navigate('/landlord/inquiries')}
+          />
+        </div>
+      </section>
+      {/* ── Revenue Breakdown ───────────────────────────────── */}
+      <section style={{ marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--ink)' }}>Revenue Breakdown</h3>
+        </div>
         {Object.keys(roomEarnings).length === 0 ? (
           <div style={{ textAlign: 'center', padding: '1.5rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14 }}>
             <p style={{ color: 'var(--mid)', fontSize: '0.85rem' }}>No income generated yet.</p>
@@ -257,8 +337,8 @@ export default function LandlordDashboard() {
       {/* ── Recent Income ─────────────────────────────────── */}
       <section style={{ marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-          <h3 style={{ fontFamily: " sans-serif", fontSize: '1rem', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Zap size={16} style={{ color: 'var(--jade)' }} />
+          <h3 style={{ fontSize: '1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, color: 'var(--ink)' }}>
+            <Zap size={18} style={{ color: '#22c55e' }} />
             Recent Income
           </h3>
         </div>
@@ -295,16 +375,14 @@ export default function LandlordDashboard() {
         )}
       </section>
 
-      <div style={{ display: 'grid', gap: '1.25rem' }}>
-
-        {/* ── Lease Tracker ─────────────────────────────────── */}
-        <section>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-            <h3 style={{ fontFamily: " sans-serif", fontSize: '1rem', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <AlertTriangle size={16} style={{ color: '#d97706' }} />
-              Lease Tracker
-            </h3>
-          </div>
+      {/* ── Lease Tracker ─────────────────────────────────── */}
+      <section style={{ marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, color: 'var(--ink)' }}>
+            <AlertTriangle size={18} style={{ color: '#d97706' }} />
+            Lease Tracker
+          </h3>
+        </div>
           {leases.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '1.5rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14 }}>
               <p style={{ color: 'var(--mid)' }}>No active leases tracked yet.</p>
@@ -347,18 +425,18 @@ export default function LandlordDashboard() {
           )}
         </section>
 
-        {/* ── Inquiry Inbox ─────────────────────────────────── */}
-        <section>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-            <h3 style={{ fontFamily: " sans-serif", fontSize: '1rem' }}>
-              Inquiry Inbox {pendingInquiries.length > 0 && (
-                <span style={{ marginLeft: '0.4rem', fontSize: '0.75rem', fontWeight: 700, background: 'var(--amber-light)', color: '#6b3a0a', borderRadius: 99, padding: '0.1rem 0.45rem' }}>
-                  {pendingInquiries.length}
-                </span>
-              )}
-            </h3>
-            <Link to="/landlord/inquiries" style={{ fontSize: '0.82rem', color: 'var(--jade)', fontWeight: 600 }}>All →</Link>
-          </div>
+      {/* ── Inquiry Inbox ─────────────────────────────────── */}
+      <section style={{ marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--ink)' }}>
+            Inquiry Inbox {pendingInquiries.length > 0 && (
+              <span style={{ marginLeft: '0.4rem', fontSize: '0.75rem', fontWeight: 700, background: '#fef3c7', color: '#92400e', borderRadius: 99, padding: '0.15rem 0.5rem' }}>
+                {pendingInquiries.length}
+              </span>
+            )}
+          </h3>
+          <Link to="/landlord/inquiries" style={{ fontSize: '0.85rem', color: '#22c55e', fontWeight: 600, textDecoration: 'none' }}>View All →</Link>
+        </div>
           {inqLoading ? (
             <div style={{ display: 'grid', gap: '0.6rem' }}><SkeletonCard variant="row" count={3} /></div>
           ) : pendingInquiries.length === 0 ? (
@@ -374,15 +452,15 @@ export default function LandlordDashboard() {
           )}
         </section>
 
-        {/* ── Listing Views ─────────────────────────────────── */}
-        <section>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-            <h3 style={{ fontFamily: " sans-serif", fontSize: '1rem' }}>
-              <Building2 size={16} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-              Property Views
-            </h3>
-            <Link to="/landlord/properties" style={{ fontSize: '0.82rem', color: 'var(--jade)', fontWeight: 600 }}>Manage →</Link>
-          </div>
+      {/* ── Property Views ─────────────────────────────────── */}
+      <section style={{ marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, color: 'var(--ink)' }}>
+            <Building2 size={18} style={{ color: '#3b82f6' }} />
+            Property Views
+          </h3>
+          <Link to="/landlord/properties" style={{ fontSize: '0.85rem', color: '#22c55e', fontWeight: 600, textDecoration: 'none' }}>Manage →</Link>
+        </div>
           {listLoading ? (
             <SkeletonCard variant="kpi" count={3} />
           ) : listings.length === 0 ? (
@@ -422,30 +500,57 @@ export default function LandlordDashboard() {
           })()}
         </section>
 
-        {/* ── Recent Activity ───────────────────────────────── */}
-        <section>
-          <h3 style={{ fontFamily: " sans-serif", fontSize: '1rem', marginBottom: '0.75rem' }}>Recent Activity</h3>
-          {actLoading ? (
-            <div style={{ display: 'grid', gap: '0.65rem' }}><SkeletonCard variant="activity" count={4} /></div>
-          ) : events.length === 0 ? (
-            <p style={{ color: 'var(--mid)', fontSize: '0.86rem' }}>No activity yet.</p>
-          ) : (
-            <div style={{ display: 'grid', gap: '0.6rem' }}>
-              {events.map(ev => (
-                <div key={ev.id} style={{ display: 'flex', gap: '0.6rem', alignItems: 'flex-start', padding: '0.65rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10 }}>
-                  <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'var(--jade-muted)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-                    <Zap size={12} style={{ color: 'var(--jade)' }} />
+      {/* ── Recent Activity ───────────────────────────────── */}
+      <section style={{ marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, color: 'var(--ink)' }}>
+            <Zap size={18} style={{ color: '#8b5cf6' }} />
+            Recent Activity
+          </h3>
+        </div>
+        {actLoading ? (
+          <div style={{ display: 'grid', gap: '0.65rem' }}><SkeletonCard variant="activity" count={3} /></div>
+        ) : events.length === 0 ? (
+          <p style={{ color: 'var(--mid)', fontSize: '0.86rem' }}>No activity yet.</p>
+        ) : (
+          <div style={{ position: 'relative' }}>
+            <div 
+              style={{ 
+                maxHeight: '200px', 
+                overflowY: 'auto',
+                paddingRight: '0.5rem',
+                scrollbarWidth: 'thin',
+                scrollbarColor: 'var(--border) transparent'
+              }}
+            >
+              <div style={{ display: 'grid', gap: '0.6rem' }}>
+                {events.map(ev => (
+                  <div key={ev.id} style={{ display: 'flex', gap: '0.6rem', alignItems: 'flex-start', padding: '0.65rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10 }}>
+                    <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'var(--jade-muted)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                      <Zap size={12} style={{ color: 'var(--jade)' }} />
+                    </div>
+                    <div>
+                      <p style={{ fontSize: '0.84rem', fontWeight: 500, color: 'var(--ink)' }}>{ev.description}</p>
+                      <p style={{ fontSize: '0.75rem', color: 'var(--mid)', marginTop: '0.1rem' }}>{formatDate(ev.created_at)}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p style={{ fontSize: '0.84rem', fontWeight: 500, color: 'var(--ink)' }}>{ev.description}</p>
-                    <p style={{ fontSize: '0.75rem', color: 'var(--mid)', marginTop: '0.1rem' }}>{formatDate(ev.created_at)}</p>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          )}
-        </section>
-      </div>
+            {/* Gradient fade at bottom */}
+            <div style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: '60px',
+              background: 'linear-gradient(to bottom, transparent, rgba(255,255,255,0.8) 40%, white)',
+              pointerEvents: 'none',
+              borderRadius: '0 0 10px 10px'
+            }} />
+          </div>
+        )}
+      </section>
     </>
   );
 }

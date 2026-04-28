@@ -20,6 +20,7 @@ import {
   Award,
   Globe,
 } from 'lucide-react';
+import topImage from '../images/modern-home-exterior-with-landscaping-driveway.jpg';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { 
@@ -57,7 +58,7 @@ const getNavItems = (role: string): NavItem[] => {
   if (role === 'landlord' || role === 'lister') {
     return [
       { label: 'Dashboard', href: '/landlord/dashboard', icon: <Home size={16} /> },
-      { label: 'My Listings', href: '/landlord/listings', icon: <Building size={16} /> },
+      { label: 'My Listings', href: '/landlord/properties', icon: <Building size={16} /> },
       { label: 'Inquiries', href: '/landlord/inquiries', icon: <MessageCircle size={16} /> },
       { label: 'Tenants', href: '/landlord/tenants', icon: <Users size={16} /> },
       { label: 'Earnings', href: '/landlord/payments', icon: <Zap size={16} /> },
@@ -331,6 +332,10 @@ export default function RoleBasedLayout() {
   const navigate = useNavigate();
   const { i18n } = useTranslation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isLogoActive, setIsLogoActive] = useState(false);
+  const [isHamburgerActive, setIsHamburgerActive] = useState(false);
+  const [isLangActive, setIsLangActive] = useState(false);
+  const [isNotifActive, setIsNotifActive] = useState(false);
 
   const currentLanguage = i18n.language || 'en';
 
@@ -339,6 +344,13 @@ export default function RoleBasedLayout() {
       i18n.changeLanguage('en');
     }
   }, [i18n]);
+
+  // Reset notification active state when navigating away from notifications
+  useEffect(() => {
+    if (!location.pathname.includes('/notifications')) {
+      setIsNotifActive(false);
+    }
+  }, [location.pathname]);
 
   const allRoles = parseRolesFromProfile(profile);
   const activeRole = (deriveRoleFromPath(location.pathname, allRoles) || getActiveRole(allRoles)) as Role;
@@ -364,7 +376,10 @@ export default function RoleBasedLayout() {
     userInitials,
     displayName: user?.fullName || 'User',
     pathname: location.pathname,
-    onNavClick: () => setSidebarOpen(false),
+    onNavClick: () => {
+      setSidebarOpen(false);
+      setIsHamburgerActive(false);
+    },
     onLogout: handleLogout,
     onSwitchRole: switchRole,
     user,
@@ -397,47 +412,127 @@ export default function RoleBasedLayout() {
         <RoleBasedSidebarContent {...sidebarProps} />
       </aside>
 
-      {sidebarOpen && (
-        <>
-          <button
-            type="button"
-            aria-label="Close navigation"
-            onClick={() => setSidebarOpen(false)}
-            style={{
-              position: 'fixed',
-              inset: 0,
-              background: 'rgba(0,0,0,0.45)',
-              zIndex: 98,
-              border: 'none',
-              padding: 0,
-              cursor: 'pointer',
-            }}
-          />
-          <aside
-            style={{
-              position: 'fixed',
-              left: 0,
-              top: 0,
-              bottom: 0,
-              width: 240,
-              background: 'var(--surface)',
-              borderRight: '1px solid var(--border)',
-              zIndex: 99,
-              overflowY: 'auto',
-            }}
-          >
-            <RoleBasedSidebarContent {...sidebarProps} />
-          </aside>
-        </>
-      )}
+      <>
+        <button
+          type="button"
+          aria-label="Close navigation"
+          onClick={() => {
+            setSidebarOpen(false);
+            setIsHamburgerActive(false);
+          }}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.45)',
+            zIndex: 98,
+            border: 'none',
+            padding: 0,
+            cursor: 'pointer',
+            opacity: sidebarOpen ? 1 : 0,
+            pointerEvents: sidebarOpen ? 'auto' : 'none',
+            transition: 'opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          }}
+        />
+        <aside
+          style={{
+            position: 'fixed',
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: 240,
+            background: 'var(--surface)',
+            borderRight: '1px solid var(--border)',
+            zIndex: 99,
+            overflowY: 'auto',
+            transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
+            transition: 'transform 0.35s cubic-bezier(0.34, 0.8, 0.64, 1)',
+          }}
+        >
+          <RoleBasedSidebarContent {...sidebarProps} />
+        </aside>
+      </>
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        {/* ROW 1: IMAGE BANNER */}
+        <div
+          style={{
+            overflow: 'hidden',
+            position: 'relative',
+            minHeight: '35px',
+            height: 'auto',
+            backgroundImage: `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.4)), url("${topImage}")`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderBottom: '1px solid var(--border)',
+            borderRadius: 0
+          }}
+        >
+          <div style={{ 
+            width: '100%',
+            maxWidth: '1200px',
+            padding: '0.35rem 1rem', 
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-start',
+            gap: '0.75rem'
+          }}>
+            {/* iRent Logo - Left Side */}
+            <button
+              type="button"
+              className={`topbar-action-btn ${isLogoActive ? 'is-active' : ''}`}
+              onClick={() => {
+                setIsLogoActive(!isLogoActive);
+                navigate('/');
+              }}
+              style={{ display: 'flex', alignItems: 'center', marginLeft: '-0.5rem', padding: 0, background: 'transparent', border: 'none' }}
+            >
+              <img 
+                src="/irent%20logo%20white%20(2).png" 
+                alt="iRent" 
+                style={{
+                  width: 'clamp(50px, 10vw, 70px)',
+                  height: 'auto',
+                  objectFit: 'contain'
+                }}
+              />
+            </button>
+            {/* Text Content */}
+            <div style={{ textAlign: 'center', marginLeft: '0.5rem' }}>
+              <h2 style={{ 
+                color: '#fff', 
+                fontSize: 'clamp(0.9rem, 3vw, 1.25rem)', 
+                fontWeight: 700, 
+                margin: '0 0 0.15rem', 
+                textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                lineHeight: 1.2
+              }}>
+                Tanzania's #1 Rental Platform
+              </h2>
+              <p style={{ 
+                color: 'rgba(255,255,255,0.9)', 
+                fontSize: 'clamp(0.7rem, 2.5vw, 0.85rem)', 
+                fontWeight: 500, 
+                textShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                margin: 0,
+                lineHeight: 1.3
+              }}>
+                Browse verified listings, connect with verified landlords.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* ROW 2: DASHBOARD NAVBAR */}
         <header
           style={{
             position: 'sticky',
             top: 0,
             zIndex: 40,
-            background: 'rgba(247,244,238,0.95)',
+            background: 'rgba(255,255,255,0.95)',
             backdropFilter: 'blur(8px)',
             borderBottom: '1px solid var(--border)',
             padding: '0 1rem',
@@ -451,8 +546,11 @@ export default function RoleBasedLayout() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <button
               type="button"
-              className="dashboard-hamburger"
-              onClick={() => setSidebarOpen(true)}
+              className={`dashboard-hamburger topbar-action-btn ${isHamburgerActive ? 'is-active' : ''}`}
+              onClick={() => {
+                setSidebarOpen(true);
+                setIsHamburgerActive(!isHamburgerActive);
+              }}
               aria-label="Open navigation"
               style={{
                 border: 'none',
@@ -480,7 +578,11 @@ export default function RoleBasedLayout() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <button
               type="button"
-              onClick={toggleLanguage}
+              className={`topbar-action-btn ${isLangActive ? 'is-active' : ''}`}
+              onClick={() => {
+                toggleLanguage();
+                setIsLangActive(!isLangActive);
+              }}
               aria-label="Change language"
               title={currentLanguage === 'en' ? 'Switch to Swahili' : 'Switch to English'}
               style={{
@@ -513,6 +615,8 @@ export default function RoleBasedLayout() {
             <Link
               to="/notifications"
               aria-label="Notifications"
+              className={`topbar-action-btn ${isNotifActive ? 'is-active' : ''}`}
+              onClick={() => setIsNotifActive(true)}
               style={{
                 display: 'grid',
                 placeItems: 'center',
@@ -522,6 +626,7 @@ export default function RoleBasedLayout() {
                 border: '1px solid var(--border)',
                 background: '#fff',
                 color: 'var(--mid)',
+                textDecoration: 'none',
               }}
             >
               <Bell size={16} />
@@ -544,11 +649,24 @@ export default function RoleBasedLayout() {
 
       <style>{`
         @media (min-width: 768px) {
-          .dashboard-sidebar { display: flex !important; }
+          .dashboard-sidebar { 
+            display: flex !important; 
+            animation: sidebarSlideIn 0.35s cubic-bezier(0.34, 0.8, 0.64, 1);
+          }
           .dashboard-hamburger { display: none !important; }
         }
         @media (max-width: 767px) {
           .dashboard-hamburger { display: grid !important; }
+        }
+        @keyframes sidebarSlideIn {
+          from {
+            transform: translateX(-100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
         }
       `}</style>
     </div>

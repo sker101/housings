@@ -48,6 +48,7 @@ export default function MessagesPage() {
   const [realtimeState, setRealtimeState] = useState('connecting');
   const [statusValue, setStatusValue] = useState('open');
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [isDashboardActive, setIsDashboardActive] = useState(false);
 
   const activeConversation = useMemo(
     () => conversations.find((item) => item.id === threadId) || null,
@@ -538,7 +539,12 @@ export default function MessagesPage() {
       {/* Breadcrumb Header */}
       <header style={{background:'white',borderRadius:'12px',padding:'1rem 1.25rem',margin:'1rem 1rem 0',boxShadow:'0 1px 3px rgba(0,0,0,0.06)'}}>
         <nav style={{display:'flex',alignItems:'center',gap:'0.5rem',fontSize:'0.9rem'}}>
-          <Link to="/tenant/dashboard" style={{display:'flex',alignItems:'center',gap:'0.35rem',color:'#64748b',textDecoration:'none'}}>
+          <Link 
+            to="/tenant/dashboard" 
+            className={`topbar-action-btn ${isDashboardActive ? 'is-active' : ''}`}
+            onClick={() => setIsDashboardActive(true)}
+            style={{display:'flex',alignItems:'center',gap:'0.35rem',color:'#64748b',textDecoration:'none',padding:'4px 8px',background:'transparent',border:'none',borderRadius:'8px'}}
+          >
             <LayoutDashboard size={16} />
             <span>Dashboard</span>
           </Link>

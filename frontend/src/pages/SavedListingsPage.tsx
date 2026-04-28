@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { MapPin, Calendar, Star, X, ChevronRight, LayoutDashboard, Heart } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { fetchSavedListings } from '../lib/listings';
 import { TZSFormat } from '../utils/format';
 
 export default function SavedListingsPage() {
+  const navigate = useNavigate();
+  const [isDashboardActive, setIsDashboardActive] = useState(false);
   const { user, token } = useAuth();
   const { t } = useTranslation();
   const [items, setItems] = useState([]);
@@ -61,7 +63,11 @@ export default function SavedListingsPage() {
       
       <header className="saved-header">
         <nav className="saved-breadcrumb">
-          <Link to="/tenant/dashboard" className="saved-breadcrumb-item">
+          <Link 
+            to="/tenant/dashboard" 
+            className={`saved-breadcrumb-item topbar-action-btn ${isDashboardActive ? 'is-active' : ''}`}
+            onClick={() => setIsDashboardActive(true)}
+          >
             <LayoutDashboard size={16} />
             <span>Dashboard</span>
           </Link>

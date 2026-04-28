@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, ChevronRight, Users, Wallet, Clock, Home, Calendar, MessageSquare, Phone, ArrowLeft, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { selectRows } from '../lib/supabase';
 
@@ -99,6 +100,8 @@ function formatMoveInDate(value?: string) {
 }
 
 export default function LandlordTenantsPage() {
+  const navigate = useNavigate();
+  const [isDashboardActive, setIsDashboardActive] = useState(false);
   const { user, token } = useAuth();
 
   const [tenants, setTenants] = useState<TenantRow[]>([]);
@@ -214,28 +217,110 @@ export default function LandlordTenantsPage() {
 
   return (
     <>
-      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}} .tn-page{padding:2rem} .kpi-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:1.5rem} .kpi{background:var(--cream,#f8faf9);border-radius:12px;padding:14px 16px} .kpi-lbl{font-size:11px;color:var(--mid);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em} .kpi-val{font-size:22px;font-weight:700;line-height:1;color:var(--ink)} .kpi-sub{font-size:11px;margin-top:4px;color:var(--mid)} .tn-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px} .tn-card{background:#ffffff;border:0.5px solid var(--border);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px} .tn-card-top{display:flex;align-items:center;gap:10px;padding-bottom:12px;border-bottom:0.5px solid var(--border)} .tn-av{width:40px;height:40px;border-radius:50%;background:#EEEDFE;color:#3C3489;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0} .tn-name{font-size:13px;font-weight:600;color:var(--ink)} .tn-listing{font-size:11px;color:var(--mid);margin-top:2px} .tn-rows{display:flex;flex-direction:column;gap:8px} .tn-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink)} .tn-row-lbl{font-size:11px;color:var(--mid);min-width:64px;flex-shrink:0} .tn-actions{display:flex;gap:8px;margin-top:auto;padding-top:4px} .tn-btn{flex:1;padding:7px;border-radius:8px;border:0.5px solid var(--border);background:#ffffff;font-size:11px;font-weight:600;cursor:pointer;text-align:center;color:var(--ink);text-decoration:none;display:flex;align-items:center;justify-content:center} .tn-btn-msg{background:var(--jade);color:#ffffff;border-color:transparent} .tn-pill{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600} .tn-empty{background:#ffffff;border:0.5px solid var(--border);border-radius:16px;padding:3rem 2rem;text-align:center;color:var(--mid);font-size:13px} @media(max-width:768px){.kpi-strip{grid-template-columns:1fr 1fr}.tn-page{padding:1rem}}`}</style>
+      <style>{`
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+        .tn-page{padding:1.5rem;max-width:100%;animation:fadeUp 0.35s ease}
+        .tn-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;gap:1rem;flex-wrap:wrap}
+        .kpi-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem;width:100%;box-sizing:border-box}
+        .kpi-card{background:linear-gradient(135deg,#ffffff 0%,#f8fafc 100%);border:1px solid #e2e8f0;border-radius:16px;padding:1.25rem;display:flex;align-items:center;gap:1rem;transition:all 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.04);min-width:0;overflow:hidden}
+        .kpi-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.08)}
+        .kpi-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+        .kpi-content{flex:1;min-width:0}
+        .kpi-lbl{font-size:0.7rem;color:#64748b;margin-bottom:0.25rem;text-transform:uppercase;letter-spacing:0.04em;font-weight:600;white-space:nowrap}
+        .kpi-val{font-size:1.25rem;font-weight:700;line-height:1;white-space:nowrap}
+        .kpi-sub{font-size:0.7rem;margin-top:0.25rem;color:#94a3b8;white-space:nowrap}
+        .tn-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1rem;width:100%}
+        .tn-card{background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;padding:1.25rem;display:flex;flex-direction:column;gap:1rem;transition:all 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
+        .tn-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.08)}
+        .tn-card-top{display:flex;align-items:center;gap:0.75rem;padding-bottom:1rem;border-bottom:1px solid #e2e8f0}
+        .tn-av{width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#16a34a,#166534);color:white;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+        .tn-name{font-size:1rem;font-weight:600;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .tn-listing{font-size:0.8rem;color:#64748b;margin-top:0.25rem;display:flex;align-items:center;gap:0.3rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .tn-rows{display:flex;flex-direction:column;gap:0.75rem}
+        .tn-row{display:flex;align-items:center;gap:0.75rem;font-size:0.85rem;color:#334155}
+        .tn-row-lbl{font-size:0.75rem;color:#64748b;min-width:80px;flex-shrink:0;display:flex;align-items:center;gap:0.3rem}
+        .tn-actions{display:flex;gap:0.75rem;margin-top:auto;padding-top:0.5rem}
+        .tn-btn{flex:1;padding:0.6rem;border-radius:10px;border:1px solid #e2e8f0;background:#ffffff;font-size:0.8rem;font-weight:600;cursor:pointer;text-align:center;color:#334155;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:0.4rem;transition:all 0.2s}
+        .tn-btn:hover{background:#f8fafc;border-color:#cbd5e1}
+        .tn-btn-msg{background:#16a34a;color:#ffffff;border-color:#16a34a}
+        .tn-btn-msg:hover{background:#15803d;border-color:#15803d}
+        .tn-pill{display:inline-flex;align-items:center;padding:0.25rem 0.75rem;border-radius:20px;font-size:0.75rem;font-weight:600}
+        .tn-empty{background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;padding:3rem 2rem;text-align:center;color:#64748b;font-size:0.9rem;display:flex;flex-direction:column;align-items:center;gap:1rem}
+        .empty-icon{width:64px;height:64px;border-radius:50%;background:#f1f5f9;display:flex;align-items:center;justify-content:center;color:#94a3b8}
+        @media (max-width:1024px){
+          .kpi-strip{grid-template-columns:repeat(3,1fr)}
+          .kpi-card{padding:0.875rem}
+          .kpi-icon{width:44px;height:44px}
+        }
+        @media (max-width:768px){
+          .tn-page{padding:1rem}
+          .tn-header{flex-direction:column}
+          .kpi-strip{grid-template-columns:repeat(3,1fr);gap:0.75rem}
+          .kpi-card{padding:0.75rem}
+          .kpi-icon{width:40px;height:40px}
+          .kpi-val{font-size:1.1rem}
+          .tn-grid{grid-template-columns:1fr}
+          .tn-name{font-size:0.95rem}
+          .tn-card{padding:1rem}
+        }
+        @media (max-width:480px){
+          .kpi-strip{grid-template-columns:1fr}
+          .kpi-card{padding:1rem}
+          .tn-row{font-size:0.8rem}
+        }
+      `}</style>
+
+      {/* Breadcrumb Header */}
+      <header style={{background:'white',borderRadius:'12px',padding:'1rem 1.25rem',margin:'1rem 1rem 0',boxShadow:'0 1px 3px rgba(0,0,0,0.06)'}}>
+        <nav style={{display:'flex',alignItems:'center',gap:'0.5rem',fontSize:'0.9rem'}}>
+          <Link 
+            to="/landlord/dashboard" 
+            className={`topbar-action-btn ${isDashboardActive ? 'is-active' : ''}`}
+            onClick={() => setIsDashboardActive(true)}
+            style={{display:'flex',alignItems:'center',gap:'0.35rem',color:'#64748b',textDecoration:'none',padding:'4px 8px',background:'transparent',border:'none',borderRadius:'8px'}}
+          >
+            <LayoutDashboard size={16} />
+            <span>Dashboard</span>
+          </Link>
+          <ChevronRight size={16} style={{color:'#cbd5e1'}} />
+          <span style={{color:'#1e293b',fontWeight:600}}>Tenants</span>
+        </nav>
+      </header>
 
       <div className="tn-page">
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            marginBottom: '1.5rem',
-          }}
-        >
+        <div className="tn-header">
           <div>
-            <h1 style={{ fontSize: '1.3rem', fontWeight: 700, margin: 0 }}>
-              My tenants <span style={{ fontSize: 14, color: 'var(--mid)', fontWeight: 400 }}>({tenants.length})</span>
+            <h1 style={{ fontSize: 'clamp(1.1rem, 4vw, 1.5rem)', fontWeight: 700, margin: 0, color: '#1e293b', whiteSpace: 'nowrap' }}>
+              My Tenants <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 400 }}>({tenants.length})</span>
             </h1>
-            <p style={{ fontSize: 12, color: 'var(--mid)', marginTop: 4 }}>
+            <p style={{ marginTop: 4, fontSize: '0.85rem', color: '#64748b' }}>
               Manage and contact your approved tenants
             </p>
           </div>
+          <Link
+            to="/landlord/dashboard"
+            style={{
+              padding: '0.6rem 1rem',
+              borderRadius: 10,
+              border: '1px solid #e2e8f0',
+              background: '#fff',
+              fontSize: '0.85rem',
+              fontWeight: 500,
+              color: '#334155',
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <ArrowLeft size={16} />
+            Back
+          </Link>
         </div>
 
-        {error && <p className="error-text">{error}</p>}
+        {error && <p className="error-text" style={{ color: '#dc2626', marginBottom: '1rem' }}>{error}</p>}
 
         <div className="kpi-strip">
           {loading ? (
@@ -243,31 +328,46 @@ export default function LandlordTenantsPage() {
               <div
                 key={`kpi-skel-${index}`}
                 style={{
-                  height: 72,
-                  borderRadius: 12,
-                  background: 'var(--cream)',
+                  height: 90,
+                  borderRadius: 16,
+                  background: '#f1f5f9',
                   animation: 'pulse 1.5s ease-in-out infinite',
                 }}
               />
             ))
           ) : (
             <>
-              <div className="kpi">
-                <div className="kpi-lbl">Active tenants</div>
-                <div className="kpi-val" style={{ color: '#27500A' }}>{tenants.length}</div>
-                <div className="kpi-sub">Approved bookings</div>
-              </div>
-              <div className="kpi">
-                <div className="kpi-lbl">Monthly rent income</div>
-                <div className="kpi-val" style={{ color: '#0C447C' }}>
-                  TZS {new Intl.NumberFormat('sw-TZ').format(totalMonthlyRent)}
+              <div className="kpi-card">
+                <div className="kpi-icon" style={{ background: '#f0fdf4', color: '#16a34a' }}>
+                  <Users size={24} />
                 </div>
-                <div className="kpi-sub">From all tenants</div>
+                <div className="kpi-content">
+                  <div className="kpi-lbl">Active Tenants</div>
+                  <div className="kpi-val" style={{ color: '#16a34a' }}>{tenants.length}</div>
+                  <div className="kpi-sub">Approved bookings</div>
+                </div>
               </div>
-              <div className="kpi">
-                <div className="kpi-lbl">Avg. stay duration</div>
-                <div className="kpi-val">{avgDuration} mo</div>
-                <div className="kpi-sub">Across all bookings</div>
+              <div className="kpi-card">
+                <div className="kpi-icon" style={{ background: '#eff6ff', color: '#2563eb' }}>
+                  <Wallet size={24} />
+                </div>
+                <div className="kpi-content">
+                  <div className="kpi-lbl">Monthly Rent Income</div>
+                  <div className="kpi-val" style={{ color: '#2563eb' }}>
+                    TZS {new Intl.NumberFormat('sw-TZ').format(totalMonthlyRent)}
+                  </div>
+                  <div className="kpi-sub">From all tenants</div>
+                </div>
+              </div>
+              <div className="kpi-card">
+                <div className="kpi-icon" style={{ background: '#fef3c7', color: '#d97706' }}>
+                  <Clock size={24} />
+                </div>
+                <div className="kpi-content">
+                  <div className="kpi-lbl">Avg Stay Duration</div>
+                  <div className="kpi-val" style={{ color: '#d97706' }}>{avgDuration} mo</div>
+                  <div className="kpi-sub">Across all bookings</div>
+                </div>
               </div>
             </>
           )}
@@ -289,53 +389,71 @@ export default function LandlordTenantsPage() {
           </div>
         ) : tenants.length === 0 ? (
           <div className="tn-empty">
-            No approved tenants yet — approve a booking request to see tenants here
+            <div className="empty-icon">
+              <Users size={32} />
+            </div>
+            <p>No approved tenants yet — approve a booking request to see tenants here</p>
           </div>
         ) : (
           <div className="tn-grid">
             {tenants.map((tenant) => (
               <div key={tenant.id} className="tn-card">
                 <div className="tn-card-top">
-                  <div className="tn-av">{initials(tenant.profile?.full_name || '?')}</div>
-                  <div style={{ minWidth: 0 }}>
+                  <div className="tn-av">
+                    <User size={24} />
+                  </div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
                     <p className="tn-name" style={{ margin: 0 }}>
-                      {tenant.profile?.full_name || 'Unknown'}
+                      {tenant.profile?.full_name || 'Unknown Tenant'}
                     </p>
                     <p className="tn-listing" style={{ margin: 0 }}>
-                      {(tenant.listing?.room_type || tenant.listing?.title || '—') + ' · ' + (tenant.listing?.title || 'listing')}
+                      <Home size={12} />
+                      {tenant.listing?.title || '—'}
                     </p>
                   </div>
                 </div>
 
                 <div className="tn-rows">
                   <div className="tn-row">
-                    <span className="tn-row-lbl">Move-in</span>
+                    <span className="tn-row-lbl">
+                      <Calendar size={14} />
+                      Move-in
+                    </span>
                     <span>{formatMoveInDate(tenant.move_in_date)}</span>
                   </div>
                   <div className="tn-row">
-                    <span className="tn-row-lbl">Duration</span>
+                    <span className="tn-row-lbl">
+                      <Clock size={14} />
+                      Duration
+                    </span>
                     <span>
                       {tenant.months_duration
-                        ? `${tenant.months_duration} month${tenant.months_duration !== 1 ? 's' : ''}`
+                        ? `${tenant.months_duration} mo`
                         : '—'}
                     </span>
                   </div>
                   <div className="tn-row">
-                    <span className="tn-row-lbl">Rent</span>
-                    <span style={{ fontWeight: 600, color: '#27500A' }}>
+                    <span className="tn-row-lbl">
+                      <Wallet size={14} />
+                      Rent
+                    </span>
+                    <span style={{ fontWeight: 700, color: '#16a34a' }}>
                       TZS {new Intl.NumberFormat('sw-TZ').format(tenant.listing?.price_monthly || 0)}/mo
                     </span>
                   </div>
                   <div className="tn-row">
-                    <span className="tn-row-lbl">Contact</span>
+                    <span className="tn-row-lbl">
+                      <MessageSquare size={14} />
+                      Contact
+                    </span>
                     <span
                       className="tn-pill"
                       style={
                         tenant.contact_preference === 'whatsapp'
-                          ? { background: '#EAF3DE', color: '#27500A' }
+                          ? { background: '#EAF3DE', color: '#166534' }
                           : tenant.contact_preference === 'phone'
-                            ? { background: '#E6F1FB', color: '#0C447C' }
-                            : { background: '#F1EFE8', color: '#444441' }
+                            ? { background: '#E6F1FB', color: '#2563eb' }
+                            : { background: '#F1F5F9', color: '#64748b' }
                       }
                     >
                       {tenant.contact_preference
@@ -347,10 +465,12 @@ export default function LandlordTenantsPage() {
 
                 <div className="tn-actions">
                   <Link to="/messages" className="tn-btn tn-btn-msg">
+                    <MessageSquare size={16} />
                     Message
                   </Link>
                   {tenant.profile?.phone ? (
                     <a href={`tel:${tenant.profile.phone}`} className="tn-btn">
+                      <Phone size={16} />
                       Call
                     </a>
                   ) : null}

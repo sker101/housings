@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, ChevronRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { selectRows } from '../lib/supabase';
 import PaymentModal from '../components/PaymentModal';
@@ -6,6 +8,8 @@ import PaymentModal from '../components/PaymentModal';
 type Tier = 'free' | 'verified' | 'premium';
 
 export default function LandlordUpgradePage() {
+  const navigate = useNavigate();
+  const [isDashboardActive, setIsDashboardActive] = useState(false);
   const { user, token } = useAuth();
   const [currentPlan, setCurrentPlan] = useState<Tier>('free');
   const [loading, setLoading] = useState(true);
@@ -88,7 +92,24 @@ export default function LandlordUpgradePage() {
 
   return (
     <>
-      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}} .up-page{padding:2rem} .up-hdr{text-align:center;margin-bottom:2rem} .plans-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px} .plan-card{background:#ffffff;border:0.5px solid var(--border);border-radius:20px;padding:24px 20px;display:flex;flex-direction:column;gap:16px;position:relative} .plan-card.rec{border:2px solid var(--jade)} .rec-badge{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--jade);color:#fff;font-size:10px;font-weight:700;padding:3px 14px;border-radius:20px;white-space:nowrap} .plan-name{font-size:18px;font-weight:700;color:var(--ink)} .plan-name.jade{color:var(--jade)} .curr-tag{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;background:#EAF3DE;color:#27500A;margin-top:4px} .plan-price{font-size:26px;font-weight:800;color:var(--ink);line-height:1} .plan-price-sub{font-size:13px;font-weight:400;color:var(--mid)} .feat-list{display:flex;flex-direction:column;gap:9px;flex:1} .feat-item{display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--ink)} .feat-check{width:16px;height:16px;border-radius:50%;background:#EAF3DE;color:#27500A;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;margin-top:1px} .feat-check.off{background:var(--cream);color:var(--mid)} .feat-item.off{opacity:0.4} .plan-btn{padding:10px;border-radius:10px;border:0.5px solid var(--border);background:#ffffff;font-size:13px;font-weight:600;cursor:pointer;color:var(--ink);width:100%;transition:background 0.15s} .plan-btn:hover{background:var(--cream)} .plan-btn.primary{background:var(--jade);color:#ffffff;border-color:transparent} .plan-btn.current{background:var(--cream);color:var(--mid);cursor:default} @media(max-width:768px){.plans-grid{grid-template-columns:1fr}.up-page{padding:1rem}}`}</style>
+      <style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}} .up-page{padding:2rem;animation:fadeUp 0.35s ease} .up-hdr{margin-bottom:2rem} .up-hdr h1{font-size:1.4rem;font-weight:700;margin:0 0 4px} .up-hdr p{font-size:13px;color:var(--mid);margin:0} .plans-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem} .plan-card{background:#fff;border:0.5px solid var(--border);border-radius:16px;padding:1.5rem;position:relative;transition:all 0.2s} .plan-card.rec{border-color:#97C459;box-shadow:0 0 0 1px #97C459} .rec-badge{position:absolute;top:-10px;right:20px;background:#EAF3DE;color:#27500A;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600} .plan-name{font-size:1.1rem;font-weight:700;margin:0 0 0.5rem} .plan-price{font-size:2rem;font-weight:800;margin:0 0 0.25rem} .plan-price span{font-size:14px;font-weight:400;color:var(--mid)} .plan-desc{font-size:13px;color:var(--mid);margin:0 0 1.25rem} .feat-list{display:flex;flex-direction:column;gap:0.6rem;margin-bottom:1.25rem} .feat-item{display:flex;alignItems:center;gap:0.5rem;font-size:13px} .feat-item.off{color:var(--mid);opacity:0.6} .feat-check{width:18px;height:18px;border-radius:50%;display:flex;alignItems:center;justifyContent:center;font-size:12px;font-weight:600} .feat-check:not(.off){background:#EAF3DE;color:#27500A} .feat-check.off{background:#F1EFE8;color:#444441} .up-btn{width:100%;padding:0.75rem 1rem;border-radius:10px;border:none;background:linear-gradient(135deg,#16a34a,#166534);color:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s} .up-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(22,163,74,0.3)} .up-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none;box-shadow:none}`}</style>
+
+      {/* Breadcrumb Header */}
+      <header style={{background:'white',borderRadius:'12px',padding:'1rem 1.25rem',margin:'1rem 1rem 0',boxShadow:'0 1px 3px rgba(0,0,0,0.06)'}}>
+        <nav style={{display:'flex',alignItems:'center',gap:'0.5rem',fontSize:'0.9rem'}}>
+          <Link 
+            to="/landlord/dashboard" 
+            className={`topbar-action-btn ${isDashboardActive ? 'is-active' : ''}`}
+            onClick={() => setIsDashboardActive(true)}
+            style={{display:'flex',alignItems:'center',gap:'0.35rem',color:'#64748b',textDecoration:'none',padding:'4px 8px',background:'transparent',border:'none',borderRadius:'8px'}}
+          >
+            <LayoutDashboard size={16} />
+            <span>Dashboard</span>
+          </Link>
+          <ChevronRight size={16} style={{color:'#cbd5e1'}} />
+          <span style={{color:'#1e293b',fontWeight:600}}>Upgrade Plan</span>
+        </nav>
+      </header>
 
       <div className="up-page">
         <div className="up-hdr">

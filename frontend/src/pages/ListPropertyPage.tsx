@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
+import AuthLoader from '../components/AuthLoader';
 import {
   insertRows,
   selectRows,
@@ -15,6 +16,35 @@ import {
 import MapboxListingMap from '../components/MapboxListingMap';
 import { sanitizeInput } from '../utils/format';
 import imageCompression from 'browser-image-compression';
+import {
+  User,
+  Phone,
+  Building2,
+  Home,
+  DollarSign,
+  Calendar,
+  MapPin,
+  Wifi,
+  Car,
+  Droplets,
+  Zap,
+  Shield,
+  ImageIcon,
+  Video,
+  CheckCircle,
+  ChevronLeft,
+  ChevronRight,
+  Send,
+  Info,
+  FileText,
+  BedDouble,
+  Layers,
+  Hash,
+  Users,
+  Banknote,
+  Clock,
+  AlertCircle
+} from 'lucide-react';
 import {
   DAR_DISTRICTS,
   DAR_WARDS,
@@ -136,13 +166,13 @@ const DEFAULT_FORM: Partial<FormValues> = {
 };
 
 const STEPS = [
-  { key: 'identity', label: 'Identity & Contacts', description: 'Your details and contact information' },
-  { key: 'basics', label: 'Room Basics', description: 'Type, description, and property facts' },
-  { key: 'pricing', label: 'Pricing & Lease', description: 'Rent, deposit, and payment terms' },
-  { key: 'location', label: 'Location', description: 'Address and GPS coordinates' },
-  { key: 'amenities', label: 'Amenities & Rules', description: 'What\'s included and house rules' },
-  { key: 'photos', label: 'Photos & Video', description: 'Up to 10 photos and optional video tour' },
-  { key: 'review', label: 'Review & Submit', description: 'Summary and final submission' }
+  { key: 'identity', label: 'Identity', description: 'Your contact details', icon: User },
+  { key: 'basics', label: 'Basics', description: 'Room type and details', icon: Home },
+  { key: 'pricing', label: 'Pricing', description: 'Rent and lease terms', icon: DollarSign },
+  { key: 'location', label: 'Location', description: 'Address on map', icon: MapPin },
+  { key: 'amenities', label: 'Amenities', description: 'Features and rules', icon: Zap },
+  { key: 'photos', label: 'Photos', description: 'Images and video', icon: ImageIcon },
+  { key: 'review', label: 'Review', description: 'Final check', icon: CheckCircle }
 ];
 
 function formatPrice(value: number | string) {
@@ -157,7 +187,7 @@ function humanize(value: string) {
 const DRAFT_STEP_FIELD = '__currentStep';
 const LEGACY_DRAFT_STEP_LIMIT = 5;
 
-function validateStep(step: number, values: any, files: any): string {
+function validateStep(step: number, values: any, files: any, previews: any): string {
   const stepValidations: Record<number, () => string> = {
     0: () => {
       if (!values.fullName || values.fullName.length < 2) return 'Full name is required';
@@ -195,8 +225,8 @@ function validateStep(step: number, values: any, files: any): string {
       // If editing, existing photos will be kept if new ones aren't provided.
       const isEditingOffset = new URLSearchParams(window.location.search).has('edit');
       
-      const uploadedCount = Object.values(files).filter(f => f).length;
-      const existingCount = Object.values(previews).filter(p => p && p.startsWith('http')).length;
+      const uploadedCount = Object.values(files || {}).filter(f => f).length;
+      const existingCount = Object.values(previews || {}).filter(p => p && p.startsWith('http')).length;
       const totalPhotos = uploadedCount + existingCount;
 
       if (totalPhotos < 4 && !isEditingOffset) {
@@ -533,7 +563,7 @@ export default function ListPropertyPage() {
   const progressPct = Math.round(((step + 1) / STEPS.length) * 100);
 
   const goNext = () => {
-    const issue = validateStep(step, formValues, files);
+    const issue = validateStep(step, formValues, files, previews);
     if (issue) {
       setError(issue);
       return;
@@ -579,7 +609,7 @@ export default function ListPropertyPage() {
 
     // Validate all steps
     for (let i = 0; i < STEPS.length; i++) {
-      const issue = validateStep(i, values, files);
+      const issue = validateStep(i, values, files, previews);
       if (issue) {
         setStep(i);
         setError(issue);
@@ -883,7 +913,12 @@ export default function ListPropertyPage() {
   }
 
   if (loadingDraft) {
-    return <div className="container section"><p>Loading...</p></div>;
+    return (
+      <AuthLoader 
+        title="Preparing your listing..." 
+        subtitle={editId ? 'Loading your property details' : 'Getting everything ready for you'}
+      />
+    );
   }
 
   if (isSubmitted) {
@@ -915,44 +950,106 @@ export default function ListPropertyPage() {
   }
 
   return (
-    <div className="container section">
+    <div className="container section" style={{ padding: '1rem' }}>
+      <style>{`
+        @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .step-content { animation: slideIn 0.3s ease-out; }
+        .form-step-icon { animation: fadeIn 0.4s ease-out; }
+      `}</style>
       <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-        <div style={{ marginBottom: '2rem' }}>
-          <h1 style={{ fontSize: '2rem', marginBottom: '0.5rem', color: '#1A1A2E' }}>
-            {editId ? 'Edit Your Listing' : 'List Your Property'}
+        {/* Header */}
+        <div style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
+          <div style={{ 
+            width: 56, 
+            height: 56, 
+            borderRadius: 16, 
+            background: 'linear-gradient(135deg, #16a34a, #166534)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 0.75rem',
+            color: 'white'
+          }}>
+            <Building2 size={28} />
+          </div>
+          <h1 style={{ 
+            fontSize: 'clamp(1.1rem, 4vw, 1.5rem)', 
+            fontWeight: 700, 
+            color: '#1A1A2E',
+            marginBottom: '0.25rem',
+            whiteSpace: 'nowrap'
+          }}>
+            {editId ? 'Edit Listing' : 'List Property'}
           </h1>
-          <p style={{ color: '#6B6B5A' }}>Follow the steps to {editId ? 'update' : 'publish'} your room listing.</p>
+          <p style={{ 
+            color: '#6B6B5A', 
+            fontSize: 'clamp(0.75rem, 3vw, 0.9rem)',
+            whiteSpace: 'nowrap'
+          }}>
+            Step {step + 1} of {STEPS.length}: {STEPS[step].label}
+          </p>
         </div>
 
-        {/* Progress Tracker */}
-        <div style={{ marginBottom: '2.5rem' }}>
+        {/* Progress Steps */}
+        <div style={{ marginBottom: '1.5rem' }}>
           <div style={{ 
             display: 'flex', 
-            justifyContent: 'space-between', 
-            marginBottom: '0.75rem', 
-            fontSize: '0.85rem', 
-            fontWeight: '600',
-            color: '#1D9E75'
+            justifyContent: 'space-between',
+            marginBottom: '0.75rem'
           }}>
-            <span>Step {step + 1} of {STEPS.length}: {STEPS[step].label}</span>
-            <span>{progressPct}% Complete</span>
+            {STEPS.map((s, idx) => {
+              const Icon = s.icon;
+              const isActive = idx === step;
+              const isCompleted = idx < step;
+              return (
+                <div key={s.key} style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'center',
+                  flex: 1,
+                  opacity: isActive || isCompleted ? 1 : 0.4
+                }}>
+                  <div style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 10,
+                    background: isCompleted ? '#16a34a' : isActive ? 'linear-gradient(135deg, #16a34a, #166534)' : '#e5e5e0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: isActive || isCompleted ? 'white' : '#6B6B5A',
+                    marginBottom: 4,
+                    transition: 'all 0.3s ease'
+                  }} className="form-step-icon">
+                    {isCompleted ? <CheckCircle size={16} /> : <Icon size={16} />}
+                  </div>
+                  <span style={{
+                    fontSize: 'clamp(0.6rem, 2vw, 0.7rem)',
+                    fontWeight: isActive ? 600 : 500,
+                    color: isActive ? '#166534' : '#6B6B5A',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {s.label}
+                  </span>
+                </div>
+              );
+            })}
           </div>
           <div style={{ 
-            height: '10px', 
+            height: 6, 
             background: '#E5E5E0', 
-            borderRadius: '5px', 
+            borderRadius: 3, 
             overflow: 'hidden' 
           }}>
             <div style={{ 
               width: `${progressPct}%`, 
               height: '100%', 
-              background: '#1D9E75', 
-              transition: 'width 0.4s ease' 
+              background: 'linear-gradient(90deg, #16a34a, #22c55e)', 
+              transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+              borderRadius: 3
             }} />
           </div>
-          <p style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#6B6B5A' }}>
-            {STEPS[step].description}
-          </p>
         </div>
 
         {error && (
@@ -983,25 +1080,41 @@ export default function ListPropertyPage() {
           </div>
         )}
 
-        <form onSubmit={handleFormSubmit} className="card" style={{ padding: '2rem' }}>
+        <form onSubmit={handleFormSubmit} className="card" style={{ 
+          padding: 'clamp(1rem, 4vw, 2rem)', 
+          borderRadius: 16,
+          border: '1px solid var(--border)',
+          background: 'white',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+        }}>
           {/* Step 0: Identity */}
           {step === 0 && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <label style={{ gridColumn: '1 / -1' }}>
-                <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '0.4rem', color: '#1A1A2E' }}>Full Name</div>
-                <input {...register('fullName')} placeholder="Your legal name" style={{ width: '100%', padding: '0.6rem', border: '1px solid #E5E5E0', borderRadius: '8px' }} />
-                {errors.fullName && <span style={{ color: '#C0392B', fontSize: '0.85rem' }}>{errors.fullName.message}</span>}
+            <div className="step-content" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
+              <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: '#EAF3DE', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#166534' }}>
+                  <User size={16} />
+                </div>
+                <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#1A1A2E', whiteSpace: 'nowrap' }}>Contact Information</span>
+              </div>
+
+              <label>
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>Full Name</div>
+                <input {...register('fullName')} placeholder="Your legal name" style={{ width: '100%', padding: '0.65rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.9rem', outline: 'none', transition: 'all 0.2s' }} />
+                {errors.fullName && <span style={{ color: '#C0392B', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>{errors.fullName.message}</span>}
               </label>
 
               <label>
-                <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '0.4rem', color: '#1A1A2E' }}>Phone Number</div>
-                <input {...register('phone')} placeholder="+255..." style={{ width: '100%', padding: '0.6rem', border: '1px solid #E5E5E0', borderRadius: '8px' }} />
-                {errors.phone && <span style={{ color: '#C0392B', fontSize: '0.85rem' }}>{errors.phone.message}</span>}
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>Phone Number</div>
+                <div style={{ position: 'relative' }}>
+                  <Phone size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#6B6B5A' }} />
+                  <input {...register('phone')} placeholder="+255..." style={{ width: '100%', padding: '0.65rem 0.65rem 0.65rem 2.5rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.9rem', outline: 'none', transition: 'all 0.2s' }} />
+                </div>
+                {errors.phone && <span style={{ color: '#C0392B', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>{errors.phone.message}</span>}
               </label>
 
               <label>
-                <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '0.4rem', color: '#1A1A2E' }}>Lister Type</div>
-                <select {...register('listerType')} style={{ width: '100%', padding: '0.6rem', border: '1px solid #E5E5E0', borderRadius: '8px' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>Lister Type</div>
+                <select {...register('listerType')} style={{ width: '100%', padding: '0.65rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.9rem', outline: 'none', background: 'white', cursor: 'pointer' }}>
                   <option value="owner">Owner</option>
                   <option value="manager">Property Manager</option>
                   <option value="dalali">Dalali / Agent</option>
@@ -1011,35 +1124,48 @@ export default function ListPropertyPage() {
               {formValues.listerType === 'dalali' && (
                 <>
                   <label>
-                    <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '0.4rem', color: '#1A1A2E' }}>Owner's Name</div>
-                    <input {...register('ownerName')} placeholder="The actual owner's name" style={{ width: '100%', padding: '0.6rem', border: '1px solid #E5E5E0', borderRadius: '8px' }} />
+                    <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>Owner's Name</div>
+                    <input {...register('ownerName')} placeholder="The actual owner's name" style={{ width: '100%', padding: '0.65rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.9rem' }} />
                   </label>
                   <label>
-                    <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '0.4rem', color: '#1A1A2E' }}>Owner's Phone</div>
-                    <input {...register('ownerPhone')} placeholder="+255..." style={{ width: '100%', padding: '0.6rem', border: '1px solid #E5E5E0', borderRadius: '8px' }} />
+                    <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>Owner's Phone</div>
+                    <input {...register('ownerPhone')} placeholder="+255..." style={{ width: '100%', padding: '0.65rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.9rem' }} />
                   </label>
                 </>
               )}
 
               <label style={{ gridColumn: '1 / -1' }}>
-                <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '0.4rem', color: '#1A1A2E' }}>WhatsApp Number (optional)</div>
-                <input {...register('whatsappNumber')} placeholder="+255..." style={{ width: '100%', padding: '0.6rem', border: '1px solid #E5E5E0', borderRadius: '8px' }} />
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>WhatsApp (Optional)</div>
+                <div style={{ position: 'relative' }}>
+                  <Phone size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#6B6B5A' }} />
+                  <input {...register('whatsappNumber')} placeholder="+255..." style={{ width: '100%', padding: '0.65rem 0.65rem 0.65rem 2.5rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.9rem' }} />
+                </div>
               </label>
             </div>
           )}
 
           {/* Step 1: Basics */}
           {step === 1 && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="step-content" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+              <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: '#EAF3DE', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#166534' }}>
+                  <Home size={16} />
+                </div>
+                <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#1A1A2E', whiteSpace: 'nowrap' }}>Room Details</span>
+              </div>
+
               <label style={{ gridColumn: '1 / -1' }}>
-                <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '0.4rem', color: '#1A1A2E' }}>Listing Title</div>
-                <input {...register('title')} placeholder="e.g., Spacious Master Bedroom near UDSM" style={{ width: '100%', padding: '0.6rem', border: '1px solid #E5E5E0', borderRadius: '8px' }} />
-                {errors.title && <span style={{ color: '#C0392B', fontSize: '0.85rem' }}>{errors.title.message}</span>}
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>Listing Title</div>
+                <div style={{ position: 'relative' }}>
+                  <FileText size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#6B6B5A' }} />
+                  <input {...register('title')} placeholder="e.g., Master Bedroom near UDSM" style={{ width: '100%', padding: '0.65rem 0.65rem 0.65rem 2.5rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.9rem' }} />
+                </div>
+                {errors.title && <span style={{ color: '#C0392B', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>{errors.title.message}</span>}
               </label>
 
               <label>
-                <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '0.4rem', color: '#1A1A2E' }}>Room Type</div>
-                <select {...register('roomType')} style={{ width: '100%', padding: '0.6rem', border: '1px solid #E5E5E0', borderRadius: '8px' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>Room Type</div>
+                <select {...register('roomType')} style={{ width: '100%', padding: '0.65rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.9rem' }}>
                   {ROOM_TYPES.map(op => (
                     <option key={op.value} value={op.value}>{op.label}</option>
                   ))}
@@ -1047,8 +1173,8 @@ export default function ListPropertyPage() {
               </label>
 
               <label>
-                <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '0.4rem', color: '#1A1A2E' }}>Property Type</div>
-                <select {...register('propertyType')} style={{ width: '100%', padding: '0.6rem', border: '1px solid #E5E5E0', borderRadius: '8px' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>Property Type</div>
+                <select {...register('propertyType')} style={{ width: '100%', padding: '0.65rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.9rem' }}>
                   <option value="">Select type</option>
                   {PROPERTY_TYPES.map(op => (
                     <option key={op.value} value={op.value}>{op.label}</option>
@@ -1057,8 +1183,8 @@ export default function ListPropertyPage() {
               </label>
 
               <label>
-                <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '0.4rem', color: '#1A1A2E' }}>Floor</div>
-                <select {...register('floor')} style={{ width: '100%', padding: '0.6rem', border: '1px solid #E5E5E0', borderRadius: '8px' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>Floor</div>
+                <select {...register('floor')} style={{ width: '100%', padding: '0.65rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.9rem' }}>
                   <option value="">Select floor</option>
                   {FLOOR_OPTIONS.map(op => (
                     <option key={op.value} value={op.value}>{op.label}</option>
@@ -1067,21 +1193,24 @@ export default function ListPropertyPage() {
               </label>
 
               <label>
-                <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '0.4rem', color: '#1A1A2E' }}>Total Rooms in Property</div>
-                <input type="number" {...register('totalRooms')} placeholder="e.g., 12" style={{ width: '100%', padding: '0.6rem', border: '1px solid #E5E5E0', borderRadius: '8px' }} />
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>Total Rooms</div>
+                <div style={{ position: 'relative' }}>
+                  <Hash size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#6B6B5A' }} />
+                  <input type="number" {...register('totalRooms')} placeholder="e.g., 12" style={{ width: '100%', padding: '0.65rem 0.65rem 0.65rem 2.5rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.9rem' }} />
+                </div>
               </label>
 
               <label>
-                <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '0.4rem', color: '#1A1A2E' }}>Furnished?</div>
-                <select {...register('furnished')} style={{ width: '100%', padding: '0.6rem', border: '1px solid #E5E5E0', borderRadius: '8px' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>Furnished?</div>
+                <select {...register('furnished')} style={{ width: '100%', padding: '0.65rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.9rem' }}>
                   <option value="false">Unfurnished</option>
                   <option value="true">Furnished</option>
                 </select>
               </label>
 
               <label>
-                <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '0.4rem', color: '#1A1A2E' }}>Gender Preference</div>
-                <select {...register('genderPreference')} style={{ width: '100%', padding: '0.6rem', border: '1px solid #E5E5E0', borderRadius: '8px' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>Gender</div>
+                <select {...register('genderPreference')} style={{ width: '100%', padding: '0.65rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.9rem' }}>
                   {GENDER_PREFERENCES.map(op => (
                     <option key={op.value} value={op.value}>{op.label}</option>
                   ))}
@@ -1089,46 +1218,59 @@ export default function ListPropertyPage() {
               </label>
 
               <label>
-                <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '0.4rem', color: '#1A1A2E' }}>Available From</div>
-                <input type="date" {...register('availableFrom')} style={{ width: '100%', padding: '0.6rem', border: '1px solid #E5E5E0', borderRadius: '8px' }} />
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>Available From</div>
+                <div style={{ position: 'relative' }}>
+                  <Calendar size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#6B6B5A' }} />
+                  <input type="date" {...register('availableFrom')} style={{ width: '100%', padding: '0.65rem 0.65rem 0.65rem 2.5rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.9rem' }} />
+                </div>
               </label>
 
               <label style={{ gridColumn: '1 / -1' }}>
-                <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '0.4rem', color: '#1A1A2E' }}>Description</div>
-                <textarea {...register('description')} placeholder="Describe the room, location, and what makes it special..." style={{ width: '100%', padding: '0.6rem', border: '1px solid #E5E5E0', borderRadius: '8px', minHeight: '120px' }} />
-                {errors.description && <span style={{ color: '#C0392B', fontSize: '0.85rem' }}>{errors.description.message}</span>}
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>Description</div>
+                <textarea {...register('description')} placeholder="Describe the room, location, and what makes it special..." style={{ width: '100%', padding: '0.65rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.9rem', minHeight: '100px', resize: 'vertical' }} />
+                {errors.description && <span style={{ color: '#C0392B', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>{errors.description.message}</span>}
               </label>
             </div>
           )}
 
           {/* Step 2: Pricing */}
           {step === 2 && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="step-content" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+              <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: '#EAF3DE', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#166534' }}>
+                  <DollarSign size={16} />
+                </div>
+                <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#1A1A2E', whiteSpace: 'nowrap' }}>Pricing Details</span>
+              </div>
+
               <label>
-                <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '0.4rem', color: '#1A1A2E' }}>Monthly Rent (TZS)</div>
-                <input type="number" {...register('priceMonthly')} min="50000" placeholder="250000" style={{ width: '100%', padding: '0.6rem', border: '1px solid #E5E5E0', borderRadius: '8px' }} />
-                {errors.priceMonthly && <span style={{ color: '#C0392B', fontSize: '0.85rem' }}>{errors.priceMonthly.message}</span>}
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>Monthly Rent (TZS)</div>
+                <div style={{ position: 'relative' }}>
+                  <Banknote size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#6B6B5A' }} />
+                  <input type="number" {...register('priceMonthly')} min="50000" placeholder="250000" style={{ width: '100%', padding: '0.65rem 0.65rem 0.65rem 2.5rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.9rem' }} />
+                </div>
+                {errors.priceMonthly && <span style={{ color: '#C0392B', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>{errors.priceMonthly.message}</span>}
               </label>
 
               <label>
-                <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '0.4rem', color: '#1A1A2E' }}>Security Deposit (TZS, optional)</div>
-                <input type="number" {...register('securityDeposit')} min="0" placeholder="250000" style={{ width: '100%', padding: '0.6rem', border: '1px solid #E5E5E0', borderRadius: '8px' }} />
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>Security Deposit</div>
+                <input type="number" {...register('securityDeposit')} min="0" placeholder="250000" style={{ width: '100%', padding: '0.65rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.9rem' }} />
               </label>
 
               <label>
-                <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '0.4rem', color: '#1A1A2E' }}>Minimum Lease</div>
-                <select {...register('minLeaseMonths')} style={{ width: '100%', padding: '0.6rem', border: '1px solid #E5E5E0', borderRadius: '8px' }}>
-                  <option value="1">1 month</option>
-                  <option value="2">2 months</option>
-                  <option value="3">3 months</option>
-                  <option value="6">6 months</option>
-                  <option value="12">12 months</option>
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>Min Lease</div>
+                <select {...register('minLeaseMonths')} style={{ width: '100%', padding: '0.65rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.9rem' }}>
+                  <option value="1">1 mo</option>
+                  <option value="2">2 mo</option>
+                  <option value="3">3 mo</option>
+                  <option value="6">6 mo</option>
+                  <option value="12">12 mo</option>
                 </select>
               </label>
 
               <label>
-                <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '0.4rem', color: '#1A1A2E' }}>Payment Schedule</div>
-                <select {...register('paymentSchedule')} style={{ width: '100%', padding: '0.6rem', border: '1px solid #E5E5E0', borderRadius: '8px' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>Payment</div>
+                <select {...register('paymentSchedule')} style={{ width: '100%', padding: '0.65rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.9rem' }}>
                   {PAYMENT_SCHEDULES.map(op => (
                     <option key={op.value} value={op.value}>{op.label}</option>
                   ))}
@@ -1136,159 +1278,123 @@ export default function ListPropertyPage() {
               </label>
 
               <label style={{ gridColumn: '1 / -1', cursor: 'pointer' }}>
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'flex-start', 
-                  gap: '0.75rem', 
-                  fontSize: '0.85rem', 
-                  fontWeight: '700', 
-                  color: '#1A1A2E' 
-                }}>
-                  <input 
-                    type="checkbox" 
-                    {...register('utilitiesIncluded')} 
-                    style={{ width: '18px', height: '18px', marginTop: '2px', cursor: 'pointer' }} 
-                  />
-                  Utilities Included in Rent
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', fontWeight: 600, color: '#1A1A2E' }}>
+                  <input type="checkbox" {...register('utilitiesIncluded')} style={{ width: 18, height: 18, cursor: 'pointer' }} />
+                  Utilities Included
                 </div>
               </label>
 
               <label style={{ gridColumn: '1 / -1' }}>
-                <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '0.4rem', color: '#1A1A2E' }}>Late Fee Policy (optional)</div>
-                <textarea {...register('lateFeePolicy')} placeholder="e.g., TZS 5,000 per day after 5-day grace period" style={{ width: '100%', padding: '0.6rem', border: '1px solid #E5E5E0', borderRadius: '8px', minHeight: '80px' }} />
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>Late Fee Policy (Optional)</div>
+                <textarea {...register('lateFeePolicy')} placeholder="e.g., TZS 5,000/day after 5-day grace" style={{ width: '100%', padding: '0.65rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.9rem', minHeight: '70px' }} />
               </label>
             </div>
           )}
 
           {/* Step 3: Location */}
           {step === 3 && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="step-content" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+              <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: '#EAF3DE', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#166534' }}>
+                  <MapPin size={16} />
+                </div>
+                <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#1A1A2E', whiteSpace: 'nowrap' }}>Property Location</span>
+              </div>
+
               <label>
-                <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '0.4rem', color: '#1A1A2E' }}>Region</div>
-                <select {...register('region')} style={{ width: '100%', padding: '0.6rem', border: '1px solid #E5E5E0', borderRadius: '8px' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>Region</div>
+                <select {...register('region')} style={{ width: '100%', padding: '0.65rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.9rem' }}>
                   <option value="Dar es Salaam">Dar es Salaam</option>
                 </select>
               </label>
 
               <label>
-                <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '0.4rem', color: '#1A1A2E' }}>District</div>
-                <select {...register('district')} onChange={(e) => {
-                  setValue('district', e.target.value);
-                  setValue('ward', '');
-                }} style={{ width: '100%', padding: '0.6rem', border: '1px solid #E5E5E0', borderRadius: '8px' }}>
-                  {DAR_DISTRICTS.map(op => (
-                    <option key={op.value} value={op.value}>{op.label}</option>
-                  ))}
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>District</div>
+                <select {...register('district')} onChange={(e) => { setValue('district', e.target.value); setValue('ward', ''); }} style={{ width: '100%', padding: '0.65rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.9rem' }}>
+                  {DAR_DISTRICTS.map(op => (<option key={op.value} value={op.value}>{op.label}</option>))}
                 </select>
               </label>
 
               <label>
-                <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '0.4rem', color: '#1A1A2E' }}>Ward</div>
-                <select {...register('ward')} style={{ width: '100%', padding: '0.6rem', border: '1px solid #E5E5E0', borderRadius: '8px' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>Ward</div>
+                <select {...register('ward')} style={{ width: '100%', padding: '0.65rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.9rem' }}>
                   <option value="">Select ward</option>
-                  {(DAR_WARDS[formValues.district as keyof typeof DAR_WARDS] || []).map(w => (
-                    <option key={w} value={w}>{w}</option>
-                  ))}
+                  {(DAR_WARDS[formValues.district as keyof typeof DAR_WARDS] || []).map(w => (<option key={w} value={w}>{w}</option>))}
                 </select>
               </label>
 
               <label>
-                <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '0.4rem', color: '#1A1A2E' }}>Street / Building</div>
-                <input {...register('street')} placeholder="Street name and building number" style={{ width: '100%', padding: '0.6rem', border: '1px solid #E5E5E0', borderRadius: '8px' }} />
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>Street / Building</div>
+                <input {...register('street')} placeholder="Street name and building" style={{ width: '100%', padding: '0.65rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.9rem' }} />
               </label>
 
               <label>
-                <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '0.4rem', color: '#1A1A2E' }}>Nearby University</div>
-                <select {...register('university')} style={{ width: '100%', padding: '0.6rem', border: '1px solid #E5E5E0', borderRadius: '8px' }}>
-                  {UNIVERSITIES.map(op => (
-                    <option key={op.value} value={op.value}>{op.label}</option>
-                  ))}
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>Nearby University</div>
+                <select {...register('university')} style={{ width: '100%', padding: '0.65rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.9rem' }}>
+                  {UNIVERSITIES.map(op => (<option key={op.value} value={op.value}>{op.label}</option>))}
                 </select>
               </label>
 
               <div style={{ gridColumn: '1 / -1' }}>
-                <button
-                  type="button"
-                  onClick={handleGetLocation}
-                  disabled={gettingLocation}
-                  style={{
-                    width: '100%',
-                    padding: '0.6rem',
-                    background: '#1D9E75',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontWeight: '600'
-                  }}
-                >
+                <button type="button" onClick={handleGetLocation} disabled={gettingLocation} style={{ width: '100%', padding: '0.75rem', background: 'linear-gradient(135deg, #16a34a, #166534)', color: 'white', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 600, fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                  <MapPin size={18} />
                   {gettingLocation ? 'Getting location...' : 'Get Current Location'}
                 </button>
                 {formValues.lat && formValues.lng && (
-                  <p style={{ margin: '0.5rem 0 0', fontSize: '0.85rem', color: '#6B6B5A' }}>
-                    ✓ Coordinates: {formValues.lat}, {formValues.lng}
+                  <p style={{ margin: '0.5rem 0 0', fontSize: '0.8rem', color: '#16a34a', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                    <CheckCircle size={14} /> {formValues.lat}, {formValues.lng}
                   </p>
                 )}
               </div>
 
               <details style={{ gridColumn: '1 / -1' }}>
-                <summary style={{ cursor: 'pointer', fontWeight: '600', marginBottom: '0.5rem' }}>Enter coordinates manually</summary>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '0.5rem' }}>
+                <summary style={{ cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem', color: '#6B6B5A', whiteSpace: 'nowrap' }}>Enter coordinates manually</summary>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.5rem' }}>
                   <label>
-                    <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '0.4rem', color: '#1A1A2E' }}>Latitude</div>
-                    <input {...register('lat')} placeholder="-6.7924" style={{ width: '100%', padding: '0.6rem', border: '1px solid #E5E5E0', borderRadius: '8px' }} />
+                    <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>Latitude</div>
+                    <input {...register('lat')} placeholder="-6.7924" style={{ width: '100%', padding: '0.65rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.9rem' }} />
                   </label>
                   <label>
-                    <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '0.4rem', color: '#1A1A2E' }}>Longitude</div>
-                    <input {...register('lng')} placeholder="39.2083" style={{ width: '100%', padding: '0.6rem', border: '1px solid #E5E5E0', borderRadius: '8px' }} />
+                    <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>Longitude</div>
+                    <input {...register('lng')} placeholder="39.2083" style={{ width: '100%', padding: '0.65rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.9rem' }} />
                   </label>
                 </div>
               </details>
 
               <div style={{ gridColumn: '1 / -1' }}>
-                <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '0.6rem', color: '#1A1A2E' }}>Location Preview</div>
-                <div style={{ height: '300px', width: '100%', borderRadius: '12px', overflow: 'hidden', border: '1px solid #E5E5E0', background: '#f5f5f0', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)' }}>
-                  <MapboxListingMap 
-                    rooms={mapPreviewListings} 
-                    onRoomClick={() => {}} 
-                  />
+                <div style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.5rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>Map Preview</div>
+                <div style={{ height: '250px', width: '100%', borderRadius: 12, overflow: 'hidden', border: '1px solid #E5E5E0', background: '#f5f5f0' }}>
+                  <MapboxListingMap rooms={mapPreviewListings} onRoomClick={() => {}} />
                 </div>
                 {!formValues.lat && (
-                  <p style={{ fontSize: '0.8rem', color: '#6B6B5A', marginTop: '0.5rem' }}>
-                    💡 Use "Get Current Location" or enter coordinates below to see the map preview.
+                  <p style={{ fontSize: '0.75rem', color: '#6B6B5A', marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                    <Info size={14} /> Tap "Get Current Location" to see map
                   </p>
                 )}
               </div>
 
               <label style={{ gridColumn: '1 / -1' }}>
-                <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '0.4rem', color: '#1A1A2E' }}>Accessibility Notes (optional)</div>
-                <textarea {...register('accessibilityNotes')} placeholder="e.g., Ground floor, ramp available, wheelchair friendly" style={{ width: '100%', padding: '0.6rem', border: '1px solid #E5E5E0', borderRadius: '8px', minHeight: '80px' }} />
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>Accessibility Notes (Optional)</div>
+                <textarea {...register('accessibilityNotes')} placeholder="e.g., Ground floor, wheelchair access" style={{ width: '100%', padding: '0.65rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.9rem', minHeight: '70px' }} />
               </label>
             </div>
           )}
 
           {/* Step 4: Amenities */}
           {step === 4 && (
-            <div style={{ display: 'grid', gap: '1.5rem' }}>
+            <div className="step-content" style={{ display: 'grid', gap: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: '#EAF3DE', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#166534' }}>
+                  <Zap size={16} />
+                </div>
+                <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#1A1A2E', whiteSpace: 'nowrap' }}>Amenities & Rules</span>
+              </div>
+
               <div>
-                <h3 style={{ margin: '0 0 0.75rem', fontSize: '0.95rem' }}>Select Amenities</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '0.5rem' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.5rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>Select Available Amenities</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                   {AMENITIES_LIST.map(amenity => (
-                    <button
-                      key={amenity.key}
-                      type="button"
-                      onClick={() => updateAmenity(amenity.key)}
-                      style={{
-                        padding: '0.6rem',
-                        border: formValues.amenities[amenity.key] ? `2px solid #1D9E75` : `1px solid #E5E5E0`,
-                        background: formValues.amenities[amenity.key] ? '#EDF7F1' : 'white',
-                        borderRadius: '8px',
-                        cursor: 'pointer',
-                        fontWeight: formValues.amenities[amenity.key] ? '600' : '400',
-                        color: formValues.amenities[amenity.key] ? '#1D9E75' : '#6B6B5A',
-                        transition: 'all 0.2s'
-                      }}
-                    >
+                    <button key={amenity.key} type="button" onClick={() => updateAmenity(amenity.key)} style={{ padding: '0.6rem 1rem', border: formValues.amenities[amenity.key] ? `2px solid #16a34a` : `1px solid #E5E5E0`, background: formValues.amenities[amenity.key] ? '#EAF3DE' : 'white', borderRadius: 10, cursor: 'pointer', fontWeight: formValues.amenities[amenity.key] ? 600 : 400, color: formValues.amenities[amenity.key] ? '#166534' : '#6B6B5A', transition: 'all 0.2s', fontSize: '0.8rem', whiteSpace: 'nowrap', width: 'fit-content' }}>
                       {amenity.emoji} {amenity.label}
                     </button>
                   ))}
@@ -1296,136 +1402,118 @@ export default function ListPropertyPage() {
               </div>
 
               <label>
-                <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '0.4rem', color: '#1A1A2E' }}>House Rules</div>
-                <textarea {...register('houseRules')} placeholder="No smoking&#10;Quiet after 10 PM&#10;No male visitors after 8 PM" style={{ width: '100%', padding: '0.6rem', border: '1px solid #E5E5E0', borderRadius: '8px', minHeight: '120px' }} />
-                {errors.houseRules && <span style={{ color: '#C0392B', fontSize: '0.85rem' }}>{errors.houseRules.message}</span>}
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>House Rules</div>
+                <textarea {...register('houseRules')} placeholder="No smoking&#10;Quiet after 10 PM&#10;No visitors after 8 PM" style={{ width: '100%', padding: '0.65rem', border: '1px solid #E5E5E0', borderRadius: 10, minHeight: '100px', fontSize: '0.9rem' }} />
+                {errors.houseRules && <span style={{ color: '#C0392B', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>{errors.houseRules.message}</span>}
               </label>
             </div>
           )}
 
           {/* Step 5: Photos */}
           {step === 5 && (
-            <div style={{ display: 'grid', gap: '1rem' }}>
-              <p style={{ color: '#6B6B5A', fontSize: '0.9rem' }}>Upload 4-10 photos. First 4 are required: Outside, Bedroom, Kitchen, Bathroom.</p>
-
-              {PHOTO_SLOTS.map((slot) => (
-                <div key={slot.key} style={{
-                  border: (files[slot.key] || previews[slot.key]) ? '2px solid #1D9E75' : '2px dashed #E5E5E0',
-                  borderRadius: '10px',
-                  padding: '1rem',
-                  textAlign: 'center',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  position: 'relative'
-                }}>
-                  {(files[slot.key] || previews[slot.key]) && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setFiles(prev => ({ ...prev, [slot.key]: null }));
-                        setPreviews(prev => ({ ...prev, [slot.key]: null }));
-                        if (editId) setPhotosToDelete(prev => [...prev, slot.key]);
-                      }}
-                      style={{
-                        position: 'absolute',
-                        top: '5px',
-                        right: '5px',
-                        background: '#E74C3C',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '50%',
-                        width: '24px',
-                        height: '24px',
-                        cursor: 'pointer',
-                        zIndex: 10,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '12px'
-                      }}
-                    >
-                      ✕
-                    </button>
-                  )}
-                  <label style={{ cursor: 'pointer', display: 'block' }}>
-                    <div style={{ fontSize: '0.9rem', fontWeight: '600', marginBottom: '0.3rem' }}>
-                      {slot.label} {slot.required && '*'}
-                    </div>
-                    
-                    {previews[slot.key] ? (
-                      <div style={{ marginBottom: '0.5rem' }}>
-                        <img 
-                          src={previews[slot.key]!} 
-                          alt={slot.label} 
-                          style={{ width: '80px', height: '60px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #E5E5E0' }} 
-                        />
-                      </div>
-                    ) : null}
-
-                    {files[slot.key] ? (
-                      <div style={{ color: '#1D9E75', fontSize: '0.85rem' }}>✓ {files[slot.key]?.name}</div>
-                    ) : previews[slot.key] ? (
-                      <div style={{ color: '#1D9E75', fontSize: '0.85rem' }}>Current Photo</div>
-                    ) : (
-                      <div style={{ color: '#6B6B5A', fontSize: '0.85rem' }}>Click to upload</div>
-                    )}
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0] || null;
-                        setFiles(prev => ({ ...prev, [slot.key]: file }));
-                        if (file) {
-                          setPreviews(prev => ({ ...prev, [slot.key]: URL.createObjectURL(file) }));
-                          setPhotosToDelete(prev => prev.filter(a => a !== slot.key));
-                        }
-                      }}
-                      style={{ display: 'none' }}
-                    />
-                  </label>
+            <div className="step-content" style={{ display: 'grid', gap: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: '#EAF3DE', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#166534' }}>
+                  <ImageIcon size={16} />
                 </div>
-              ))}
+                <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#1A1A2E', whiteSpace: 'nowrap' }}>Photos & Video</span>
+              </div>
 
-              <label>
-                <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '0.4rem', color: '#1A1A2E' }}>Video Tour URL (optional)</div>
-                <input {...register('videoTourUrl')} placeholder="https://youtube.com/watch?v=..." style={{ width: '100%', padding: '0.6rem', border: '1px solid #E5E5E0', borderRadius: '8px' }} />
+              <p style={{ color: '#6B6B5A', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>Upload 4-10 photos. First 4 required.</p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '0.75rem' }}>
+                {PHOTO_SLOTS.map((slot) => (
+                  <div key={slot.key} style={{
+                    border: (files[slot.key] || previews[slot.key]) ? '2px solid #16a34a' : '2px dashed #E5E5E0',
+                    borderRadius: 12,
+                    padding: '0.75rem',
+                    textAlign: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    position: 'relative',
+                    background: (files[slot.key] || previews[slot.key]) ? '#EAF3DE' : 'white'
+                  }}>
+                    {(files[slot.key] || previews[slot.key]) && (
+                      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFiles(prev => ({ ...prev, [slot.key]: null })); setPreviews(prev => ({ ...prev, [slot.key]: null })); if (editId) setPhotosToDelete(prev => [...prev, slot.key]); }} style={{ position: 'absolute', top: '4px', right: '4px', background: '#DC2626', color: 'white', border: 'none', borderRadius: '50%', width: 22, height: 22, cursor: 'pointer', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}>✕</button>
+                    )}
+                    <label style={{ cursor: 'pointer', display: 'block' }}>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.3rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>
+                        {slot.label} {slot.required && <span style={{ color: '#DC2626' }}>*</span>}
+                      </div>
+                      {previews[slot.key] ? (
+                        <div style={{ marginBottom: '0.5rem' }}>
+                          <img src={previews[slot.key]!} alt={slot.label} style={{ width: 60, height: 45, objectFit: 'cover', borderRadius: 6, border: '1px solid #E5E5E0' }} />
+                        </div>
+                      ) : (
+                        <div style={{ width: 60, height: 45, margin: '0 auto 0.5rem', borderRadius: 6, background: '#f5f5f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6B6B5A' }}>
+                          <ImageIcon size={20} />
+                        </div>
+                      )}
+                      {files[slot.key] ? (
+                        <div style={{ color: '#16a34a', fontSize: '0.7rem', whiteSpace: 'nowrap' }}><CheckCircle size={12} style={{ display: 'inline' }} /> Done</div>
+                      ) : previews[slot.key] ? (
+                        <div style={{ color: '#16a34a', fontSize: '0.7rem', whiteSpace: 'nowrap' }}>Saved</div>
+                      ) : (
+                        <div style={{ color: '#6B6B5A', fontSize: '0.7rem', whiteSpace: 'nowrap' }}>Click to upload</div>
+                      )}
+                      <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => { const file = e.target.files?.[0] || null; setFiles(prev => ({ ...prev, [slot.key]: file })); if (file) { setPreviews(prev => ({ ...prev, [slot.key]: URL.createObjectURL(file) })); setPhotosToDelete(prev => prev.filter(a => a !== slot.key)); } }} style={{ display: 'none' }} />
+                    </label>
+                  </div>
+                ))}
+              </div>
+
+              <label style={{ marginTop: '0.5rem' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>Video Tour URL (Optional)</div>
+                <div style={{ position: 'relative' }}>
+                  <Video size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#6B6B5A' }} />
+                  <input {...register('videoTourUrl')} placeholder="https://youtube.com/watch?v=..." style={{ width: '100%', padding: '0.65rem 0.65rem 0.65rem 2.5rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.9rem' }} />
+                </div>
               </label>
             </div>
           )}
 
           {/* Step 6: Review & Submit */}
           {step === 6 && (
-            <div style={{ display: 'grid', gap: '1.5rem' }}>
-              <div style={{ background: '#F7FAFC', padding: '1.5rem', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-                <h3 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '1.1rem' }}>Review Summary</h3>
-                <div style={{ display: 'grid', gap: '0.75rem', fontSize: '0.9rem' }}>
-                  <p><strong>Title:</strong> {formValues.title}</p>
-                  <p><strong>Rent:</strong> {formatPrice(formValues.priceMonthly)}</p>
-                  <p><strong>Location:</strong> {formValues.street}, {formValues.ward}, {formValues.district}</p>
-                  <p><strong>Type:</strong> {humanize(formValues.roomType)}</p>
-                  <p><strong>Photos:</strong> {Object.values(files).filter(Boolean).length} uploaded</p>
+            <div className="step-content" style={{ display: 'grid', gap: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: '#EAF3DE', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#166534' }}>
+                  <CheckCircle size={16} />
+                </div>
+                <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#1A1A2E', whiteSpace: 'nowrap' }}>Review & Submit</span>
+              </div>
+
+              <div style={{ background: '#F7FAFC', padding: '1.25rem', borderRadius: 12, border: '1px solid #E2E8F0' }}>
+                <h3 style={{ margin: '0 0 0.75rem', fontSize: '0.9rem', fontWeight: 600, color: '#1A1A2E', whiteSpace: 'nowrap' }}>Listing Summary</h3>
+                <div style={{ display: 'grid', gap: '0.5rem', fontSize: '0.8rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <FileText size={14} style={{ color: '#6B6B5A' }} />
+                    <span style={{ whiteSpace: 'nowrap' }}><strong>Title:</strong> {formValues.title || '-'}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Banknote size={14} style={{ color: '#6B6B5A' }} />
+                    <span style={{ whiteSpace: 'nowrap' }}><strong>Rent:</strong> {formatPrice(formValues.priceMonthly)}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <MapPin size={14} style={{ color: '#6B6B5A' }} />
+                    <span style={{ whiteSpace: 'nowrap' }}><strong>Location:</strong> {formValues.street || '-'}, {formValues.ward || '-'}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Home size={14} style={{ color: '#6B6B5A' }} />
+                    <span style={{ whiteSpace: 'nowrap' }}><strong>Type:</strong> {humanize(formValues.roomType)}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <ImageIcon size={14} style={{ color: '#6B6B5A' }} />
+                    <span style={{ whiteSpace: 'nowrap' }}><strong>Photos:</strong> {Object.values(files).filter(Boolean).length} uploaded</span>
+                  </div>
                 </div>
               </div>
 
               <label style={{ cursor: 'pointer' }}>
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'flex-start', 
-                  gap: '0.75rem', 
-                  fontSize: '0.9rem', 
-                  color: '#1A1A2E' 
-                }}>
-                    <input 
-                      type="checkbox" 
-                      {...register('policyAccepted')} 
-                      defaultChecked={false}
-                      style={{ width: '20px', height: '20px', marginTop: '2px', cursor: 'pointer' }} 
-                    />
-                  I confirm that all information provided is accurate and I have the authority to list this property. I agree to iRent's terms and conditions.
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.8rem', color: '#1A1A2E' }}>
+                  <input type="checkbox" {...register('policyAccepted')} defaultChecked={false} style={{ width: 18, height: 18, marginTop: '2px', cursor: 'pointer', flexShrink: 0 }} />
+                  <span style={{ lineHeight: 1.4, wordBreak: 'break-word' }}>I confirm all info is accurate and I have authority to list this property.</span>
                 </div>
-                {errors.policyAccepted && <p style={{ color: '#C0392B', fontSize: '0.85rem', marginTop: '0.5rem' }}>{errors.policyAccepted.message}</p>}
+                {errors.policyAccepted && <p style={{ color: '#C0392B', fontSize: '0.75rem', marginTop: '0.5rem' }}>{errors.policyAccepted.message}</p>}
               </label>
             </div>
           )}
@@ -1436,25 +1524,59 @@ export default function ListPropertyPage() {
             justifyContent: 'space-between', 
             marginTop: '2rem',
             paddingTop: '1.5rem',
-            borderTop: '1px solid #E5E5E0'
+            borderTop: '1px solid #E5E5E0',
+            gap: '0.75rem'
           }}>
             {step > 0 ? (
               <button 
                 type="button" 
                 onClick={goBack} 
-                className="btn btn--outline"
                 disabled={submitting}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  padding: '0.6rem 1rem',
+                  borderRadius: 10,
+                  border: '1px solid #E5E5E0',
+                  background: 'white',
+                  color: '#1A1A2E',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap'
+                }}
               >
+                <ChevronLeft size={18} />
                 Back
               </button>
             ) : <div />}
 
             <button 
               type="submit" 
-              className="btn btn--primary" 
               disabled={submitting || (step === 6 && !canSubmitListing)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: '0.6rem 1.25rem',
+                borderRadius: 10,
+                border: 'none',
+                background: submitting ? '#9ca3af' : 'linear-gradient(135deg, #16a34a, #166534)',
+                color: 'white',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                cursor: submitting || (step === 6 && !canSubmitListing) ? 'not-allowed' : 'pointer',
+                whiteSpace: 'nowrap',
+                opacity: submitting || (step === 6 && !canSubmitListing) ? 0.7 : 1,
+                transition: 'all 0.2s'
+              }}
             >
-              {step === 6 ? submitButtonLabel : 'Next Step'}
+              {step === 6 ? (
+                <><Send size={16} /> {submitButtonLabel}</>
+              ) : (
+                <>{'Next'} <ChevronRight size={18} /></>
+              )}
             </button>
           </div>
         </form>

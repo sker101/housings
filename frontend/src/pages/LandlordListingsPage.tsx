@@ -1,12 +1,33 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { 
+  LayoutDashboard, 
+  ChevronRight, 
+  Home, 
+  Eye, 
+  Heart, 
+  Calendar, 
+  CheckCircle2, 
+  AlertCircle, 
+  Plus, 
+  Search, 
+  Filter,
+  TrendingUp,
+  DollarSign,
+  Zap,
+  Edit3,
+  Ban,
+  RotateCcw
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { selectRows, updateRows, deleteRows } from '../lib/supabase';
 import { mapListingRow, fetchPhotosForListings } from '../lib/listings';
 import PaymentModal from '../components/PaymentModal';
 
 export default function LandlordListingsPage() {
+  const navigate = useNavigate();
+  const [isDashboardActive, setIsDashboardActive] = useState(false);
   const { user, token } = useAuth();
   const { t } = useTranslation();
 
@@ -164,42 +185,95 @@ export default function LandlordListingsPage() {
   const approvedCount = listings.filter((l) => l.status === 'approved').length;
   const maxViews = Math.max(...listings.map((l) => Number(l.viewCount) || 0), 1);
 
+  // StatCard Component
+  function StatCard({ label, value, sub, icon: Icon, color, delay = 0 }: {
+    label: string; value: string | number; sub?: string; icon: any; color: string; delay?: number;
+  }) {
+    return (
+      <div style={{ 
+        background: 'white', 
+        border: '1px solid var(--border)',
+        borderRadius: 16, 
+        padding: '1rem',
+        animationDelay: `${delay}ms`,
+        transition: 'all 0.2s ease',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+          <div style={{ 
+            width: 40, 
+            height: 40, 
+            borderRadius: 12, 
+            background: `${color}15`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: color
+          }}>
+            <Icon size={20} />
+          </div>
+          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--mid)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            {label}
+          </span>
+        </div>
+        <p style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--ink)', margin: '0 0 0.25rem', lineHeight: 1.2 }}>
+          {value}
+        </p>
+        {sub && <p style={{ fontSize: '0.8rem', color: 'var(--mid)' }}>{sub}</p>}
+      </div>
+    );
+  }
+
   return (
     <>
-      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}} .lst-page{padding:2rem} .kpi-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:1.5rem} .kpi{background:var(--cream,#f8faf9);border-radius:12px;padding:14px 16px} .kpi-lbl{font-size:11px;color:var(--mid);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em} .kpi-val{font-size:22px;font-weight:700;line-height:1;color:var(--ink)} .kpi-sub{font-size:11px;margin-top:4px;color:var(--mid)} .toolbar{display:flex;align-items:center;gap:10px;margin-bottom:1.25rem;flex-wrap:wrap} .lst-search{flex:1;max-width:360px;padding:8px 12px;border-radius:10px;border:0.5px solid var(--border);background:#fff;font-size:13px;color:var(--ink);outline:none} .ftab{padding:6px 14px;border-radius:10px;border:0.5px solid var(--border);background:#fff;font-size:12px;color:var(--mid);cursor:pointer;transition:all 0.15s} .ftab.on{background:#EAF3DE;color:#27500A;border-color:#97C459;font-weight:600} .lst-table-wrap{overflow-x:auto} .lst-table{width:100%;border-collapse:collapse;font-size:12px} .lst-table th{padding:9px 14px;text-align:left;font-size:10px;font-weight:600;color:var(--mid);text-transform:uppercase;letter-spacing:.05em;border-bottom:0.5px solid var(--border);background:#fafafa;white-space:nowrap} .lst-table td{padding:12px 14px;border-bottom:0.5px solid var(--border);color:var(--ink);vertical-align:middle} .lst-table tr:last-child td{border-bottom:none} .lst-table tr:hover td{background:#fafcfb} .l-name{font-size:13px;font-weight:600;color:var(--jade);text-decoration:none} .l-name:hover{text-decoration:underline} .l-type{font-size:11px;color:var(--mid);margin-top:2px} .pill{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600} .p-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0} .p-approved{background:#EAF3DE;color:#27500A} .p-approved .p-dot{background:#3B6D11} .p-pending{background:#FAEEDA;color:#633806} .p-pending .p-dot{background:#854F0B} .p-flagged{background:#FCEBEB;color:#791F1F} .p-flagged .p-dot{background:#A32D2D} .p-rejected{background:#F1EFE8;color:#444441} .p-rejected .p-dot{background:#888780} .p-available{background:#E6F1FB;color:#0C447C} .p-available .p-dot{background:#185FA5} .p-occupied{background:#FCEBEB;color:#791F1F} .p-occupied .p-dot{background:#A32D2D} .p-boosted{background:#FAEEDA;color:#633806} .vbar-wrap{margin-top:4px;height:3px;border-radius:2px;background:var(--border);overflow:hidden;width:80px} .vbar{height:100%;border-radius:2px;background:var(--jade)} .vbar.low{background:#A32D2D} .act-btn{padding:5px 10px;border-radius:7px;border:0.5px solid var(--border);background:#fff;font-size:11px;font-weight:500;cursor:pointer;color:var(--ink);white-space:nowrap;transition:background 0.15s} .act-btn:hover{background:var(--cream)} .act-btn:disabled{opacity:0.5;cursor:default} .act-boost{background:#FAEEDA;color:#633806;border-color:#FAC775} .act-boost:hover{background:#FAC775} .act-fix{color:#791F1F;border-color:#F09595} .act-fix:hover{background:#FCEBEB} .act-delete {color:#791F1F;} .act-delete:hover{background:#FCEBEB;} .act-done{background:#f3f4f6;color:#9ca3af;border-color:transparent;cursor:default} .lst-empty{padding:3rem 2rem;text-align:center;color:var(--mid);font-size:13px} .add-btn{padding:8px 18px;border-radius:10px;border:none;background:var(--jade);color:#fff;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-block} @media(max-width:768px){.kpi-strip{grid-template-columns:1fr 1fr}.lst-page{padding:1rem}}`}</style>
+      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}} @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}} .lst-page{padding:2rem} .kpi-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:1.5rem} .kpi{background:var(--cream,#f8faf9);border-radius:12px;padding:14px 16px} .kpi-lbl{font-size:11px;color:var(--mid);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em} .kpi-val{font-size:22px;font-weight:700;line-height:1;color:var(--ink)} .kpi-sub{font-size:11px;margin-top:4px;color:var(--mid)} .toolbar{display:flex;align-items:center;gap:10px;margin-bottom:1.25rem;flex-wrap:wrap} .lst-search{flex:1;max-width:360px;padding:8px 12px;border-radius:10px;border:0.5px solid var(--border);background:#fff;font-size:13px;color:var(--ink);outline:none} .ftab{padding:6px 14px;borderRadius:10px;border:0.5px solid var(--border);background:#fff;font-size:12px;color:var(--mid);cursor:pointer;transition:all 0.15s} .ftab.on{background:#EAF3DE;color:#27500A;border-color:#97C459;fontWeight:600} .lst-table-wrap{overflow-x:auto} .lst-table{width:100%;borderCollapse:collapse;font-size:12px} .lst-table th{padding:9px 14px;text-align:left;font-size:10px;font-weight:600;color:var(--mid);textTransform:uppercase;letterSpacing:.05em;borderBottom:0.5px solid var(--border);background:#fafafa;whiteSpace:nowrap} .lst-table td{padding:12px 14px;borderBottom:0.5px solid var(--border);color:var(--ink);verticalAlign:middle} .lst-table tr:last-child td{borderBottom:none} .lst-table tr:hover td{background:#fafcfb} .l-name{font-size:13px;fontWeight:600;color:var(--jade);textDecoration:none} .l-name:hover{textDecoration:underline} .l-type{font-size:11px;color:var(--mid);marginTop:2px} .pill{display:inlineFlex;alignItems:center;gap:4px;padding:2px 9px;borderRadius:20px;fontSize:11px;fontWeight:600} .p-dot{width:5px;height:5px;borderRadius:50%;flexShrink:0} .p-approved{background:#EAF3DE;color:#27500A} .p-approved .p-dot{background:#3B6D11} .p-pending{background:#FAEEDA;color:#633806} .p-pending .p-dot{background:#D97706} .p-flagged{background:#FEE2E2;color:#991B1B} .p-flagged .p-dot{background:#DC2626} .p-available{background:#EAF3DE;color:#27500A} .p-available .p-dot{background:#22C55E} .p-occupied{background:#F1EFE8;color:#444441} .p-occupied .p-dot{background:#A3A3A3} .p-boosted{background:linear-gradient(135deg,#F59E0B,#D97706);color:white} .vbar-wrap{height:3px;background:var(--border);borderRadius:99;overflow:hidden;margin-top:4px} .vbar{height:100%;background:var(--jade);borderRadius:99} .vbar.low{background:#D97706} .act-btn{padding:5px 10px;borderRadius:6px;border:0.5px solid var(--border);background:#fff;fontSize:11px;color:var(--ink);cursor:pointer;transition:all 0.15s} .act-btn:hover{background:var(--cream)} .act-btn:disabled{opacity:0.5;cursor:not-allowed} .act-fix{background:#FEF2F1;color:#B91C1C;border-color:#FCA5A5} .act-boost{background:linear-gradient(135deg,#F59E0B,#D97706);color:white;border:none} .act-done{background:#EAF3DE;color:#27500A;border-color:#97C459} .add-btn{padding:8px 16px;borderRadius:10px;background:linear-gradient(135deg,#16a34a,#166534);color:#fff;fontSize:13px;fontWeight:600;textDecoration:none;display:inlineBlock;boxShadow:0 2px 8px rgba(22,163,74,0.25)} .lst-empty{padding:3rem 2rem;textAlign:center;color:var(--mid)}`}</style>
 
-      <div className="lst-page">
-        <div
+      {/* ── Header ──────────────────────────────── */}
+      <header style={{ margin: '1rem 1.5rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
+        <div style={{ minWidth: 0 }}>
+          <h1 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--ink)', margin: 0, whiteSpace: 'nowrap' }}>
+            My Properties
+          </h1>
+        </div>
+        <Link 
+          to="/landlord/properties/new"
           style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            marginBottom: '1.5rem'
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            padding: '0.5rem 0.875rem',
+            background: 'linear-gradient(135deg, #16a34a, #166534)',
+            color: 'white',
+            borderRadius: 8,
+            textDecoration: 'none',
+            fontSize: '0.8rem',
+            fontWeight: 600,
+            boxShadow: '0 2px 8px rgba(22, 163, 74, 0.25)',
+            whiteSpace: 'nowrap',
+            flexShrink: 0
           }}
         >
-          <div>
-            <h1 style={{ fontSize: '1.3rem', fontWeight: 700, margin: 0 }}>
-              My listings <span style={{ fontSize: 14, color: 'var(--mid)', fontWeight: 400 }}>({listings.length})</span>
-            </h1>
-            <p style={{ fontSize: 12, color: 'var(--mid)', marginTop: 4 }}>
-              Manage properties, track views, and control availability
-            </p>
-          </div>
-          <Link to="/landlord/properties/new" className="add-btn">
-            + Add listing
-          </Link>
-        </div>
+          <Plus size={16} />
+          Add Property
+        </Link>
+      </header>
+
+      <div className="lst-page" style={{ padding: '0 1.5rem' }}>
 
         {error && <p className="error-text">{error}</p>}
 
-        <div className="kpi-strip">
+      {/* ── Stats Overview ───────────────────────────────── */}
+      <section style={{ marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--ink)' }}>Overview</h3>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
           {loading
             ? Array.from({ length: 4 }).map((_, i) => (
                 <div
                   key={`kpi-skel-${i}`}
                   style={{
-                    height: 72,
-                    borderRadius: 12,
+                    height: 100,
+                    borderRadius: 16,
                     background: 'var(--cream)',
                     animation: 'pulse 1.5s ease-in-out infinite'
                   }}
@@ -207,60 +281,155 @@ export default function LandlordListingsPage() {
               ))
             : (
               <>
-                <div className="kpi">
-                  <div className="kpi-lbl">Total listings</div>
-                  <div className="kpi-val">{listings.length}</div>
-                  <div className="kpi-sub">All time</div>
-                </div>
-                <div className="kpi">
-                  <div className="kpi-lbl">Approved &amp; live</div>
-                  <div className="kpi-val" style={{ color: '#27500A' }}>{approvedCount}</div>
-                  <div className="kpi-sub">Currently published</div>
-                </div>
-                <div className="kpi">
-                  <div className="kpi-lbl">Total views</div>
-                  <div className="kpi-val" style={{ color: '#0C447C' }}>{totalViews.toLocaleString()}</div>
-                  <div className="kpi-sub">Across all listings</div>
-                </div>
-                <div className="kpi">
-                  <div className="kpi-lbl">Vacant rooms</div>
-                  <div className="kpi-val" style={{ color: '#633806' }}>{vacantCount}</div>
-                  <div className="kpi-sub">Available now</div>
-                </div>
+                <StatCard 
+                  label="Total Listings" 
+                  value={listings.length} 
+                  sub="All time" 
+                  icon={Home} 
+                  color="#3b82f6" 
+                  delay={100}
+                />
+                <StatCard 
+                  label="Approved & Live" 
+                  value={approvedCount} 
+                  sub="Currently published" 
+                  icon={CheckCircle2} 
+                  color="#22c55e" 
+                  delay={200}
+                />
+                <StatCard 
+                  label="Total Views" 
+                  value={totalViews.toLocaleString()} 
+                  sub="Across all listings" 
+                  icon={Eye} 
+                  color="#8b5cf6" 
+                  delay={300}
+                />
+                <StatCard 
+                  label="Vacant Rooms" 
+                  value={vacantCount} 
+                  sub="Available now" 
+                  icon={Calendar} 
+                  color="#f59e0b" 
+                  delay={400}
+                />
               </>
             )}
         </div>
+      </section>
 
-        <div className="toolbar">
-          <input
-            type="search"
-            className="lst-search"
-            placeholder="Search listings..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          {['all', 'approved', 'pending', 'flagged'].map((key) => (
-            <button
-              key={key}
-              type="button"
-              className={`ftab${statusFilter === key ? ' on' : ''}`}
-              onClick={() => setStatusFilter(key)}
-            >
-              {key.charAt(0).toUpperCase() + key.slice(1)}
-            </button>
-          ))}
+      {/* ── Properties List ─────────────────────────────────── */}
+      <section style={{ marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--ink)' }}>
+            Your Properties <span style={{ fontSize: '0.85rem', color: 'var(--mid)', fontWeight: 400 }}>({filtered.length} of {listings.length})</span>
+          </h3>
         </div>
 
-        <div style={{ background: '#ffffff', border: '0.5px solid var(--border)', borderRadius: 16, overflow: 'hidden' }}>
+        {/* Toolbar */}
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '0.75rem', 
+          marginBottom: '1rem',
+          flexWrap: 'wrap',
+          background: 'white',
+          padding: '0.75rem',
+          borderRadius: 12,
+          border: '1px solid var(--border)'
+        }}>
+          <div style={{ position: 'relative', flex: 1, minWidth: 200, maxWidth: 400 }}>
+            <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--mid)' }} />
+            <input
+              type="search"
+              placeholder="Search properties..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '0.6rem 0.75rem 0.6rem 2.5rem',
+                borderRadius: 10,
+                border: '1px solid var(--border)',
+                fontSize: '0.9rem',
+                outline: 'none',
+                background: 'var(--surface)'
+              }}
+            />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Filter size={16} style={{ color: 'var(--mid)' }} />
+            {['all', 'approved', 'pending', 'flagged'].map((key) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setStatusFilter(key)}
+                style={{
+                  padding: '0.4rem 0.75rem',
+                  borderRadius: 8,
+                  border: '1px solid var(--border)',
+                  background: statusFilter === key ? '#EAF3DE' : 'white',
+                  color: statusFilter === key ? '#27500A' : 'var(--mid)',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s'
+                }}
+              >
+                {key.charAt(0).toUpperCase() + key.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ background: '#ffffff', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden' }}>
           {loading ? (
-            <div className="lst-empty" style={{ animation: 'pulse 1.5s ease-in-out infinite' }}>Loading listings...</div>
+            <div style={{ padding: '3rem', textAlign: 'center', animation: 'pulse 1.5s ease-in-out infinite' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} style={{ width: 12, height: 12, borderRadius: '50%', background: 'var(--border)', animation: `pulse 1s ease-in-out ${i * 0.2}s infinite` }} />
+                ))}
+              </div>
+              <p style={{ color: 'var(--mid)', fontSize: '0.9rem' }}>Loading properties...</p>
+            </div>
           ) : filtered.length === 0 ? (
-            <div className="lst-empty">
-              No listings found.
-              {listings.length === 0 ? (
-                <div style={{ marginTop: '1rem' }}>
-                  <Link to="/landlord/properties/new" className="add-btn">Add your first listing</Link>
-                </div>
+            <div style={{ padding: '3rem', textAlign: 'center' }}>
+              <div style={{ 
+                width: 64, 
+                height: 64, 
+                borderRadius: '50%', 
+                background: '#f1f5f9', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                margin: '0 auto 1rem'
+              }}>
+                <Home size={28} style={{ color: 'var(--mid)' }} />
+              </div>
+              <p style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--ink)', marginBottom: '0.5rem' }}>
+                {searchQuery ? 'No properties match your search' : 'No properties yet'}
+              </p>
+              <p style={{ color: 'var(--mid)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+                {searchQuery ? 'Try adjusting your search or filters' : 'Start by adding your first property listing'}
+              </p>
+              {listings.length === 0 && !searchQuery ? (
+                <Link 
+                  to="/landlord/properties/new" 
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.6rem 1.25rem',
+                    background: 'linear-gradient(135deg, #16a34a, #166534)',
+                    color: 'white',
+                    borderRadius: 10,
+                    textDecoration: 'none',
+                    fontSize: '0.9rem',
+                    fontWeight: 600
+                  }}
+                >
+                  <Plus size={18} />
+                  Add Your First Property
+                </Link>
               ) : null}
             </div>
           ) : (
@@ -346,36 +515,120 @@ export default function LandlordListingsPage() {
                         <td>{l.bookingCount}</td>
                         <td>
                           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                            <Link to={`/landlord/properties/new?edit=${l.id}`} className="act-btn">
+                            <Link 
+                              to={`/landlord/properties/new?edit=${l.id}`}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                padding: '0.35rem 0.75rem',
+                                borderRadius: 6,
+                                border: '1px solid var(--border)',
+                                background: 'white',
+                                color: 'var(--ink)',
+                                textDecoration: 'none',
+                                fontSize: '0.75rem',
+                                fontWeight: 500,
+                                transition: 'all 0.15s'
+                              }}
+                              title="Edit property"
+                            >
+                              <Edit3 size={14} />
                               Edit
                             </Link>
                             {(l.status === 'flagged' || l.status === 'reported') && (
-                              <Link to={`/landlord/properties/new?edit=${l.id}`} className="act-btn act-fix">
-                                Fix &amp; relist
+                              <Link 
+                                to={`/landlord/properties/new?edit=${l.id}`}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  padding: '0.35rem 0.75rem',
+                                  borderRadius: 6,
+                                  border: '1px solid #FCD34D',
+                                  background: '#FEF3C7',
+                                  color: '#92400E',
+                                  textDecoration: 'none',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 600
+                                }}
+                              >
+                                <RotateCcw size={14} />
+                                Fix &amp; Relist
                               </Link>
                             )}
                             {!(l.status === 'flagged' || l.status === 'rejected') && (
                               <button
-                                className="act-btn"
                                 disabled={actingId === l.id}
                                 onClick={() => toggleVacancy(l.id, l.vacancyStatus)}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  padding: '0.35rem 0.75rem',
+                                  borderRadius: 6,
+                                  border: '1px solid var(--border)',
+                                  background: l.vacancyStatus === 'available' ? '#FEE2E2' : '#EAF3DE',
+                                  color: l.vacancyStatus === 'available' ? '#991B1B' : '#27500A',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 600,
+                                  cursor: actingId === l.id ? 'not-allowed' : 'pointer',
+                                  opacity: actingId === l.id ? 0.6 : 1
+                                }}
+                                title={l.vacancyStatus === 'available' ? 'Mark as occupied' : 'Mark as available'}
                               >
-                                {actingId === l.id
-                                  ? 'Saving...'
-                                  : l.vacancyStatus === 'available'
-                                    ? 'Mark occupied'
-                                    : 'Mark available'}
+                                {actingId === l.id ? (
+                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                    <div style={{ width: 12, height: 12, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                                    Saving...
+                                  </span>
+                                ) : l.vacancyStatus === 'available' ? (
+                                  <><Ban size={14} /> Mark Occupied</>
+                                ) : (
+                                  <><CheckCircle2 size={14} /> Mark Available</>
+                                )}
                               </button>
                             )}
                             {l.status === 'approved' && !l.featured ? (
-                              <button className="act-btn act-boost" onClick={() => handleBoostClick(l.id)}>
-                                Boost ⚡
+                              <button 
+                                onClick={() => handleBoostClick(l.id)}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  padding: '0.35rem 0.75rem',
+                                  borderRadius: 6,
+                                  border: '1px solid #FCD34D',
+                                  background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+                                  color: 'white',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                  boxShadow: '0 2px 4px rgba(245, 158, 11, 0.2)'
+                                }}
+                              >
+                                <Zap size={14} />
+                                Boost
                               </button>
                             ) : null}
                             {l.featured ? (
-                              <button className="act-btn act-done" disabled>
+                              <span
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  padding: '0.35rem 0.75rem',
+                                  borderRadius: 6,
+                                  border: '1px solid #FCD34D',
+                                  background: '#FEF3C7',
+                                  color: '#92400E',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 600
+                                }}
+                              >
+                                <Zap size={14} />
                                 Boosted
-                              </button>
+                              </span>
                             ) : null}
                           </div>
                         </td>
@@ -387,8 +640,9 @@ export default function LandlordListingsPage() {
             </div>
           )}
         </div>
+      </section>
 
-        <PaymentModal
+      <PaymentModal
           isOpen={boostModalOpen}
           amount={5000}
           description="Featured listing boost"

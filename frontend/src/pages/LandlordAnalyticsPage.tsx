@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, ChevronRight } from 'lucide-react';
 import {
   BarChart,
   Bar,
@@ -32,6 +34,8 @@ const _rechartsKeepAlive = [
 void _rechartsKeepAlive;
 
 export default function LandlordAnalyticsPage() {
+  const navigate = useNavigate();
+  const [isDashboardActive, setIsDashboardActive] = useState(false);
   const { user, token } = useAuth();
 
   const [loading, setLoading] = useState(true);
@@ -239,6 +243,24 @@ export default function LandlordAnalyticsPage() {
   return (
     <>
       {styleBlock}
+      
+      {/* Breadcrumb Header */}
+      <header style={{background:'white',borderRadius:'12px',padding:'1rem 1.25rem',margin:'1rem 1rem 0',boxShadow:'0 1px 3px rgba(0,0,0,0.06)'}}>
+        <nav style={{display:'flex',alignItems:'center',gap:'0.5rem',fontSize:'0.9rem'}}>
+          <Link 
+            to="/landlord/dashboard" 
+            className={`topbar-action-btn ${isDashboardActive ? 'is-active' : ''}`}
+            onClick={() => setIsDashboardActive(true)}
+            style={{display:'flex',alignItems:'center',gap:'0.35rem',color:'#64748b',textDecoration:'none',padding:'4px 8px',background:'transparent',border:'none',borderRadius:'8px'}}
+          >
+            <LayoutDashboard size={16} />
+            <span>Dashboard</span>
+          </Link>
+          <ChevronRight size={16} style={{color:'#cbd5e1'}} />
+          <span style={{color:'#1e293b',fontWeight:600}}>Analytics</span>
+        </nav>
+      </header>
+
       <div className="an-page">
         <div style={{ marginBottom: '1.5rem' }}>
           <h1 style={{ fontSize: '1.3rem', fontWeight: 700, margin: 0 }}>Performance analytics</h1>
