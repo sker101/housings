@@ -414,19 +414,34 @@ export default function RoomDetailsPage() {
   }, [listing, user?.userId, existingBooking, bookingsLoading]);
 
   const amenities = useMemo(() => {
-    if (!listing?.amenities || typeof listing.amenities !== 'object') {
+    if (!listing?.amenities) {
       return [];
     }
 
-    return Object.entries(listing.amenities)
-      .map(([key, enabled]) => ({
-        key,
-        label: humanize(key),
-        emoji: amenityEmoji(key),
-        enabled: Boolean(enabled)
-      }))
-      .filter((item) => item.enabled)
-      .sort((a, b) => a.label.localeCompare(b.label));
+    if (Array.isArray(listing.amenities)) {
+      return listing.amenities
+        .map((key) => ({
+          key,
+          label: humanize(key),
+          emoji: amenityEmoji(key),
+          enabled: true
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label));
+    }
+
+    if (typeof listing.amenities === 'object') {
+      return Object.entries(listing.amenities)
+        .map(([key, enabled]) => ({
+          key,
+          label: humanize(key),
+          emoji: amenityEmoji(key),
+          enabled: Boolean(enabled)
+        }))
+        .filter((item) => item.enabled)
+        .sort((a, b) => a.label.localeCompare(b.label));
+    }
+
+    return [];
   }, [listing?.amenities]);
 
   const houseRules = useMemo(
