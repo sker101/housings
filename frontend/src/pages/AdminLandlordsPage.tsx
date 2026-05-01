@@ -19,6 +19,7 @@ type Profile = {
   id: string;
   full_name?: string;
   role?: string;
+  roles?: string[];
   verification_status?: string;
   phone?: string;
   lister_type?: string;
@@ -94,8 +95,8 @@ export default function AdminLandlordsPage() {
     setError('');
     try {
       const listers = await selectRows('profiles', {
-        select: 'id,full_name,role,verification_status,phone,created_at',
-        filters: [{ column: 'role', op: 'in', value: '(landlord,property_manager)' }],
+        select: 'id,full_name,role,roles,verification_status,phone,created_at',
+        or: 'role.in.(landlord,property_manager),roles.cs.{landlord},roles.cs.{property_manager}',
         order: 'created_at.desc',
         accessToken: token
       });
