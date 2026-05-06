@@ -63,7 +63,7 @@ export default function CompleteProfilePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
-    
+
     if (!token || !user?.userId) {
       setErrorMsg('Authentication required. Please log in again.');
       return;
@@ -71,44 +71,52 @@ export default function CompleteProfilePage() {
 
     setLoading(true);
     try {
-      // Build update payload — only include columns that exist in the profiles table
-      const updateData: Record<string, unknown> = {
-        full_name: formData.fullName.trim() || profile?.full_name || user?.fullName,
-        phone: formData.phone.trim(),
-        nida_number: formData.nidaNumber.trim(),
-        verification_status: 'pending',
-      };
-
-      // Role-specific extras (using existing columns only)
       const effectiveRole = profile?.role || user?.role || '';
       const isTenantRole = effectiveRole === 'tenant';
       const isLandlordRole = effectiveRole === 'landlord' || effectiveRole === 'lister';
 
+      // ── Step 1: Save core fields (always-safe columns) ────────
+      const coreUpdate: Record<string, unknown> = {
+        full_name: formData.fullName.trim() || profile?.full_name || user?.fullName,
+        phone: formData.phone.trim(),
+        verification_status: 'pending',
+      };
+
       if (isTenantRole) {
-        // Store university/employer in the university column
-        updateData.university = formData.tenantType === 'student' || formData.tenantType === 'professional'
-          ? formData.employerOrInstitution
-          : '';
+        coreUpdate.university =
+          formData.tenantType === 'student' || formData.tenantType === 'professional'
+            ? formData.employerOrInstitution
+            : '';
       }
 
       if (isLandlordRole && formData.businessName.trim()) {
-        // Store business name in payout_reference (text column that exists)
-        updateData.payout_reference = formData.businessName.trim();
+        coreUpdate.payout_reference = formData.businessName.trim();
       }
 
-      await updateRows('profiles', updateData, {
+      await updateRows('profiles', coreUpdate, {
         filters: [{ column: 'id', op: 'eq', value: user.userId }],
         accessToken: token,
       });
 
-      // Refresh user data to get updated roles/profile
+      // ── Step 2: Save nida_number separately (column may not exist yet) ──
+      if (formData.nidaNumber && /^[0-9]{20}$/.test(formData.nidaNumber)) {
+        try {
+          await updateRows('profiles', { nida_number: formData.nidaNumber }, {
+            filters: [{ column: 'id', op: 'eq', value: user.userId }],
+            accessToken: token,
+          });
+        } catch (nidaErr: any) {
+          // Column may not exist yet — warn but don't block
+          console.warn('[CompleteProfile] nida_number save failed (run migration):', nidaErr?.message);
+        }
+      }
+
+      // ── Step 3: Refresh + redirect ────────────────────────────
       const updatedUser = await refreshMe();
-
       toast.success('Profile completed! Welcome to iRent 🎉');
-
-      // Redirect to dashboard based on the updated role
       const targetRole = updatedUser?.role || effectiveRole || 'tenant';
       navigate(dashboardDefaultPath(targetRole), { replace: true });
+
     } catch (err: any) {
       console.error('Failed to update profile:', err);
       const msg = err?.message || 'Failed to save profile. Please try again.';
