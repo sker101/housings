@@ -4,6 +4,14 @@ begin;
 ALTER TABLE public.profiles 
   ADD COLUMN IF NOT EXISTS nida_number varchar(20);
 
+-- Add business_name as text
+ALTER TABLE public.profiles 
+  ADD COLUMN IF NOT EXISTS business_name text;
+
+-- Add occupation as text
+ALTER TABLE public.profiles 
+  ADD COLUMN IF NOT EXISTS occupation text;
+
 -- Drop old constraint if it exists (safe re-run)
 ALTER TABLE public.profiles 
   DROP CONSTRAINT IF EXISTS nida_number_format;
@@ -42,6 +50,8 @@ begin
     full_name,
     phone,
     nida_number,
+    business_name,
+    occupation,
     verification_status,
     created_at,
     updated_at
@@ -53,12 +63,16 @@ begin
     coalesce(new.raw_user_meta_data ->> 'full_name', split_part(new.email, '@', 1), 'New User'),
     nullif(new.raw_user_meta_data ->> 'phone', ''),
     nullif(new.raw_user_meta_data ->> 'nida_number', ''),
+    nullif(new.raw_user_meta_data ->> 'business_name', ''),
+    nullif(new.raw_user_meta_data ->> 'occupation', ''),
     case when resolved_role = 'lister' then 'pending' else 'unverified' end,
     now(),
     now()
   )
   on conflict (id) do update set
     nida_number = excluded.nida_number,
+    business_name = coalesce(profiles.business_name, excluded.business_name),
+    occupation = coalesce(profiles.occupation, excluded.occupation),
     phone = coalesce(profiles.phone, excluded.phone);
 
   return new;

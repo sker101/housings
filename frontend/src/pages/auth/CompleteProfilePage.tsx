@@ -107,7 +107,7 @@ export default function CompleteProfilePage() {
       }
 
       if (isLandlordRole && formData.businessName.trim()) {
-        coreUpdate.payout_reference = formData.businessName.trim();
+        coreUpdate.business_name = formData.businessName.trim();
       }
 
       console.log('[CompleteProfile] Upserting core profile:', coreUpdate);

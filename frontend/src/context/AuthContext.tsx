@@ -137,6 +137,8 @@ function buildCurrentUser(
     ),
     university: (profile as unknown as Record<string, unknown>)?.university as string || '',
     nidaNumber: profile?.nida_number || (sessionUser.user_metadata as Record<string, string>)?.nida_number || '',
+    businessName: profile?.business_name || (sessionUser.user_metadata as Record<string, string>)?.business_name || '',
+    occupation: profile?.occupation || (sessionUser.user_metadata as Record<string, string>)?.occupation || '',
     preferredLanguage: (profile as unknown as Record<string, unknown>)?.preferred_language as string || 'en',
   };
 }
@@ -148,7 +150,7 @@ async function fetchProfile(userId: string, accessToken: string): Promise<Profil
     'id', 'role', 'roles', 'full_name', 'phone', 'phone_verified',
     'university', 'nida_number', 'profile_photo_url', 'id_doc_url', 'selfie_url',
     'verification_status', 'subscription_plan', 'preferred_language',
-    'commission_rate_pct', 'created_at',
+    'commission_rate_pct', 'created_at', 'business_name', 'occupation'
   ];
 
   try {

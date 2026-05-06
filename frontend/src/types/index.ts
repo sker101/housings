@@ -29,6 +29,8 @@ export interface Profile {
   subscription_plan?: string;
   preferred_language?: string;
   commission_rate_pct?: number;
+  business_name?: string;
+  occupation?: string;
   created_at: string;
 }
 
@@ -128,6 +130,8 @@ export interface AuthUser {
   landlordVerificationStatus: string;
   university: string;
   nidaNumber: string;
+  businessName: string;
+  occupation: string;
   preferredLanguage: string;
 }
 
