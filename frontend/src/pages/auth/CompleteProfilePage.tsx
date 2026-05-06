@@ -12,7 +12,7 @@ import {
   CheckCircle2 
 } from 'lucide-react';
 import { upsertRows } from '../../lib/supabase';
-import { dashboardDefaultPath } from '../../lib/roles';
+import { dashboardDefaultPath, toAppRole } from '../../lib/roles';
 
 export default function CompleteProfilePage() {
   const navigate = useNavigate();
@@ -72,9 +72,10 @@ export default function CompleteProfilePage() {
     setLoading(true);
     try {
       const effectiveRole = profile?.role || user?.role || 'tenant';
+      const normalizedRole = toAppRole(effectiveRole);
 
-      const isTenantRole = effectiveRole === 'tenant' || effectiveRole === 'student';
-      const isLandlordRole = effectiveRole === 'landlord' || effectiveRole === 'lister';
+      const isTenantRole = normalizedRole === 'tenant';
+      const isLandlordRole = normalizedRole === 'landlord';
 
       // ── Step 1: Save core fields (always-safe columns) ────────
       const coreUpdate: Record<string, unknown> = {
@@ -82,15 +83,15 @@ export default function CompleteProfilePage() {
         full_name: formData.fullName.trim() || profile?.full_name || user?.fullName,
         email: user.email,
         phone: formData.phone.trim(),
-        role: effectiveRole === 'student' ? 'tenant' : (effectiveRole === 'lister' ? 'landlord' : effectiveRole),
+        role: normalizedRole,
         verification_status: 'pending',
       };
 
       // Include roles array if available
-      if (user.roles && user.roles.length > 0) {
-        coreUpdate.roles = user.roles;
+      if (user?.roles && user.roles.length > 0) {
+        coreUpdate.roles = Array.from(new Set(user.roles.map(r => toAppRole(r))));
       } else {
-        coreUpdate.roles = [effectiveRole];
+        coreUpdate.roles = [normalizedRole];
       }
 
       if (isTenantRole) {
