@@ -12,6 +12,10 @@ ALTER TABLE public.profiles
 ALTER TABLE public.profiles 
   ADD COLUMN IF NOT EXISTS occupation text;
 
+-- Add email as text (resolves "email column not found" error)
+ALTER TABLE public.profiles 
+  ADD COLUMN IF NOT EXISTS email text;
+
 -- Drop old constraint if it exists (safe re-run)
 ALTER TABLE public.profiles 
   DROP CONSTRAINT IF EXISTS nida_number_format;
@@ -21,51 +25,34 @@ ALTER TABLE public.profiles
   ADD CONSTRAINT nida_number_format
   CHECK (nida_number IS NULL OR nida_number ~ '^[0-9]{20}$');
 
--- Update handle_new_auth_user to handle nida_number if provided in metadata
-create or replace function public.handle_new_auth_user()
-returns trigger
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  requested_role text := lower(coalesce(new.raw_user_meta_data ->> 'role', 'student'));
-  resolved_role public.app_role := case
-    when requested_role in ('admin') then 'admin'::public.app_role
-    when requested_role in ('lister', 'landlord') then 'lister'::public.app_role
-    else 'student'::public.app_role
+CREATE OR REPLACE FUNCTION public.handle_new_auth_user()
+RETURNS trigger AS $$
+DECLARE
+  v_role text := lower(coalesce(new.raw_user_meta_data ->> 'role', 'tenant'));
+  resolved_role text := case
+    when v_role in ('student') then 'tenant'
+    when v_role in ('lister') then 'landlord'
+    when v_role in ('dalali') then 'property_manager'
+    when v_role in ('admin', 'tenant', 'landlord', 'property_manager') then v_role
+    else 'tenant'
   end;
-  requested_lister_type text := lower(coalesce(new.raw_user_meta_data ->> 'lister_type', ''));
-  resolved_lister_type public.lister_type := case
-    when requested_lister_type = 'owner' then 'owner'::public.lister_type
-    when requested_lister_type = 'manager' then 'manager'::public.lister_type
-    when requested_lister_type = 'dalali' then 'dalali'::public.lister_type
-    else null
-  end;
-begin
-  insert into public.profiles (
-    id,
-    role,
-    lister_type,
-    full_name,
-    phone,
-    nida_number,
-    business_name,
-    occupation,
-    verification_status,
-    created_at,
-    updated_at
+  requested_lister_type text := lower(coalesce(new.raw_user_meta_data ->> 'lister_type', 'owner'));
+BEGIN
+  INSERT INTO public.profiles (
+    id, role, lister_type, full_name, email, phone, nida_number,
+    business_name, occupation, verification_status, created_at, updated_at
   )
-  values (
+  VALUES (
     new.id,
     resolved_role,
-    resolved_lister_type,
+    requested_lister_type,
     coalesce(new.raw_user_meta_data ->> 'full_name', split_part(new.email, '@', 1), 'New User'),
+    new.email,
     nullif(new.raw_user_meta_data ->> 'phone', ''),
     nullif(new.raw_user_meta_data ->> 'nida_number', ''),
     nullif(new.raw_user_meta_data ->> 'business_name', ''),
     nullif(new.raw_user_meta_data ->> 'occupation', ''),
-    case when resolved_role = 'lister' then 'pending' else 'unverified' end,
+    'pending',
     now(),
     now()
   )
@@ -73,6 +60,7 @@ begin
     nida_number = excluded.nida_number,
     business_name = coalesce(profiles.business_name, excluded.business_name),
     occupation = coalesce(profiles.occupation, excluded.occupation),
+    email = coalesce(profiles.email, excluded.email),
     phone = coalesce(profiles.phone, excluded.phone);
 
   return new;

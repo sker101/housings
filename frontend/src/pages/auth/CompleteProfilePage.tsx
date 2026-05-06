@@ -71,13 +71,7 @@ export default function CompleteProfilePage() {
 
     setLoading(true);
     try {
-      const effectiveRole = profile?.role || user?.role || 'student';
-      
-      // Map frontend roles to DB enum values
-      let dbRole = effectiveRole;
-      if (effectiveRole === 'tenant') dbRole = 'student';
-      if (effectiveRole === 'landlord') dbRole = 'lister';
-      if (effectiveRole === 'property_manager') dbRole = 'lister';
+      const effectiveRole = profile?.role || user?.role || 'tenant';
 
       const isTenantRole = effectiveRole === 'tenant' || effectiveRole === 'student';
       const isLandlordRole = effectiveRole === 'landlord' || effectiveRole === 'lister';
@@ -88,7 +82,7 @@ export default function CompleteProfilePage() {
         full_name: formData.fullName.trim() || profile?.full_name || user?.fullName,
         email: user.email,
         phone: formData.phone.trim(),
-        role: dbRole,
+        role: effectiveRole === 'student' ? 'tenant' : (effectiveRole === 'lister' ? 'landlord' : effectiveRole),
         verification_status: 'pending',
       };
 
