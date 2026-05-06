@@ -53,8 +53,8 @@ export default function CompleteProfilePage() {
       toast.error('Please enter your NIDA number');
       return;
     }
-    if (step === 1 && formData.nidaNumber.length < 20) {
-      toast.error('Please enter a valid 20-digit NIDA number');
+    if (step === 1 && !/^[0-9]{20}$/.test(formData.nidaNumber)) {
+      toast.error('NIDA number must be exactly 20 digits (numbers only)');
       return;
     }
     setStep(2);
@@ -401,14 +401,19 @@ export default function CompleteProfilePage() {
                   <ShieldCheck size={18} style={inputIconStyle} />
                   <input
                     type="text"
+                    inputMode="numeric"
                     value={formData.nidaNumber}
-                    onChange={set('nidaNumber')}
-                    placeholder="20-digit national ID"
+                    onChange={e => {
+                      // Strip non-digits immediately
+                      const digits = e.target.value.replace(/\D/g, '').slice(0, 20);
+                      setFormData(prev => ({ ...prev, nidaNumber: digits }));
+                    }}
+                    placeholder="20-digit NIDA number"
                     style={inputStyle}
                     maxLength={20}
                   />
                 </div>
-                <p style={hintStyle}>20-digit National ID number</p>
+                <p style={hintStyle}>Numbers only · exactly 20 digits · e.g. 19900101-12345-00001-1</p>
               </div>
 
               <div style={fieldStyle}>

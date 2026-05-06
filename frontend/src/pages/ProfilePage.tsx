@@ -750,9 +750,10 @@ export default function ProfilePage() {
               </label>
               <input
                 id="nidaNumber"
+                inputMode="numeric"
                 value={form.nidaNumber}
-                onChange={(event) => updateField('nidaNumber', event.target.value)}
-                placeholder="20-digit National ID"
+                onChange={(event) => updateField('nidaNumber', event.target.value.replace(/\D/g, '').slice(0, 20))}
+                placeholder="20 digits, numbers only"
                 maxLength={20}
               />
             </div>

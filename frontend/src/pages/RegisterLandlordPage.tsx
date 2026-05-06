@@ -41,8 +41,8 @@ export default function RegisterLandlordPage() {
       return;
     }
 
-    if (formData.nidaNumber.length < 20) {
-      setError('NIDA number must be exactly 20 digits.');
+    if (!/^[0-9]{20}$/.test(formData.nidaNumber)) {
+      setError('NIDA number must be exactly 20 digits (numbers only).');
       return;
     }
 
@@ -102,11 +102,15 @@ export default function RegisterLandlordPage() {
             NIDA Number
             <input
               required
-              placeholder="20-digit national ID"
+              inputMode="numeric"
+              placeholder="20 digits, numbers only"
               value={formData.nidaNumber}
               maxLength={20}
               onChange={(event) =>
-                setFormData((prev) => ({ ...prev, nidaNumber: event.target.value }))
+                setFormData((prev) => ({ 
+                  ...prev, 
+                  nidaNumber: event.target.value.replace(/\D/g, '').slice(0, 20)
+                }))
               }
             />
           </label>

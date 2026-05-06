@@ -4,8 +4,10 @@ begin;
 alter table public.profiles 
 add column if not exists nida_number text;
 
--- Add constraint for NIDA length if appropriate (usually 20 digits in TZ)
--- alter table public.profiles add constraint nida_number_length check (char_length(nida_number) = 20);
+-- Enforce NIDA is exactly 20 numeric digits
+alter table public.profiles
+  add constraint if not exists nida_number_format
+  check (nida_number is null or nida_number ~ '^[0-9]{20}$');
 
 -- Update handle_new_auth_user to handle nida_number if provided in metadata
 create or replace function public.handle_new_auth_user()
