@@ -83,6 +83,7 @@ export default function CompleteProfilePage() {
         full_name: formData.fullName.trim() || profile?.full_name || user?.fullName,
         email: user.email,
         phone: formData.phone.trim(),
+        nida_number: formData.nidaNumber.trim(),
         role: normalizedRole,
         verification_status: 'pending',
       };
@@ -109,19 +110,6 @@ export default function CompleteProfilePage() {
       await upsertRows('profiles', coreUpdate, {
         accessToken: token,
       });
-
-      // ── Step 2: Save nida_number separately (column may not exist yet) ──
-      if (formData.nidaNumber && /^[0-9]{20}$/.test(formData.nidaNumber)) {
-        try {
-          console.log('[CompleteProfile] Upserting NIDA number');
-          await upsertRows('profiles', { id: user.userId, nida_number: formData.nidaNumber }, {
-            accessToken: token,
-          });
-        } catch (nidaErr: any) {
-          // Column may not exist yet — warn but don't block
-          console.warn('[CompleteProfile] nida_number save failed (run migration):', nidaErr?.message);
-        }
-      }
 
       // ── Step 3: Refresh + redirect ────────────────────────────
       const updatedUser = await refreshMe();
