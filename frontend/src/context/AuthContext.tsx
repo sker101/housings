@@ -30,26 +30,11 @@ import {
   clearActiveRole,
   canSwitchRoles
 } from '../lib/roles';
-import type { Profile } from '../types';
+import type { Profile, AuthUser } from '../types';
 
 // ─────────────────────────────────────────────────────────────
 // Context Shape
 // ─────────────────────────────────────────────────────────────
-interface AuthUser {
-  userId: string;
-  fullName: string;
-  email: string;
-  phone: string;
-  phoneVerified: boolean;
-  role: string; // Active/current role
-  roles: string[]; // All roles the user has
-  roleRaw: string;
-  listerType: string;
-  landlordVerificationStatus: string;
-  university: string;
-  nidaNumber: string;
-  preferredLanguage: string;
-}
 
 interface AuthContextValue {
   user: AuthUser | null;
