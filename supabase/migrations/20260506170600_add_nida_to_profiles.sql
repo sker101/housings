@@ -4,10 +4,17 @@ begin;
 alter table public.profiles 
 add column if not exists nida_number text;
 
--- Enforce NIDA is exactly 20 numeric digits
-alter table public.profiles
-  add constraint if not exists nida_number_format
-  check (nida_number is null or nida_number ~ '^[0-9]{20}$');
+-- Enforce NIDA is exactly 20 numeric digits (safe DO block - no IF NOT EXISTS syntax)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'nida_number_format'
+  ) THEN
+    ALTER TABLE public.profiles
+      ADD CONSTRAINT nida_number_format
+      CHECK (nida_number IS NULL OR nida_number ~ '^[0-9]{20}$');
+  END IF;
+END $$;
 
 -- Update handle_new_auth_user to handle nida_number if provided in metadata
 create or replace function public.handle_new_auth_user()
