@@ -11,7 +11,7 @@ import {
   ShieldCheck,
   CheckCircle2 
 } from 'lucide-react';
-import { updateRows } from '../../lib/supabase';
+import { upsertRows } from '../../lib/supabase';
 import { dashboardDefaultPath } from '../../lib/roles';
 
 export default function CompleteProfilePage() {
@@ -71,16 +71,33 @@ export default function CompleteProfilePage() {
 
     setLoading(true);
     try {
-      const effectiveRole = profile?.role || user?.role || '';
-      const isTenantRole = effectiveRole === 'tenant';
+      const effectiveRole = profile?.role || user?.role || 'student';
+      
+      // Map frontend roles to DB enum values
+      let dbRole = effectiveRole;
+      if (effectiveRole === 'tenant') dbRole = 'student';
+      if (effectiveRole === 'landlord') dbRole = 'lister';
+      if (effectiveRole === 'property_manager') dbRole = 'lister';
+
+      const isTenantRole = effectiveRole === 'tenant' || effectiveRole === 'student';
       const isLandlordRole = effectiveRole === 'landlord' || effectiveRole === 'lister';
 
       // ── Step 1: Save core fields (always-safe columns) ────────
       const coreUpdate: Record<string, unknown> = {
+        id: user.userId,
         full_name: formData.fullName.trim() || profile?.full_name || user?.fullName,
+        email: user.email,
         phone: formData.phone.trim(),
+        role: dbRole,
         verification_status: 'pending',
       };
+
+      // Include roles array if available
+      if (user.roles && user.roles.length > 0) {
+        coreUpdate.roles = user.roles;
+      } else {
+        coreUpdate.roles = [effectiveRole];
+      }
 
       if (isTenantRole) {
         coreUpdate.university =
@@ -93,16 +110,16 @@ export default function CompleteProfilePage() {
         coreUpdate.payout_reference = formData.businessName.trim();
       }
 
-      await updateRows('profiles', coreUpdate, {
-        filters: [{ column: 'id', op: 'eq', value: user.userId }],
+      console.log('[CompleteProfile] Upserting core profile:', coreUpdate);
+      await upsertRows('profiles', coreUpdate, {
         accessToken: token,
       });
 
       // ── Step 2: Save nida_number separately (column may not exist yet) ──
       if (formData.nidaNumber && /^[0-9]{20}$/.test(formData.nidaNumber)) {
         try {
-          await updateRows('profiles', { nida_number: formData.nidaNumber }, {
-            filters: [{ column: 'id', op: 'eq', value: user.userId }],
+          console.log('[CompleteProfile] Upserting NIDA number');
+          await upsertRows('profiles', { id: user.userId, nida_number: formData.nidaNumber }, {
             accessToken: token,
           });
         } catch (nidaErr: any) {
