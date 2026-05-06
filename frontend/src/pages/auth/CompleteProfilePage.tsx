@@ -20,6 +20,7 @@ export default function CompleteProfilePage() {
   
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
   const [formData, setFormData] = useState({
     phone: '',
     nidaNumber: '',
@@ -61,29 +62,38 @@ export default function CompleteProfilePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMsg('');
     
     if (!token || !user?.userId) {
-      toast.error('Authentication required');
+      setErrorMsg('Authentication required. Please log in again.');
       return;
     }
 
     setLoading(true);
     try {
-      // Update profile with phone, nida and additional info
+      // Build update payload — only include columns that exist in the profiles table
       const updateData: Record<string, unknown> = {
+        full_name: formData.fullName.trim() || profile?.full_name || user?.fullName,
         phone: formData.phone.trim(),
         nida_number: formData.nidaNumber.trim(),
-        full_name: formData.fullName.trim() || profile?.full_name || user?.fullName,
-        verification_status: 'pending', // Ready for phone verification
+        verification_status: 'pending',
       };
 
-      // Add role-specific data
-      if (profile?.role === 'tenant') {
-        updateData.university = formData.tenantType === 'student' 
-          ? formData.employerOrInstitution 
+      // Role-specific extras (using existing columns only)
+      const effectiveRole = profile?.role || user?.role || '';
+      const isTenantRole = effectiveRole === 'tenant';
+      const isLandlordRole = effectiveRole === 'landlord' || effectiveRole === 'lister';
+
+      if (isTenantRole) {
+        // Store university/employer in the university column
+        updateData.university = formData.tenantType === 'student' || formData.tenantType === 'professional'
+          ? formData.employerOrInstitution
           : '';
-      } else if (profile?.role === 'landlord' && formData.businessName) {
-        updateData.business_name = formData.businessName;
+      }
+
+      if (isLandlordRole && formData.businessName.trim()) {
+        // Store business name in payout_reference (text column that exists)
+        updateData.payout_reference = formData.businessName.trim();
       }
 
       await updateRows('profiles', updateData, {
@@ -94,14 +104,16 @@ export default function CompleteProfilePage() {
       // Refresh user data to get updated roles/profile
       const updatedUser = await refreshMe();
 
-      toast.success('Profile updated! Welcome to iRent 🎉');
+      toast.success('Profile completed! Welcome to iRent 🎉');
 
       // Redirect to dashboard based on the updated role
-      const targetRole = updatedUser?.role || profile?.role || 'tenant';
+      const targetRole = updatedUser?.role || effectiveRole || 'tenant';
       navigate(dashboardDefaultPath(targetRole), { replace: true });
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to update profile:', err);
-      toast.error('Failed to save profile. Please try again.');
+      const msg = err?.message || 'Failed to save profile. Please try again.';
+      setErrorMsg(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -109,9 +121,10 @@ export default function CompleteProfilePage() {
 
   if (!user) return null;
 
-  const role = profile?.role || 'tenant';
+  const role = profile?.role || user?.role || 'tenant';
+  // Support both 'landlord' (frontend) and 'lister' (legacy DB enum)
   const isTenant = role === 'tenant';
-  const isLandlord = role === 'landlord';
+  const isLandlord = role === 'landlord' || role === 'lister';
 
   const progressStepStyle = (active: boolean): React.CSSProperties => ({
     height: '4px',
@@ -425,6 +438,20 @@ export default function CompleteProfilePage() {
           {/* Step 2: Role-specific Info */}
           {step === 2 && (
             <form onSubmit={handleSubmit} style={stepStyle}>
+              {/* Show save errors prominently */}
+              {errorMsg && (
+                <div style={{
+                  background: '#fee2e2',
+                  color: '#991b1b',
+                  borderRadius: '10px',
+                  padding: '0.75rem 1rem',
+                  marginBottom: '1rem',
+                  fontSize: '0.88rem',
+                  lineHeight: 1.5,
+                }}>
+                  {errorMsg}
+                </div>
+              )}
               <div style={stepHeaderStyle}>
                 {isTenant ? (
                   <Briefcase size={24} color="var(--jade)" />
