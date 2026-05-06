@@ -13,6 +13,7 @@ export default function RegisterStudentPage() {
     fullName: '',
     email: '',
     phone: '',
+    nidaNumber: '',
     university: '',
     password: '',
     confirmPassword: ''
@@ -32,6 +33,11 @@ export default function RegisterStudentPage() {
 
     if (formData.password.length < 8) {
       setError('Password must be at least 8 characters.');
+      return;
+    }
+
+    if (formData.nidaNumber.length < 20) {
+      setError('NIDA number must be exactly 20 digits.');
       return;
     }
 
@@ -111,10 +117,23 @@ export default function RegisterStudentPage() {
             {t('auth.phone')}
             <input
               required
-              placeholder="+2557XXXXXXXX"
+              placeholder="07XXXXXXXX"
               value={formData.phone}
               onChange={(event) =>
                 setFormData((prev) => ({ ...prev, phone: event.target.value }))
+              }
+            />
+          </label>
+
+          <label>
+            NIDA Number
+            <input
+              required
+              placeholder="20-digit national ID"
+              value={formData.nidaNumber}
+              maxLength={20}
+              onChange={(event) =>
+                setFormData((prev) => ({ ...prev, nidaNumber: event.target.value }))
               }
             />
           </label>

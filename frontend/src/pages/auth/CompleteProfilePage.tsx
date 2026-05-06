@@ -22,6 +22,7 @@ export default function CompleteProfilePage() {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     phone: '',
+    nidaNumber: '',
     fullName: profile?.full_name || user?.fullName || '',
     tenantType: 'student',
     employerOrInstitution: '',
@@ -47,6 +48,14 @@ export default function CompleteProfilePage() {
       toast.error('Please enter a valid phone number');
       return;
     }
+    if (step === 1 && !formData.nidaNumber.trim()) {
+      toast.error('Please enter your NIDA number');
+      return;
+    }
+    if (step === 1 && formData.nidaNumber.length < 20) {
+      toast.error('Please enter a valid 20-digit NIDA number');
+      return;
+    }
     setStep(2);
   };
 
@@ -60,9 +69,10 @@ export default function CompleteProfilePage() {
 
     setLoading(true);
     try {
-      // Update profile with phone and additional info
+      // Update profile with phone, nida and additional info
       const updateData: Record<string, unknown> = {
         phone: formData.phone.trim(),
+        nida_number: formData.nidaNumber.trim(),
         full_name: formData.fullName.trim() || profile?.full_name || user?.fullName,
         verification_status: 'pending', // Ready for phone verification
       };
@@ -368,6 +378,24 @@ export default function CompleteProfilePage() {
                   />
                 </div>
                 <p style={hintStyle}>Format: 07XX XXX XXX (Tanzanian number)</p>
+              </div>
+
+              <div style={fieldStyle}>
+                <label style={labelStyle}>
+                  NIDA Number <span style={requiredStyle}>*</span>
+                </label>
+                <div style={inputWrapStyle}>
+                  <ShieldCheck size={18} style={inputIconStyle} />
+                  <input
+                    type="text"
+                    value={formData.nidaNumber}
+                    onChange={set('nidaNumber')}
+                    placeholder="20-digit national ID"
+                    style={inputStyle}
+                    maxLength={20}
+                  />
+                </div>
+                <p style={hintStyle}>20-digit National ID number</p>
               </div>
 
               <div style={fieldStyle}>

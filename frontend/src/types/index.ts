@@ -24,6 +24,7 @@ export interface Profile {
   suspended: boolean;
   profile_photo_url?: string;
   university?: string;
+  nida_number?: string;
   verification_status?: string;
   subscription_plan?: string;
   preferred_language?: string;
@@ -121,10 +122,12 @@ export interface AuthUser {
   phone: string;
   phoneVerified: boolean;
   role: string;
+  roles: string[];
   roleRaw: string;
   listerType: string;
   landlordVerificationStatus: string;
   university: string;
+  nidaNumber: string;
   preferredLanguage: string;
 }
 

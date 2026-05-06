@@ -61,6 +61,7 @@ export default function ProfilePage() {
   const [form, setForm] = useState({
     fullName: user?.fullName || '',
     phone: user?.phone || '',
+    nidaNumber: user?.nidaNumber || '',
     university: user?.university || ''
   });
   const [saving, setSaving] = useState(false);
@@ -94,7 +95,7 @@ export default function ProfilePage() {
 
       try {
         const rows = await selectRows('profiles', {
-          select: 'id,full_name,phone,phone_verified,university,verification_status,subscription_plan',
+          select: 'id,full_name,phone,phone_verified,nida_number,university,verification_status,subscription_plan',
           filters: [{ column: 'id', op: 'eq', value: user.userId }],
           limit: 1,
           accessToken: token
@@ -104,6 +105,7 @@ export default function ProfilePage() {
           setForm({
             fullName: rows[0].full_name || '',
             phone: rows[0].phone || '',
+            nidaNumber: rows[0].nida_number || '',
             university: rows[0].university || ''
           });
           setStoredPhone(rows[0].phone || '');
@@ -149,6 +151,7 @@ export default function ProfilePage() {
         {
           full_name: sanitizeInput(form.fullName),
           phone: sanitizeInput(form.phone),
+          nida_number: sanitizeInput(form.nidaNumber),
           phone_verified: phoneChanged ? false : phoneVerified,
           university: sanitizeInput(form.university) || null
         },
@@ -737,6 +740,20 @@ export default function ProfilePage() {
                 }}
                 required
                 placeholder="+255 123 456 789"
+              />
+            </div>
+
+            <div className="form-field">
+              <label htmlFor="nidaNumber">
+                <Shield size={14} />
+                NIDA Number
+              </label>
+              <input
+                id="nidaNumber"
+                value={form.nidaNumber}
+                onChange={(event) => updateField('nidaNumber', event.target.value)}
+                placeholder="20-digit National ID"
+                maxLength={20}
               />
             </div>
 

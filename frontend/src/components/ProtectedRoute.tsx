@@ -80,6 +80,17 @@ export default function ProtectedRoute({ children, roles }: ProtectedRouteProps)
     return <Navigate to="/auth/login?reason=suspended" replace />;
   }
 
+  // Force onboarding if profile is incomplete (phone or NIDA missing).
+  // Guard only applies to non-onboarding pages to prevent an infinite redirect loop.
+  // Admins are exempt since they manage the system and may predate this requirement.
+  const isCompleteProfilePage = location.pathname === '/auth/complete-profile';
+  const isAdmin = user.role === 'admin' || user.roles?.includes('admin');
+  const hasIncompleteProfile = !isAdmin && (!user.phone || !user.nidaNumber);
+
+  if (hasIncompleteProfile && !isCompleteProfilePage) {
+    return <Navigate to="/auth/complete-profile" replace />;
+  }
+
   const userRoles = verifiedRoles.length > 0 
     ? verifiedRoles 
     : [normalizeForRouteGuard(user.role) as Role];

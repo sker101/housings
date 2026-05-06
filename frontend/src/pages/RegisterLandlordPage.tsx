@@ -20,6 +20,7 @@ export default function RegisterLandlordPage() {
     fullName: '',
     email: '',
     phone: '',
+    nidaNumber: '',
     listerType: 'owner',
     password: '',
     confirmPassword: ''
@@ -32,6 +33,16 @@ export default function RegisterLandlordPage() {
 
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords must match.');
+      return;
+    }
+
+    if (formData.password.length < 8) {
+      setError('Password must be at least 8 characters.');
+      return;
+    }
+
+    if (formData.nidaNumber.length < 20) {
+      setError('NIDA number must be exactly 20 digits.');
       return;
     }
 
@@ -79,10 +90,23 @@ export default function RegisterLandlordPage() {
             {t('auth.phone')}
             <input
               required
-              placeholder="+2557XXXXXXXX"
+              placeholder="07XXXXXXXX"
               value={formData.phone}
               onChange={(event) =>
                 setFormData((prev) => ({ ...prev, phone: event.target.value }))
+              }
+            />
+          </label>
+
+          <label>
+            NIDA Number
+            <input
+              required
+              placeholder="20-digit national ID"
+              value={formData.nidaNumber}
+              maxLength={20}
+              onChange={(event) =>
+                setFormData((prev) => ({ ...prev, nidaNumber: event.target.value }))
               }
             />
           </label>

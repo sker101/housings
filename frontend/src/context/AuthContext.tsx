@@ -47,6 +47,7 @@ interface AuthUser {
   listerType: string;
   landlordVerificationStatus: string;
   university: string;
+  nidaNumber: string;
   preferredLanguage: string;
 }
 
@@ -135,6 +136,7 @@ function buildCurrentUser(
       (profile as unknown as Record<string, unknown>)?.verification_status
     ),
     university: (profile as unknown as Record<string, unknown>)?.university as string || '',
+    nidaNumber: profile?.nida_number || (sessionUser.user_metadata as Record<string, string>)?.nida_number || '',
     preferredLanguage: (profile as unknown as Record<string, unknown>)?.preferred_language as string || 'en',
   };
 }
@@ -144,7 +146,7 @@ async function fetchProfile(userId: string, accessToken: string): Promise<Profil
 
   const columns = [
     'id', 'role', 'roles', 'full_name', 'phone', 'phone_verified',
-    'university', 'profile_photo_url', 'id_doc_url', 'selfie_url',
+    'university', 'nida_number', 'profile_photo_url', 'id_doc_url', 'selfie_url',
     'verification_status', 'subscription_plan', 'preferred_language',
     'commission_rate_pct', 'created_at',
   ];
@@ -318,6 +320,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             listerType: '',
             landlordVerificationStatus: '',
             university: '',
+            nidaNumber: '',
             preferredLanguage: 'en',
           };
           setUser(minimalUser);
@@ -446,6 +449,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           data: { 
             full_name: payload.fullName.trim(), 
             phone: payload.phone.trim(), 
+            nida_number: payload.nidaNumber?.trim() || '',
             role: 'tenant',
             roles: ['tenant']
           },
@@ -478,6 +482,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           data: {
             full_name: payload.fullName.trim(),
             phone: payload.phone.trim(),
+            nida_number: payload.nidaNumber?.trim() || '',
             role: selectedRole,
             roles: selectedRole === 'tenant' ? ['tenant'] : ['tenant', selectedRole],
             lister_type: payload.listerType || 'owner',
