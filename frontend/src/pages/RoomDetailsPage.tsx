@@ -204,6 +204,12 @@ export default function RoomDetailsPage() {
   // One-room-per-tenant: does this user already have ANY active booking?
   const [hasAnyActiveRoom, setHasAnyActiveRoom] = useState(false);
 
+  // Move-Out state
+  const [moveOutNotice, setMoveOutNotice] = useState(null);
+  const [moveOutModalOpen, setMoveOutModalOpen] = useState(false);
+  const [moveOutDate, setMoveOutDate] = useState('');
+  const [submittingMoveOut, setSubmittingMoveOut] = useState(false);
+
   // Report state
   const [openReport, setOpenReport] = useState(false);
   const [reportReason, setReportReason] = useState('fraud');
@@ -252,6 +258,39 @@ export default function RoomDetailsPage() {
       setReportError(`${err.message || 'Failed to submit report'}${details}`);
     } finally {
       setSubmittingReport(false);
+    }
+  }
+
+  async function submitMoveOutNotice(event: React.FormEvent) {
+    event.preventDefault();
+    if (!listing?.id || !existingBooking?.id || !moveOutDate) return;
+    setSubmittingMoveOut(true);
+    
+    try {
+      await insertRows('move_out_notices', {
+        lease_id: existingBooking.id,
+        tenant_id: user?.userId,
+        landlord_id: listing.listerId,
+        property_id: listing.id,
+        intended_move_out_date: moveOutDate
+      }, { accessToken: token });
+      
+      setMoveOutModalOpen(false);
+      setMoveOutNotice({ status: 'pending', intended_move_out_date: moveOutDate });
+      
+      // Notify landlord
+      await insertRows('notifications', {
+        user_id: listing.listerId,
+        type: 'system',
+        title: 'Tenant Moving Out Soon!',
+        body: `A tenant has declared they are moving out of "${listing.title}" on ${moveOutDate}. Approve the notice to automatically list the room as Coming Soon.`,
+      }, { accessToken: token }).catch(() => null);
+
+    } catch (err) {
+      console.error(err);
+      alert('Failed to submit move-out notice');
+    } finally {
+      setSubmittingMoveOut(false);
     }
   }
 
@@ -381,7 +420,28 @@ export default function RoomDetailsPage() {
         });
 
         if (mounted) {
-          setExistingBooking(bookings.length > 0 ? bookings[0] : null);
+          const fetchedBooking = bookings.length > 0 ? bookings[0] : null;
+          setExistingBooking(fetchedBooking);
+
+          // If they have a confirmed booking, check for move-out notices
+          if (fetchedBooking && ['confirmed', 'paid'].includes(fetchedBooking.status)) {
+            try {
+              const noticeRows = await selectRows('move_out_notices', {
+                select: '*',
+                filters: [
+                  { column: 'lease_id', op: 'eq', value: fetchedBooking.id },
+                  { column: 'status', op: 'in', value: '(pending,listing_created)' }
+                ],
+                limit: 1,
+                accessToken: token
+              });
+              if (noticeRows?.length > 0) {
+                setMoveOutNotice(noticeRows[0]);
+              }
+            } catch (err) {
+              console.error('Error fetching move out notice:', err);
+            }
+          }
         }
       } catch (err) {
         console.error('Error fetching bookings:', err);
@@ -1204,10 +1264,31 @@ export default function RoomDetailsPage() {
           </button>
         ) : existingBooking && ['requested', 'approved', 'paid', 'confirmed'].includes(existingBooking.status) ? (
           // Tenant already has a booking for this room
-          <button className="rd-btn rd-btn--primary rd-btn--disabled" disabled style={{ background: '#16a34a' }}>
-            <CheckCircle2 size={18} />
-            Already Reserved
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
+            <button className="rd-btn rd-btn--primary rd-btn--disabled" disabled style={{ background: '#16a34a' }}>
+              <CheckCircle2 size={18} />
+              Already Reserved
+            </button>
+            {['paid', 'confirmed'].includes(existingBooking.status) && !moveOutNotice && (
+              <button 
+                className="rd-btn" 
+                style={{ background: '#fff', color: '#d97706', border: '1px solid #d97706' }}
+                onClick={() => setMoveOutModalOpen(true)}
+              >
+                Declare Move-Out (Get Reward)
+              </button>
+            )}
+            {moveOutNotice && moveOutNotice.status === 'pending' && (
+              <button className="rd-btn rd-btn--disabled" disabled style={{ background: '#fff', color: '#d97706', border: '1px solid #d97706' }}>
+                Pending Landlord Approval
+              </button>
+            )}
+            {moveOutNotice && moveOutNotice.status === 'listing_created' && (
+              <button className="rd-btn rd-btn--disabled" disabled style={{ background: '#fff', color: '#16a34a', border: '1px solid #16a34a' }}>
+                Move-Out Approved & Reward Sent!
+              </button>
+            )}
+          </div>
         ) : (
           // Room is occupied or not in a bookable state
           <button className="rd-btn rd-btn--primary rd-btn--disabled" disabled>
@@ -1432,6 +1513,45 @@ export default function RoomDetailsPage() {
             <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.5rem' }}>Interested in this room? Send a message to the lister.</p>
             {/* ... remaining inquiry form logic ... */}
             <button onClick={() => setOpenInquiry(false)} className="rd-btn rd-btn--primary" style={{ width: '100%', padding: '1rem' }}>Close</button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Move-Out Modal ─────────────────────────────── */}
+      {moveOutModalOpen && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000, padding: '1.5rem', animation: 'fadeIn 0.2s ease-out'
+        }}>
+          <div className="card" style={{
+            width: '100%', maxWidth: '480px', padding: '2.5rem', position: 'relative',
+            animation: 'modalSlideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
+          }}>
+            <button onClick={() => setMoveOutModalOpen(false)} style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }}>
+              <ArrowLeft size={16} />
+            </button>
+            <form onSubmit={submitMoveOutNotice}>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e293b', marginBottom: '0.5rem' }}>Declare Move-Out</h2>
+              <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '2rem' }}>Let your landlord know you're moving soon. If they list the room as "Coming Soon", you'll receive a reward!</p>
+              
+              <div style={{ marginBottom: '2rem' }}>
+                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '0.75rem', display: 'block' }}>When do you plan to move out?</label>
+                <input
+                  type="date"
+                  required
+                  min={new Date().toISOString().split('T')[0]}
+                  value={moveOutDate}
+                  onChange={(e) => setMoveOutDate(e.target.value)}
+                  style={{ width: '100%', padding: '0.875rem 1rem', borderRadius: '12px', border: '1.5px solid #e2e8f0', fontSize: '1rem', outline: 'none' }}
+                />
+              </div>
+
+              <button type="submit" disabled={submittingMoveOut || !moveOutDate} className="rd-btn" style={{ width: '100%', padding: '1rem', background: '#d97706', color: '#fff', border: 'none' }}>
+                {submittingMoveOut ? 'Submitting...' : 'Submit Notice'}
+              </button>
+            </form>
           </div>
         </div>
       )}

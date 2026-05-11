@@ -42,6 +42,7 @@ export default function LandlordListingsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [actingId, setActingId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState('all');
+  const [moveOutNotices, setMoveOutNotices] = useState<any[]>([]);
 
   // Payment Modal State
   const [boostModalOpen, setBoostModalOpen] = useState(false);
@@ -124,6 +125,19 @@ export default function LandlordListingsPage() {
         }));
 
         setListings(enriched);
+
+        // Fetch move out notices for this landlord
+        const notices = await selectRows('move_out_notices', {
+          select: '*, profiles:tenant_id(full_name, phone), listings:property_id(title)',
+          filters: [
+            { column: 'landlord_id', op: 'eq', value: user.userId },
+            { column: 'status', op: 'eq', value: 'pending' }
+          ],
+          limit: 100,
+          accessToken: token
+        }).catch(() => []);
+        if (mounted) setMoveOutNotices(notices || []);
+
       } catch (err: any) {
         if (mounted) setError(err.message);
       } finally {
@@ -179,6 +193,28 @@ export default function LandlordListingsPage() {
       );
     } catch (err) {
       console.error('Failed to boost listing', err);
+    }
+  };
+
+  const [approvingNotice, setApprovingNotice] = useState<string | null>(null);
+  const handleApproveNotice = async (noticeId: string, propertyTitle: string) => {
+    setApprovingNotice(noticeId);
+    try {
+      const { rpc } = await import('../lib/supabase');
+      await rpc('approve_move_out_and_reward', {
+        p_notice_id: noticeId,
+        p_reward_amount: 5000,
+        p_new_listing_title: propertyTitle + ' (Coming Soon)',
+        p_new_listing_price: null
+      }, token);
+
+      setMoveOutNotices(prev => prev.filter(n => n.id !== noticeId));
+      window.location.reload(); 
+    } catch (err) {
+      console.error(err);
+      alert('Failed to approve notice.');
+    } finally {
+      setApprovingNotice(null);
     }
   };
 
@@ -325,6 +361,35 @@ export default function LandlordListingsPage() {
             )}
         </div>
       </section>
+
+      {/* ── Move-Out Notices ───────────────────────────────── */}
+      {moveOutNotices.length > 0 && (
+        <section style={{ marginBottom: '2rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+            <AlertCircle size={18} color="#d97706" />
+            <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#d97706', margin: 0 }}>Action Required: Move-Out Notices</h3>
+          </div>
+          <div style={{ display: 'grid', gap: '0.75rem' }}>
+            {moveOutNotices.map(notice => (
+              <div key={notice.id} style={{ background: '#fff', border: '1px solid #fcd34d', borderRadius: 12, padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                <div>
+                  <p style={{ margin: '0 0 0.25rem', fontWeight: 600, color: 'var(--ink)' }}>{notice.profiles?.full_name} is moving out</p>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--mid)' }}>Property: {notice.listings?.title}</p>
+                  <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', color: 'var(--mid)' }}>Intended Date: <strong>{new Date(notice.intended_move_out_date).toLocaleDateString()}</strong></p>
+                </div>
+                <button 
+                  onClick={() => handleApproveNotice(notice.id, notice.listings?.title || 'Room')}
+                  disabled={approvingNotice === notice.id}
+                  className="act-btn" 
+                  style={{ background: '#d97706', color: '#fff', border: 'none', padding: '0.6rem 1rem', borderRadius: 8, fontWeight: 600 }}
+                >
+                  {approvingNotice === notice.id ? 'Approving...' : 'Approve & List "Coming Soon"'}
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ── Properties List ─────────────────────────────────── */}
       <section style={{ marginBottom: '1.5rem' }}>
