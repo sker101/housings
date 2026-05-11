@@ -95,6 +95,8 @@ export default function MapboxListingMap({
   const markersRef   = useRef<mapboxgl.Marker[]>([]);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapStyle, setMapStyle] = useState<'light' | 'satellite'>('satellite');
+  // Fingerprint of the last placed rooms — prevents unnecessary re-renders
+  const roomsFingerprintRef = useRef<string>('');
 
   // === Init map ===
   useEffect(() => {
@@ -165,6 +167,13 @@ export default function MapboxListingMap({
   const placeMarkers = useCallback(() => {
     if (!mapRef.current || !mapLoaded) return;
 
+    // Only re-place when rooms list actually changed (by id+position fingerprint)
+    const fingerprint = rooms
+      .map(r => `${r.id}:${r.latitude.toFixed(6)}:${r.longitude.toFixed(6)}`)
+      .join('|');
+    if (fingerprint === roomsFingerprintRef.current) return;
+    roomsFingerprintRef.current = fingerprint;
+
     // Clear existing markers
     markersRef.current.forEach(m => m.remove());
     markersRef.current = [];
@@ -178,24 +187,24 @@ export default function MapboxListingMap({
         ? `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`
         : `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
 
-      // Custom SVG pin
+      // Custom SVG pin — no hover transform so it stays stable during pan/zoom
       const el = document.createElement('div');
       el.style.cssText = `
         width: 40px; height: 40px; cursor: pointer;
         position: relative;
         display: flex; align-items: flex-start; justify-content: center;
         padding-top: 8px;
-        transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       `;
       el.innerHTML = `
-        <svg style="position: absolute; top: 0; left: 0; z-index: -1;" width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" filter="drop-shadow(0px 3px 4px rgba(0,0,0,0.3))">
-          <path d="M20 38 C20 38 6 24 6 15 C6 7.26801 12.268 1 20 1 C27.732 1 34 7.26801 34 15 C34 24 20 38 20 38 Z" fill="${colour}" stroke="white" stroke-width="2"/>
+        <svg style="position: absolute; top: 0; left: 0; z-index: -1;"
+          width="40" height="40" viewBox="0 0 40 40" fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          filter="drop-shadow(0px 3px 4px rgba(0,0,0,0.3))">
+          <path d="M20 38 C20 38 6 24 6 15 C6 7.26801 12.268 1 20 1 C27.732 1 34 7.26801 34 15 C34 24 20 38 20 38 Z"
+            fill="${colour}" stroke="white" stroke-width="2"/>
         </svg>
         ${iconSvg}
       `;
-
-      el.addEventListener('mouseenter', () => { el.style.transform = 'scale(1.2)'; });
-      el.addEventListener('mouseleave', () => { el.style.transform = 'scale(1)'; });
 
       const popup = new mapboxgl.Popup({ offset: [0, -36], closeButton: false, maxWidth: '240px' })
         .setHTML(`
@@ -203,7 +212,7 @@ export default function MapboxListingMap({
             <strong style="font-size:13px;color:#1e293b">${room.title}${comingSoonBadge(room.availability_status)}</strong>
             <p style="margin:4px 0 0;font-size:12px;color:#64748b">${room.ward ? `📍 ${room.ward}` : ''}</p>
             <p style="margin:4px 0 0;font-size:14px;font-weight:700;color:#22c55e">${formatTZS(room.price_tzs)}<span style="font-weight:400;font-size:11px;color:#94a3b8">/mo</span></p>
-            <button onclick="window.dispatchEvent(new CustomEvent('irent:room-click',{detail:'${room.id}'}))"
+            <button onclick="window.dispatchEvent(new CustomEvent('irent:room-click',{detail:'${room.id}'}))" 
               style="margin-top:8px;padding:6px 14px;background:#22c55e;color:white;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;width:100%">
               View Room
             </button>
