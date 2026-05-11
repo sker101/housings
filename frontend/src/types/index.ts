@@ -73,6 +73,8 @@ export interface Booking {
   landlord_id: string;
   listing_id: string;
   total_tzs: number;
+  amount?: number;
+  payment_status?: string;
   reference?: string;
   status: BookingStatus;
   message?: string;

@@ -90,7 +90,7 @@ export function listingToMapRoom(listing: any): {
   longitude: number;
   title: string;
   price_tzs: number;
-  availability_status: string;
+  availability_status: 'available' | 'available_soon' | 'listed_occupied' | 'pre_booked';
   ward: string;
 } | null {
   const coords = getApproxCoords(listing);
@@ -101,7 +101,7 @@ export function listingToMapRoom(listing: any): {
     longitude: coords.lng,
     title: listing.title || '',
     price_tzs: Number(listing.priceMonthly || listing.price_monthly || 0),
-    availability_status: listing.vacancyStatus || listing.vacancy_status || 'available',
+    availability_status: (listing.vacancyStatus || listing.vacancy_status || 'available') as 'available' | 'available_soon' | 'listed_occupied' | 'pre_booked',
     ward: listing.ward || listing.district || listing.location || '',
   };
 }

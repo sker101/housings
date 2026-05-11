@@ -350,19 +350,19 @@ export default function AdminListingsPage() {
               <div className="listing-card-meta">
                 <div className="meta-item">
                   <label>Price</label>
-                  <value style={{ color: 'var(--jade)' }}>{TZSFormat(l.priceMonthly)}</value>
+                  <span style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--jade)' }}>{TZSFormat(l.priceMonthly)}</span>
                 </div>
                 <div className="meta-item">
                   <label>Lister</label>
-                  <value>{l.lister_name}</value>
+                  <span style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--top)' }}>{l.lister_name}</span>
                 </div>
                 <div className="meta-item">
                   <label>Type</label>
-                  <value>{l.room_type || 'Room'}</value>
+                  <span style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--top)' }}>{l.room_type || 'Room'}</span>
                 </div>
                 <div className="meta-item">
                   <label>Posted</label>
-                  <value>{formatDate(l.created_at)}</value>
+                  <span style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--top)' }}>{formatDate(l.created_at)}</span>
                 </div>
               </div>
 

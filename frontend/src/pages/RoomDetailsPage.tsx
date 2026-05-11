@@ -360,11 +360,7 @@ export default function RoomDetailsPage() {
     };
   }, [roomId, token]);
 
-  useEffect(() => {
-    if (user?.fullName && !inquiryName) {
-      setInquiryName(user.fullName);
-    }
-  }, [user?.fullName, inquiryName]);
+  // (inquiryName removed — chat now handled via startChatWithLandlord)
 
   useEffect(() => {
     let mounted = true;

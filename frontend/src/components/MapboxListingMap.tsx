@@ -94,7 +94,7 @@ export default function MapboxListingMap({
   const mapRef       = useRef<mapboxgl.Map | null>(null);
   const markersRef   = useRef<mapboxgl.Marker[]>([]);
   const [mapLoaded, setMapLoaded] = useState(false);
-  const [mapStyle, setMapStyle] = useState<'light' | 'satellite'>('satellite');
+  const [mapStyle, setMapStyle] = useState<'light' | 'satellite' | 'streets'>('satellite');
   // Fingerprint of the last placed rooms — prevents unnecessary re-renders
   const roomsFingerprintRef = useRef<string>('');
 
@@ -104,7 +104,7 @@ export default function MapboxListingMap({
 
     const map = new mapboxgl.Map({
       container: containerRef.current,
-      style: mapStyle === 'light' ? 'mapbox://styles/mapbox/light-v11' : 'mapbox://styles/mapbox/satellite-v9',
+      style: mapStyle === 'light' ? 'mapbox://styles/mapbox/light-v11' : mapStyle === 'streets' ? 'mapbox://styles/mapbox/streets-v12' : 'mapbox://styles/mapbox/satellite-v9',
       center: DAR_ES_SALAAM_CENTRE,
       zoom: 12,
       attributionControl: false,

@@ -227,12 +227,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async (
       activeSession: Record<string, unknown>,
       rememberMe = true,
-      flowId?: string,
+      flowId?: number,
       requestedRole?: string
     ): Promise<AuthUser | null> => {
       if (!activeSession?.access_token) return null;
 
-      const currentFlowId = flowId ?? authFlowIdRef.current;
+      const currentFlowId: number = flowId ?? authFlowIdRef.current;
 
       try {
         let fetchedProfile = await fetchProfile(
@@ -308,6 +308,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             landlordVerificationStatus: '',
             university: '',
             nidaNumber: '',
+            businessName: '',
+            occupation: '',
             preferredLanguage: 'en',
           };
           setUser(minimalUser);

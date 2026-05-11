@@ -55,6 +55,9 @@ type NormalizedBooking = {
   move_in_date?: string;
   months_duration?: number;
   status?: string;
+  payment_status?: string;
+  amount?: number;
+  total_tzs?: number;
   reference?: string;
   created_at?: string;
   schema: 'legacy' | 'modern';

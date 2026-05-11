@@ -227,7 +227,7 @@ function validateStep(step: number, values: any, files: any, previews: any): str
       const isEditingOffset = new URLSearchParams(window.location.search).has('edit');
       
       const uploadedCount = Object.values(files || {}).filter(f => f).length;
-      const existingCount = Object.values(previews || {}).filter(p => p && p.startsWith('http')).length;
+      const existingCount = Object.values(previews || {}).filter(p => p && String(p).startsWith('http')).length;
       const totalPhotos = uploadedCount + existingCount;
 
       if (totalPhotos < 4 && !isEditingOffset) {

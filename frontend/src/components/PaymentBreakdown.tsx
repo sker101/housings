@@ -41,7 +41,7 @@ export const PaymentBreakdownComponent: React.FC<Props> = ({ breakdown, months, 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ color: 'var(--mid)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              Platform Deposit Fee <Info size={14} style={{ cursor: 'help' }} title="A one-time deposit held securely by iRent, applied towards your tenancy" />
+              Platform Deposit Fee <span title="A one-time deposit held securely by iRent, applied towards your tenancy"><Info size={14} style={{ cursor: 'help' }} /></span>
             </span>
             <span style={{ fontWeight: 600 }}>{formatTZS(breakdown.platformDepositFee)}</span>
           </div>
