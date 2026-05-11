@@ -10,10 +10,9 @@ export default defineConfig(({ mode }) => {
       VitePWA({
         registerType: 'autoUpdate',
         injectRegister: 'auto',
-        // Enable SW in dev so we can test offline/update banners
+        // Disable SW in dev — it causes false offline triggers when testing locally
         devOptions: {
-          enabled: true,
-          type: 'module',
+          enabled: false,
         },
         includeAssets: [
           'favicon.ico',
@@ -78,9 +77,21 @@ export default defineConfig(({ mode }) => {
           skipWaiting: true,
           clientsClaim: true,
           cleanupOutdatedCaches: true,
-          // Navigate fallback for offline SPA routing
-          navigateFallback: '/offline.html',
-          navigateFallbackDenylist: [/^\/api/, /^\/supabase/, /^\/sw\.js/],
+
+          // ── SPA routing fix ───────────────────────────────────────────────
+          // MUST be /index.html — this is what the browser needs for React
+          // Router to work on all routes (/login, /tenant/dashboard, etc.).
+          // Using /offline.html here was the bug: it served the offline screen
+          // for every route not in the pre-cache, even with full network.
+          navigateFallback: '/index.html',
+
+          // Never intercept Supabase, service-worker, or API requests
+          navigateFallbackDenylist: [
+            /^\/api/,
+            /^\/supabase/,
+            /^\/sw\.js/,
+            /^\/workbox-/,
+          ],
           globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff2}'],
           runtimeCaching: [
             {
@@ -115,6 +126,25 @@ export default defineConfig(({ mode }) => {
               options: {
                 cacheName: 'google-fonts-webfonts',
                 expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 },
+              },
+            },
+            {
+              // ── Offline fallback for navigation requests ───────────────
+              // This is the ONLY place /offline.html is served.
+              // It fires only when a navigation fetch truly fails (network
+              // error / timeout) — not for unknown SPA routes.
+              urlPattern: ({ request }) => request.mode === 'navigate',
+              handler: 'NetworkOnly',
+              options: {
+                cacheName: 'navigation-cache',
+                plugins: [
+                  {
+                    // If the network fetch fails, serve offline.html
+                    fetchDidFail: async () => {
+                      return caches.match('/offline.html');
+                    },
+                  },
+                ],
               },
             },
           ],
