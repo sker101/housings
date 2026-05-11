@@ -501,17 +501,49 @@ export default function SearchPage() {
     return result;
   }, [listings, selectedUniversity]);
 
-  const mapListings = useMemo(() => processedListings.filter((l: any) => l.lat && l.lng), [processedListings]);
+  // Ward → approx coordinates for listings that have no lat/lng
+  const WARD_COORDS: Record<string, [number, number]> = {
+    msasani: [39.2713, -6.7575], masaki: [39.2698, -6.7608], upanga: [39.2850, -6.8097],
+    kariakoo: [39.2726, -6.8162], ilala: [39.2710, -6.8235], kinondoni: [39.2570, -6.7808],
+    temeke: [39.3140, -6.8727], mikocheni: [39.2680, -6.7720], mbezi: [39.1950, -6.7300],
+    kijitonyama: [39.2530, -6.7890], sinza: [39.2290, -6.8050], mwananyamala: [39.2390, -6.8030],
+    manzese: [39.2150, -6.8200], tandale: [39.2440, -6.7900], magomeni: [39.2610, -6.8000],
+    jangwani: [39.2780, -6.8100], kivukoni: [39.2922, -6.8183], gerezani: [39.2905, -6.8172],
+    kisutu: [39.2873, -6.8206], posta: [39.2891, -6.8193], buguruni: [39.2430, -6.8410],
+    vingunguti: [39.2330, -6.8580], changombe: [39.2720, -6.8650], mtoni: [39.2990, -6.8850],
+    mbagala: [39.3060, -6.9060], changanyikeni: [39.2520, -6.8450], mwenge: [39.2600, -6.7830],
+    moroco: [39.2580, -6.7950], barabara_ya_mzinga: [39.2800, -6.8300], tabata: [39.2450, -6.8500],
+    dar_es_salaam: [39.2766, -6.8235],
+  };
+
+  function getApproxCoords(listing: any): { lat: number; lng: number } | null {
+    if (listing.lat && listing.lng) return { lat: Number(listing.lat), lng: Number(listing.lng) };
+    const ward = (listing.ward || listing.district || '').toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_');
+    const coords = WARD_COORDS[ward];
+    if (coords) return { lat: coords[1], lng: coords[0] };
+    // Try partial match
+    const match = Object.keys(WARD_COORDS).find(k => ward.includes(k) || k.includes(ward));
+    if (match) return { lat: WARD_COORDS[match][1], lng: WARD_COORDS[match][0] };
+    return null;
+  }
+
+  // All listings with coordinates (real or ward-approximated)
+  const mapListings = useMemo(() => {
+    return processedListings
+      .map((l: any) => ({ ...l, _coords: getApproxCoords(l) }))
+      .filter((l: any) => l._coords !== null);
+  }, [processedListings]);
 
   // Stable memoized array for Mapbox markers to prevent flicker
   const mapRooms = useMemo(() => {
     return mapListings.map((l: any) => ({
       id: l.id,
-      latitude: Number(l.lat),
-      longitude: Number(l.lng),
+      latitude: l._coords.lat,
+      longitude: l._coords.lng,
       title: l.title,
       price_tzs: Number(l.priceMonthly),
-      availability_status: l.vacancyStatus || 'available'
+      availability_status: l.vacancyStatus || 'available',
+      ward: l.ward || l.district || l.location || '',
     }));
   }, [mapListings]);
 
@@ -519,14 +551,15 @@ export default function SearchPage() {
   const viewportListings = useMemo(() => {
     if (!mapBounds) return mapListings;
     return mapListings.filter((l: any) => {
-      const lat = Number(l.lat);
-      const lng = Number(l.lng);
+      const lat = l._coords?.lat ?? Number(l.lat);
+      const lng = l._coords?.lng ?? Number(l.lng);
       return (
         lat >= mapBounds.south && lat <= mapBounds.north &&
         lng >= mapBounds.west  && lng <= mapBounds.east
       );
     });
   }, [mapListings, mapBounds]);
+
 
   const handleBoundsChange = useCallback(
     (bounds: { north: number; south: number; east: number; west: number }) => {
@@ -854,30 +887,48 @@ export default function SearchPage() {
 
       {viewMode === 'map' ? (
         <section style={{ position: 'relative' }}>
-          <MapboxListingMap 
-            rooms={mapRooms}
-            searchWard={searchQuery}
-            height="calc(100vh - 200px)"
-            onRoomClick={(roomId) => navigate(`/rooms/${roomId}`)}
-            onBoundsChange={handleBoundsChange}
-          />
-          {/* Viewport count badge */}
-          <div style={{
-            position: 'absolute', top: 12, left: 12, zIndex: 10,
-            background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(8px)',
-            borderRadius: 20, padding: '6px 14px', fontSize: '0.82rem',
-            fontWeight: 700, boxShadow: '0 2px 10px rgba(0,0,0,0.12)',
-            color: '#1e293b',
-          }}>
-            {viewportListings.length} of {mapListings.length} listings in view
-          </div>
-          {hasMore ? (
-            <button type="button" className="btn btn--ghost btn--small"
-              style={{ position: 'absolute', bottom: 60, left: '50%', transform: 'translateX(-50%)', zIndex: 10 }}
-              onClick={loadMore} disabled={loadingMore}>
-              {loadingMore ? t('search.loadingMore') : t('search.loadMoreMap')}
-            </button>
-          ) : null}
+          {mapRooms.length === 0 && !loading ? (
+            <div style={{
+              height: 'calc(100vh - 200px)', display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center', gap: 12,
+              background: '#f1f5f9', borderRadius: 16,
+            }}>
+              <MapIcon size={40} color="#94a3b8" />
+              <p style={{ color: '#64748b', fontWeight: 500 }}>No listings with known locations yet.</p>
+              <button onClick={() => setViewMode('list')} style={{
+                padding: '8px 20px', background: '#22c55e', color: '#fff',
+                border: 'none', borderRadius: 999, fontWeight: 600, cursor: 'pointer'
+              }}>View as Grid</button>
+            </div>
+          ) : (
+            <>
+              <MapboxListingMap
+                rooms={mapRooms}
+                searchWard={searchQuery}
+                height="calc(100vh - 200px)"
+                onRoomClick={(roomId) => navigate(`/rooms/${roomId}`)}
+                onBoundsChange={handleBoundsChange}
+              />
+              {/* Stats badge — top-right of map (left is taken by style toggle) */}
+              <div style={{
+                position: 'absolute', top: 12, right: 56, zIndex: 10,
+                background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(8px)',
+                borderRadius: 20, padding: '6px 14px', fontSize: '0.82rem',
+                fontWeight: 700, boxShadow: '0 2px 10px rgba(0,0,0,0.12)',
+                color: '#1e293b', display: 'flex', alignItems: 'center', gap: 6,
+              }}>
+                <span style={{ color: '#22c55e' }}>●</span>
+                {viewportListings.length} nyumba kwenye eneo hili
+              </div>
+              {hasMore ? (
+                <button type="button" className="btn btn--ghost btn--small"
+                  style={{ position: 'absolute', bottom: 60, left: '50%', transform: 'translateX(-50%)', zIndex: 10, background: 'white', borderRadius: 999, padding: '8px 20px', fontWeight: 600, boxShadow: '0 2px 12px rgba(0,0,0,0.15)', border: 'none', cursor: 'pointer' }}
+                  onClick={loadMore} disabled={loadingMore}>
+                  {loadingMore ? 'Inapakia...' : 'Pakia nyumba zaidi'}
+                </button>
+              ) : null}
+            </>
+          )}
         </section>
       ) : (
         <>
