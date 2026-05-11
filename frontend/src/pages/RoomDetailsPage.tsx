@@ -201,6 +201,8 @@ export default function RoomDetailsPage() {
   // Bookings state
   const [existingBooking, setExistingBooking] = useState(null);
   const [bookingsLoading, setBookingsLoading] = useState(true);
+  // One-room-per-tenant: does this user already have ANY active booking?
+  const [hasAnyActiveRoom, setHasAnyActiveRoom] = useState(false);
 
   // Report state
   const [openReport, setOpenReport] = useState(false);
@@ -400,6 +402,32 @@ export default function RoomDetailsPage() {
     };
   }, [listing?.id, user?.userId, token]);
 
+  // Check if this tenant has ANY active booking (not just for this listing)
+  useEffect(() => {
+    if (!user?.userId || !token || user?.role !== 'tenant') return;
+    async function checkGlobalActiveRoom() {
+      try {
+        const tenantRows = await selectRows('tenants', {
+          select: 'id',
+          filters: [{ column: 'profile_id', op: 'eq', value: user.userId }],
+          limit: 1, accessToken: token,
+        });
+        const tenantId = tenantRows?.[0]?.id;
+        if (!tenantId) return;
+        const bookings = await selectRows('bookings', {
+          select: 'id,listing_id,status',
+          filters: [
+            { column: 'tenant_id', op: 'eq', value: tenantId },
+            { column: 'status', op: 'in', value: '(pending,confirmed,approved,paid)' },
+          ],
+          limit: 1, accessToken: token,
+        });
+        setHasAnyActiveRoom(bookings?.length > 0);
+      } catch { /* silent — default false is safe */ }
+    }
+    checkGlobalActiveRoom();
+  }, [user?.userId, token]);
+
   const isAuthorized = useMemo(() => {
     if (!listing) return null;
     if (listing.vacancyStatus !== 'occupied') return true;
@@ -460,7 +488,9 @@ export default function RoomDetailsPage() {
     // room must be in a bookable state
     RESERVABLE_STATUSES.includes(listing?.vacancyStatus ?? '') &&
     // listing owner can't book their own room
-    !(user?.userId && listing?.listerId && user.userId === listing.listerId);
+    !(user?.userId && listing?.listerId && user.userId === listing.listerId) &&
+    // tenant must not already have an active booking anywhere
+    !hasAnyActiveRoom;
 
   // Contact info is only visible to:
   // 1. The listing owner (landlord/dalali who posted it)
@@ -1161,6 +1191,17 @@ export default function RoomDetailsPage() {
             <Home size={18} />
             Your Listing
           </button>
+        ) : hasAnyActiveRoom ? (
+          // Tenant already has an active room elsewhere
+          <button
+            className="rd-btn rd-btn--primary rd-btn--disabled"
+            disabled
+            title="You already have an active room booking. Move out first to reserve another."
+            style={{ background: '#d97706', borderColor: '#d97706', opacity: 1 }}
+          >
+            <Home size={18} />
+            Una Chumba Tayari
+          </button>
         ) : existingBooking && ['requested', 'approved', 'paid', 'confirmed'].includes(existingBooking.status) ? (
           // Tenant already has a booking for this room
           <button className="rd-btn rd-btn--primary rd-btn--disabled" disabled style={{ background: '#16a34a' }}>
@@ -1174,6 +1215,7 @@ export default function RoomDetailsPage() {
             Not Available
           </button>
         )}
+
 
         
         <button 

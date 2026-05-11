@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck, Home, AlertTriangle } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { selectRows, upsertRows, updateRows, insertRows } from '../lib/supabase';
+import { selectRows, upsertRows, updateRows, insertRows, rpc } from '../lib/supabase';
 import { calculateTenantPayment, formatTZS } from '../lib/paymentCalculations';
 import { getPaymentProvider } from '../lib/payments/factory';
 import { PaymentBreakdownComponent } from '../components/PaymentBreakdown';
@@ -51,6 +51,48 @@ export default function PayPage() {
   const [gateway, setGateway] = useState<'selcom' | 'azampay'>('azampay');
   const [phone, setPhone] = useState(user?.phone || '');
 
+  // ── One room per tenant check ──────────────────────────────────────────────
+  const [activeBooking, setActiveBooking] = useState<any>(null);
+  const [checkingBooking, setCheckingBooking] = useState(true);
+
+  useEffect(() => {
+    async function checkExistingRoom() {
+      if (!user?.userId || !token) { setCheckingBooking(false); return; }
+      try {
+        // First try the RPC helper
+        const rows = await rpc('get_tenant_active_booking', { p_profile_id: user.userId }, token);
+        if (rows && rows.length > 0) {
+          setActiveBooking(rows[0]);
+        }
+      } catch {
+        // Fallback: direct query if RPC not yet deployed
+        try {
+          const tenantRows = await selectRows('tenants', {
+            select: 'id',
+            filters: [{ column: 'profile_id', op: 'eq', value: user.userId }],
+            limit: 1, accessToken: token,
+          });
+          const tenantId = tenantRows?.[0]?.id;
+          if (tenantId) {
+            const bookings = await selectRows('bookings', {
+              select: 'id,listing_id,status,move_in_date',
+              filters: [
+                { column: 'tenant_id', op: 'eq', value: tenantId },
+                { column: 'status', op: 'in', value: "(pending,confirmed,approved,paid)" },
+              ],
+              order: 'created_at.desc',
+              limit: 1, accessToken: token,
+            });
+            if (bookings?.length > 0) setActiveBooking(bookings[0]);
+          }
+        } catch { /* silent */ }
+      } finally {
+        setCheckingBooking(false);
+      }
+    }
+    checkExistingRoom();
+  }, [user?.userId, token]);
+
   const breakdown = useMemo(() => {
     const monthlyPrice = Number(listing?.price_monthly || 0);
     return calculateTenantPayment(monthlyPrice, months);
@@ -70,6 +112,11 @@ export default function PayPage() {
     }
     if (!user) {
       setError('You must be logged in to make a payment.');
+      return;
+    }
+    // Double-safety: enforce one room per tenant at payment time too
+    if (activeBooking) {
+      setError('You already have an active room booking. You cannot reserve another room until you move out.');
       return;
     }
     
@@ -317,6 +364,45 @@ export default function PayPage() {
           <button className="btn" style={{ width: '100%' }} onClick={() => navigate('/my-room?payment=success')}>
             Go to My Room
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Blocked: tenant already has a room ─────────────────────────────────────
+  if (!checkingBooking && activeBooking) {
+    return (
+      <div className="container section" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+        <div className="card" style={{ maxWidth: 440, width: '100%', textAlign: 'center', padding: '3rem 2rem', borderRadius: 24, boxShadow: '0 20px 50px rgba(0,0,0,0.1)' }}>
+          <div style={{ background: '#fef3c7', color: '#d97706', width: 80, height: 80, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
+            <Home size={40} />
+          </div>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0 0 0.5rem' }}>Una Chumba Tayari</h1>
+          <p style={{ color: 'var(--mid)', margin: '0 0 1.5rem', lineHeight: 1.6 }}>
+            Akaunti yako ina uhifadhi wa chumba ambacho bado ni hai.
+            Hauwezi kuhifadhi chumba kingine bila kuondoka kwanza.
+          </p>
+          {activeBooking.listing_title && (
+            <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 12, padding: '1rem', marginBottom: '1.5rem', textAlign: 'left' }}>
+              <p style={{ margin: 0, fontSize: '0.8rem', color: '#6b7280', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Chumba chako cha sasa</p>
+              <p style={{ margin: '4px 0 0', fontWeight: 700, color: '#111827' }}>{activeBooking.listing_title}</p>
+              <p style={{ margin: '2px 0 0', fontSize: '0.85rem', color: '#16a34a', fontWeight: 600, textTransform: 'capitalize' }}>
+                Hali: {activeBooking.status}
+              </p>
+            </div>
+          )}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <button className="btn" style={{ width: '100%' }} onClick={() => navigate('/my-room')}>
+              <Home size={16} style={{ marginRight: 8 }} />
+              Angalia Chumba Changu
+            </button>
+            <button className="btn btn--ghost" style={{ width: '100%' }} onClick={() => navigate(-1)}>
+              Rudi Nyuma
+            </button>
+          </div>
+          <p style={{ margin: '1.25rem 0 0', fontSize: '0.8rem', color: '#9ca3af' }}>
+            Unataka kuhamia? Tuma notisi ya kuondoka kutoka kwa dashibodi yako.
+          </p>
         </div>
       </div>
     );
