@@ -453,7 +453,14 @@ export default function RoomDetailsPage() {
     () => (listing?.id ? savedIds.has(listing.id) : false),
     [savedIds, listing?.id]
   );
-  const canReserveListing = !isAuthenticated || user?.role === APP_ROLE.TENANT;
+  const RESERVABLE_STATUSES = ['available', 'available_soon', 'coming_soon'];
+  const canReserveListing =
+    // must be a tenant role (or logged out — they'll be redirected to login)
+    (!isAuthenticated || user?.role === APP_ROLE.TENANT) &&
+    // room must be in a bookable state
+    RESERVABLE_STATUSES.includes(listing?.vacancyStatus ?? '') &&
+    // listing owner can't book their own room
+    !(user?.userId && listing?.listerId && user.userId === listing.listerId);
 
   // Contact info is only visible to:
   // 1. The listing owner (landlord/dalali who posted it)
@@ -1148,12 +1155,26 @@ export default function RoomDetailsPage() {
             <CreditCard size={18} />
             Reserve / Pay
           </Link>
+        ) : user?.userId && listing?.listerId && user.userId === listing.listerId ? (
+          // Owner viewing their own listing
+          <button className="rd-btn rd-btn--primary rd-btn--disabled" disabled>
+            <Home size={18} />
+            Your Listing
+          </button>
+        ) : existingBooking && ['requested', 'approved', 'paid', 'confirmed'].includes(existingBooking.status) ? (
+          // Tenant already has a booking for this room
+          <button className="rd-btn rd-btn--primary rd-btn--disabled" disabled style={{ background: '#16a34a' }}>
+            <CheckCircle2 size={18} />
+            Already Reserved
+          </button>
         ) : (
+          // Room is occupied or not in a bookable state
           <button className="rd-btn rd-btn--primary rd-btn--disabled" disabled>
             <Home size={18} />
             Not Available
           </button>
         )}
+
         
         <button 
           className="rd-btn rd-btn--secondary"
