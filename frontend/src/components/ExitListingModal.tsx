@@ -61,6 +61,9 @@ export default function ExitListingModal({ onClose, onSuccess }: ExitListingModa
   const [notes, setNotes]             = useState('');
   const [submitting, setSubmitting]   = useState(false);
   const [errorMsg, setErrorMsg]       = useState('');
+  // one of these is set depending on whether we have a lease or just a booking
+  const [sourceLeaseId,   setSourceLeaseId]   = useState<string | null>(null);
+  const [sourceBookingId, setSourceBookingId] = useState<string | null>(null);
 
   const minDate = addDays(new Date(), MIN_DAYS_AHEAD);
 
@@ -95,8 +98,7 @@ export default function ExitListingModal({ onClose, onSuccess }: ExitListingModa
 
       const tenantRow = tenants[0] as { id: string };
 
-      // 2. Fetch the active lease for this tenant
-      //    tenant_leases.tenant_id → tenants.id (not profiles.id)
+      // ── PATH A: active tenant_lease ─────────────────────────────────────
       const leases = await selectRows('tenant_leases', {
         select: 'id, room_id, landlord_id, status',
         filters: [
@@ -108,84 +110,130 @@ export default function ExitListingModal({ onClose, onSuccess }: ExitListingModa
         accessToken: token!,
       });
 
-      if (!leases.length) {
-        setErrorMsg('Hukupata lisi inayofanya kazi. Wasiliana na msaada wa iRent.');
-        setStep('error');
-        return;
-      }
+      if (leases.length) {
+        const leasRow = leases[0] as {
+          id: string; room_id: string | null; landlord_id: string; status: string;
+        };
+        setSourceLeaseId(leasRow.id);
+        setSourceBookingId(null);
 
-      const leasRow = leases[0] as {
-        id: string;
-        room_id: string | null;
-        landlord_id: string; // landlords.id
-        status: string;
-      };
-
-      // 3. Fetch landlord's profile_id (landlords.profile_id)
-      const landlordRecs = await selectRows('landlords', {
-        select: 'id, profile_id',
-        filters: [{ column: 'id', op: 'eq', value: leasRow.landlord_id }],
-        limit: 1,
-        accessToken: token!,
-      });
-      const landlordProfileId: string = landlordRecs[0]?.profile_id ?? leasRow.landlord_id;
-
-      // 4. Fetch room + property info
-      let propertyId = '';
-      let propertyTitle = 'Chumba Chako';
-      let priceMonthly = 0;
-
-      if (leasRow.room_id) {
-        const roomRecs = await selectRows('rooms', {
-          select: 'id, property_id, price_tzs',
-          filters: [{ column: 'id', op: 'eq', value: leasRow.room_id }],
+        const landlordRecs = await selectRows('landlords', {
+          select: 'id, profile_id',
+          filters: [{ column: 'id', op: 'eq', value: leasRow.landlord_id }],
           limit: 1,
           accessToken: token!,
         });
-        if (roomRecs.length) {
-          const room = roomRecs[0] as { id: string; property_id: string; price_tzs: number };
-          propertyId = room.property_id;
-          priceMonthly = room.price_tzs;
+        const landlordProfileId: string = landlordRecs[0]?.profile_id ?? leasRow.landlord_id;
 
-          const propRecs = await selectRows('properties', {
-            select: 'id, title',
-            filters: [{ column: 'id', op: 'eq', value: room.property_id }],
-            limit: 1,
-            accessToken: token!,
+        // fetch room + property
+        let propertyId = '';
+        let propertyTitle = 'Chumba Chako';
+        let priceMonthly = 0;
+        if (leasRow.room_id) {
+          const roomRecs = await selectRows('rooms', {
+            select: 'id, property_id, price_tzs',
+            filters: [{ column: 'id', op: 'eq', value: leasRow.room_id }],
+            limit: 1, accessToken: token!,
           });
-          if (propRecs.length) {
-            propertyTitle = (propRecs[0] as any).title ?? 'Chumba Chako';
+          if (roomRecs.length) {
+            const room = roomRecs[0] as { id: string; property_id: string; price_tzs: number };
+            propertyId = room.property_id;
+            priceMonthly = room.price_tzs;
+            const propRecs = await selectRows('properties', {
+              select: 'id, title',
+              filters: [{ column: 'id', op: 'eq', value: room.property_id }],
+              limit: 1, accessToken: token!,
+            });
+            if (propRecs.length) propertyTitle = (propRecs[0] as any).title ?? 'Chumba Chako';
           }
         }
-      }
 
-      setLease({
-        leaseId:          leasRow.id,
-        tenantProfileId:  user!.userId,
-        landlordProfileId,
-        propertyId,
-        roomId:           leasRow.room_id,
-        propertyTitle,
-        priceMonthly,
-      });
+        setLease({ leaseId: leasRow.id, tenantProfileId: user!.userId, landlordProfileId, propertyId, roomId: leasRow.room_id, propertyTitle, priceMonthly });
 
-      // 5. Check for existing notice (pending or listing_created)
-      const existing = await selectRows('move_out_notices', {
-        select: 'id, created_at, status',
-        filters: [
-          { column: 'lease_id', op: 'eq', value: leasRow.id },
-          { column: 'tenant_id', op: 'eq', value: user!.userId },
-          { column: 'status', op: 'in', value: '(pending,listing_created)' },
-        ],
-        limit: 1,
-        accessToken: token!,
-      });
+        // check existing notice
+        const existing = await selectRows('move_out_notices', {
+          select: 'id, created_at, status',
+          filters: [
+            { column: 'lease_id',  op: 'eq', value: leasRow.id },
+            { column: 'tenant_id', op: 'eq', value: user!.userId },
+            { column: 'status',    op: 'in', value: '(pending,listing_created)' },
+          ],
+          limit: 1, accessToken: token!,
+        });
+        if (existing.length) { setExistingNotice(existing[0] as { created_at: string }); setStep('already'); }
+        else setStep('form');
 
-      if (existing.length) {
-        setExistingNotice(existing[0] as { created_at: string });
-        setStep('already');
       } else {
-        setStep('form');
+        // ── PATH B: fallback to approved/confirmed bookings ──────────────
+        // Dashboard does the same. Tenants like George have a booking but
+        // no tenant_lease row because the landlord hasn't created one yet.
+        const bookings = await selectRows('bookings', {
+          select: 'id, room_id, property_id, landlord_id, move_in_date, status',
+          filters: [
+            { column: 'tenant_id', op: 'eq', value: tenantRow.id },
+            { column: 'status',    op: 'in', value: '(paid,confirmed,approved)' },
+          ],
+          order: 'created_at.desc',
+          limit: 1, accessToken: token!,
+        });
+
+        if (!bookings.length) {
+          setErrorMsg('Hukupata lisi wala booking iliyoidhinishwa. Wasiliana na msaada wa iRent.');
+          setStep('error');
+          return;
+        }
+
+        const bk = bookings[0] as {
+          id: string; room_id: string | null; property_id: string; landlord_id: string;
+        };
+        setSourceBookingId(bk.id);
+        setSourceLeaseId(null);
+
+        const landlordRecs = await selectRows('landlords', {
+          select: 'id, profile_id',
+          filters: [{ column: 'id', op: 'eq', value: bk.landlord_id }],
+          limit: 1, accessToken: token!,
+        });
+        const landlordProfileId: string = landlordRecs[0]?.profile_id ?? bk.landlord_id;
+
+        let propertyId = bk.property_id ?? '';
+        let propertyTitle = 'Chumba Chako';
+        let priceMonthly = 0;
+        if (bk.room_id) {
+          const roomRecs = await selectRows('rooms', {
+            select: 'id, property_id, price_tzs',
+            filters: [{ column: 'id', op: 'eq', value: bk.room_id }],
+            limit: 1, accessToken: token!,
+          });
+          if (roomRecs.length) {
+            const room = roomRecs[0] as { property_id: string; price_tzs: number };
+            propertyId = room.property_id || propertyId;
+            priceMonthly = room.price_tzs;
+          }
+        }
+        if (propertyId) {
+          const propRecs = await selectRows('properties', {
+            select: 'id, title',
+            filters: [{ column: 'id', op: 'eq', value: propertyId }],
+            limit: 1, accessToken: token!,
+          });
+          if (propRecs.length) propertyTitle = (propRecs[0] as any).title ?? 'Chumba Chako';
+        }
+
+        setLease({ leaseId: bk.id, tenantProfileId: user!.userId, landlordProfileId, propertyId, roomId: bk.room_id, propertyTitle, priceMonthly });
+
+        // check existing notice via booking_id
+        const existing = await selectRows('move_out_notices', {
+          select: 'id, created_at, status',
+          filters: [
+            { column: 'booking_id', op: 'eq', value: bk.id },
+            { column: 'tenant_id',  op: 'eq', value: user!.userId },
+            { column: 'status',     op: 'in', value: '(pending,listing_created)' },
+          ],
+          limit: 1, accessToken: token!,
+        });
+        if (existing.length) { setExistingNotice(existing[0] as { created_at: string }); setStep('already'); }
+        else setStep('form');
       }
     } catch (err: any) {
       console.error('[ExitListingModal] loadLease error:', err);
@@ -206,18 +254,20 @@ export default function ExitListingModal({ onClose, onSuccess }: ExitListingModa
 
     setSubmitting(true);
     try {
-      // Insert notice
-      const inserted = await insertRows('move_out_notices', {
-        lease_id:              lease.leaseId,
-        tenant_id:             lease.tenantProfileId,
-        landlord_id:           lease.landlordProfileId,
-        property_id:           lease.propertyId,
-        room_id:               lease.roomId,
+      // Build notice payload — use lease_id OR booking_id depending on path
+      const noticePayload: Record<string, unknown> = {
+        tenant_id:              lease.tenantProfileId,
+        landlord_id:            lease.landlordProfileId,
+        property_id:            lease.propertyId,
+        room_id:                lease.roomId,
         intended_move_out_date: moveOutDate,
-        handover_notes:        notes.trim() || null,
-        status:                'pending',
-      }, { accessToken: token! });
+        handover_notes:         notes.trim() || null,
+        status:                 'pending',
+      };
+      if (sourceLeaseId)   noticePayload.lease_id   = sourceLeaseId;
+      if (sourceBookingId) noticePayload.booking_id  = sourceBookingId;
 
+      const inserted = await insertRows('move_out_notices', noticePayload, { accessToken: token! });
       const noticeId = (inserted as any)?.[0]?.id;
 
       // Call edge function (fire and forget — don't block on SMS failure)
