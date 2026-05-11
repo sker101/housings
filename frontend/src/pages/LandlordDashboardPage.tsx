@@ -1,9 +1,25 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { CheckCircle2, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { selectRows, updateRows, rpc } from '../lib/supabase';
 import { mapListingRow } from '../lib/listings';
+
+type MoveOutNotice = {
+  id: string;
+  intended_move_out_date: string;
+  handover_notes: string | null;
+  status: string;
+  created_at: string;
+  tenant_id: string;
+  room_id: string | null;
+  property_id: string;
+  tenantName?: string;
+  propertyTitle?: string;
+  priceMonthly?: number;
+  daysRemaining?: number;
+};
 
 function formatDate(value) {
   if (!value) return '—';
@@ -28,6 +44,10 @@ export default function LandlordDashboardPage() {
   const [allApprovedBookings, setAllApprovedBookings] = useState<any[]>([]);
   const [topConvs, setTopConvs] = useState<any[]>([]);
   const [convTenantMap, setConvTenantMap] = useState<Record<string, any>>({});
+  const [moveOutNotices, setMoveOutNotices] = useState<MoveOutNotice[]>([]);
+  const [expandedNotes, setExpandedNotes] = useState<Record<string, boolean>>({});
+  const [confirmNotice, setConfirmNotice] = useState<MoveOutNotice | null>(null);
+  const [activatingNoticeId, setActivatingNoticeId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const isAlive = useRef(true);
@@ -175,6 +195,61 @@ export default function LandlordDashboardPage() {
         setProfile(null);
         setListings([]);
         setConversationStats({ total: 0, open: 0, unread: 0 });
+      }
+      // ── Load move-out notices for this landlord ──────────────────────────
+      if (isAlive.current && user?.userId) {
+        try {
+          const noticeRows = await selectRows('move_out_notices', {
+            select: 'id,intended_move_out_date,handover_notes,status,created_at,tenant_id,room_id,property_id',
+            filters: [
+              { column: 'landlord_id', op: 'eq', value: user.userId },
+              { column: 'status',      op: 'eq', value: 'pending' },
+            ],
+            order: 'created_at.desc',
+            limit: 20,
+            accessToken: token,
+          });
+
+          if (noticeRows.length > 0) {
+            // Enrich with tenant names and property titles
+            const tIds = [...new Set(noticeRows.map((n: any) => n.tenant_id))];
+            const pIds = [...new Set(noticeRows.map((n: any) => n.property_id).filter(Boolean))];
+
+            const [tenantProfiles, propRows] = await Promise.all([
+              tIds.length ? selectRows('profiles', {
+                select: 'id,full_name',
+                filters: [{ column: 'id', op: 'in', value: `(${tIds.join(',')})` }],
+                accessToken: token,
+              }) : Promise.resolve([]),
+              pIds.length ? selectRows('properties', {
+                select: 'id,title',
+                filters: [{ column: 'id', op: 'in', value: `(${pIds.join(',')})` }],
+                accessToken: token,
+              }) : Promise.resolve([]),
+            ]);
+
+            const tenantMap = Object.fromEntries((tenantProfiles as any[]).map((p) => [p.id, p.full_name]));
+            const propMap   = Object.fromEntries((propRows as any[]).map((p) => [p.id, p.title]));
+
+            const today = new Date().setHours(0, 0, 0, 0);
+            const enriched: MoveOutNotice[] = (noticeRows as any[]).map((n) => {
+              const moveDate = new Date(n.intended_move_out_date + 'T00:00:00').getTime();
+              return {
+                ...n,
+                tenantName:    tenantMap[n.tenant_id] ?? 'Mpangaji',
+                propertyTitle: propMap[n.property_id] ?? 'Mali',
+                daysRemaining: Math.max(0, Math.ceil((moveDate - today) / 86400000)),
+              };
+            });
+
+            if (isAlive.current) setMoveOutNotices(enriched);
+          } else {
+            if (isAlive.current) setMoveOutNotices([]);
+          }
+        } catch (noticeErr) {
+          console.warn('[LandlordDashboard] move_out_notices fetch failed:', noticeErr);
+          if (isAlive.current) setMoveOutNotices([]);
+        }
       }
     } finally {
       if (isAlive.current) setLoading(false);
@@ -802,6 +877,198 @@ export default function LandlordDashboardPage() {
                   </div>
                 ))
               )}
+            </div>
+          </div>
+        )}
+
+        {/* ── NOTISI ZA KUONDOKA ───────────────────────────────────────── */}
+        {moveOutNotices.length > 0 && (
+          <section className="card" style={{ borderLeft: '4px solid var(--jade, #22c55e)', marginTop: '1.5rem' }}>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              📦 Notisi za Kuondoka{' '}
+              <span className="badge" style={{ background: 'var(--jade, #22c55e)', color: 'white', borderRadius: 999, fontSize: 11, padding: '2px 8px' }}>
+                {moveOutNotices.length}
+              </span>
+            </h2>
+            <p className="muted" style={{ marginBottom: '1rem', fontSize: '0.88rem' }}>
+              Wapangaji waliokutaarifu wanaondoka. Weka chumba kama Coming Soon ili upate mpangaji mpya mapema.
+            </p>
+
+            {moveOutNotices.map((notice) => (
+              <div key={notice.id} style={{
+                padding: '1rem', marginBottom: '0.75rem', borderRadius: '10px',
+                border: '1px solid var(--border)', background: '#ffffff',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontWeight: 700, margin: '0 0 0.2rem', fontSize: '0.95rem' }}>
+                      {notice.propertyTitle}
+                    </p>
+                    <p className="muted" style={{ fontSize: '0.84rem', margin: '0 0 0.2rem' }}>
+                      Mpangaji: <strong>{notice.tenantName}</strong>
+                    </p>
+                    <p className="muted" style={{ fontSize: '0.84rem', margin: 0 }}>
+                      Anaondoka:{' '}
+                      <strong>{new Date(notice.intended_move_out_date + 'T00:00:00').toLocaleDateString('sw-TZ', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>
+                      {' — '}
+                      <span style={{ color: notice.daysRemaining! <= 14 ? '#dc2626' : '#ca8a04' }}>
+                        Siku {notice.daysRemaining} zimebaki
+                      </span>
+                    </p>
+
+                    {/* Handover notes — collapsible */}
+                    {notice.handover_notes && (
+                      <div style={{ marginTop: '0.5rem' }}>
+                        <button
+                          type="button"
+                          onClick={() => setExpandedNotes((prev) => ({ ...prev, [notice.id]: !prev[notice.id] }))}
+                          style={{
+                            background: 'none', border: 'none', cursor: 'pointer',
+                            color: 'var(--jade, #22c55e)', fontSize: '0.8rem', fontWeight: 600,
+                            padding: 0, display: 'flex', alignItems: 'center', gap: '0.25rem',
+                          }}
+                        >
+                          {expandedNotes[notice.id] ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                          {expandedNotes[notice.id] ? 'Ficha maelezo' : 'Ona maelezo ya chumba'}
+                        </button>
+                        {expandedNotes[notice.id] && (
+                          <p style={{
+                            marginTop: '0.4rem', fontSize: '0.82rem',
+                            color: '#475569', background: 'var(--cream, #f8fafc)',
+                            padding: '0.6rem 0.75rem', borderRadius: 8,
+                          }}>
+                            {notice.handover_notes}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Action buttons */}
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', flexShrink: 0 }}>
+                    <button
+                      className="btn btn--small"
+                      style={{ background: 'var(--jade, #22c55e)', color: 'white', border: 'none', whiteSpace: 'nowrap' }}
+                      onClick={() => setConfirmNotice(notice)}
+                    >
+                      Weka Coming Soon
+                    </button>
+                    <button
+                      className="btn btn--small btn--ghost"
+                      style={{ whiteSpace: 'nowrap' }}
+                      onClick={async () => {
+                        try {
+                          await updateRows('move_out_notices', { status: 'ignored' }, {
+                            filters: [{ column: 'id', op: 'eq', value: notice.id }],
+                            accessToken: token,
+                          });
+                          setMoveOutNotices((prev) => prev.filter((n) => n.id !== notice.id));
+                        } catch (err: any) {
+                          setError(err.message);
+                        }
+                      }}
+                    >
+                      <X size={14} /> Acha
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </section>
+        )}
+
+        {/* ── COMING SOON CONFIRMATION MODAL ──────────────────────────── */}
+        {confirmNotice && (
+          <div style={{
+            position: 'fixed', inset: 0, zIndex: 1000,
+            background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '1rem',
+          }}>
+            <div style={{
+              background: 'white', borderRadius: '18px',
+              width: '100%', maxWidth: '400px',
+              padding: '2rem', boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+              position: 'relative',
+            }}>
+              <button
+                onClick={() => setConfirmNotice(null)}
+                style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', cursor: 'pointer', color: '#64748b' }}
+                aria-label="Funga"
+              >
+                <X size={20} />
+              </button>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                <div style={{
+                  width: 44, height: 44, borderRadius: '12px',
+                  background: 'linear-gradient(135deg, var(--jade, #22c55e), #16a34a)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <CheckCircle2 size={22} color="white" />
+                </div>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>Thibitisha Coming Soon</h2>
+                  <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b' }}>{confirmNotice.propertyTitle}</p>
+                </div>
+              </div>
+
+              <div style={{ background: '#f8fafc', borderRadius: 10, padding: '0.9rem', marginBottom: '1.25rem', display: 'grid', gap: '0.4rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem' }}>
+                  <span style={{ color: '#64748b' }}>Inapatikana kuanzia</span>
+                  <strong>{new Date(confirmNotice.intended_move_out_date + 'T00:00:00').toLocaleDateString('sw-TZ', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>
+                </div>
+                {confirmNotice.priceMonthly ? (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem' }}>
+                    <span style={{ color: '#64748b' }}>Kodi ya kila mwezi</span>
+                    <strong>TZS {new Intl.NumberFormat('sw-TZ').format(confirmNotice.priceMonthly)}</strong>
+                  </div>
+                ) : null}
+              </div>
+
+              <p style={{ fontSize: '0.84rem', color: '#64748b', marginBottom: '1.25rem' }}>
+                Chumba hiki kitaonekana kwenye matokeo ya utafutaji na beji ya <strong style={{ color: 'var(--jade, #22c55e)' }}>"Inakuja Hivi Karibuni"</strong> hadi tarehe ya upatikanaji.
+              </p>
+
+              <button
+                className="btn"
+                disabled={activatingNoticeId === confirmNotice.id}
+                style={{ width: '100%', background: 'var(--jade, #22c55e)', color: 'white', border: 'none' }}
+                onClick={async () => {
+                  if (!confirmNotice.room_id) {
+                    setError('Chumba hakikupatikana kwenye rekodi hii.');
+                    return;
+                  }
+                  setActivatingNoticeId(confirmNotice.id);
+                  try {
+                    await Promise.all([
+                      updateRows('rooms', {
+                        is_coming_soon: true,
+                        available_from: confirmNotice.intended_move_out_date,
+                        coming_soon_activated_at: new Date().toISOString(),
+                        move_out_notice_id: confirmNotice.id,
+                      }, {
+                        filters: [{ column: 'id', op: 'eq', value: confirmNotice.room_id! }],
+                        accessToken: token,
+                      }),
+                      updateRows('move_out_notices', { status: 'listing_created' }, {
+                        filters: [{ column: 'id', op: 'eq', value: confirmNotice.id }],
+                        accessToken: token,
+                      }),
+                    ]);
+                    setMoveOutNotices((prev) => prev.filter((n) => n.id !== confirmNotice.id));
+                    setConfirmNotice(null);
+                    // Brief toast via alert (toast system integration is outside scope)
+                    alert('✅ Chumba kimeorodheshwa kama Coming Soon!');
+                  } catch (err: any) {
+                    setError(err.message);
+                  } finally {
+                    setActivatingNoticeId(null);
+                  }
+                }}
+              >
+                {activatingNoticeId === confirmNotice.id ? 'Inaendelea…' : 'Ndio, Orodhesha →'}
+              </button>
             </div>
           </div>
         )}

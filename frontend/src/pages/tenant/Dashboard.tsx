@@ -520,11 +520,8 @@ export default function TenantDashboard() {
       </section>
 
       {/* ── Exit Listing Modal ─────────────────────────────── */}
-      {showExitModal && activeLease && tenantId && (
+      {showExitModal && (
         <ExitListingModal
-          leaseId={activeLease.id}
-          roomTitle="Your Current Room"
-          accessToken={token!}
           onSuccess={handleExitSuccess}
           onClose={() => setShowExitModal(false)}
         />
