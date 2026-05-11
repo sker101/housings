@@ -7,63 +7,138 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       react(),
-      // Only enable PWA in production mode to prevent dev redirects
-      isProd && VitePWA({
+      VitePWA({
         registerType: 'autoUpdate',
         injectRegister: 'auto',
-        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.png', 'icon-192x192.png', 'icon-512x512.png'],
+        // Enable SW in dev so we can test offline/update banners
+        devOptions: {
+          enabled: true,
+          type: 'module',
+        },
+        includeAssets: [
+          'favicon.ico',
+          'apple-touch-icon.png',
+          'icon-192.png',
+          'icon-512.png',
+        ],
         manifest: {
-          name: 'iRent',
+          name: 'iRent — Pata Nyumba Haraka',
           short_name: 'iRent',
-          description: "Tanzania's trusted property rental marketplace. Find verified rooms in Dar es Salaam — Msasani, Masaki, Upanga and beyond.",
-          theme_color: '#22c55e',
-          background_color: '#ffffff',
+          description: 'Tafuta, orodhesha, na simamia nyumba za kupanga Tanzania.',
+          theme_color: '#16a34a',
+          background_color: '#f9fafb',
           display: 'standalone',
           orientation: 'portrait',
           scope: '/',
           start_url: '/',
+          lang: 'sw',
+          categories: ['lifestyle', 'business'],
           icons: [
             {
-              src: 'icon-192.png',
+              src: '/icon-192.png',
               sizes: '192x192',
-              type: 'image/png'
+              type: 'image/png',
             },
             {
-              src: 'icon-512.png',
+              src: '/icon-512.png',
               sizes: '512x512',
               type: 'image/png',
-              purpose: 'any maskable'
-            }
-          ]
+              purpose: 'any maskable',
+            },
+            {
+              src: '/apple-touch-icon.png',
+              sizes: '180x180',
+              type: 'image/png',
+            },
+          ],
+          shortcuts: [
+            {
+              name: 'Tafuta Nyumba',
+              short_name: 'Tafuta',
+              url: '/listings',
+              description: 'Tafuta nyumba za kupanga',
+            },
+            {
+              name: 'Dashibodi ya Mwenye Nyumba',
+              short_name: 'Dashibodi',
+              url: '/landlord/dashboard',
+              description: 'Simamia nyumba zako',
+            },
+          ],
+          screenshots: [
+            {
+              src: '/pwa-header.png',
+              sizes: '1200x628',
+              type: 'image/png',
+              label: 'iRent — Ukurasa Mkuu',
+            },
+          ],
         },
         workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,jpg,jpeg,ico}'],
-        cleanupOutdatedCaches: true,
-        clientsClaim: true,
-        skipWaiting: true
-      }
-      })
+          skipWaiting: true,
+          clientsClaim: true,
+          cleanupOutdatedCaches: true,
+          // Navigate fallback for offline SPA routing
+          navigateFallback: '/offline.html',
+          navigateFallbackDenylist: [/^\/api/, /^\/supabase/, /^\/sw\.js/],
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff2}'],
+          runtimeCaching: [
+            {
+              // Supabase API — network first, 24h cache
+              urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'supabase-cache',
+                expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 },
+                networkTimeoutSeconds: 10,
+              },
+            },
+            {
+              // Images — cache first, 30 days
+              urlPattern: /\.(?:png|jpg|jpeg|svg|webp|ico)$/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'images-cache',
+                expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              },
+            },
+            {
+              // Google Fonts stylesheet
+              urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+              handler: 'StaleWhileRevalidate',
+              options: { cacheName: 'google-fonts-stylesheet' },
+            },
+            {
+              // Google Fonts files
+              urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'google-fonts-webfonts',
+                expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 },
+              },
+            },
+          ],
+        },
+      }),
     ].filter(Boolean),
 
     // Force Mapbox to be pre-bundled by Vite
     optimizeDeps: {
       include: ['mapbox-gl'],
-  },
+    },
 
     build: {
       rollupOptions: {
-      output: {
-        manualChunks: {
-          // Keep Mapbox in its own stable chunk
-          mapbox: ['mapbox-gl'],
+        output: {
+          manualChunks: {
+            // Keep Mapbox in its own stable chunk
+            mapbox: ['mapbox-gl'],
+          },
         },
       },
     },
-  },
 
     server: {
-      // Use environment overrides when available so you can run on different
-      // local ports without editing this file. Default to 0.0.0.0 so LAN devices can connect.
       host: process.env.VITE_DEV_HOST || '0.0.0.0',
       port: process.env.VITE_DEV_PORT ? Number(process.env.VITE_DEV_PORT) : 5173,
       strictPort: true,
@@ -78,7 +153,6 @@ export default defineConfig(({ mode }) => {
     test: {
       globals: true,
       environment: 'jsdom',
-      // Use the actual setup file used in the project
       setupFiles: './src/setupTests.tsx',
       css: true,
     },

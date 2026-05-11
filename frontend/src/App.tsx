@@ -3,6 +3,8 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import ProtectedRoute from './components/ProtectedRoute';
 import PageErrorBoundary from './components/PageErrorBoundary';
+import { PWAUpdateBanner } from './components/PWAUpdateBanner';
+import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 
 // ── Public pages ──────────────────────────────────────────────
 import Layout from './components/Layout';
@@ -82,6 +84,8 @@ export default function App() {
   return (
     <>
       <Toaster position="bottom-right" />
+      <PWAUpdateBanner />
+      <PWAInstallPrompt />
       <Routes>
 
         {/* ── Public ──────────────────────────────────────── */}
