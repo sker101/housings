@@ -24,5 +24,17 @@ if (!rootElement) {
       </ErrorBoundary>
     </React.StrictMode>
   );
+
+  // Dismiss splash screen once React has painted its first frame
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const splash = document.getElementById('splash');
+      if (splash) {
+        splash.classList.add('splash-hidden');
+        // Remove from DOM after fade-out transition (450ms)
+        setTimeout(() => splash.remove(), 500);
+      }
+    });
+  });
 }
 
