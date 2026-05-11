@@ -36,35 +36,31 @@ DECLARE
     when v_role in ('admin', 'tenant', 'landlord', 'property_manager') then v_role
     else 'tenant'
   end;
-  requested_lister_type text := lower(coalesce(new.raw_user_meta_data ->> 'lister_type', 'owner'));
 BEGIN
   INSERT INTO public.profiles (
-    id, role, lister_type, full_name, email, phone, nida_number,
-    business_name, occupation, verification_status, created_at, updated_at
+    id, role, full_name, email, phone, nida_number,
+    business_name, occupation, created_at
   )
   VALUES (
     new.id,
     resolved_role,
-    requested_lister_type,
     coalesce(new.raw_user_meta_data ->> 'full_name', split_part(new.email, '@', 1), 'New User'),
     new.email,
     nullif(new.raw_user_meta_data ->> 'phone', ''),
     nullif(new.raw_user_meta_data ->> 'nida_number', ''),
     nullif(new.raw_user_meta_data ->> 'business_name', ''),
     nullif(new.raw_user_meta_data ->> 'occupation', ''),
-    'pending',
-    now(),
     now()
   )
   on conflict (id) do update set
-    nida_number = excluded.nida_number,
-    business_name = coalesce(profiles.business_name, excluded.business_name),
-    occupation = coalesce(profiles.occupation, excluded.occupation),
-    email = coalesce(profiles.email, excluded.email),
-    phone = coalesce(profiles.phone, excluded.phone);
+    nida_number    = excluded.nida_number,
+    business_name  = coalesce(profiles.business_name, excluded.business_name),
+    occupation     = coalesce(profiles.occupation, excluded.occupation),
+    email          = coalesce(profiles.email, excluded.email),
+    phone          = coalesce(profiles.phone, excluded.phone);
 
   return new;
 end;
-$$;
+$$ LANGUAGE plpgsql;
 
 commit;
