@@ -194,7 +194,9 @@ export default function ExitListingModal({ onClose, onSuccess }: ExitListingModa
           filters: [{ column: 'id', op: 'eq', value: bk.landlord_id }],
           limit: 1, accessToken: token!,
         });
-        const landlordProfileId: string = landlordRecs[0]?.profile_id ?? bk.landlord_id;
+        // IMPORTANT: landlord_id on bookings is landlords.id, but move_out_notices.landlord_id
+        // references profiles.id. Only use profile_id; if not found, set null (not landlords.id).
+        const landlordProfileId: string | null = landlordRecs[0]?.profile_id ?? null;
 
         let propertyId = bk.property_id ?? '';
         let propertyTitle = 'Chumba Chako';
@@ -254,12 +256,15 @@ export default function ExitListingModal({ onClose, onSuccess }: ExitListingModa
 
     setSubmitting(true);
     try {
-      // Build notice payload — use lease_id OR booking_id depending on path
+      // Build notice payload — sanitize every UUID field: empty string → null
+      // (prevents "invalid input syntax for type uuid" when property_id or room_id is unresolved)
+      const uuid = (v: unknown) => (v && String(v).trim() ? v : null);
+
       const noticePayload: Record<string, unknown> = {
-        tenant_id:              lease.tenantProfileId,
-        landlord_id:            lease.landlordProfileId,
-        property_id:            lease.propertyId,
-        room_id:                lease.roomId,
+        tenant_id:              uuid(lease.tenantProfileId),
+        landlord_id:            uuid(lease.landlordProfileId),
+        property_id:            uuid(lease.propertyId),
+        room_id:                uuid(lease.roomId),
         intended_move_out_date: moveOutDate,
         handover_notes:         notes.trim() || null,
         status:                 'pending',
