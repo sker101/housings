@@ -23,7 +23,12 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { selectRows, updateRows, deleteRows } from '../lib/supabase';
 import { mapListingRow, fetchPhotosForListings } from '../lib/listings';
+import { listingToMapRoom } from '../lib/mapCoords';
 import PaymentModal from '../components/PaymentModal';
+import MapboxListingMap from '../components/MapboxListingMap';
+import { LayoutGrid, Map as MapIcon } from 'lucide-react';
+
+type ViewMode = 'grid' | 'map';
 
 export default function LandlordListingsPage() {
   const navigate = useNavigate();
@@ -41,6 +46,9 @@ export default function LandlordListingsPage() {
   // Payment Modal State
   const [boostModalOpen, setBoostModalOpen] = useState(false);
   const [boostingListingId, setBoostingListingId] = useState<string | null>(null);
+
+  // View Mode State
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
 
   useEffect(() => {
     let mounted = true;
@@ -379,6 +387,30 @@ export default function LandlordListingsPage() {
               </button>
             ))}
           </div>
+
+          <div style={{ height: 24, width: 1, background: 'var(--border)', margin: '0 0.5rem' }} />
+
+          <div style={{
+            display: 'flex', background: 'white', borderRadius: 10,
+            border: '1px solid var(--border)', overflow: 'hidden',
+          }}>
+            {(['grid', 'map'] as ViewMode[]).map((mode) => (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '6px 14px', border: 'none', cursor: 'pointer',
+                  background: viewMode === mode ? 'var(--jade)' : 'transparent',
+                  color: viewMode === mode ? '#fff' : 'var(--mid)',
+                  fontWeight: 600, fontSize: '0.8rem', transition: 'all 0.18s',
+                }}
+              >
+                {mode === 'grid' ? <LayoutGrid size={14} /> : <MapIcon size={14} />}
+                {mode === 'grid' ? 'Table' : 'Map'}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div style={{ background: '#ffffff', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden' }}>
@@ -431,6 +463,26 @@ export default function LandlordListingsPage() {
                   Add Your First Property
                 </Link>
               ) : null}
+            </div>
+          ) : viewMode === 'map' ? (
+            <div style={{ position: 'relative' }}>
+              <MapboxListingMap
+                rooms={filtered
+                  .map(listingToMapRoom)
+                  .filter((r): r is NonNullable<typeof r> => r !== null)}
+                height="calc(100vh - 220px)"
+                onRoomClick={(id) => navigate(`/listings/${id}`)}
+              />
+              <div style={{
+                position: 'absolute', top: 12, right: 56, zIndex: 10,
+                background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(8px)',
+                borderRadius: 20, padding: '6px 14px', fontSize: '0.82rem',
+                fontWeight: 700, boxShadow: '0 2px 10px rgba(0,0,0,0.12)',
+                color: '#1e293b', display: 'flex', alignItems: 'center', gap: 6,
+              }}>
+                <span style={{ color: '#22c55e' }}>●</span>
+                {filtered.length} properties
+              </div>
             </div>
           ) : (
             <div className="lst-table-wrap">

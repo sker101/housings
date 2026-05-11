@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MapboxListingMap from '../components/MapboxListingMap';
+import { listingToMapRoom } from '../lib/mapCoords';
 import { useAuth } from '../context/AuthContext';
 import bgImage from '../images/homelanding.jpg';
 import {
@@ -603,16 +604,11 @@ export default function HomePage() {
                   zIndex: 1
                 }}>
                   <MapboxListingMap 
-                    rooms={availableListings.map(l => ({
-                      id: l.id,
-                      latitude: (l as any).lat,
-                      longitude: (l as any).lng,
-                      title: l.title,
-                      price_tzs: l.priceMonthly,
-                      availability_status: (l as any).vacancyStatus,
-                      ward: l.ward
-                    }))} 
+                    rooms={availableListings
+                      .map(listingToMapRoom)
+                      .filter((r): r is NonNullable<typeof r> => r !== null)}
                     height="100%"
+                    onRoomClick={(id) => navigate(`/listings/${id}`)}
                   />
                 </div>
               ) : (
