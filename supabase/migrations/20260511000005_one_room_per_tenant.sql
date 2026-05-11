@@ -10,6 +10,21 @@
 --    Covers: pending, confirmed, approved, paid
 --    Excludes: cancelled, rejected, completed, expired
 
+-- Clean up existing duplicate active bookings (keep only the most recent one per tenant)
+UPDATE bookings
+SET status = 'cancelled'
+WHERE status IN ('pending', 'confirmed', 'approved', 'paid')
+  AND id NOT IN (
+    SELECT id
+    FROM (
+      SELECT id,
+             ROW_NUMBER() OVER (PARTITION BY tenant_id ORDER BY created_at DESC) as rnum
+      FROM bookings
+      WHERE status IN ('pending', 'confirmed', 'approved', 'paid')
+    ) as ranked
+    WHERE rnum = 1
+  );
+
 DO $$ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_indexes

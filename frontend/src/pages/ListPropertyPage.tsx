@@ -213,6 +213,7 @@ function validateStep(step: number, values: any, files: any, previews: any): str
       if (!values.district) return 'District is required';
       if (!values.ward) return 'Ward is required';
       if (!values.street) return 'Street is required';
+      if (!values.lat || !values.lng) return 'Exact location on the map is required. Please tap "Get My Location" so Mapbox can accurately display your room.';
       return '';
     },
     4: () => {
