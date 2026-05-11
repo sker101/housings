@@ -785,6 +785,21 @@ export default function ListPropertyPage() {
         throw new Error('Listing was not created successfully (no ID returned). Please check your internet connection or contact support.');
       }
 
+      // Notify the original lister if an admin edited their listing
+      if (editId && isAdmin && originalListerId && originalListerId !== user.userId) {
+        try {
+          await insertRows('notifications', {
+            user_id: originalListerId,
+            type: 'system',
+            title: 'Listing Updated by Admin',
+            body: `Your listing "${values.title}" was reviewed and updated by an administrator.`,
+          }, { accessToken });
+          console.log('✅ Sent notification to landlord about admin edit');
+        } catch (notifErr) {
+          console.warn('⚠️ Failed to send admin edit notification', notifErr);
+        }
+      }
+
       // STEP 3: Handle Photos (Clean Slate Approach)
       console.log('📦 Step 3: Processing Photos...');
       
