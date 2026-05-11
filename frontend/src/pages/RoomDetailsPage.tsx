@@ -182,14 +182,7 @@ export default function RoomDetailsPage() {
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [swipeStartX, setSwipeStartX] = useState(null);
-  const [openInquiry, setOpenInquiry] = useState(false);
-  const [editingName, setEditingName] = useState(false);
-  const [inquiryName, setInquiryName] = useState('');
-  const [moveInDate, setMoveInDate] = useState('');
-  const [durationMonths, setDurationMonths] = useState('6');
-  const [contactPreference, setContactPreference] = useState('in_app_chat');
-  const [message, setMessage] = useState('');
-  const [submittingInquiry, setSubmittingInquiry] = useState(false);
+  const [startingChat, setStartingChat] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -775,29 +768,18 @@ export default function RoomDetailsPage() {
     }
   };
 
-  const submitInquiry = async (event) => {
-    event.preventDefault();
-
+  const startChatWithLandlord = async () => {
     if (!listing || !user?.userId || !token) {
       navigate('/login');
       return;
     }
 
     if (user.userId === listing.listerId) {
-      setError('You cannot inquire on your own listing.');
+      alert('You cannot chat with yourself.');
       return;
     }
 
-    setSubmittingInquiry(true);
-    setError('');
-
-    // Ensure profile has a name if missing (rare but possible via social login)
-    if (!user.fullName) {
-      await updateRows('profiles', { full_name: inquiryName }, {
-        filters: [{ column: 'id', op: 'eq', value: user.userId }],
-        accessToken: token
-      }).catch(() => { });
-    }
+    setStartingChat(true);
 
     try {
       const existing = await selectRows('conversations', {
@@ -818,9 +800,8 @@ export default function RoomDetailsPage() {
           {
             listing_id: listing.id,
             tenant_id: user.userId,
-            lister_id: listing.listerId,
-            inquiry_status: 'open',
-            move_in_date: moveInDate || null
+            landlord_id: listing.listerId,
+            inquiry_status: 'open'
           },
           { accessToken: token }
         );
@@ -829,26 +810,14 @@ export default function RoomDetailsPage() {
       }
 
       if (!conversationId) {
-        throw new Error('Unable to open conversation.');
+        throw new Error('Unable to create conversation.');
       }
 
-      await insertRows(
-        'chat_messages',
-        {
-          conversation_id: conversationId,
-          sender_id: user.userId,
-          body: message.trim()
-        },
-        { accessToken: token }
-      );
-
-      setSubmittingInquiry(false);
-      setMessage('');
-      setOpenInquiry(false);
-      navigate(`/messages/${inquiryId}`);
-    } catch (err) {
-      setError(err.message || 'Failed to send message. Please try again.');
-      setSubmittingInquiry(false);
+      navigate(`/messages/${conversationId}`);
+    } catch (err: any) {
+      alert(err.message || 'Failed to start chat.');
+    } finally {
+      setStartingChat(false);
     }
   };
 
@@ -1187,22 +1156,22 @@ export default function RoomDetailsPage() {
                 {listerProfile.phone}
               </a>
             )}
-            {listing?.whatsappNumber && (
-              <a 
-                href={`https://wa.me/${listing.whatsappNumber.replace(/\D/g, '')}`}
-                target="_blank"
-                rel="noreferrer"
+            {hasPaidBooking && listing?.listerId && (
+              <button 
+                onClick={startChatWithLandlord}
+                disabled={startingChat}
                 className="rd-contact-btn rd-contact-btn--whatsapp"
+                style={{ border: 'none', background: '#3b82f6', cursor: 'pointer', opacity: startingChat ? 0.7 : 1 }}
               >
                 <MessageCircle size={16} />
-                WhatsApp
-              </a>
+                {startingChat ? 'Connecting...' : 'In-App Chat'}
+              </button>
             )}
           </div>
         ) : (
           <div className="rd-lister__locked">
             <Lock size={18} />
-            <p>Contact info hidden. Reserve to unlock phone & WhatsApp.</p>
+            <p>Contact info hidden. Reserve to unlock phone & chat.</p>
           </div>
         )}
       </section>
@@ -1301,16 +1270,11 @@ export default function RoomDetailsPage() {
         
         <button 
           className="rd-btn rd-btn--secondary"
-          onClick={() => {
-            if (!isAuthenticated) {
-              navigate('/login', { state: { from: { pathname: `/rooms/${roomId}` } } });
-              return;
-            }
-            setOpenInquiry(true);
-          }}
+          onClick={startChatWithLandlord}
+          disabled={startingChat}
         >
           <MessageCircle size={18} />
-          Chat
+          {startingChat ? 'Starting Chat...' : 'Chat In-App'}
         </button>
         
         <button className="rd-btn rd-btn--secondary" onClick={handleShare}>
@@ -1484,38 +1448,7 @@ export default function RoomDetailsPage() {
         </div>
       )}
 
-      {/* Inquiry Modal */}
-      {openInquiry && (
-        <div style={{
-          position: 'fixed',
-          top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(15, 23, 42, 0.75)',
-          backdropFilter: 'blur(8px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: '1.5rem',
-          animation: 'fadeIn 0.2s ease-out'
-        }}>
-          <div className="card" style={{
-            width: '100%',
-            maxWidth: '500px',
-            padding: '2.5rem',
-            position: 'relative',
-            animation: 'modalSlideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
-          }}>
-            {/* Inquiry Modal Content (truncated for brevity but preserved) */}
-            <button onClick={() => setOpenInquiry(false)} style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }}>
-              <ArrowLeft size={16} />
-            </button>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e293b', marginBottom: '0.5rem' }}>Send Inquiry</h2>
-            <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.5rem' }}>Interested in this room? Send a message to the lister.</p>
-            {/* ... remaining inquiry form logic ... */}
-            <button onClick={() => setOpenInquiry(false)} className="rd-btn rd-btn--primary" style={{ width: '100%', padding: '1rem' }}>Close</button>
-          </div>
-        </div>
-      )}
+      {/* ── Inquiry Modal Removed ─────────────────────────────── */}
 
       {/* ── Move-Out Modal ─────────────────────────────── */}
       {moveOutModalOpen && (

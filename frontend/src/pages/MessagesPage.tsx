@@ -58,7 +58,7 @@ export default function MessagesPage() {
   const canManageInquiryStatus = Boolean(
     activeConversation &&
     user?.userId &&
-    (user.userId === activeConversation.lister_id || user.role === 'admin')
+    (user.userId === activeConversation.landlord_id || user.role === 'admin')
   );
 
   useEffect(() => {
@@ -84,8 +84,8 @@ export default function MessagesPage() {
       try {
         const rows = await selectRows('conversations', {
           select:
-            'id,listing_id,tenant_id,lister_id,inquiry_status,move_in_date,last_message_at,created_at',
-          or: `tenant_id.eq.${user.userId},lister_id.eq.${user.userId}`,
+            'id,listing_id,tenant_id,landlord_id,inquiry_status,move_in_date,last_message_at,created_at',
+          or: `tenant_id.eq.${user.userId},landlord_id.eq.${user.userId}`,
           order: 'last_message_at.desc',
           limit: 100,
           accessToken: token
@@ -115,7 +115,7 @@ export default function MessagesPage() {
         const participantIds = Array.from(
           new Set(
             rows
-              .map((r) => (r.tenant_id === user.userId ? r.lister_id : r.tenant_id))
+              .map((r) => (r.tenant_id === user.userId ? r.landlord_id : r.tenant_id))
               .filter(Boolean)
           )
         );
@@ -131,7 +131,7 @@ export default function MessagesPage() {
         }
 
         const merged = rows.map((row) => {
-          const otherId = row.tenant_id === user.userId ? row.lister_id : row.tenant_id;
+          const otherId = row.tenant_id === user.userId ? row.landlord_id : row.tenant_id;
           const otherProfile = participantProfileMap.get(otherId) || null;
           return {
             ...row,
@@ -192,7 +192,7 @@ export default function MessagesPage() {
 
     const unsubscribeLister = subscribeToTableChanges({
       table: 'conversations',
-      filter: `lister_id=eq.${user.userId}`,
+      filter: `landlord_id=eq.${user.userId}`,
       accessToken: token,
       onEvent: handleConversationEvent,
       onStatus: () => {}
@@ -217,11 +217,11 @@ export default function MessagesPage() {
       try {
         if (user?.userId) {
           await updateRows(
-            'chat_messages',
+            'messages',
             { is_read: true },
             {
               filters: [
-                { column: 'inquiry_id', op: 'eq', value: threadId },
+                { column: 'conversation_id', op: 'eq', value: threadId },
                 { column: 'sender_id', op: 'neq', value: user.userId },
                 { column: 'is_read', op: 'eq', value: 'false' }
               ],
@@ -230,9 +230,9 @@ export default function MessagesPage() {
           ).catch(() => {});
         }
 
-        const messageRows = await selectRows('chat_messages', {
-          select: 'id,inquiry_id,sender_id,body,is_read,created_at',
-          filters: [{ column: 'inquiry_id', op: 'eq', value: threadId }],
+        const messageRows = await selectRows('messages', {
+          select: 'id,conversation_id,sender_id,body,is_read,created_at',
+          filters: [{ column: 'conversation_id', op: 'eq', value: threadId }],
           order: 'created_at.asc',
           accessToken: token
         });
@@ -301,9 +301,9 @@ export default function MessagesPage() {
 
     try {
       await insertRows(
-        'chat_messages',
+        'messages',
         {
-          inquiry_id: threadId,
+          conversation_id: threadId,
           sender_id: user.userId,
           body: sanitizeInput(messageBody)
         },
@@ -312,9 +312,9 @@ export default function MessagesPage() {
 
       setMessageBody('');
 
-      const messageRows = await selectRows('chat_messages', {
-        select: 'id,inquiry_id,sender_id,body,is_read,created_at',
-        filters: [{ column: 'inquiry_id', op: 'eq', value: threadId }],
+      const messageRows = await selectRows('messages', {
+        select: 'id,conversation_id,sender_id,body,is_read,created_at',
+        filters: [{ column: 'conversation_id', op: 'eq', value: threadId }],
         order: 'created_at.asc',
         accessToken: token
       });
@@ -354,8 +354,8 @@ export default function MessagesPage() {
 
     try {
       const rows = await updateRows(
-        'room_inquiries',
-        { status: statusValue },
+        'conversations',
+        { inquiry_status: statusValue },
         {
           filters: [{ column: 'id', op: 'eq', value: threadId }],
           accessToken: token
