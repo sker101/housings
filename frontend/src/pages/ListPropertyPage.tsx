@@ -272,11 +272,14 @@ export default function ListPropertyPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [, setSubmittedListingId] = useState<string | null>(null);
   const [draftsDisabled, setDraftsDisabled] = useState(false);
+  const [originalListerId, setOriginalListerId] = useState<string | null>(null);
+  const [originalStatus, setOriginalStatus] = useState<string | null>(null);
   const [verificationStatus, setVerificationStatus] = useState(
     String(user?.landlordVerificationStatus || '').trim().toLowerCase()
   );
 
-  const hasListerRole = user?.role === 'landlord' || user?.role === 'dalali' || user?.role === 'property_manager' || user?.role === 'admin';
+  const isAdmin = user?.role === 'admin';
+  const hasListerRole = user?.role === 'landlord' || user?.role === 'dalali' || user?.role === 'property_manager' || isAdmin;
   const isVerified = verificationStatus === 'approved' || verificationStatus === 'verified';
   const isRejected = verificationStatus === 'rejected';
   const verificationRequiredMessage = isRejected
@@ -366,18 +369,22 @@ export default function ListPropertyPage() {
       try {
         const editId = new URLSearchParams(location.search).get('edit');
         if (editId) {
+          const filters: any[] = [{ column: 'id', op: 'eq', value: editId }];
+          if (!isAdmin) {
+            filters.push({ column: 'lister_id', op: 'eq', value: user.userId });
+          }
+          
           const records = await selectRows('listings', {
             select: '*',
-            filters: [
-              { column: 'id', op: 'eq', value: editId },
-              { column: 'lister_id', op: 'eq', value: user.userId }
-            ],
+            filters,
             limit: 1,
             accessToken: token
           });
 
           if (records?.length > 0 && mounted) {
             const row = records[0];
+            setOriginalListerId(row.lister_id);
+            setOriginalStatus(row.status);
             reset({
               ...DEFAULT_FORM,
               fullName: row.full_name || user?.fullName || '',
@@ -675,8 +682,14 @@ export default function ListPropertyPage() {
         .filter(([_, enabled]) => enabled === true)
         .map(([key]) => key);
 
+      const targetListerId = editId && originalListerId ? originalListerId : user.userId;
+      // If admin is editing, we probably shouldn't reset the status to pending.
+      // If landlord is editing, it resets to pending unless they are just updating minor details?
+      // For now, if admin, keep original status, else pending.
+      const targetStatus = (isAdmin && editId && originalStatus) ? originalStatus : 'pending';
+
       const fullListingPayload = {
-        lister_id: user.userId,
+        lister_id: targetListerId,
         title: sanitizeInput(values.title),
         description: sanitizeInput(values.description),
         room_type: values.roomType,
@@ -703,14 +716,14 @@ export default function ListPropertyPage() {
         amenities: formattedAmenities,
         available_from: values.availableFrom,
         vacancy_status: 'available',
-        status: 'pending',
+        status: targetStatus,
         featured: false,
         near_universities: values.university ? [values.university] : [],
         screening_passed: false
       };
 
       const minimalListingPayload = {
-        lister_id: user.userId,
+        lister_id: targetListerId,
         title: values.title.trim(),
         description: values.description.trim(),
         room_type: values.roomType,
@@ -723,7 +736,7 @@ export default function ListPropertyPage() {
         lng: lngNum,
         amenities: formattedAmenities,
         vacancy_status: 'available',
-        status: 'pending',
+        status: targetStatus,
         featured: false
       };
 
@@ -732,22 +745,24 @@ export default function ListPropertyPage() {
 
       if (editId) {
         try {
+          const updateFilters: any[] = [{ column: 'id', op: 'eq', value: editId }];
+          if (!isAdmin) {
+            updateFilters.push({ column: 'lister_id', op: 'eq', value: user.userId });
+          }
           await updateRows('listings', fullListingPayload, {
-            filters: [
-              { column: 'id', op: 'eq', value: editId },
-              { column: 'lister_id', op: 'eq', value: user.userId }
-            ],
+            filters: updateFilters,
             accessToken
           });
           createdListingId = editId;
           console.log('✅ Listing updated (Full Mode)');
         } catch (updateErr: any) {
           console.warn('⚠️ Full listing update failed, trying Safe Mode...', updateErr.message);
+          const updateFilters: any[] = [{ column: 'id', op: 'eq', value: editId }];
+          if (!isAdmin) {
+            updateFilters.push({ column: 'lister_id', op: 'eq', value: user.userId });
+          }
           await updateRows('listings', minimalListingPayload, {
-            filters: [
-              { column: 'id', op: 'eq', value: editId },
-              { column: 'lister_id', op: 'eq', value: user.userId }
-            ],
+            filters: updateFilters,
             accessToken
           });
           createdListingId = editId;

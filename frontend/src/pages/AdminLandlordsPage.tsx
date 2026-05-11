@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { selectRows, updateRows, insertRows, invokeFunction } from '../lib/supabase';
 import toast from 'react-hot-toast';
@@ -410,13 +411,20 @@ export default function AdminLandlordsPage() {
             <h4>Listings for Verification ({previewListings.length})</h4>
             <div style={{ display: 'grid', gap: '0.6rem' }}>
               {previewListings.map(l => (
-                <div key={l.id} className="card" style={{ padding: '0.6rem', display: 'flex', gap: '0.8rem', border: '1px solid var(--border)' }}>
+                <div key={l.id} className="card" style={{ padding: '0.6rem', display: 'flex', gap: '0.8rem', border: '1px solid var(--border)', alignItems: 'center' }}>
                    <div style={{ width: 60, height: 60, borderRadius: 6, background: 'var(--cream)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🏡</div>
-                   <div>
-                     <p style={{ margin: 0, fontWeight: 700, fontSize: '0.9rem' }}>{l.title}</p>
-                     <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--mid)' }}>{l.district}, {l.ward}</p>
+                   <div style={{ flex: 1, minWidth: 0 }}>
+                     <p style={{ margin: 0, fontWeight: 700, fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.title}</p>
+                     <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--mid)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.district}, {l.ward}</p>
                      <p style={{ margin: '0.2rem 0 0', fontWeight: 800, color: PRIMARY, fontSize: '0.85rem' }}>{fmtTZS(l.price_monthly)}</p>
                    </div>
+                   <Link 
+                     to={`/landlord/properties/new?edit=${l.id}`} 
+                     className="btn btn--ghost btn--small" 
+                     style={{ flexShrink: 0 }}
+                   >
+                     Inspect
+                   </Link>
                 </div>
               ))}
               {previewListings.length === 0 && <p className="muted">No listings posted yet.</p>}
