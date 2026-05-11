@@ -652,7 +652,15 @@ label {
   gap: 1.5rem;
 }
 
+/* Wrapper used by ListingCard for relative positioning (Coming Soon CTA).
+   display:contents makes it transparent to grid layout so the inner <a>
+   becomes the actual grid item with correct sizing. */
+.listing-card-wrapper {
+  display: contents;
+}
+
 .listing-card {
+  position: relative;
   border: 1px solid var(--border) !important;
   background: var(--surface) !important;
   border-radius: 16px !important;

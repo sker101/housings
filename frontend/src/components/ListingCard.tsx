@@ -59,7 +59,7 @@ export default function ListingCard({
   const comingSoon = isNewComingSoon(listing) || isLegacyComingSoon(listing.vacancyStatus);
 
   return (
-    <div className="listing-card-wrapper" style={{ position: 'relative' }}>
+    <div className="listing-card-wrapper">
       <Link to={`/rooms/${listing.id}`} className="listing-card">
         <div className="listing-card__image-wrap">
           <img
@@ -153,6 +153,7 @@ export default function ListingCard({
             gap: '0.35rem',
             boxShadow: '0 2px 8px rgba(34,197,94,0.3)',
             transition: 'transform 0.15s',
+            zIndex: 5,
           }}
           onMouseOver={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
           onMouseOut={(e) => (e.currentTarget.style.transform = 'scale(1)')}
