@@ -332,6 +332,20 @@ export default function MyRoomPage() {
   const mainPayment = useMemo(() => payments[0], [payments]);
   const nextPayment = useMemo(() => payments.find((p) => p.status !== 'paid'), [payments]);
 
+  // Derive effective monthly rent from booking's actual paid amounts
+  // (listing.price_monthly can be 0 if landlord didn't enter it correctly)
+  const effectiveMonthlyRent = useMemo(() => {
+    const listed = listing?.price_monthly || 0;
+    if (listed > 0) return listed;
+    // Back-calculate: total = monthlyRent * months + platformDeposit + gatewayFee
+    const total = booking?.total_amount_due || 0;
+    const deposit = booking?.platform_deposit_fee || 0;
+    const gateway = booking?.gateway_fee || 0;
+    const months = booking?.months_duration || 1;
+    const rentTotal = total - deposit - gateway;
+    return rentTotal > 0 ? Math.round(rentTotal / months) : 0;
+  }, [listing, booking]);
+
   const leaseEndDate = useMemo(() => {
     const moveIn = booking?.move_in_date;
     const months = booking?.months_duration || 0;
@@ -919,7 +933,7 @@ export default function MyRoomPage() {
                   {/* Monthly rent row */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 0', borderBottom: '1px solid var(--border)' }}>
                     <span style={{ color: 'var(--mid)', fontSize: '0.88rem' }}>Monthly rent</span>
-                    <span style={{ fontWeight: 600 }}>{formatTZS(listing?.price_monthly)}</span>
+                    <span style={{ fontWeight: 600 }}>{formatTZS(effectiveMonthlyRent)}</span>
                   </div>
 
                   {/* Lease duration */}
@@ -931,16 +945,20 @@ export default function MyRoomPage() {
                   {/* Total rent over lease */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 0', borderBottom: '1px solid var(--border)' }}>
                     <span style={{ color: 'var(--mid)', fontSize: '0.88rem' }}>Total rent ({booking?.months_duration || 0} months)</span>
-                    <span style={{ fontWeight: 600 }}>{formatTZS((listing?.price_monthly || 0) * (booking?.months_duration || 0))}</span>
+                    <span style={{ fontWeight: 600 }}>{formatTZS(effectiveMonthlyRent * (booking?.months_duration || 0))}</span>
                   </div>
 
-                  {/* Platform deposit fee — 35% of 1 month's rent */}
+                  {/* Fees — use actual booking values; formula only as fallback */}
                   {(() => {
-                    const monthlyRent = listing?.price_monthly || 0;
-                    const platformDeposit = Math.round(monthlyRent * 0.35);
-                    const totalBeforeGateway = monthlyRent + platformDeposit;
-                    const gatewayFee = Math.round(totalBeforeGateway * 0.035);
-                    const grandTotal = totalBeforeGateway + gatewayFee;
+                    const platformDeposit = (booking?.platform_deposit_fee || 0) > 0
+                      ? booking!.platform_deposit_fee!
+                      : Math.round(effectiveMonthlyRent * 0.35);
+                    const gatewayFee = (booking?.gateway_fee || 0) > 0
+                      ? booking!.gateway_fee!
+                      : Math.round((effectiveMonthlyRent + platformDeposit) * 0.035);
+                    const grandTotal = (booking?.total_amount_due || 0) > 0
+                      ? booking!.total_amount_due!
+                      : effectiveMonthlyRent * (booking?.months_duration || 1) + platformDeposit + gatewayFee;
                     return (
                       <>
                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 0', borderBottom: '1px solid var(--border)' }}>
@@ -1064,11 +1082,11 @@ export default function MyRoomPage() {
                     <p><strong>PARTIES</strong></p>
                     <p style={{ paddingLeft: '1rem', marginBottom: '1rem' }}>
                       <strong>Landlord/Dalali:</strong> {landlord?.full_name || '—'}<br />
-                      <strong>Landlord Phone:</strong> {landlord?.phone || '—'}<br />
+                      <strong>Landlord Phone:</strong> {landlord?.phone || 'Contact via iRent messaging'}<br />
                       <strong>Tenant:</strong> {user?.fullName || '—'}<br />
                       <strong>Property:</strong> {listing?.title || '—'} ({listing?.room_type || 'Residential Room'})<br />
                       <strong>Address:</strong> {[listing?.street, listing?.ward, listing?.district].filter(Boolean).join(', ') || 'Dar es Salaam'}<br />
-                      <strong>Monthly Rent:</strong> {formatTZS(listing?.price_monthly)}<br />
+                      <strong>Monthly Rent:</strong> {formatTZS(effectiveMonthlyRent)}<br />
                       <strong>Lease Start:</strong> {formatDate(booking?.move_in_date)}<br />
                       <strong>Lease End:</strong> {leaseEndDate ? formatDate(leaseEndDate.toISOString()) : '—'}<br />
                       <strong>Duration:</strong> {booking?.months_duration || 0} month(s)<br />
@@ -1076,7 +1094,7 @@ export default function MyRoomPage() {
                     </p>
 
                     <p><strong>1. RENT PAYMENT</strong><br />
-                    The tenant agrees to pay {formatTZS(listing?.price_monthly)} per month, due on the same date as the move-in date each month. Late payments may attract a penalty as agreed with the landlord.</p>
+                    The tenant agrees to pay {formatTZS(effectiveMonthlyRent)} per month, due on the same date as the move-in date each month. Late payments may attract a penalty as agreed with the landlord.</p>
 
                     <p><strong>2. PLATFORM FEES</strong><br />
                     A platform deposit of {formatTZS(booking?.platform_deposit_fee)} and gateway processing fee of {formatTZS(booking?.gateway_fee)} were charged at booking. Total paid at move-in: {formatTZS(booking?.total_amount_due)}.</p>
