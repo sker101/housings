@@ -11,7 +11,7 @@ import {
   ShieldCheck,
   CheckCircle2 
 } from 'lucide-react';
-import { upsertRows } from '../../lib/supabase';
+import { updateRows, selectRows } from '../../lib/supabase';
 import { dashboardDefaultPath, toAppRole } from '../../lib/roles';
 
 export default function CompleteProfilePage() {
@@ -79,7 +79,6 @@ export default function CompleteProfilePage() {
 
       // ── Step 1: Save core fields (always-safe columns) ────────
       const coreUpdate: Record<string, unknown> = {
-        id: user.userId,
         full_name: formData.fullName.trim() || profile?.full_name || user?.fullName,
         email: user.email,
         phone: formData.phone.trim(),
@@ -106,8 +105,22 @@ export default function CompleteProfilePage() {
         coreUpdate.business_name = formData.businessName.trim();
       }
 
-      console.log('[CompleteProfile] Upserting core profile:', coreUpdate);
-      await upsertRows('profiles', coreUpdate, {
+      // ── Step 2: Check phone uniqueness first ─────────────────
+      const phoneCheck = await selectRows('profiles', {
+        select: 'id',
+        filters: [{ column: 'phone', op: 'eq', value: formData.phone.trim() }],
+        limit: 2,
+        accessToken: token,
+      });
+
+      const phoneConflict = phoneCheck.filter((p: any) => p.id !== user.userId);
+      if (phoneConflict.length > 0) {
+        throw new Error('That phone number is already registered to another account. Please use a different number.');
+      }
+
+      console.log('[CompleteProfile] Updating core profile:', coreUpdate);
+      await updateRows('profiles', coreUpdate, {
+        filters: [{ column: 'id', op: 'eq', value: user.userId }],
         accessToken: token,
       });
 
