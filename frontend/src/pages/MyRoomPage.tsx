@@ -934,29 +934,38 @@ export default function MyRoomPage() {
                     <span style={{ fontWeight: 600 }}>{formatTZS((listing?.price_monthly || 0) * (booking?.months_duration || 0))}</span>
                   </div>
 
-                  {/* Platform deposit fee */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 0', borderBottom: '1px solid var(--border)' }}>
-                    <div>
-                      <span style={{ color: 'var(--mid)', fontSize: '0.88rem' }}>Platform deposit fee</span>
-                      <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--mid)', fontStyle: 'italic' }}>One-time · refundable on lease completion</p>
-                    </div>
-                    <span style={{ fontWeight: 600 }}>{formatTZS(booking?.platform_deposit_fee)}</span>
-                  </div>
+                  {/* Platform deposit fee — 35% of 1 month's rent */}
+                  {(() => {
+                    const monthlyRent = listing?.price_monthly || 0;
+                    const platformDeposit = Math.round(monthlyRent * 0.35);
+                    const totalBeforeGateway = monthlyRent + platformDeposit;
+                    const gatewayFee = Math.round(totalBeforeGateway * 0.035);
+                    const grandTotal = totalBeforeGateway + gatewayFee;
+                    return (
+                      <>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 0', borderBottom: '1px solid var(--border)' }}>
+                          <div>
+                            <span style={{ color: 'var(--mid)', fontSize: '0.88rem' }}>Platform deposit fee</span>
+                            <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--mid)', fontStyle: 'italic' }}>35% of 1 month's rent · one-time · refundable on lease completion</p>
+                          </div>
+                          <span style={{ fontWeight: 600 }}>{formatTZS(platformDeposit)}</span>
+                        </div>
 
-                  {/* Gateway fee */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 0', borderBottom: '1px solid var(--border)' }}>
-                    <div>
-                      <span style={{ color: 'var(--mid)', fontSize: '0.88rem' }}>Gateway transaction fee</span>
-                      <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--mid)', fontStyle: 'italic' }}>3.5% processing fee (AzamPay)</p>
-                    </div>
-                    <span style={{ fontWeight: 600 }}>{formatTZS(booking?.gateway_fee)}</span>
-                  </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 0', borderBottom: '1px solid var(--border)' }}>
+                          <div>
+                            <span style={{ color: 'var(--mid)', fontSize: '0.88rem' }}>Gateway transaction fee</span>
+                            <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--mid)', fontStyle: 'italic' }}>3.5% of total amount transacted (AzamPay)</p>
+                          </div>
+                          <span style={{ fontWeight: 600 }}>{formatTZS(gatewayFee)}</span>
+                        </div>
 
-                  {/* Total due */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', marginTop: '0.5rem', background: '#eef6f3', borderRadius: 10 }}>
-                    <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#085041' }}>Total paid at move-in</span>
-                    <span style={{ fontWeight: 800, fontSize: '1.05rem', color: '#16a34a' }}>{formatTZS(booking?.total_amount_due)}</span>
-                  </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', marginTop: '0.5rem', background: '#eef6f3', borderRadius: 10 }}>
+                          <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#085041' }}>Total paid at move-in</span>
+                          <span style={{ fontWeight: 800, fontSize: '1.05rem', color: '#16a34a' }}>{formatTZS(grandTotal)}</span>
+                        </div>
+                      </>
+                    );
+                  })()}
 
                   {booking?.reference && (
                     <div style={{ marginTop: '0.6rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -1055,6 +1064,7 @@ export default function MyRoomPage() {
                     <p><strong>PARTIES</strong></p>
                     <p style={{ paddingLeft: '1rem', marginBottom: '1rem' }}>
                       <strong>Landlord/Dalali:</strong> {landlord?.full_name || '—'}<br />
+                      <strong>Landlord Phone:</strong> {landlord?.phone || '—'}<br />
                       <strong>Tenant:</strong> {user?.fullName || '—'}<br />
                       <strong>Property:</strong> {listing?.title || '—'} ({listing?.room_type || 'Residential Room'})<br />
                       <strong>Address:</strong> {[listing?.street, listing?.ward, listing?.district].filter(Boolean).join(', ') || 'Dar es Salaam'}<br />
@@ -1180,14 +1190,19 @@ export default function MyRoomPage() {
                         The room will be listed as available. Any refund is subject to the landlord's policy above.
                         This action <strong>cannot be undone</strong>.
                       </p>
-                      <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', cursor: 'pointer', marginBottom: '0.9rem' }}>
+                      <label style={{
+                        display: 'flex', alignItems: 'flex-start', gap: '0.75rem',
+                        cursor: 'pointer', marginBottom: '0.9rem',
+                        background: '#fff', border: '1.5px solid #fca5a5',
+                        borderRadius: 8, padding: '0.75rem'
+                      }}>
                         <input
                           type="checkbox"
                           checked={vacateAgreed}
                           onChange={e => setVacateAgreed(e.target.checked)}
-                          style={{ marginTop: '3px', accentColor: '#b91c1c' }}
+                          style={{ width: 18, height: 18, flexShrink: 0, marginTop: '1px', accentColor: '#b91c1c', cursor: 'pointer' }}
                         />
-                        <span style={{ fontSize: '0.81rem', color: '#7c2d12', lineHeight: 1.5 }}>
+                        <span style={{ fontSize: '0.82rem', color: '#7c2d12', lineHeight: 1.55 }}>
                           I have read the tenancy agreement and termination policy. I confirm I want to vacate this room.
                         </span>
                       </label>
