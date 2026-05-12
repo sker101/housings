@@ -1290,10 +1290,19 @@ export default function MyRoomPage() {
                     )}
                   </div>
 
-                  {moveOutNotice ? (
+                  {moveOutNotice && !showVacateReview ? (
                     <div style={{ background: '#ecfdf5', border: '1px solid #10b981', borderRadius: 10, padding: '1rem' }}>
-                      <p style={{ margin: '0 0 0.5rem', fontWeight: 700, color: '#047857' }}>
+                      <p style={{ margin: '0 0 0.5rem', fontWeight: 700, color: '#047857', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         Move-Out Notice Submitted
+                        <button 
+                          onClick={() => {
+                            setIntendedMoveOutDate(moveOutNotice.intended_move_out_date);
+                            setShowVacateReview(true);
+                          }}
+                          style={{ background: 'transparent', border: 'none', color: '#059669', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer', textDecoration: 'underline' }}
+                        >
+                          Edit Date
+                        </button>
                       </p>
                       <p style={{ margin: 0, fontSize: '0.88rem', color: '#065f46', lineHeight: 1.5 }}>
                         You have notified the landlord that you intend to vacate on <strong>{new Date(moveOutNotice.intended_move_out_date).toLocaleDateString()}</strong>.
@@ -1316,7 +1325,7 @@ export default function MyRoomPage() {
                   ) : (
                     <div style={{ background: '#fff7ed', border: '1.5px solid #fdba74', borderRadius: 10, padding: '1rem' }}>
                       <p style={{ margin: '0 0 0.6rem', fontWeight: 700, color: '#9a3412', fontSize: '0.9rem' }}>
-                        ⚠️ Submit Move-Out Notice
+                        {moveOutNotice ? '✏️ Edit Move-Out Date' : '⚠️ Submit Move-Out Notice'}
                       </p>
                       <p style={{ margin: '0 0 0.75rem', fontSize: '0.82rem', color: '#7c2d12', lineHeight: 1.6 }}>
                         Planning to move out? You can <strong>earn a cash reward</strong> by notifying us early so we can start looking for the next tenant!
@@ -1372,25 +1381,42 @@ export default function MyRoomPage() {
                             if (!booking?.id || !listing?.id || !token) return;
                             setVacateBusy(true);
                             try {
-                              const { insertRows } = await import('../lib/supabase');
+                              const { insertRows, updateRows } = await import('../lib/supabase');
                               
-                              await insertRows('move_out_notices', {
-                                booking_id: booking.id,
-                                tenant_id: user.userId,
-                                landlord_id: landlord?.id || listing.listerId,
-                                property_id: listing.property_id || listing.id,
-                                room_id: listing.id,
-                                intended_move_out_date: intendedMoveOutDate,
-                                status: 'pending'
-                              }, { accessToken: token });
+                              if (moveOutNotice) {
+                                await updateRows('move_out_notices', {
+                                  intended_move_out_date: intendedMoveOutDate,
+                                  status: 'pending' // Reset status to pending if they edit it
+                                }, {
+                                  filters: [{ column: 'id', op: 'eq', value: moveOutNotice.id }],
+                                  accessToken: token
+                                });
+                                await insertRows('notifications', {
+                                  user_id: landlord?.id || listing.listerId,
+                                  title: 'Updated Move-Out Notice',
+                                  body: `${user.fullName || 'Your tenant'} updated their intended move-out date for ${listing.title} to ${new Date(intendedMoveOutDate).toLocaleDateString()}.`,
+                                  type: 'system',
+                                  read: false
+                                }, { accessToken: token });
+                              } else {
+                                await insertRows('move_out_notices', {
+                                  booking_id: booking.id,
+                                  tenant_id: user.userId,
+                                  landlord_id: landlord?.id || listing.listerId,
+                                  property_id: listing.property_id || listing.id,
+                                  room_id: listing.id,
+                                  intended_move_out_date: intendedMoveOutDate,
+                                  status: 'pending'
+                                }, { accessToken: token });
 
-                              await insertRows('notifications', {
-                                user_id: landlord?.id || listing.listerId,
-                                title: 'Tenant Move-Out Notice',
-                                body: `${user.fullName || 'Your tenant'} intends to vacate ${listing.title} on ${new Date(intendedMoveOutDate).toLocaleDateString()}. Please review this request.`,
-                                type: 'system',
-                                read: false
-                              }, { accessToken: token });
+                                await insertRows('notifications', {
+                                  user_id: landlord?.id || listing.listerId,
+                                  title: 'Tenant Move-Out Notice',
+                                  body: `${user.fullName || 'Your tenant'} intends to vacate ${listing.title} on ${new Date(intendedMoveOutDate).toLocaleDateString()}. Please review this request.`,
+                                  type: 'system',
+                                  read: false
+                                }, { accessToken: token });
+                              }
 
                               window.location.reload();
                             } catch (err: any) {
@@ -1399,7 +1425,7 @@ export default function MyRoomPage() {
                             }
                           }}
                         >
-                          {vacateBusy ? 'Submitting…' : 'Submit Notice'}
+                          {vacateBusy ? 'Submitting…' : (moveOutNotice ? 'Update Notice' : 'Submit Notice')}
                         </button>
                       </div>
                     </div>
