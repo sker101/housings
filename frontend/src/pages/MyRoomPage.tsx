@@ -1299,9 +1299,22 @@ export default function MyRoomPage() {
                             setIntendedMoveOutDate(moveOutNotice.intended_move_out_date);
                             setShowVacateReview(true);
                           }}
-                          style={{ background: 'transparent', border: 'none', color: '#059669', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer', textDecoration: 'underline' }}
+                          style={{ 
+                            background: '#d1fae5', 
+                            border: '1px solid #10b981', 
+                            color: '#047857', 
+                            fontWeight: 600, 
+                            fontSize: '0.75rem', 
+                            padding: '0.3rem 0.6rem',
+                            borderRadius: '20px',
+                            cursor: 'pointer', 
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.3rem',
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                          }}
                         >
-                          Edit Date
+                          ✏️ Edit Date
                         </button>
                       </p>
                       <p style={{ margin: 0, fontSize: '0.88rem', color: '#065f46', lineHeight: 1.5 }}>
