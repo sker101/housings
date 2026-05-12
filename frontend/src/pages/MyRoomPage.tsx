@@ -914,7 +914,49 @@ export default function MyRoomPage() {
                         Call
                       </a>
                     )}
-                    <button type="button" className="btn btn--ghost btn--small" style={{ flex: 1 }} onClick={() => navigate('/messages')}>
+                    <button 
+                      type="button" 
+                      className="btn btn--ghost btn--small" 
+                      style={{ flex: 1 }} 
+                      onClick={async () => {
+                        if (!user?.userId || !landlord?.id || !listing?.id || !token) {
+                          alert('Unable to start chat. Missing user or landlord data.');
+                          return;
+                        }
+                        try {
+                          const existing = await selectRows('conversations', {
+                            select: 'id',
+                            filters: [
+                              { column: 'listing_id', op: 'eq', value: listing.id },
+                              { column: 'tenant_id', op: 'eq', value: user.userId },
+                              { column: 'landlord_id', op: 'eq', value: landlord.id }
+                            ],
+                            limit: 1,
+                            accessToken: token
+                          });
+
+                          let conversationId = existing[0]?.id;
+                          if (!conversationId) {
+                            const created = await insertRows('conversations', {
+                              listing_id: listing.id,
+                              tenant_id: user.userId,
+                              landlord_id: landlord.id,
+                              inquiry_status: 'open'
+                            }, { accessToken: token });
+                            conversationId = created?.[0]?.id;
+                          }
+
+                          if (conversationId) {
+                            navigate(`/messages/${conversationId}`);
+                          } else {
+                            alert('Unable to create conversation.');
+                          }
+                        } catch (err) {
+                          console.error('Error starting conversation:', err);
+                          alert('An error occurred while starting the chat.');
+                        }
+                      }}
+                    >
                       Message
                     </button>
                   </div>

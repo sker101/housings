@@ -17,11 +17,11 @@ CREATE POLICY "profiles_select_privacy"
     public.is_admin(auth.uid())
     OR
     -- Verified listers are public
-    (role = 'lister'::app_role AND verification_status = 'verified')
+    (role = 'lister' AND verification_status = 'verified')
     OR
     -- Any lister whose listing has an active booking for this tenant
     (
-      role = 'lister'::app_role
+      role = 'lister'
       AND EXISTS (
         SELECT 1 FROM public.bookings b
         WHERE b.landlord_id = profiles.id
