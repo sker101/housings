@@ -101,6 +101,9 @@ export default function MyRoomPage() {
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
   const [activeTab, setActiveTab] = useState<'overview' | 'contacts' | 'payment' | 'contract'>('overview');
   const [isDashboardActive, setIsDashboardActive] = useState(false);
+  const [showVacateReview, setShowVacateReview] = useState(false);
+  const [vacateAgreed, setVacateAgreed] = useState(false);
+  const [vacateBusy, setVacateBusy] = useState(false);
 
   const [retryCount, setRetryCount] = useState(0);
   const isPaymentSuccess = location.search.includes('payment=success');
@@ -905,29 +908,126 @@ export default function MyRoomPage() {
 
             {/* ── PAYMENT TAB ── */}
             {activeTab === 'payment' && (
-              <div className="card" style={{ padding: '1rem', borderRadius: 14, display: 'grid', gap: '0.9rem' }}>
-                <div className="card" style={{ padding: '0.9rem', borderRadius: 12 }}>
-                  <p style={{ margin: 0, color: 'var(--mid)' }}>Payment summary</p>
-                  <Row label="Monthly rent" value={formatTZS(listing?.price_monthly)} />
-                  <Row label="Platform deposit fee" value={formatTZS(booking?.platform_deposit_fee)} />
-                  <Row label="Gateway transaction fee" value={formatTZS(booking?.gateway_fee)} />
-                  <Row label="Total due today" value={formatTZS(booking?.total_amount_due)} bold />
-                  <Row label="Booking reference" value={booking?.reference || mainPayment?.reference || '—'} />
+              <div style={{ display: 'grid', gap: '0.9rem' }}>
+
+                {/* ── Full Payment Analysis ── */}
+                <div className="card" style={{ padding: '1.1rem', borderRadius: 14 }}>
+                  <p style={{ margin: '0 0 0.9rem', fontWeight: 700, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    💳 Payment Analysis
+                  </p>
+
+                  {/* Monthly rent row */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 0', borderBottom: '1px solid var(--border)' }}>
+                    <span style={{ color: 'var(--mid)', fontSize: '0.88rem' }}>Monthly rent</span>
+                    <span style={{ fontWeight: 600 }}>{formatTZS(listing?.price_monthly)}</span>
+                  </div>
+
+                  {/* Lease duration */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 0', borderBottom: '1px solid var(--border)' }}>
+                    <span style={{ color: 'var(--mid)', fontSize: '0.88rem' }}>Lease duration</span>
+                    <span style={{ fontWeight: 600 }}>{booking?.months_duration || 0} month{(booking?.months_duration || 0) !== 1 ? 's' : ''}</span>
+                  </div>
+
+                  {/* Total rent over lease */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 0', borderBottom: '1px solid var(--border)' }}>
+                    <span style={{ color: 'var(--mid)', fontSize: '0.88rem' }}>Total rent ({booking?.months_duration || 0} months)</span>
+                    <span style={{ fontWeight: 600 }}>{formatTZS((listing?.price_monthly || 0) * (booking?.months_duration || 0))}</span>
+                  </div>
+
+                  {/* Platform deposit fee */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 0', borderBottom: '1px solid var(--border)' }}>
+                    <div>
+                      <span style={{ color: 'var(--mid)', fontSize: '0.88rem' }}>Platform deposit fee</span>
+                      <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--mid)', fontStyle: 'italic' }}>One-time · refundable on lease completion</p>
+                    </div>
+                    <span style={{ fontWeight: 600 }}>{formatTZS(booking?.platform_deposit_fee)}</span>
+                  </div>
+
+                  {/* Gateway fee */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 0', borderBottom: '1px solid var(--border)' }}>
+                    <div>
+                      <span style={{ color: 'var(--mid)', fontSize: '0.88rem' }}>Gateway transaction fee</span>
+                      <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--mid)', fontStyle: 'italic' }}>3.5% processing fee (AzamPay)</p>
+                    </div>
+                    <span style={{ fontWeight: 600 }}>{formatTZS(booking?.gateway_fee)}</span>
+                  </div>
+
+                  {/* Total due */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', marginTop: '0.5rem', background: '#eef6f3', borderRadius: 10 }}>
+                    <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#085041' }}>Total paid at move-in</span>
+                    <span style={{ fontWeight: 800, fontSize: '1.05rem', color: '#16a34a' }}>{formatTZS(booking?.total_amount_due)}</span>
+                  </div>
+
+                  {booking?.reference && (
+                    <div style={{ marginTop: '0.6rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <span style={{ padding: '0.25rem 0.6rem', borderRadius: 999, background: '#eef2f7', color: '#4b5563', fontWeight: 700, fontSize: '0.8rem' }}>
+                        Ref: {booking.reference}
+                      </span>
+                      <button type="button" className="btn btn--ghost btn--small" style={{ fontSize: '0.8rem' }} onClick={() => window.print()}>
+                        Download receipt
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <div className="card" style={{ padding: '0.9rem', borderRadius: 12 }}>
-                  <p style={{ margin: 0, color: 'var(--mid)' }}>Next payment</p>
-                  <Row label="Due date" value={formatDate(nextPayment?.due_date)} />
-                  <Row label="Amount" value={formatTZS(nextPayment?.amount)} />
-                  <Row label="Status" value={nextPayment?.status || 'Paid'} />
+
+                {/* ── Next Payment ── */}
+                <div className="card" style={{ padding: '1.1rem', borderRadius: 14 }}>
+                  <p style={{ margin: '0 0 0.75rem', fontWeight: 700, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    📅 Next Payment
+                  </p>
+                  {nextPayment ? (
+                    <div style={{ background: '#FFFBEB', border: '1px solid #FEF3C7', borderRadius: 10, padding: '0.9rem' }}>
+                      <p style={{ margin: 0, fontSize: '0.85rem', color: '#92400E', fontWeight: 600 }}>Due on</p>
+                      <p style={{ margin: '0.3rem 0 0', fontSize: '1.4rem', fontWeight: 800, color: '#B45309' }}>
+                        {formatDate(nextPayment.due_date)}
+                      </p>
+                    </div>
+                  ) : (
+                    <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 10, padding: '0.9rem', textAlign: 'center' }}>
+                      <p style={{ margin: 0, color: '#166534', fontWeight: 600, fontSize: '0.9rem' }}>✅ All payments are up to date</p>
+                      {leaseEndDate && (
+                        <p style={{ margin: '0.3rem 0 0', color: '#4ade80', fontSize: '0.82rem' }}>
+                          Lease ends: {formatDate(leaseEndDate.toISOString())}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
-                {(mainPayment?.reference) && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-                    <span style={{ padding: '0.3rem 0.65rem', borderRadius: 999, background: '#eef2f7', color: '#4b5563', fontWeight: 700, fontSize: '0.85rem' }}>
-                      Ref: {mainPayment.reference}
-                    </span>
-                    <button type="button" className="btn btn--ghost btn--small" onClick={() => window.print()}>
-                      Download receipt
-                    </button>
+
+                {/* ── Payment History ── */}
+                {payments.length > 0 && (
+                  <div className="card" style={{ padding: '1.1rem', borderRadius: 14 }}>
+                    <p style={{ margin: '0 0 0.75rem', fontWeight: 700, fontSize: '0.95rem' }}>📋 Payment History</p>
+                    <div style={{ display: 'grid', gap: '0.5rem' }}>
+                      {payments.map((p, i) => (
+                        <div key={p.id} style={{
+                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          padding: '0.6rem 0.75rem', borderRadius: 8,
+                          background: p.status === 'paid' ? '#f0fdf4' : '#FFFBEB',
+                          border: `1px solid ${p.status === 'paid' ? '#86efac' : '#FEF3C7'}`
+                        }}>
+                          <div>
+                            <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 600, color: '#1e293b' }}>
+                              Payment #{i + 1}
+                            </p>
+                            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--mid)' }}>
+                              Due: {formatDate(p.due_date)}
+                            </p>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <p style={{ margin: 0, fontWeight: 700, fontSize: '0.88rem' }}>{formatTZS(p.amount)}</p>
+                            <span style={{
+                              fontSize: '0.72rem', fontWeight: 700, padding: '0.15rem 0.5rem',
+                              borderRadius: 999, textTransform: 'uppercase',
+                              background: p.status === 'paid' ? '#dcfce7' : '#fef9c3',
+                              color: p.status === 'paid' ? '#166534' : '#854d0e'
+                            }}>
+                              {p.status || 'pending'}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -935,95 +1035,221 @@ export default function MyRoomPage() {
 
             {/* ── CONTRACT TAB ── */}
             {activeTab === 'contract' && (
-              <div style={{ display: 'grid', gap: '0.75rem' }}>
-                <div className="card" style={{ padding: '1rem', borderRadius: 14 }}>
-                  <p style={{ margin: '0 0 0.75rem', fontWeight: 700 }}>Tenancy Agreement</p>
-                  <div style={{ background: 'var(--cream)', borderRadius: 10, padding: '0.9rem', marginBottom: '0.9rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                      <FileText size={16} style={{ color: '#16a34a' }} />
-                      <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>Rental Agreement</span>
-                    </div>
-                    <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--mid)', lineHeight: 1.7 }}>
-                      <strong style={{ color: '#1e293b' }}>Tenant:</strong> {user?.fullName || '—'}<br />
-                      <strong style={{ color: '#1e293b' }}>Landlord/Dalali:</strong> {landlord?.full_name || '—'}<br />
-                      <strong style={{ color: '#1e293b' }}>Property:</strong> {listing?.room_type || 'Residential Room'} ({listing?.title})<br />
-                      <strong style={{ color: '#1e293b' }}>Location:</strong> {[listing?.ward, listing?.district].filter(Boolean).join(', ') || 'Dar es Salaam'}<br />
-                      <strong style={{ color: '#1e293b' }}>Monthly Rent:</strong> {formatTZS(listing?.price_monthly)}<br />
-                      <strong style={{ color: '#1e293b' }}>Period:</strong> {formatDate(booking?.move_in_date)} – {leaseEndDate ? formatDate(leaseEndDate.toISOString()) : '—'}
+              <div style={{ display: 'grid', gap: '0.9rem' }}>
+
+                {/* ── Full Tenancy Agreement ── */}
+                <div className="card" style={{ padding: '1.25rem', borderRadius: 14 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem' }}>
+                    <FileText size={20} style={{ color: '#16a34a' }} />
+                    <p style={{ margin: 0, fontWeight: 700, fontSize: '1rem' }}>Tenancy Agreement</p>
+                  </div>
+
+                  <div style={{
+                    background: '#fff', border: '1.5px solid #d1d5db',
+                    borderRadius: 10, padding: '1.25rem', lineHeight: 1.85,
+                    fontSize: '0.82rem', color: '#1e293b', fontFamily: 'Georgia, serif'
+                  }}>
+                    <p style={{ textAlign: 'center', fontWeight: 700, fontSize: '1rem', marginBottom: '0.2rem' }}>TENANCY AGREEMENT</p>
+                    <p style={{ textAlign: 'center', color: '#64748b', fontSize: '0.76rem', marginBottom: '1.25rem' }}>iRent Platform — Digital Rental Contract</p>
+
+                    <p><strong>PARTIES</strong></p>
+                    <p style={{ paddingLeft: '1rem', marginBottom: '1rem' }}>
+                      <strong>Landlord/Dalali:</strong> {landlord?.full_name || '—'}<br />
+                      <strong>Tenant:</strong> {user?.fullName || '—'}<br />
+                      <strong>Property:</strong> {listing?.title || '—'} ({listing?.room_type || 'Residential Room'})<br />
+                      <strong>Address:</strong> {[listing?.street, listing?.ward, listing?.district].filter(Boolean).join(', ') || 'Dar es Salaam'}<br />
+                      <strong>Monthly Rent:</strong> {formatTZS(listing?.price_monthly)}<br />
+                      <strong>Lease Start:</strong> {formatDate(booking?.move_in_date)}<br />
+                      <strong>Lease End:</strong> {leaseEndDate ? formatDate(leaseEndDate.toISOString()) : '—'}<br />
+                      <strong>Duration:</strong> {booking?.months_duration || 0} month(s)<br />
+                      <strong>Reference:</strong> {booking?.reference || '—'}
+                    </p>
+
+                    <p><strong>1. RENT PAYMENT</strong><br />
+                    The tenant agrees to pay {formatTZS(listing?.price_monthly)} per month, due on the same date as the move-in date each month. Late payments may attract a penalty as agreed with the landlord.</p>
+
+                    <p><strong>2. PLATFORM FEES</strong><br />
+                    A platform deposit of {formatTZS(booking?.platform_deposit_fee)} and gateway processing fee of {formatTZS(booking?.gateway_fee)} were charged at booking. Total paid at move-in: {formatTZS(booking?.total_amount_due)}.</p>
+
+                    <p><strong>3. OBLIGATIONS</strong><br />
+                    The tenant shall maintain the property in good condition, comply with all house rules, and report maintenance issues promptly to the landlord.</p>
+
+                    <p><strong>4. TERMINATION &amp; REFUND</strong><br />
+                    {(listing as any)?.termination_policy
+                      ? (listing as any).termination_policy
+                      : 'Either party may terminate with adequate notice. Early termination by the tenant may result in forfeiture of the platform deposit. Unused monthly rent for full months may be refunded at the landlord\'s discretion after outstanding dues are settled.'
+                    }{(listing as any)?.refund_percent > 0 && (
+                      <> A refund of <strong>{(listing as any).refund_percent}%</strong> of unused prepaid rent applies on early exit.</>
+                    )}</p>
+
+                    <p><strong>5. GOVERNING LAW</strong><br />
+                    Governed by the laws of the United Republic of Tanzania. Disputes shall be resolved through the Tanzania Rent Restriction Tribunal.</p>
+
+                    <p style={{ marginTop: '1.5rem', borderTop: '1px dashed #cbd5e1', paddingTop: '0.75rem', fontSize: '0.73rem', color: '#94a3b8' }}>
+                      Generated by iRent · {new Date().toLocaleDateString('en-TZ', { day: 'numeric', month: 'long', year: 'numeric' })}
                     </p>
                   </div>
-                  <p style={{ margin: '0 0 0.75rem', fontSize: '0.82rem', color: 'var(--mid)', lineHeight: 1.5 }}>
-                    Your rental agreement is managed between you and your landlord/dalali. Contact iRent support if you need a certified copy.
-                  </p>
-                  <button type="button" className="btn btn--ghost btn--small" style={{ width: '100%' }} onClick={() => window.print()}>
-                    Print / Save as PDF
+
+                  <button
+                    type="button"
+                    className="btn btn--ghost btn--small"
+                    style={{ width: '100%', marginTop: '0.9rem' }}
+                    onClick={() => window.print()}
+                  >
+                    📥 Download / Print Agreement PDF
                   </button>
-
-                  <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid #fee2e2' }}>
-                    <p style={{ fontSize: '0.85rem', color: '#b91c1c', marginBottom: '0.75rem', fontWeight: 600 }}>Termination</p>
-                    <button 
-                      type="button" 
-                      className="btn btn--ghost btn--small" 
-                      style={{ width: '100%', color: '#b91c1c', borderColor: '#fecaca' }}
-                      onClick={async () => {
-                        if (!booking?.id || !listing?.id || !token) return;
-                        if (!window.confirm('Are you sure you want to vacate this room? This will make the room available for others to book.')) return;
-                        
-                        try {
-                          const { updateRows } = await import('../lib/supabase');
-                          await Promise.all([
-                            updateRows('bookings', { status: 'completed' }, {
-                              filters: [{ column: 'id', op: 'eq', value: booking.id }],
-                              accessToken: token
-                            }),
-                            updateRows('listings', { vacancy_status: 'available' }, {
-                              filters: [{ column: 'id', op: 'eq', value: listing.id }],
-                              accessToken: token
-                            })
-                          ]);
-                          window.location.reload();
-                        } catch (err: any) {
-                          alert('Failed to vacate: ' + err.message);
-                        }
-                      }}
-                    >
-                      Vacate room
-                    </button>
-                  </div>
                 </div>
 
-                <div className="card" style={{ padding: '1rem', borderRadius: 14 }}>
-                  <p style={{ margin: '0 0 1rem', fontWeight: 700 }}>House rules & Conditions</p>
-                  <div style={{ display: 'grid', gap: '0.6rem' }}>
-                    {(listing?.house_rules && (Array.isArray(listing.house_rules) ? listing.house_rules.length > 0 : listing.house_rules)
-                      ? (Array.isArray(listing.house_rules) ? listing.house_rules : [listing.house_rules])
-                      : DEFAULT_RULES
-                    ).map((rule, idx) => (
-                      <div key={idx} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-                        <div style={{ 
-                          width: '18px', height: '18px', borderRadius: '50%', background: '#eef6f3', 
-                          color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          flexShrink: 0, marginTop: '2px'
-                        }}>
-                          <CheckCircle2 size={12} />
+                {/* ── House Rules ── */}
+                <div className="card" style={{ padding: '1.1rem', borderRadius: 14 }}>
+                  <p style={{ margin: '0 0 0.9rem', fontWeight: 700, fontSize: '0.95rem' }}>🏠 House Rules &amp; Conditions</p>
+                  <div style={{ display: 'grid', gap: '0.5rem' }}>
+                    {(() => {
+                      const raw: any = listing?.house_rules;
+                      let rules: string[] = [];
+                      if (Array.isArray(raw) && raw.length > 0) rules = raw;
+                      else if (typeof raw === 'string' && raw.trim()) {
+                        rules = raw.split(/\n|;/).map((s: string) => s.trim()).filter(Boolean);
+                      }
+                      if (rules.length === 0) rules = DEFAULT_RULES;
+                      return rules.map((rule, idx) => (
+                        <div key={idx} style={{ display: 'flex', gap: '0.7rem', alignItems: 'flex-start', padding: '0.5rem 0.65rem', background: '#f8fafc', borderRadius: 8 }}>
+                          <CheckCircle2 size={14} style={{ color: '#16a34a', flexShrink: 0, marginTop: '2px' }} />
+                          <span style={{ fontSize: '0.86rem', color: '#334155', lineHeight: 1.5 }}>{rule}</span>
                         </div>
-                        <span style={{ fontSize: '0.88rem', color: '#475569', lineHeight: 1.5 }}>{rule}</span>
-                      </div>
-                    ))}
+                      ));
+                    })()}
                   </div>
                 </div>
 
+                {/* ── Termination Policy + Vacate Flow ── */}
+                <div className="card" style={{ padding: '1.1rem', borderRadius: 14, border: '1px solid #fecaca' }}>
+                  <p style={{ margin: '0 0 0.75rem', fontWeight: 700, fontSize: '0.95rem', color: '#b91c1c' }}>⚠️ Contract Termination</p>
+
+                  <div style={{ display: 'grid', gap: '0.5rem', marginBottom: '1rem' }}>
+                    <div style={{ display: 'flex', gap: '0.6rem', background: '#fef2f2', padding: '0.6rem 0.75rem', borderRadius: 8 }}>
+                      <span>📌</span>
+                      <span style={{ fontSize: '0.84rem', color: '#7f1d1d', lineHeight: 1.5 }}>
+                        <strong>Notice period:</strong> {(listing as any)?.notice_period_days || 30} days written notice required before vacating.
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.6rem', background: '#fef2f2', padding: '0.6rem 0.75rem', borderRadius: 8 }}>
+                      <span>💰</span>
+                      <span style={{ fontSize: '0.84rem', color: '#7f1d1d', lineHeight: 1.5 }}>
+                        <strong>Refund on early exit:</strong> {(listing as any)?.refund_percent > 0
+                          ? `${(listing as any).refund_percent}% of unused prepaid rent is refunded.`
+                          : 'No automatic refund — subject to landlord discretion after deducting outstanding dues.'}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.6rem', background: '#fef2f2', padding: '0.6rem 0.75rem', borderRadius: 8 }}>
+                      <span>🔒</span>
+                      <span style={{ fontSize: '0.84rem', color: '#7f1d1d', lineHeight: 1.5 }}>
+                        <strong>Platform deposit:</strong> Non-refundable once tenancy has started.
+                      </span>
+                    </div>
+                    {(listing as any)?.termination_policy && (
+                      <div style={{ display: 'flex', gap: '0.6rem', background: '#fef2f2', padding: '0.6rem 0.75rem', borderRadius: 8 }}>
+                        <span>📋</span>
+                        <span style={{ fontSize: '0.84rem', color: '#7f1d1d', lineHeight: 1.5 }}>
+                          <strong>Landlord policy:</strong> {(listing as any).termination_policy}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {!showVacateReview ? (
+                    <button
+                      type="button"
+                      style={{
+                        width: '100%', padding: '0.75rem',
+                        background: 'transparent', border: '1.5px solid #fecaca',
+                        borderRadius: 10, color: '#b91c1c', fontWeight: 600,
+                        fontSize: '0.88rem', cursor: 'pointer'
+                      }}
+                      onClick={() => setShowVacateReview(true)}
+                    >
+                      Vacate Room (Terminate Contract)
+                    </button>
+                  ) : (
+                    <div style={{ background: '#fff7ed', border: '1.5px solid #fdba74', borderRadius: 10, padding: '1rem' }}>
+                      <p style={{ margin: '0 0 0.6rem', fontWeight: 700, color: '#9a3412', fontSize: '0.9rem' }}>
+                        ⚠️ Review before confirming
+                      </p>
+                      <p style={{ margin: '0 0 0.75rem', fontSize: '0.82rem', color: '#7c2d12', lineHeight: 1.6 }}>
+                        By confirming, you are <strong>terminating your tenancy agreement</strong> effective today.
+                        The room will be listed as available. Any refund is subject to the landlord's policy above.
+                        This action <strong>cannot be undone</strong>.
+                      </p>
+                      <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', cursor: 'pointer', marginBottom: '0.9rem' }}>
+                        <input
+                          type="checkbox"
+                          checked={vacateAgreed}
+                          onChange={e => setVacateAgreed(e.target.checked)}
+                          style={{ marginTop: '3px', accentColor: '#b91c1c' }}
+                        />
+                        <span style={{ fontSize: '0.81rem', color: '#7c2d12', lineHeight: 1.5 }}>
+                          I have read the tenancy agreement and termination policy. I confirm I want to vacate this room.
+                        </span>
+                      </label>
+                      <div style={{ display: 'flex', gap: '0.6rem' }}>
+                        <button
+                          type="button"
+                          style={{ flex: 1, padding: '0.6rem', background: 'transparent', border: '1px solid #d1d5db', borderRadius: 8, cursor: 'pointer', fontSize: '0.85rem' }}
+                          onClick={() => { setShowVacateReview(false); setVacateAgreed(false); }}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          disabled={!vacateAgreed || vacateBusy}
+                          style={{
+                            flex: 1, padding: '0.6rem',
+                            background: vacateAgreed ? '#b91c1c' : '#fca5a5',
+                            border: 'none', borderRadius: 8, color: '#fff',
+                            fontWeight: 700, fontSize: '0.85rem',
+                            cursor: vacateAgreed && !vacateBusy ? 'pointer' : 'not-allowed'
+                          }}
+                          onClick={async () => {
+                            if (!booking?.id || !listing?.id || !token) return;
+                            setVacateBusy(true);
+                            try {
+                              const { updateRows } = await import('../lib/supabase');
+                              await Promise.all([
+                                updateRows('bookings', { status: 'completed' }, {
+                                  filters: [{ column: 'id', op: 'eq', value: booking.id }],
+                                  accessToken: token
+                                }),
+                                updateRows('listings', { vacancy_status: 'available' }, {
+                                  filters: [{ column: 'id', op: 'eq', value: listing.id }],
+                                  accessToken: token
+                                })
+                              ]);
+                              window.location.reload();
+                            } catch (err: any) {
+                              alert('Failed to vacate: ' + err.message);
+                              setVacateBusy(false);
+                            }
+                          }}
+                        >
+                          {vacateBusy ? 'Processing…' : 'Confirm Vacate'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Emergency */}
                 <div className="card" style={{ padding: '1rem', borderRadius: 14 }}>
                   <p style={{ margin: '0 0 0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <ShieldCheck size={18} style={{ color: '#16a34a' }} /> Emergency stats & contacts
+                    <ShieldCheck size={18} style={{ color: '#16a34a' }} /> Emergency Contacts
                   </p>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                     <div style={{ padding: '0.75rem', background: '#FEF2F2', borderRadius: 10 }}>
-                      <p style={{ margin: 0, fontSize: '0.75rem', color: '#991B1B' }}>Fire/Police</p>
+                      <p style={{ margin: 0, fontSize: '0.75rem', color: '#991B1B' }}>Fire / Police</p>
                       <strong style={{ fontSize: '1rem', color: '#991B1B' }}>112 / 999</strong>
                     </div>
                     <div style={{ padding: '0.75rem', background: '#F0F9FF', borderRadius: 10 }}>
-                      <p style={{ margin: 0, fontSize: '0.75rem', color: '#075985' }}>CS Support</p>
+                      <p style={{ margin: 0, fontSize: '0.75rem', color: '#075985' }}>iRent Support</p>
                       <strong style={{ fontSize: '1rem', color: '#075985' }}>+255 800 000</strong>
                     </div>
                   </div>
