@@ -11,7 +11,7 @@ import {
   ShieldCheck,
   CheckCircle2 
 } from 'lucide-react';
-import { updateRows, selectRows } from '../../lib/supabase';
+import { updateRows, selectRows, insertRows } from '../../lib/supabase';
 import { dashboardDefaultPath, toAppRole } from '../../lib/roles';
 
 export default function CompleteProfilePage() {
@@ -118,11 +118,39 @@ export default function CompleteProfilePage() {
         throw new Error('That phone number is already registered to another account. Please use a different number.');
       }
 
-      console.log('[CompleteProfile] Updating core profile:', coreUpdate);
-      await updateRows('profiles', coreUpdate, {
-        filters: [{ column: 'id', op: 'eq', value: user.userId }],
-        accessToken: token,
-      });
+      console.log('[CompleteProfile] Saving core profile...');
+
+      // Try update first; if no profile row exists yet (OAuth users), insert one
+      let updated = false;
+      try {
+        await updateRows('profiles', coreUpdate, {
+          filters: [{ column: 'id', op: 'eq', value: user.userId }],
+          accessToken: token,
+        });
+        updated = true;
+      } catch (updateErr: any) {
+        // 'No profiles record was updated' means the row doesn't exist yet
+        const noRow =
+          updateErr?.message?.includes('No profiles record was updated') ||
+          updateErr?.message?.includes('No') ||
+          updateErr?.code === 'PGRST116';
+
+        if (noRow) {
+          console.log('[CompleteProfile] No existing profile — inserting new row');
+          await insertRows(
+            'profiles',
+            { id: user.userId, ...coreUpdate },
+            { accessToken: token }
+          );
+          updated = true;
+        } else {
+          throw updateErr;
+        }
+      }
+
+      if (!updated) {
+        throw new Error('Could not save your profile. Please try again.');
+      }
 
       // ── Step 3: Refresh + redirect ────────────────────────────
       const updatedUser = await refreshMe();
