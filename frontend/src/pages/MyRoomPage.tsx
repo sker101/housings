@@ -104,6 +104,8 @@ export default function MyRoomPage() {
   const [showVacateReview, setShowVacateReview] = useState(false);
   const [vacateAgreed, setVacateAgreed] = useState(false);
   const [vacateBusy, setVacateBusy] = useState(false);
+  const [moveOutNotice, setMoveOutNotice] = useState<any>(null);
+  const [intendedMoveOutDate, setIntendedMoveOutDate] = useState(new Date().toISOString().split('T')[0]);
 
   const [retryCount, setRetryCount] = useState(0);
   const isPaymentSuccess = location.search.includes('payment=success');
@@ -261,7 +263,7 @@ export default function MyRoomPage() {
         }
       }
 
-      const [listingRows, photoRows, paymentRows] = await Promise.all([
+      const [listingRows, photoRows, paymentRows, noticeRows] = await Promise.all([
         selectRows('listings', {
           select: '*',
           filters: [{ column: 'id', op: 'eq', value: active.listing_id }],
@@ -277,6 +279,12 @@ export default function MyRoomPage() {
           select: 'id,amount,due_date,status,reference,paid_at',
           filters: [{ column: 'booking_id', op: 'eq', value: active.id }],
           order: 'due_date.asc',
+          accessToken: token
+        }).catch(() => []),
+        selectRows('move_out_notices', {
+          select: '*',
+          filters: [{ column: 'booking_id', op: 'eq', value: active.id }],
+          limit: 1,
           accessToken: token
         }).catch(() => [])
       ]);
@@ -298,6 +306,7 @@ export default function MyRoomPage() {
       
       setBooking(active);
       setPayments(paymentRows || []);
+      setMoveOutNotice(noticeRows?.[0] || null);
 
       // FETCH CORRECT LANDLORD/LISTER INFO
       // We prioritize the lister from the listing record to ensure we show the person who posted it
@@ -1281,7 +1290,17 @@ export default function MyRoomPage() {
                     )}
                   </div>
 
-                  {!showVacateReview ? (
+                  {moveOutNotice ? (
+                    <div style={{ background: '#ecfdf5', border: '1px solid #10b981', borderRadius: 10, padding: '1rem' }}>
+                      <p style={{ margin: '0 0 0.5rem', fontWeight: 700, color: '#047857' }}>
+                        Move-Out Notice Submitted
+                      </p>
+                      <p style={{ margin: 0, fontSize: '0.88rem', color: '#065f46', lineHeight: 1.5 }}>
+                        You have notified the landlord that you intend to vacate on <strong>{new Date(moveOutNotice.intended_move_out_date).toLocaleDateString()}</strong>.
+                        The landlord will review and confirm this request to end the tenancy and repost the room.
+                      </p>
+                    </div>
+                  ) : !showVacateReview ? (
                     <button
                       type="button"
                       style={{
@@ -1297,13 +1316,24 @@ export default function MyRoomPage() {
                   ) : (
                     <div style={{ background: '#fff7ed', border: '1.5px solid #fdba74', borderRadius: 10, padding: '1rem' }}>
                       <p style={{ margin: '0 0 0.6rem', fontWeight: 700, color: '#9a3412', fontSize: '0.9rem' }}>
-                        ⚠️ Review before confirming
+                        ⚠️ Submit Move-Out Notice
                       </p>
                       <p style={{ margin: '0 0 0.75rem', fontSize: '0.82rem', color: '#7c2d12', lineHeight: 1.6 }}>
-                        By confirming, you are <strong>terminating your tenancy agreement</strong> effective today.
-                        The room will be listed as available. Any refund is subject to the landlord's policy above.
-                        This action <strong>cannot be undone</strong>.
+                        Planning to move out? You can <strong>earn a cash reward</strong> by notifying us early so we can start looking for the next tenant!
+                        Please specify your exact move-out date below. The landlord will be notified to confirm.
                       </p>
+
+                      <div style={{ marginBottom: '1rem' }}>
+                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#7c2d12', marginBottom: '0.3rem' }}>Intended Move-Out Date</label>
+                        <input 
+                          type="date" 
+                          value={intendedMoveOutDate}
+                          onChange={e => setIntendedMoveOutDate(e.target.value)}
+                          min={new Date().toISOString().split('T')[0]}
+                          style={{ width: '100%', padding: '0.6rem', borderRadius: 8, border: '1px solid #fca5a5', fontSize: '0.9rem' }}
+                        />
+                      </div>
+
                       <label style={{
                         display: 'flex', alignItems: 'flex-start', gap: '0.75rem',
                         cursor: 'pointer', marginBottom: '0.9rem',
@@ -1317,7 +1347,7 @@ export default function MyRoomPage() {
                           style={{ width: 18, height: 18, flexShrink: 0, marginTop: '1px', accentColor: '#b91c1c', cursor: 'pointer' }}
                         />
                         <span style={{ fontSize: '0.82rem', color: '#7c2d12', lineHeight: 1.55 }}>
-                          I have read the tenancy agreement and termination policy. I confirm I want to vacate this room.
+                          I confirm that I intend to vacate the property on the selected date. I understand the landlord will be notified to approve the termination.
                         </span>
                       </label>
                       <div style={{ display: 'flex', gap: '0.6rem' }}>
@@ -1330,7 +1360,7 @@ export default function MyRoomPage() {
                         </button>
                         <button
                           type="button"
-                          disabled={!vacateAgreed || vacateBusy}
+                          disabled={!vacateAgreed || vacateBusy || !intendedMoveOutDate}
                           style={{
                             flex: 1, padding: '0.6rem',
                             background: vacateAgreed ? '#b91c1c' : '#fca5a5',
@@ -1342,25 +1372,34 @@ export default function MyRoomPage() {
                             if (!booking?.id || !listing?.id || !token) return;
                             setVacateBusy(true);
                             try {
-                              const { updateRows } = await import('../lib/supabase');
-                              await Promise.all([
-                                updateRows('bookings', { status: 'completed' }, {
-                                  filters: [{ column: 'id', op: 'eq', value: booking.id }],
-                                  accessToken: token
-                                }),
-                                updateRows('listings', { vacancy_status: 'available' }, {
-                                  filters: [{ column: 'id', op: 'eq', value: listing.id }],
-                                  accessToken: token
-                                })
-                              ]);
+                              const { insertRows } = await import('../lib/supabase');
+                              
+                              await insertRows('move_out_notices', {
+                                booking_id: booking.id,
+                                tenant_id: user.userId,
+                                landlord_id: landlord?.id || listing.listerId,
+                                property_id: listing.property_id || listing.id,
+                                room_id: listing.id,
+                                intended_move_out_date: intendedMoveOutDate,
+                                status: 'pending'
+                              }, { accessToken: token });
+
+                              await insertRows('notifications', {
+                                user_id: landlord?.id || listing.listerId,
+                                title: 'Tenant Move-Out Notice',
+                                body: `${user.fullName || 'Your tenant'} intends to vacate ${listing.title} on ${new Date(intendedMoveOutDate).toLocaleDateString()}. Please review this request.`,
+                                type: 'system',
+                                read: false
+                              }, { accessToken: token });
+
                               window.location.reload();
                             } catch (err: any) {
-                              alert('Failed to vacate: ' + err.message);
+                              alert('Failed to submit notice: ' + err.message);
                               setVacateBusy(false);
                             }
                           }}
                         >
-                          {vacateBusy ? 'Processing…' : 'Confirm Vacate'}
+                          {vacateBusy ? 'Submitting…' : 'Submit Notice'}
                         </button>
                       </div>
                     </div>
