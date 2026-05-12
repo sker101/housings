@@ -346,6 +346,16 @@ export default function MyRoomPage() {
     return rentTotal > 0 ? Math.round(rentTotal / months) : 0;
   }, [listing, booking]);
 
+  const computedFees = useMemo(() => {
+    const months = booking?.months_duration || 1;
+    const rentTotal = effectiveMonthlyRent * months;
+    const deposit = Math.round(effectiveMonthlyRent * 0.35);
+    const subtotal = rentTotal + deposit;
+    const gateway = Math.round(subtotal * 0.035);
+    const total = subtotal + gateway;
+    return { rentTotal, deposit, gateway, total };
+  }, [effectiveMonthlyRent, booking?.months_duration]);
+
   const leaseEndDate = useMemo(() => {
     const moveIn = booking?.move_in_date;
     const months = booking?.months_duration || 0;
@@ -948,17 +958,9 @@ export default function MyRoomPage() {
                     <span style={{ fontWeight: 600 }}>{formatTZS(effectiveMonthlyRent * (booking?.months_duration || 0))}</span>
                   </div>
 
-                  {/* Fees — use actual booking values; formula only as fallback */}
+                  {/* Fees — Strictly calculated to match the UI explanations */}
                   {(() => {
-                    const platformDeposit = (booking?.platform_deposit_fee || 0) > 0
-                      ? booking!.platform_deposit_fee!
-                      : Math.round(effectiveMonthlyRent * 0.35);
-                    const gatewayFee = (booking?.gateway_fee || 0) > 0
-                      ? booking!.gateway_fee!
-                      : Math.round((effectiveMonthlyRent + platformDeposit) * 0.035);
-                    const grandTotal = (booking?.total_amount_due || 0) > 0
-                      ? booking!.total_amount_due!
-                      : effectiveMonthlyRent * (booking?.months_duration || 1) + platformDeposit + gatewayFee;
+                    const { deposit, gateway, total } = computedFees;
                     return (
                       <>
                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 0', borderBottom: '1px solid var(--border)' }}>
@@ -966,7 +968,7 @@ export default function MyRoomPage() {
                             <span style={{ color: 'var(--mid)', fontSize: '0.88rem' }}>Platform deposit fee</span>
                             <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--mid)', fontStyle: 'italic' }}>35% of 1 month's rent · one-time · refundable on lease completion</p>
                           </div>
-                          <span style={{ fontWeight: 600 }}>{formatTZS(platformDeposit)}</span>
+                          <span style={{ fontWeight: 600 }}>{formatTZS(deposit)}</span>
                         </div>
 
                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 0', borderBottom: '1px solid var(--border)' }}>
@@ -974,12 +976,12 @@ export default function MyRoomPage() {
                             <span style={{ color: 'var(--mid)', fontSize: '0.88rem' }}>Gateway transaction fee</span>
                             <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--mid)', fontStyle: 'italic' }}>3.5% of total amount transacted (AzamPay)</p>
                           </div>
-                          <span style={{ fontWeight: 600 }}>{formatTZS(gatewayFee)}</span>
+                          <span style={{ fontWeight: 600 }}>{formatTZS(gateway)}</span>
                         </div>
 
                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', marginTop: '0.5rem', background: '#eef6f3', borderRadius: 10 }}>
                           <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#085041' }}>Total paid at move-in</span>
-                          <span style={{ fontWeight: 800, fontSize: '1.05rem', color: '#16a34a' }}>{formatTZS(grandTotal)}</span>
+                          <span style={{ fontWeight: 800, fontSize: '1.05rem', color: '#16a34a' }}>{formatTZS(total)}</span>
                         </div>
                       </>
                     );
@@ -1114,7 +1116,7 @@ export default function MyRoomPage() {
                     The tenant agrees to pay {formatTZS(effectiveMonthlyRent)} per month, due on the same date as the move-in date each month. Late payments may attract a penalty as agreed with the landlord.</p>
 
                     <p><strong>2. PLATFORM FEES</strong><br />
-                    A platform deposit of {formatTZS(booking?.platform_deposit_fee)} and gateway processing fee of {formatTZS(booking?.gateway_fee)} were charged at booking. Total paid at move-in: {formatTZS(booking?.total_amount_due)}.</p>
+                    A platform deposit of {formatTZS(computedFees.deposit)} and gateway processing fee of {formatTZS(computedFees.gateway)} were charged at booking. Total paid at move-in: {formatTZS(computedFees.total)}.</p>
 
                     <p><strong>3. OBLIGATIONS &amp; HOUSE RULES</strong><br />
                     The tenant shall maintain the property in good condition and report maintenance issues promptly to the landlord. The tenant explicitly agrees to adhere to the following house rules:
