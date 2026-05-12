@@ -1116,16 +1116,35 @@ export default function MyRoomPage() {
                     <p><strong>2. PLATFORM FEES</strong><br />
                     A platform deposit of {formatTZS(booking?.platform_deposit_fee)} and gateway processing fee of {formatTZS(booking?.gateway_fee)} were charged at booking. Total paid at move-in: {formatTZS(booking?.total_amount_due)}.</p>
 
-                    <p><strong>3. OBLIGATIONS</strong><br />
-                    The tenant shall maintain the property in good condition, comply with all house rules, and report maintenance issues promptly to the landlord.</p>
+                    <p><strong>3. OBLIGATIONS &amp; HOUSE RULES</strong><br />
+                    The tenant shall maintain the property in good condition and report maintenance issues promptly to the landlord. The tenant explicitly agrees to adhere to the following house rules:
+                    </p>
+                    <ul style={{ marginTop: '0.25rem', paddingLeft: '1.5rem', marginBottom: '1rem', lineHeight: 1.6 }}>
+                      {(() => {
+                        const raw: any = listing?.house_rules;
+                        let rules: string[] = [];
+                        if (Array.isArray(raw) && raw.length > 0) rules = raw;
+                        else if (typeof raw === 'string' && raw.trim()) {
+                          rules = raw.split(/\n|;/).map((s: string) => s.trim()).filter(Boolean);
+                        }
+                        if (rules.length === 0) rules = DEFAULT_RULES;
+                        return rules.map((rule, idx) => (
+                          <li key={idx} style={{ marginBottom: '0.25rem' }}>{rule}</li>
+                        ));
+                      })()}
+                    </ul>
 
-                    <p><strong>4. TERMINATION &amp; REFUND</strong><br />
+                    <p><strong>4. TERMINATION &amp; REFUND POLICY</strong><br />
                     {(listing as any)?.termination_policy
                       ? (listing as any).termination_policy
                       : 'Either party may terminate with adequate notice. Early termination by the tenant may result in forfeiture of the platform deposit. Unused monthly rent for full months may be refunded at the landlord\'s discretion after outstanding dues are settled.'
-                    }{(listing as any)?.refund_percent > 0 && (
-                      <> A refund of <strong>{(listing as any).refund_percent}%</strong> of unused prepaid rent applies on early exit.</>
-                    )}</p>
+                    }
+                    </p>
+                    <ul style={{ marginTop: '0.25rem', paddingLeft: '1.5rem', marginBottom: '1rem', lineHeight: 1.6 }}>
+                      <li style={{ marginBottom: '0.25rem' }}><strong>Notice period:</strong> {(listing as any)?.notice_period_days || 30} days written notice required before vacating.</li>
+                      <li style={{ marginBottom: '0.25rem' }}><strong>Refund on early exit:</strong> {(listing as any)?.refund_percent > 0 ? `${(listing as any).refund_percent}% of unused prepaid rent is refunded.` : 'No automatic refund — subject to landlord discretion after deducting outstanding dues.'}</li>
+                      <li style={{ marginBottom: '0.25rem' }}><strong>Platform deposit:</strong> Non-refundable once tenancy has started.</li>
+                    </ul>
 
                     <p><strong>5. GOVERNING LAW</strong><br />
                     Governed by the laws of the United Republic of Tanzania. Disputes shall be resolved through the Tanzania Rent Restriction Tribunal.</p>
