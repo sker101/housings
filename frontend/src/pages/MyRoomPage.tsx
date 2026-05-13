@@ -918,56 +918,64 @@ export default function MyRoomPage() {
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
-                    {landlord?.phone && (
-                      <a href={`tel:${landlord.phone}`} className="btn btn--ghost btn--small" style={{ flex: 1, textAlign: 'center', textDecoration: 'none' }}>
-                        Call
-                      </a>
+                    {(!booking || !['paid', 'confirmed', 'active'].includes(booking.status)) ? (
+                      <p style={{ margin: 0, fontSize: '0.8rem', color: '#9a3412', background: '#fff7ed', padding: '0.5rem', borderRadius: 8, border: '1px solid #fed7aa', width: '100%', textAlign: 'center', lineHeight: 1.4 }}>
+                        🔒 Contact information and chats are unlocked after payment is completed.
+                      </p>
+                    ) : (
+                      <>
+                        {landlord?.phone && (
+                          <a href={`tel:${landlord.phone}`} className="btn btn--ghost btn--small" style={{ flex: 1, textAlign: 'center', textDecoration: 'none' }}>
+                            Call
+                          </a>
+                        )}
+                        <button 
+                          type="button" 
+                          className="btn btn--ghost btn--small" 
+                          style={{ flex: 1 }} 
+                          onClick={async () => {
+                            if (!user?.userId || !landlord?.id || !listing?.id || !token) {
+                              alert('Unable to start chat. Missing user or landlord data.');
+                              return;
+                            }
+                            try {
+                              const existing = await selectRows('conversations', {
+                                select: 'id',
+                                filters: [
+                                  { column: 'listing_id', op: 'eq', value: listing.id },
+                                  { column: 'tenant_id', op: 'eq', value: user.userId },
+                                  { column: 'landlord_id', op: 'eq', value: landlord.id }
+                                ],
+                                limit: 1,
+                                accessToken: token
+                              });
+
+                              let conversationId = existing[0]?.id;
+                              if (!conversationId) {
+                                const created = await insertRows('conversations', {
+                                  listing_id: listing.id,
+                                  tenant_id: user.userId,
+                                  landlord_id: landlord.id,
+                                  inquiry_status: 'open'
+                                }, { accessToken: token });
+                                conversationId = created?.[0]?.id;
+                              }
+
+                              if (conversationId) {
+                                navigate(`/messages/${conversationId}`);
+                              } else {
+                                alert('Unable to create conversation.');
+                              }
+                            } catch (err) {
+                              console.error('Error starting conversation:', err);
+                              alert('An error occurred while starting the chat.');
+                            }
+                          }}
+                        >
+                          Message
+                        </button>
+                      </>
                     )}
-                    <button 
-                      type="button" 
-                      className="btn btn--ghost btn--small" 
-                      style={{ flex: 1 }} 
-                      onClick={async () => {
-                        if (!user?.userId || !landlord?.id || !listing?.id || !token) {
-                          alert('Unable to start chat. Missing user or landlord data.');
-                          return;
-                        }
-                        try {
-                          const existing = await selectRows('conversations', {
-                            select: 'id',
-                            filters: [
-                              { column: 'listing_id', op: 'eq', value: listing.id },
-                              { column: 'tenant_id', op: 'eq', value: user.userId },
-                              { column: 'landlord_id', op: 'eq', value: landlord.id }
-                            ],
-                            limit: 1,
-                            accessToken: token
-                          });
-
-                          let conversationId = existing[0]?.id;
-                          if (!conversationId) {
-                            const created = await insertRows('conversations', {
-                              listing_id: listing.id,
-                              tenant_id: user.userId,
-                              landlord_id: landlord.id,
-                              inquiry_status: 'open'
-                            }, { accessToken: token });
-                            conversationId = created?.[0]?.id;
-                          }
-
-                          if (conversationId) {
-                            navigate(`/messages/${conversationId}`);
-                          } else {
-                            alert('Unable to create conversation.');
-                          }
-                        } catch (err) {
-                          console.error('Error starting conversation:', err);
-                          alert('An error occurred while starting the chat.');
-                        }
-                      }}
-                    >
-                      Message
-                    </button>
                   </div>
                 </div>
 
