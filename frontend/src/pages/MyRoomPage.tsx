@@ -1408,8 +1408,7 @@ export default function MyRoomPage() {
                                   user_id: landlord?.id || listing.listerId,
                                   title: 'Updated Move-Out Notice',
                                   body: `${user.fullName || 'Your tenant'} updated their intended move-out date for ${listing.title} to ${new Date(intendedMoveOutDate).toLocaleDateString()}.`,
-                                  type: 'system',
-                                  is_read: false
+                                  type: 'system'
                                 }, { accessToken: token });
                               } else {
                                 await insertRows('move_out_notices', {
@@ -1426,8 +1425,7 @@ export default function MyRoomPage() {
                                   user_id: landlord?.id || listing.listerId,
                                   title: 'Tenant Move-Out Notice',
                                   body: `${user.fullName || 'Your tenant'} intends to vacate ${listing.title} on ${new Date(intendedMoveOutDate).toLocaleDateString()}. Please review this request.`,
-                                  type: 'system',
-                                  is_read: false
+                                  type: 'system'
                                 }, { accessToken: token });
                               }
 
