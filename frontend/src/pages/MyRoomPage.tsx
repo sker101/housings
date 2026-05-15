@@ -46,6 +46,8 @@ type Listing = {
 type Profile = {
   id: string;
   full_name?: string;
+  business_name?: string;
+  email?: string;
   phone?: string;
   verification_status?: string;
   role?: string;
@@ -313,7 +315,7 @@ export default function MyRoomPage() {
       const listerId = listingData?.lister_id || active.landlord_id;
       if (listerId) {
         const landlordRows = await selectRows('profiles', {
-          select: 'id,full_name,phone,verification_status,role',
+          select: 'id,full_name,business_name,email,phone,verification_status,role',
           filters: [{ column: 'id', op: 'eq', value: listerId }],
           accessToken: token
         }).catch(() => []);
@@ -892,9 +894,9 @@ export default function MyRoomPage() {
                     {landlord?.role === 'dalali' ? 'Dalali (Broker)' : 'Landlord / Owner'}
                   </p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.9rem' }}>
-                    <Avatar name={landlord?.full_name || 'L'} />
+                    <Avatar name={landlord?.full_name || landlord?.business_name || (landlord?.email ? landlord.email.split('@')[0] : 'Landlord')} />
                     <div style={{ flex: 1 }}>
-                      <p style={{ margin: 0, fontWeight: 700 }}>{landlord?.full_name || '—'}</p>
+                      <p style={{ margin: 0, fontWeight: 700 }}>{landlord?.full_name || landlord?.business_name || (landlord?.email ? landlord.email.split('@')[0] : 'Landlord')}</p>
                       <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--mid)' }}>
                         {landlord?.role === 'dalali' ? 'Verified Dalali' : 'Property Owner'}
                         {landlord?.verification_status === 'APPROVED' && (
@@ -924,7 +926,7 @@ export default function MyRoomPage() {
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.75rem' }}>
                       <span style={{ fontWeight: 600 }}>
-                        Landlord: {landlord?.full_name || listing.listerId || 'Landlord'}
+                        Landlord: {landlord?.full_name || landlord?.business_name || (landlord?.email ? landlord.email.split('@')[0] : 'Landlord')}
                       </span>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
                         {landlord?.phone && (
@@ -1162,7 +1164,7 @@ export default function MyRoomPage() {
 
                     <p><strong>PARTIES</strong></p>
                     <p style={{ paddingLeft: '1rem', marginBottom: '1rem' }}>
-                      <strong>Landlord/Dalali:</strong> {landlord?.full_name || '—'}<br />
+                      <strong>Landlord/Dalali:</strong> {landlord?.full_name || landlord?.business_name || (landlord?.email ? landlord.email.split('@')[0] : 'Landlord')}<br />
                       <strong>Landlord Phone:</strong> {landlord?.phone || 'Contact via iRent messaging'}<br />
                       <strong>Tenant:</strong> {user?.fullName || '—'}<br />
                       <strong>Property:</strong> {listing?.title || '—'} ({listing?.room_type || 'Residential Room'})<br />
@@ -1224,7 +1226,7 @@ export default function MyRoomPage() {
                       <div style={{ flex: 1 }}>
                         <p style={{ fontWeight: 700, marginBottom: '2.5rem' }}>Landlord Signature</p>
                         <div style={{ borderBottom: '1px solid #1e293b', width: '100%', marginBottom: '0.5rem' }}></div>
-                        <p style={{ margin: '0 0 0.5rem' }}>Name: <strong>{landlord?.full_name || '____________________'}</strong></p>
+                        <p style={{ margin: '0 0 0.5rem' }}>Name: <strong>{landlord?.full_name || landlord?.business_name || (landlord?.email ? landlord.email.split('@')[0] : '____________________')}</strong></p>
                         <p style={{ margin: 0 }}>Date: ____________________</p>
                       </div>
                     </div>
