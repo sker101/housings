@@ -917,13 +917,16 @@ export default function MyRoomPage() {
                         : <span style={{ color: 'var(--mid)' }}>—</span>}
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
-                    {(!booking || !['paid', 'confirmed', 'active'].includes(booking.status)) ? (
-                      <p style={{ margin: 0, fontSize: '0.8rem', color: '#9a3412', background: '#fff7ed', padding: '0.5rem', borderRadius: 8, border: '1px solid #fed7aa', width: '100%', textAlign: 'center', lineHeight: 1.4 }}>
-                        🔒 Contact information and chats are unlocked after payment is completed.
-                      </p>
-                    ) : (
-                      <>
+                  {(!booking || !['paid', 'confirmed', 'active'].includes(booking.status)) ? (
+                    <p style={{ margin: '0.75rem 0 0 0', fontSize: '0.8rem', color: '#9a3412', background: '#fff7ed', padding: '0.5rem', borderRadius: 8, border: '1px solid #fed7aa', width: '100%', textAlign: 'center', lineHeight: 1.4 }}>
+                      🔒 Contact information and chats are unlocked after payment is completed.
+                    </p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.75rem' }}>
+                      <span style={{ fontWeight: 600 }}>
+                        Landlord: {landlord?.full_name || listing.listerId || 'Landlord'}
+                      </span>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
                         {landlord?.phone && (
                           <a href={`tel:${landlord.phone}`} className="btn btn--ghost btn--small" style={{ flex: 1, textAlign: 'center', textDecoration: 'none' }}>
                             Call
@@ -974,9 +977,9 @@ export default function MyRoomPage() {
                         >
                           Message
                         </button>
-                      </>
-                    )}
-                  </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="card" style={{ padding: '1rem', borderRadius: 14 }}>
@@ -1407,7 +1410,7 @@ export default function MyRoomPage() {
                               if (moveOutNotice) {
                                 await updateRows('move_out_notices', {
                                   intended_move_out_date: intendedMoveOutDate,
-                                  status: 'pending' // Reset status to pending if they edit it
+                                  status: 'pending'
                                 }, {
                                   filters: [{ column: 'id', op: 'eq', value: moveOutNotice.id }],
                                   accessToken: token
@@ -1416,7 +1419,8 @@ export default function MyRoomPage() {
                                   user_id: landlord?.id || listing.listerId,
                                   title: 'Updated Move-Out Notice',
                                   body: `${user.fullName || 'Your tenant'} updated their intended move-out date for ${listing.title} to ${new Date(intendedMoveOutDate).toLocaleDateString()}.`,
-                                  type: 'system'
+                                  type: 'system',
+                                  is_read: false
                                 }, { accessToken: token });
                               } else {
                                 await insertRows('move_out_notices', {
@@ -1433,7 +1437,8 @@ export default function MyRoomPage() {
                                   user_id: landlord?.id || listing.listerId,
                                   title: 'Tenant Move-Out Notice',
                                   body: `${user.fullName || 'Your tenant'} intends to vacate ${listing.title} on ${new Date(intendedMoveOutDate).toLocaleDateString()}. Please review this request.`,
-                                  type: 'system'
+                                  type: 'system',
+                                  is_read: false
                                 }, { accessToken: token });
                               }
 
