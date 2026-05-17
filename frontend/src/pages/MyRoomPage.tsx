@@ -957,36 +957,23 @@ export default function MyRoomPage() {
                               return;
                             }
                             try {
-                              const existing = await selectRows('conversations', {
-                                select: 'id',
-                                filters: [
-                                  { column: 'listing_id', op: 'eq', value: listing.id },
-                                  { column: 'tenant_id', op: 'eq', value: user.userId },
-                                  { column: 'landlord_id', op: 'eq', value: targetLandlordId }
-                                ],
-                                limit: 1,
-                                accessToken: token
-                              });
+                              const { rpc } = await import('../lib/supabase');
+                              const result = await rpc('start_conversation', {
+                                p_listing_id: listing.id,
+                                p_tenant_id: user.userId,
+                                p_landlord_id: targetLandlordId
+                              }, token);
 
-                              let conversationId = existing[0]?.id;
-                              if (!conversationId) {
-                                const created = await insertRows('conversations', {
-                                  listing_id: listing.id,
-                                  tenant_id: user.userId,
-                                  landlord_id: targetLandlordId,
-                                  inquiry_status: 'open'
-                                }, { accessToken: token });
-                                conversationId = created?.[0]?.id;
-                              }
+                              const conversationId = result?.conversation_id;
 
                               if (conversationId) {
                                 navigate(`/messages/${conversationId}`);
                               } else {
                                 alert('Unable to create conversation.');
                               }
-                            } catch (err) {
+                            } catch (err: any) {
                               console.error('Error starting conversation:', err);
-                              alert('An error occurred while starting the chat.');
+                              alert('An error occurred while starting the chat: ' + (err.message || String(err)));
                             }
                           }}
                         >
