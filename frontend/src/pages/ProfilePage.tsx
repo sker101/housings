@@ -5,58 +5,50 @@ import { useAuth } from '../context/AuthContext';
 import { invokeFunction, selectRows, updateRows } from '../lib/supabase';
 import { humanizeRole } from '../lib/roles';
 import { sanitizeInput } from '../utils/format';
-import { User, Phone, Mail, Shield, AlertTriangle, CheckCircle, XCircle, Clock, LogOut, Trash2, ChevronRight, Camera, FileText, RefreshCw, Repeat, Building2, Home, UserCog, LayoutDashboard } from 'lucide-react';
-
-// Breadcrumb styles
-const breadcrumbHeaderStyle = {
-  background: 'white',
-  borderRadius: '12px',
-  padding: '1rem 1.25rem',
-  margin: '1rem 1rem 1.25rem',
-  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06)'
-};
-
-const breadcrumbNavStyle = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '0.5rem',
-  fontSize: '0.9rem'
-};
-
-const breadcrumbItemStyle = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '0.35rem',
-  color: '#64748b',
-  textDecoration: 'none',
-  transition: 'color 0.2s ease'
-};
-
-const breadcrumbSeparatorStyle = {
-  color: '#cbd5e1'
-};
-
-const breadcrumbCurrentStyle = {
-  color: '#1e293b',
-  fontWeight: 600
-};
+import { 
+  User, Phone, Mail, Shield, AlertTriangle, CheckCircle, XCircle, Clock, 
+  LogOut, Trash2, ChevronRight, ChevronLeft, Camera, FileText, RefreshCw, 
+  Repeat, Building2, Home, UserCog, LayoutDashboard, Settings, HelpCircle, 
+  Users, Gift, Bell 
+} from 'lucide-react';
 
 function humanizeReason(value) {
-  if (!value) {
-    return 'Unable to verify phone number.';
-  }
+  if (!value) return 'Unable to verify phone number.';
+  return String(value).replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+}
 
-  return String(value)
-    .replace(/_/g, ' ')
-    .toLowerCase()
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+function MenuItem({ icon, title, onClick, dot = false }) {
+  return (
+    <div 
+      onClick={onClick}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '1.2rem 0',
+        borderBottom: '1px solid #f1f5f9',
+        cursor: 'pointer',
+        background: 'transparent'
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div style={{ color: '#475569', position: 'relative' }}>
+          {icon}
+          {dot && <div style={{ position: 'absolute', top: -2, right: -2, width: 8, height: 8, background: '#ef4444', borderRadius: '50%' }} />}
+        </div>
+        <span style={{ fontSize: '1.05rem', color: '#1e293b', fontWeight: 400 }}>{title}</span>
+      </div>
+      <ChevronRight size={18} color="#94a3b8" />
+    </div>
+  );
 }
 
 export default function ProfilePage() {
   const { user, token, refreshMe, logout, switchRole, canSwitchRoles } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [isDashboardActive, setIsDashboardActive] = useState(false);
+  
+  const [view, setView] = useState('menu'); // 'menu' | 'settings'
 
   const [form, setForm] = useState({
     fullName: user?.fullName || '',
@@ -67,9 +59,7 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [verificationStatus, setVerificationStatus] = useState(
-    user?.landlordVerificationStatus || ''
-  );
+  const [verificationStatus, setVerificationStatus] = useState(user?.landlordVerificationStatus || '');
   const [phoneVerified, setPhoneVerified] = useState(Boolean(user?.phoneVerified));
   const [storedPhone, setStoredPhone] = useState(user?.phone || '');
   const [otpCode, setOtpCode] = useState('');
@@ -87,12 +77,8 @@ export default function ProfilePage() {
 
   useEffect(() => {
     let mounted = true;
-
     async function loadProfile() {
-      if (!user?.userId || !token) {
-        return;
-      }
-
+      if (!user?.userId || !token) return;
       try {
         const rows = await selectRows('profiles', {
           select: 'id,full_name,phone,phone_verified,nida_number,university,verification_status,subscription_plan',
@@ -100,7 +86,6 @@ export default function ProfilePage() {
           limit: 1,
           accessToken: token
         });
-
         if (mounted && rows[0]) {
           setForm({
             fullName: rows[0].full_name || '',
@@ -113,34 +98,21 @@ export default function ProfilePage() {
           setVerificationStatus(String(rows[0].verification_status || '').toUpperCase());
         }
       } catch (err) {
-        if (mounted) {
-          setError(err.message);
-        }
+        if (mounted) setError(err.message);
       }
     }
-
     loadProfile();
-
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, [user?.userId, token]);
 
-  const updateField = (key, value) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
-  };
+  const updateField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-
-    if (!user?.userId || !token) {
-      return;
-    }
-
+    if (!user?.userId || !token) return;
     setSaving(true);
     setError('');
     setSuccess('');
-
     try {
       const nextPhone = form.phone.trim();
       const previousPhone = String(storedPhone || '').trim();
@@ -155,10 +127,7 @@ export default function ProfilePage() {
           phone_verified: phoneChanged ? false : phoneVerified,
           university: sanitizeInput(form.university) || null
         },
-        {
-          filters: [{ column: 'id', op: 'eq', value: user.userId }],
-          accessToken: token
-        }
+        { filters: [{ column: 'id', op: 'eq', value: user.userId }], accessToken: token }
       );
 
       if (phoneChanged) {
@@ -169,9 +138,7 @@ export default function ProfilePage() {
       }
 
       await refreshMe();
-      setSuccess(
-        phoneChanged ? 'Profile updated. Verify your updated phone number.' : 'Profile updated.'
-      );
+      setSuccess(phoneChanged ? 'Profile updated. Verify your updated phone number.' : 'Profile updated.');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -180,32 +147,14 @@ export default function ProfilePage() {
   };
 
   const sendOtp = async () => {
-    if (!user?.userId || !token) {
-      return;
-    }
-
+    if (!user?.userId || !token) return;
     const phone = form.phone.trim();
-    if (!phone) {
-      setError('Enter your phone number first.');
-      return;
-    }
-
-    setSendingOtp(true);
-    setError('');
-    setSuccess('');
-    setOtpHint('');
-
+    if (!phone) { setError('Enter your phone number first.'); return; }
+    setSendingOtp(true); setError(''); setSuccess(''); setOtpHint('');
     try {
-      const response = await invokeFunction(
-        'verify-phone-otp',
-        { action: 'send', phone },
-        token
-      );
-
+      const response = await invokeFunction('verify-phone-otp', { action: 'send', phone }, token);
       setSuccess('OTP sent. Enter the code to complete verification.');
-      if (response?.code) {
-        setOtpHint(`Dev OTP code: ${response.code}`);
-      }
+      if (response?.code) setOtpHint(`Dev OTP code: ${response.code}`);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -214,42 +163,16 @@ export default function ProfilePage() {
   };
 
   const verifyOtp = async () => {
-    if (!user?.userId || !token) {
-      return;
-    }
-
+    if (!user?.userId || !token) return;
     const phone = form.phone.trim();
     const code = otpCode.trim();
-
-    if (!phone) {
-      setError('Enter your phone number first.');
-      return;
-    }
-
-    if (!code) {
-      setError('Enter the OTP code.');
-      return;
-    }
-
-    setVerifyingOtp(true);
-    setError('');
-    setSuccess('');
-
+    if (!phone) { setError('Enter your phone number first.'); return; }
+    if (!code) { setError('Enter the OTP code.'); return; }
+    setVerifyingOtp(true); setError(''); setSuccess('');
     try {
-      const response = await invokeFunction(
-        'verify-phone-otp',
-        { action: 'verify', phone, code },
-        token
-      );
-
-      if (!response?.verified) {
-        throw new Error(humanizeReason(response?.reason));
-      }
-
-      setPhoneVerified(true);
-      setStoredPhone(phone);
-      setOtpCode('');
-      setOtpHint('');
+      const response = await invokeFunction('verify-phone-otp', { action: 'verify', phone, code }, token);
+      if (!response?.verified) throw new Error(humanizeReason(response?.reason));
+      setPhoneVerified(true); setStoredPhone(phone); setOtpCode(''); setOtpHint('');
       await refreshMe();
       setSuccess('Phone number verified.');
     } catch (err) {
@@ -261,41 +184,26 @@ export default function ProfilePage() {
 
   const handleDeleteAccount = async () => {
     if (deleteConfirmText.toUpperCase() !== 'DELETE') {
-      setError('Please type DELETE to confirm account deletion.');
-      return;
+      setError('Please type DELETE to confirm account deletion.'); return;
     }
-    setDeletingAccount(true);
-    setError('');
+    setDeletingAccount(true); setError('');
     try {
       await invokeFunction('delete-account', {}, token);
       await logout();
       navigate('/');
     } catch (err: any) {
-      setError(err.message || 'Failed to delete account. Please contact support@irent.co.tz.');
+      setError(err.message || 'Failed to delete account.');
     } finally {
       setDeletingAccount(false);
     }
   };
 
   const handleResubmitDocs = async () => {
-    if (!idDocUrl || !selfieUrl) {
-      setError('Please provide both ID and Selfie documents.');
-      return;
-    }
-    setResubmitting(true);
-    setError('');
+    if (!idDocUrl || !selfieUrl) { setError('Please provide both ID and Selfie documents.'); return; }
+    setResubmitting(true); setError('');
     try {
-      await updateRows(
-        'profiles',
-        {
-          id_doc_url: idDocUrl,
-          selfie_url: selfieUrl,
-          verification_status: 'pending'
-        },
-        { filters: [{ column: 'id', op: 'eq', value: user.userId }], accessToken: token }
-      );
-      setVerificationStatus('PENDING');
-      setSuccess('Documents submitted successfully. Awaiting admin review.');
+      await updateRows('profiles', { id_doc_url: idDocUrl, selfie_url: selfieUrl, verification_status: 'pending' }, { filters: [{ column: 'id', op: 'eq', value: user.userId }], accessToken: token });
+      setVerificationStatus('PENDING'); setSuccess('Documents submitted successfully. Awaiting admin review.');
     } catch (err: any) {
       setError(err.message || 'Failed to resubmit documents.');
     } finally {
@@ -303,639 +211,243 @@ export default function ProfilePage() {
     }
   };
 
-  const planName =
-    (user as any)?.subscriptionPlan ||
-    (user as any)?.subscription_plan ||
-    (user as any)?.subscriptionPlanName ||
-    '';
+  const handleLogout = async () => {
+    try { await logout(); navigate('/auth/login'); } catch (err) { setError('Failed to sign out.'); }
+  };
 
-  return (
-    <>
-      <style>{`
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        @keyframes slideIn {
-          from {
-            opacity: 0;
-            transform: translateX(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-        .profile-container {
-          padding: 1rem;
-          max-width: 600px;
-          margin: 0 auto;
-          animation: fadeInUp 0.5s ease-out;
-        }
-        .profile-header {
-          background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
-          border-radius: 20px;
-          padding: 1.5rem;
-          margin-bottom: 1rem;
-          text-align: center;
-          animation: fadeIn 0.6s ease-out;
-        }
-        .profile-avatar {
-          width: 80px;
-          height: 80px;
-          background: linear-gradient(135deg, #16a34a, #166534);
-          border-radius: 50%;
-          margin: 0 auto 1rem;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          animation: fadeIn 0.7s ease-out;
-        }
-        .profile-name {
-          font-size: 1.25rem;
-          font-weight: 700;
-          color: #166534;
-          margin: 0 0 0.25rem;
-        }
-        .profile-email {
-          font-size: 0.85rem;
-          color: #6b7280;
-          margin: 0;
-        }
-        .badge-container {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-          gap: 0.4rem;
-          justify-content: center;
-          margin-top: 1rem;
-          animation: fadeIn 0.8s ease-out;
-        }
-        .badge {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 0.3rem;
-          padding: 0.3rem 0.2rem;
-          border-radius: 20px;
-          font-size: 0.7rem;
-          font-weight: 600;
-          animation: slideIn 0.3s ease-out;
-          transition: all 0.2s;
-        }
-        .badge:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-        .badge-success {
-          background: linear-gradient(135deg, #dcfce7, #bbf7d0);
-          color: #166534;
-          border: 1px solid #86efac;
-        }
-        .badge-warning {
-          background: linear-gradient(135deg, #fef3c7, #fde68a);
-          color: #92400e;
-          border: 1px solid #fcd34d;
-        }
-        .badge-error {
-          background: linear-gradient(135deg, #fee2e2, #fecaca);
-          color: #991b1b;
-          border: 1px solid #fca5a5;
-        }
-        .badge-info {
-          background: linear-gradient(135deg, #f0fdf4, #dcfce7);
-          color: #166534;
-          border: 1px solid #86efac;
-        }
-        .section-card {
-          background: #ffffff;
-          border-radius: 16px;
-          padding: 1.25rem;
-          margin-bottom: 1rem;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-          animation: fadeInUp 0.5s ease-out;
-          animation-fill-mode: both;
-        }
-        .section-card:nth-child(1) { animation-delay: 0.1s; }
-        .section-card:nth-child(2) { animation-delay: 0.2s; }
-        .section-card:nth-child(3) { animation-delay: 0.3s; }
-        .section-card:nth-child(4) { animation-delay: 0.4s; }
-        .section-title {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          font-size: 0.95rem;
-          font-weight: 700;
-          color: #1f2937;
-          margin: 0 0 1rem;
-          padding-bottom: 0.75rem;
-          border-bottom: 1px solid #e5e7eb;
-        }
-        .form-field {
-          margin-bottom: 1rem;
-        }
-        .form-field label {
-          display: flex;
-          align-items: center;
-          gap: 0.4rem;
-          font-size: 0.8rem;
-          font-weight: 600;
-          color: #6b7280;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          margin-bottom: 0.4rem;
-        }
-        .form-field input {
-          width: 100%;
-          padding: 0.75rem 1rem;
-          border: 1.5px solid #e5e7eb;
-          border-radius: 12px;
-          font-size: 0.9rem;
-          color: #1f2937;
-          outline: none;
-          transition: all 0.2s;
-          background: #f9fafb;
-        }
-        .form-field input:focus {
-          border-color: #16a34a;
-          background: #ffffff;
-          box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
-        }
-        .btn-primary {
-          width: 100%;
-          padding: 0.75rem 1.5rem;
-          background: linear-gradient(135deg, #16a34a, #166534);
-          color: #ffffff;
-          border: none;
-          border-radius: 12px;
-          font-size: 0.9rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 0.5rem;
-          height: 44px;
-        }
-        .btn-primary:hover:not(:disabled) {
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
-        }
-        .btn-primary:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-        .btn-secondary {
-          padding: 0.6rem 1rem;
-          background: #f9fafb;
-          color: #6b7280;
-          border: 1.5px solid #e5e7eb;
-          border-radius: 10px;
-          font-size: 0.85rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 0.5rem;
-          height: 42px;
-        }
-        .btn-secondary:hover {
-          background: #f3f4f6;
-          border-color: #d1d5db;
-        }
-        .btn-danger {
-          width: 100%;
-          padding: 0.75rem 1.5rem;
-          background: #fee2e2;
-          color: #991b1b;
-          border: none;
-          border-radius: 12px;
-          font-size: 0.9rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 0.5rem;
-          height: 44px;
-        }
-        .btn-danger:hover {
-          background: #fecaca;
-        }
-        .otp-section {
-          background: #f0fdf4;
-          border-radius: 12px;
-          padding: 1rem;
-          margin-top: 1rem;
-        }
-        .otp-inputs {
-          display: flex;
-          gap: 0.5rem;
-          margin-top: 0.75rem;
-          justify-content: center;
-          max-width: 350px;
-          margin-left: auto;
-          margin-right: auto;
-        }
-        .otp-inputs input {
-          flex: 1;
-          max-width: 200px;
-          padding: 0.6rem;
-          border: 1.5px solid #d1fae5;
-          border-radius: 8px;
-          text-align: center;
-          font-size: 1rem;
-          font-weight: 600;
-          outline: none;
-        }
-        .otp-inputs button {
-          flex: 0 0 auto;
-          min-width: 120px;
-          width: auto !important;
-        }
-        .otp-inputs input:focus {
-          border-color: #16a34a;
-          box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
-        }
-        .message-success {
-          background: #dcfce7;
-          color: #166534;
-          padding: 0.75rem 1rem;
-          border-radius: 10px;
-          margin-bottom: 1rem;
-          font-size: 0.85rem;
-          animation: fadeIn 0.3s ease-out;
-        }
-        .message-error {
-          background: #fee2e2;
-          color: #991b1b;
-          padding: 0.75rem 1rem;
-          border-radius: 10px;
-          margin-bottom: 1rem;
-          font-size: 0.85rem;
-          animation: fadeIn 0.3s ease-out;
-        }
-        .danger-section {
-          border: 1.5px solid #fee2e2;
-          background: #fef2f2;
-        }
-      `}</style>
+  const handleSwitchRole = () => {
+    if (canSwitchRoles && user?.roles && user.roles.length > 1) {
+      const otherRoles = user.roles.filter(r => r !== user.role);
+      const targetRole = otherRoles.includes('landlord') ? 'landlord' : otherRoles[0];
+      switchRole(targetRole);
+      navigate('/');
+    }
+  };
 
-      {/* Breadcrumb Header */}
-      <header style={breadcrumbHeaderStyle}>
-        <nav style={{display:'flex',alignItems:'center',gap:'0.5rem',fontSize:'0.9rem'}}>
-          <Link 
-            to="/tenant/dashboard" 
-            className={`topbar-action-btn ${isDashboardActive ? 'is-active' : ''}`}
-            onClick={() => setIsDashboardActive(true)}
-            style={{display:'flex',alignItems:'center',gap:'0.35rem',color:'#64748b',textDecoration:'none',padding:'4px 8px',background:'transparent',border:'none',borderRadius:'8px'}}
-          >
-            <LayoutDashboard size={16} />
-            <span>Dashboard</span>
-          </Link>
-          <ChevronRight size={16} style={breadcrumbSeparatorStyle} />
-          <span style={breadcrumbCurrentStyle}>Profile</span>
-        </nav>
-      </header>
+  // Airbnb style UI
+  if (view === 'menu') {
+    return (
+      <div style={{ maxWidth: '600px', margin: '0 auto', paddingBottom: '100px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
+        
+        {/* Top Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem 1.5rem 1rem' }}>
+          <h1 style={{ fontSize: '1.8rem', fontWeight: 700, margin: 0, color: '#000' }}>Profile</h1>
+          <button style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            <Bell size={20} color="#000" />
+          </button>
+        </div>
 
-      <div className="profile-container">
-        {/* Profile Header */}
-        <div className="profile-header">
-          <div className="profile-avatar">
-            <User size={36} style={{ color: '#ffffff' }} />
+        {/* Profile Identity Card */}
+        <div style={{ background: '#fff', margin: '0 1.5rem 1.5rem', padding: '2rem 1rem', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ width: 90, height: 90, borderRadius: '50%', background: '#ede9fe', color: '#5b21b6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.5rem', fontWeight: 600, marginBottom: '1rem' }}>
+            {(form.fullName || user?.email || 'U').charAt(0).toUpperCase()}
           </div>
-          <h2 className="profile-name">{form.fullName || 'Your Name'}</h2>
-          <p className="profile-email">{user?.email || 'user@example.com'}</p>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 600, margin: '0 0 0.25rem', color: '#000' }}>{form.fullName || 'User'}</h2>
+          <p style={{ margin: 0, color: '#6b7280', fontSize: '0.95rem' }}>{humanizeRole(user?.role)}</p>
+        </div>
+
+        {/* Quick Links Row */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', margin: '0 1.5rem 1.5rem' }}>
+          <div 
+            onClick={() => navigate('/tenant/dashboard')} 
+            style={{ background: '#fff', padding: '1.25rem', borderRadius: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', position: 'relative', cursor: 'pointer' }}
+          >
+            <span style={{ position: 'absolute', top: 12, right: 12, background: '#334155', color: '#fff', fontSize: '0.6rem', fontWeight: 700, padding: '3px 6px', borderRadius: '4px' }}>NEW</span>
+            <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>🧳</div>
+            <div style={{ fontWeight: 600, fontSize: '0.95rem', color: '#000' }}>Past bookings</div>
+          </div>
           
-          <div className="badge-container">
-            <span className="badge badge-info">
-              <Shield size={14} />
-              {humanizeRole(user?.role)}
-            </span>
-            <span className={`badge ${phoneVerified ? 'badge-success' : 'badge-warning'}`}>
-              {phoneVerified ? <CheckCircle size={14} /> : <XCircle size={14} />}
-              {phoneVerified ? 'Phone verified' : 'Phone unverified'}
-            </span>
-            {planName && (
-              <span className="badge badge-info">
-                <FileText size={14} />
-                {String(planName).charAt(0).toUpperCase() + String(planName).slice(1)}
-              </span>
-            )}
-            {verificationStatus && (
-              <span
-                className={`badge ${
-                  verificationStatus === 'APPROVED'
-                    ? 'badge-success'
-                    : verificationStatus === 'REJECTED'
-                      ? 'badge-error'
-                      : 'badge-warning'
-                }`}
-              >
-                {verificationStatus === 'APPROVED' && <CheckCircle size={14} />}
-                {verificationStatus === 'REJECTED' && <XCircle size={14} />}
-                {verificationStatus === 'PENDING' && <Clock size={14} />}
-                {verificationStatus}
-              </span>
-            )}
+          <div 
+            onClick={() => navigate('/messages')} 
+            style={{ background: '#fff', padding: '1.25rem', borderRadius: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', position: 'relative', cursor: 'pointer' }}
+          >
+            <span style={{ position: 'absolute', top: 12, right: 12, background: '#334155', color: '#fff', fontSize: '0.6rem', fontWeight: 700, padding: '3px 6px', borderRadius: '4px' }}>NEW</span>
+            <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>💬</div>
+            <div style={{ fontWeight: 600, fontSize: '0.95rem', color: '#000' }}>Connections</div>
           </div>
         </div>
 
-        {success && <div className="message-success">{success}</div>}
-        {error && <div className="message-error">{error}</div>}
+        {/* Become a Host Card */}
+        {(!user?.roles?.includes('landlord')) && (
+          <div 
+            onClick={() => navigate('/auth/register/landlord')} 
+            style={{ background: '#fff', margin: '0 1.5rem 1.5rem', padding: '1.5rem', borderRadius: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: '1.25rem', cursor: 'pointer' }}
+          >
+            <div style={{ fontSize: '2.5rem' }}>🏠</div>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: '1.05rem', marginBottom: '0.2rem', color: '#000' }}>Become a host</div>
+              <div style={{ fontSize: '0.9rem', color: '#6b7280' }}>It's easy to start hosting and earn extra income.</div>
+            </div>
+          </div>
+        )}
 
-        {/* Verification Rejected Section */}
-        {verificationStatus === 'REJECTED' && (
-          <div className="section-card">
-            <div className="section-title" style={{ color: '#991b1b' }}>
-              <AlertTriangle size={18} />
-              Verification rejected
-            </div>
-            <p style={{ fontSize: '0.85rem', color: '#6b7280', lineHeight: 1.6, marginBottom: '1rem' }}>
-              Your previous documents were rejected. Provide a clear ID photo and a matching selfie to request verification again.
-            </p>
-            <div className="form-field">
-              <label htmlFor="idDocUrl">
-                <Camera size={14} />
-                New ID document URL
-              </label>
-              <input
-                id="idDocUrl"
-                value={idDocUrl}
-                onChange={(e) => setIdDocUrl(e.target.value)}
-                placeholder="https://..."
-              />
-            </div>
-            <div className="form-field">
-              <label htmlFor="selfieUrl">
-                <Camera size={14} />
-                New selfie URL
-              </label>
-              <input
-                id="selfieUrl"
-                value={selfieUrl}
-                onChange={(e) => setSelfieUrl(e.target.value)}
-                placeholder="https://..."
-              />
-            </div>
-            <button
-              type="button"
-              className="btn-primary"
-              onClick={handleResubmitDocs}
-              disabled={resubmitting || !idDocUrl || !selfieUrl}
+        {/* Menu Items */}
+        <div style={{ margin: '0 1.5rem' }}>
+          <MenuItem icon={<Settings size={22} />} title="Account settings" onClick={() => setView('settings')} dot={!phoneVerified} />
+          <MenuItem icon={<HelpCircle size={22} />} title="Get help" onClick={() => {}} />
+          <MenuItem icon={<User size={22} />} title="View profile" onClick={() => {}} />
+          <MenuItem icon={<Shield size={22} />} title="Privacy" onClick={() => {}} />
+          
+          <hr style={{ border: 'none', borderTop: '1px solid #f1f5f9', margin: '1rem 0' }} />
+          
+          <MenuItem icon={<Users size={22} />} title="Refer a host" onClick={() => {}} />
+          <MenuItem icon={<UserCog size={22} />} title="Find a co-host" onClick={() => {}} />
+          <MenuItem icon={<Gift size={22} />} title="Gift cards" onClick={() => {}} />
+          <MenuItem icon={<FileText size={22} />} title="Legal" onClick={() => {}} />
+          <MenuItem icon={<LogOut size={22} />} title="Log out" onClick={handleLogout} />
+        </div>
+
+        {/* Floating Switch Button */}
+        {canSwitchRoles && user?.roles && user.roles.length > 1 && (
+          <div style={{ position: 'fixed', bottom: 85, left: 0, right: 0, display: 'flex', justifyContent: 'center', pointerEvents: 'none', zIndex: 50 }}>
+            <button 
+              onClick={handleSwitchRole} 
+              style={{ pointerEvents: 'auto', background: '#222222', color: '#fff', padding: '0.9rem 1.5rem', borderRadius: '30px', fontWeight: 600, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.5rem', border: 'none', boxShadow: '0 4px 15px rgba(0,0,0,0.2)', cursor: 'pointer' }}
             >
-              {resubmitting ? <RefreshCw size={16} className="animate-spin" /> : <RefreshCw size={16} />}
-              {resubmitting ? 'Submitting...' : 'Resubmit documents'}
+              <Repeat size={16} /> Switch to hosting
             </button>
           </div>
         )}
+      </div>
+    );
+  }
+
+  // Account Settings View
+  return (
+    <>
+      <style>{`
+        .settings-container { padding: 1rem; max-width: 600px; margin: 0 auto; animation: slideInRight 0.3s ease-out; }
+        @keyframes slideInRight { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+        .section-card { background: #ffffff; border-radius: 16px; padding: 1.25rem; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); }
+        .section-title { display: flex; align-items: center; gap: 0.5rem; font-size: 0.95rem; font-weight: 700; color: #1f2937; margin: 0 0 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid #e5e7eb; }
+        .form-field { margin-bottom: 1rem; }
+        .form-field label { display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+        .form-field input { width: 100%; padding: 0.75rem 1rem; border: 1.5px solid #e5e7eb; border-radius: 12px; font-size: 0.9rem; outline: none; background: #f9fafb; }
+        .form-field input:focus { border-color: #16a34a; background: #ffffff; box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1); }
+        .btn-primary { width: 100%; padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #16a34a, #166534); color: #ffffff; border: none; border-radius: 12px; font-size: 0.9rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; height: 44px; }
+        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-secondary { padding: 0.6rem 1rem; background: #f9fafb; color: #6b7280; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; height: 42px; }
+        .btn-danger { width: 100%; padding: 0.75rem 1.5rem; background: #fee2e2; color: #991b1b; border: none; border-radius: 12px; font-size: 0.9rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; height: 44px; }
+        .otp-section { background: #f0fdf4; border-radius: 12px; padding: 1rem; margin-top: 1rem; }
+        .otp-inputs { display: flex; gap: 0.5rem; margin-top: 0.75rem; justify-content: center; }
+        .otp-inputs input { flex: 1; padding: 0.6rem; border: 1.5px solid #d1fae5; border-radius: 8px; text-align: center; font-weight: 600; outline: none; }
+        .message-success { background: #dcfce7; color: #166534; padding: 0.75rem 1rem; border-radius: 10px; margin-bottom: 1rem; font-size: 0.85rem; }
+        .message-error { background: #fee2e2; color: #991b1b; padding: 0.75rem 1rem; border-radius: 10px; margin-bottom: 1rem; font-size: 0.85rem; }
+        .danger-section { border: 1.5px solid #fee2e2; background: #fef2f2; }
+      `}</style>
+
+      {/* Header */}
+      <header style={{ background: 'white', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', borderBottom: '1px solid #f1f5f9', position: 'sticky', top: 0, zIndex: 10 }}>
+        <button onClick={() => setView('menu')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
+          <ChevronLeft size={24} color="#1e293b" />
+        </button>
+        <h1 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 600, color: '#1e293b' }}>Account settings</h1>
+      </header>
+
+      <div className="settings-container">
+        {success && <div className="message-success">{success}</div>}
+        {error && <div className="message-error">{error}</div>}
 
         {/* Profile Information Section */}
         <div className="section-card">
           <div className="section-title">
-            <User size={18} />
-            Profile information
+            <User size={18} /> Profile information
           </div>
           <form onSubmit={handleSubmit}>
             <div className="form-field">
-              <label htmlFor="fullName">
-                <User size={14} />
-                {t('auth.fullName')}
-              </label>
-              <input
-                id="fullName"
-                value={form.fullName}
-                onChange={(event) => updateField('fullName', event.target.value)}
-                required
-                placeholder="Enter your full name"
-              />
+              <label htmlFor="fullName"><User size={14} /> Full Name</label>
+              <input id="fullName" value={form.fullName} onChange={(e) => updateField('fullName', e.target.value)} required />
             </div>
-
             <div className="form-field">
-              <label htmlFor="phone">
-                <Phone size={14} />
-                {t('auth.phone')}
-              </label>
-              <input
-                id="phone"
-                value={form.phone}
-                onChange={(event) => {
-                  updateField('phone', event.target.value);
-                  if (event.target.value.trim() !== String(storedPhone || '').trim()) {
-                    setPhoneVerified(false);
-                  }
-                }}
-                required
-                placeholder="+255 123 456 789"
-              />
+              <label htmlFor="phone"><Phone size={14} /> Phone Number</label>
+              <input id="phone" value={form.phone} onChange={(e) => {
+                updateField('phone', e.target.value);
+                if (e.target.value.trim() !== String(storedPhone || '').trim()) setPhoneVerified(false);
+              }} required />
             </div>
-
             <div className="form-field">
-              <label htmlFor="nidaNumber">
-                <Shield size={14} />
-                NIDA Number
-              </label>
-              <input
-                id="nidaNumber"
-                inputMode="numeric"
-                value={form.nidaNumber}
-                onChange={(event) => updateField('nidaNumber', event.target.value.replace(/\D/g, '').slice(0, 20))}
-                placeholder="20 digits, numbers only"
-                maxLength={20}
-              />
+              <label htmlFor="nidaNumber"><Shield size={14} /> NIDA Number</label>
+              <input id="nidaNumber" inputMode="numeric" value={form.nidaNumber} onChange={(e) => updateField('nidaNumber', e.target.value.replace(/\D/g, '').slice(0, 20))} maxLength={20} />
             </div>
-
             <div className="form-field">
-              <label htmlFor="university">
-                <FileText size={14} />
-                {t('auth.universityOptional')}
-              </label>
-              <input
-                id="university"
-                value={form.university}
-                onChange={(event) => updateField('university', event.target.value)}
-                placeholder="University name"
-              />
+              <label htmlFor="university"><FileText size={14} /> University (Optional)</label>
+              <input id="university" value={form.university} onChange={(e) => updateField('university', e.target.value)} />
             </div>
-
             <button className="btn-primary" type="submit" disabled={saving}>
               {saving ? <RefreshCw size={16} className="animate-spin" /> : <CheckCircle size={16} />}
-              {saving ? t('dashboard.saving') : t('dashboard.saveProfile')}
+              {saving ? 'Saving...' : 'Save Profile'}
             </button>
           </form>
 
-          {/* Phone Verification */}
           <div className="otp-section">
             <div className="section-title" style={{ fontSize: '0.85rem', marginBottom: '0.5rem' }}>
-              <Shield size={16} />
-              Phone verification
+              <Shield size={16} /> Phone verification
             </div>
-            <p style={{ fontSize: '0.8rem', color: '#6b7280', lineHeight: 1.5, marginBottom: '0.75rem' }}>
-              {phoneVerified 
-                ? 'Your number is verified. Re-verify if you change it.' 
-                : t('dashboard.phoneOtpMsg')}
+            <p style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.75rem' }}>
+              {phoneVerified ? 'Your number is verified. Re-verify if you change it.' : 'Verify your phone number to receive important SMS alerts.'}
             </p>
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={sendOtp}
-              disabled={sendingOtp}
-              style={{ width: '100%' }}
-            >
+            <button type="button" className="btn-secondary" onClick={sendOtp} disabled={sendingOtp} style={{ width: '100%' }}>
               {sendingOtp ? <RefreshCw size={14} className="animate-spin" /> : <Phone size={14} />}
-              {sendingOtp ? t('dashboard.sending') : t('dashboard.sendOtp')}
+              {sendingOtp ? 'Sending...' : 'Send OTP'}
             </button>
             <div className="otp-inputs">
-              <input
-                placeholder={t('dashboard.enterOtp')}
-                value={otpCode}
-                onChange={(event) => setOtpCode(event.target.value)}
-                inputMode="numeric"
-                maxLength={6}
-              />
-              <button
-                type="button"
-                className="btn-primary"
-                onClick={verifyOtp}
-                disabled={verifyingOtp}
-              >
-                {verifyingOtp ? <RefreshCw size={14} className="animate-spin" /> : <CheckCircle size={14} />}
-                {verifyingOtp ? t('dashboard.verifying') : t('dashboard.verifyCode')}
+              <input placeholder="Enter OTP" value={otpCode} onChange={(e) => setOtpCode(e.target.value)} inputMode="numeric" maxLength={6} />
+              <button type="button" className="btn-primary" onClick={verifyOtp} disabled={verifyingOtp} style={{ width: 'auto' }}>
+                {verifyingOtp ? <RefreshCw size={14} className="animate-spin" /> : <CheckCircle size={14} />} Verify
               </button>
             </div>
             {otpHint && <p style={{ fontSize: '0.75rem', color: '#16a34a', marginTop: '0.5rem', fontWeight: 600 }}>{otpHint}</p>}
           </div>
         </div>
 
-        {/* Switch Account Section - Only show if user has multiple roles */}
-        {canSwitchRoles && user?.roles && user.roles.length > 1 && (
+        {/* Verification Rejected Section */}
+        {verificationStatus === 'REJECTED' && (
           <div className="section-card">
-            <div className="section-title">
-              <Repeat size={18} />
-              Switch account
+            <div className="section-title" style={{ color: '#991b1b' }}>
+              <AlertTriangle size={18} /> Verification rejected
             </div>
-            <p style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.75rem' }}>
-              You have {user.roles.length} accounts. Select one to switch:
+            <p style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: '1rem' }}>
+              Your previous documents were rejected. Provide a clear ID photo and a matching selfie to request verification again.
             </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {user.roles.filter(role => role !== user.role).map((role) => (
-                <button
-                  key={role}
-                  type="button"
-                  className="btn-secondary"
-                  onClick={() => switchRole(role)}
-                  style={{ 
-                    width: '100%', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'space-between',
-                    padding: '0.75rem 1rem'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    {role === 'tenant' && <Home size={16} color="#22c55e" />}
-                    {role === 'landlord' && <Building2 size={16} color="#3b82f6" />}
-                    {role === 'property_manager' && <UserCog size={16} color="#f59e0b" />}
-                    {role === 'admin' && <Shield size={16} color="#ef4444" />}
-                    <span style={{ textTransform: 'capitalize', fontWeight: 500 }}>
-                      {role === 'property_manager' ? 'Property Manager' : role}
-                    </span>
-                  </div>
-                  <ChevronRight size={16} color="#9ca3af" />
-                </button>
-              ))}
+            <div className="form-field">
+              <label htmlFor="idDocUrl"><Camera size={14} /> New ID document URL</label>
+              <input id="idDocUrl" value={idDocUrl} onChange={(e) => setIdDocUrl(e.target.value)} />
             </div>
+            <div className="form-field">
+              <label htmlFor="selfieUrl"><Camera size={14} /> New selfie URL</label>
+              <input id="selfieUrl" value={selfieUrl} onChange={(e) => setSelfieUrl(e.target.value)} />
+            </div>
+            <button type="button" className="btn-primary" onClick={handleResubmitDocs} disabled={resubmitting || !idDocUrl || !selfieUrl}>
+              {resubmitting ? <RefreshCw size={16} className="animate-spin" /> : <RefreshCw size={16} />}
+              {resubmitting ? 'Submitting...' : 'Resubmit documents'}
+            </button>
           </div>
         )}
-
-        {/* Sign Out Section */}
-        <div className="section-card">
-          <div className="section-title">
-            <LogOut size={18} />
-            Account actions
-          </div>
-          <button
-            type="button"
-            className="btn-secondary"
-            onClick={async () => {
-              try {
-                await logout();
-                navigate('/auth/login');
-              } catch (err) {
-                setError('Failed to sign out.');
-              }
-            }}
-            style={{ width: '100%' }}
-          >
-            <LogOut size={16} />
-            Sign out
-          </button>
-        </div>
 
         {/* Danger Zone */}
         <div className="section-card danger-section">
           <div className="section-title" style={{ color: '#991b1b' }}>
-            <AlertTriangle size={18} />
-            Danger zone
+            <AlertTriangle size={18} /> Danger zone
           </div>
           {!showDeleteSection ? (
-            <button
-              type="button"
-              className="btn-danger"
-              onClick={() => setShowDeleteSection(true)}
-            >
-              <Trash2 size={16} />
-              Delete my account
+            <button type="button" className="btn-danger" onClick={() => setShowDeleteSection(true)}>
+              <Trash2 size={16} /> Delete my account
             </button>
           ) : (
             <div>
-              <p style={{ fontSize: '0.85rem', color: '#6b7280', lineHeight: 1.5, marginBottom: '1rem' }}>
+              <p style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: '1rem' }}>
                 This will permanently delete your account and all associated data. This action cannot be undone.
               </p>
               <div className="form-field">
-                <label htmlFor="deleteConfirm">
-                  <AlertTriangle size={14} />
-                  Type DELETE to confirm
-                </label>
-                <input
-                  id="deleteConfirm"
-                  type="text"
-                  value={deleteConfirmText}
-                  onChange={(e) => setDeleteConfirmText(e.target.value)}
-                  placeholder="DELETE"
-                />
+                <label htmlFor="deleteConfirm"><AlertTriangle size={14} /> Type DELETE to confirm</label>
+                <input id="deleteConfirm" type="text" value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value)} placeholder="DELETE" />
               </div>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button
-                  type="button"
-                  className="btn-danger"
-                  disabled={deletingAccount || deleteConfirmText.toUpperCase() !== 'DELETE'}
-                  onClick={handleDeleteAccount}
-                >
+                <button type="button" className="btn-danger" disabled={deletingAccount || deleteConfirmText.toUpperCase() !== 'DELETE'} onClick={handleDeleteAccount}>
                   {deletingAccount ? <RefreshCw size={16} className="animate-spin" /> : <Trash2 size={16} />}
-                  {deletingAccount ? 'Deleting...' : 'Delete account'}
+                  Delete account
                 </button>
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  onClick={() => {
-                    setShowDeleteSection(false);
-                    setDeleteConfirmText('');
-                  }}
-                >
+                <button type="button" className="btn-secondary" onClick={() => { setShowDeleteSection(false); setDeleteConfirmText(''); }}>
                   Cancel
                 </button>
               </div>
