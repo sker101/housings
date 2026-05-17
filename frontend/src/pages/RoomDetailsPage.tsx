@@ -1264,15 +1264,7 @@ export default function RoomDetailsPage() {
 
 
         
-        <button 
-          className="rd-btn rd-btn--secondary"
-          onClick={startChatWithLandlord}
-          disabled={startingChat}
-        >
-          <MessageCircle size={18} />
-          {startingChat ? 'Starting Chat...' : 'Chat In-App'}
-        </button>
-        
+
         <button className="rd-btn rd-btn--secondary" onClick={handleShare}>
           <Share2 size={18} />
           Share
