@@ -939,7 +939,8 @@ export default function MyRoomPage() {
                           className="btn btn--ghost btn--small" 
                           style={{ flex: 1 }} 
                           onClick={async () => {
-                            if (!user?.userId || !landlord?.id || !listing?.id || !token) {
+                            const targetLandlordId = landlord?.id || listing?.lister_id || booking?.landlord_id;
+                            if (!user?.userId || !targetLandlordId || !listing?.id || !token) {
                               alert('Unable to start chat. Missing user or landlord data.');
                               return;
                             }
@@ -949,7 +950,7 @@ export default function MyRoomPage() {
                                 filters: [
                                   { column: 'listing_id', op: 'eq', value: listing.id },
                                   { column: 'tenant_id', op: 'eq', value: user.userId },
-                                  { column: 'landlord_id', op: 'eq', value: landlord.id }
+                                  { column: 'landlord_id', op: 'eq', value: targetLandlordId }
                                 ],
                                 limit: 1,
                                 accessToken: token
@@ -960,7 +961,7 @@ export default function MyRoomPage() {
                                 const created = await insertRows('conversations', {
                                   listing_id: listing.id,
                                   tenant_id: user.userId,
-                                  landlord_id: landlord.id,
+                                  landlord_id: targetLandlordId,
                                   inquiry_status: 'open'
                                 }, { accessToken: token });
                                 conversationId = created?.[0]?.id;

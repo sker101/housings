@@ -59,6 +59,8 @@ type ModernBookingRow = {
 
 type TenantRow = {
   id: string;
+  tenant_id: string;
+  listing_id: string;
   move_in_date?: string;
   months_duration?: number;
   contact_preference?: string | null;
@@ -164,6 +166,8 @@ export default function LandlordTenantsPage() {
         // 4. Map everything together
         const normalizedTenants = (bookingRows as any[]).map((row) => ({
           id: row.id,
+          tenant_id: row.tenant_id,
+          listing_id: row.listing_id,
           move_in_date: row.move_in_date,
           months_duration: row.months_duration,
           contact_preference: row.contact_preference || null,
@@ -464,10 +468,51 @@ export default function LandlordTenantsPage() {
                 </div>
 
                 <div className="tn-actions">
-                  <Link to="/messages" className="tn-btn tn-btn-msg">
+                  <button 
+                    className="tn-btn tn-btn-msg"
+                    onClick={async () => {
+                      if (!user?.userId || !tenant.tenant_id || !tenant.listing_id || !token) {
+                        alert('Unable to start chat. Missing tenant data.');
+                        return;
+                      }
+                      try {
+                        const existing = await selectRows('conversations', {
+                          select: 'id',
+                          filters: [
+                            { column: 'listing_id', op: 'eq', value: tenant.listing_id },
+                            { column: 'tenant_id', op: 'eq', value: tenant.tenant_id },
+                            { column: 'landlord_id', op: 'eq', value: user.userId }
+                          ],
+                          limit: 1,
+                          accessToken: token
+                        });
+
+                        let conversationId = existing[0]?.id;
+                        if (!conversationId) {
+                          const { insertRows } = await import('../lib/supabase');
+                          const created = await insertRows('conversations', {
+                            listing_id: tenant.listing_id,
+                            tenant_id: tenant.tenant_id,
+                            landlord_id: user.userId,
+                            inquiry_status: 'open'
+                          }, { accessToken: token });
+                          conversationId = created?.[0]?.id;
+                        }
+
+                        if (conversationId) {
+                          navigate(`/messages/${conversationId}`);
+                        } else {
+                          alert('Unable to create conversation.');
+                        }
+                      } catch (err) {
+                        console.error('Error starting conversation:', err);
+                        alert('An error occurred while starting the chat.');
+                      }
+                    }}
+                  >
                     <MessageSquare size={16} />
                     Message
-                  </Link>
+                  </button>
                   {tenant.profile?.phone ? (
                     <a href={`tel:${tenant.profile.phone}`} className="tn-btn">
                       <Phone size={16} />
