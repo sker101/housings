@@ -271,7 +271,7 @@ export default function ProfilePage() {
         {/* Become a Host Card */}
         {(!user?.roles?.includes('landlord')) && (
           <div 
-            onClick={() => navigate('/auth/register/landlord')} 
+            onClick={() => navigate('/become-host')} 
             style={{ background: '#fff', margin: '0 1.5rem 1.5rem', padding: '1.5rem', borderRadius: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: '1.25rem', cursor: 'pointer' }}
           >
             <div style={{ fontSize: '2.5rem' }}>🏠</div>

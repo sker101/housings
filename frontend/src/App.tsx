@@ -13,6 +13,7 @@ import SearchPage        from './pages/SearchPage';
 import RoomDetailsPage   from './pages/RoomDetailsPage';
 import NotFoundPage      from './pages/NotFoundPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import BecomeHostPage    from './pages/BecomeHostPage';
 
 // ── Auth pages (new) ──────────────────────────────────────────
 import LoginPage          from './pages/auth/LoginPage';
@@ -113,6 +114,7 @@ export default function App() {
           
           {/* Shared multi-role */}
           <Route path="/profile"            element={<ProtectedRoute roles={ALL}><ProfilePage /></ProtectedRoute>} />
+          <Route path="/become-host"        element={<ProtectedRoute roles={ALL}><BecomeHostPage /></ProtectedRoute>} />
           <Route path="/notifications"      element={<ProtectedRoute roles={ALL}><NotificationsPage /></ProtectedRoute>} />
           <Route path="/messages"           element={<ProtectedRoute roles={ALL}><MessagesPage /></ProtectedRoute>} />
           <Route path="/messages/:threadId" element={<ProtectedRoute roles={ALL}><MessagesPage /></ProtectedRoute>} />
