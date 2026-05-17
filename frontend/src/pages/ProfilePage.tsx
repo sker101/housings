@@ -48,7 +48,8 @@ export default function ProfilePage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   
-  const [view, setView] = useState('menu'); // 'menu' | 'settings'
+  // 'menu' | 'settings' | 'referral'
+  const [view, setView] = useState('menu');
 
   const [form, setForm] = useState({
     fullName: user?.fullName || '',
@@ -283,16 +284,16 @@ export default function ProfilePage() {
 
         {/* Menu Items */}
         <div style={{ margin: '0 1.5rem' }}>
-          <MenuItem icon={<Settings size={22} />} title="Account settings" onClick={() => setView('settings')} dot={!phoneVerified} />
-          <MenuItem icon={<HelpCircle size={22} />} title="Get help" onClick={() => {}} />
-          <MenuItem icon={<User size={22} />} title="View profile" onClick={() => {}} />
+          <MenuItem icon={<User size={22} />} title="View profile" onClick={() => setView('settings')} dot={!phoneVerified} />
+          <MenuItem icon={<HelpCircle size={22} />} title="Get help" onClick={() => window.open('tel:+255800000000')} />
+          <MenuItem icon={<Settings size={22} />} title="Account settings" onClick={() => navigate('/tenant/dashboard')} />
           <MenuItem icon={<Shield size={22} />} title="Privacy" onClick={() => {}} />
           
           <hr style={{ border: 'none', borderTop: '1px solid #f1f5f9', margin: '1rem 0' }} />
           
-          <MenuItem icon={<Users size={22} />} title="Refer a host" onClick={() => {}} />
-          <MenuItem icon={<UserCog size={22} />} title="Find a co-host" onClick={() => {}} />
-          <MenuItem icon={<Gift size={22} />} title="Gift cards" onClick={() => {}} />
+          <MenuItem icon={<Users size={22} />} title="Refer a host" onClick={() => setView('referral')} />
+          <MenuItem icon={<UserCog size={22} />} title="Find a co-host" onClick={() => navigate('/search?type=dalali')} />
+          <MenuItem icon={<Gift size={22} />} title="Gift cards" onClick={() => setView('referral')} />
           <MenuItem icon={<FileText size={22} />} title="Legal" onClick={() => {}} />
           <MenuItem icon={<LogOut size={22} />} title="Log out" onClick={handleLogout} />
         </div>
@@ -308,6 +309,65 @@ export default function ProfilePage() {
             </button>
           </div>
         )}
+      </div>
+    );
+  }
+
+  // Referral View
+  if (view === 'referral') {
+    const referralLink = `${window.location.origin}/auth/register/landlord?ref=${user?.userId?.slice(0, 8)}`;
+    
+    return (
+      <div style={{ maxWidth: '600px', margin: '0 auto', paddingBottom: '100px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
+        <header style={{ background: 'white', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', position: 'sticky', top: 0, zIndex: 10 }}>
+          <button onClick={() => setView('menu')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
+            <ChevronLeft size={24} color="#1e293b" />
+          </button>
+          <h1 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 600, color: '#1e293b' }}>Refer & Earn</h1>
+        </header>
+        
+        <div style={{ padding: '1.5rem', textAlign: 'center', animation: 'slideInRight 0.3s ease-out' }}>
+          <div style={{ width: 120, height: 120, background: '#fef08a', borderRadius: '50%', margin: '0 auto 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3.5rem' }}>
+            🎁
+          </div>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e293b', marginBottom: '0.75rem' }}>Earn rewards for referring hosts</h2>
+          <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '2rem' }}>
+            Invite property owners or landlords to list their rooms on iRent. Once they successfully register and list their first property, you'll receive a reward directly to your mobile wallet.
+          </p>
+          
+          <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '16px', padding: '1.25rem', marginBottom: '1.5rem' }}>
+            <p style={{ margin: '0 0 0.5rem', fontSize: '0.8rem', fontWeight: 600, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'left' }}>Your referral link</p>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <input 
+                type="text" 
+                readOnly 
+                value={referralLink} 
+                style={{ flex: 1, padding: '0.75rem', background: '#fff', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.85rem', color: '#334155', outline: 'none' }}
+              />
+              <button 
+                onClick={async () => {
+                  if (navigator.clipboard) {
+                    await navigator.clipboard.writeText(referralLink);
+                    alert('Referral link copied!');
+                  }
+                }}
+                style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: '8px', padding: '0 1rem', fontWeight: 600, cursor: 'pointer' }}
+              >
+                Copy
+              </button>
+            </div>
+          </div>
+          
+          <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', padding: '1rem', display: 'flex', alignItems: 'flex-start', gap: '0.75rem', textAlign: 'left' }}>
+            <Gift size={20} color="#16a34a" style={{ flexShrink: 0, marginTop: '2px' }} />
+            <div>
+              <h4 style={{ margin: '0 0 0.25rem', fontSize: '0.9rem', fontWeight: 600, color: '#166534' }}>How it works</h4>
+              <p style={{ margin: 0, fontSize: '0.85rem', color: '#15803d', lineHeight: 1.5 }}>
+                Share your link. When a landlord signs up using your link and their property is approved, you get TZS 10,000!
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -458,3 +518,4 @@ export default function ProfilePage() {
     </>
   );
 }
+
