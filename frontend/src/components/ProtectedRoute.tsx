@@ -85,7 +85,7 @@ export default function ProtectedRoute({ children, roles }: ProtectedRouteProps)
   // Admins are exempt since they manage the system and may predate this requirement.
   const isCompleteProfilePage = location.pathname === '/auth/complete-profile';
   const isAdmin = user.role === 'admin' || user.roles?.includes('admin');
-  const hasIncompleteProfile = !isAdmin && (!user.phone || !user.nidaNumber);
+  const hasIncompleteProfile = !isAdmin && (!user.phone || !user.nidaNumber || !user.fullName || user.fullName === user.email);
 
   if (hasIncompleteProfile && !isCompleteProfilePage) {
     return <Navigate to="/auth/complete-profile" replace />;

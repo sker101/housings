@@ -57,6 +57,10 @@ export default function CompleteProfilePage() {
       toast.error('NIDA number must be exactly 20 digits (numbers only)');
       return;
     }
+    if (step === 1 && (!formData.fullName.trim() || formData.fullName.trim() === user?.email)) {
+      toast.error('Please enter a valid Username or Full Name');
+      return;
+    }
     setStep(2);
   };
 
@@ -466,14 +470,16 @@ export default function CompleteProfilePage() {
               </div>
 
               <div style={fieldStyle}>
-                <label style={labelStyle}>Full Name</label>
+                <label style={labelStyle}>
+                  Username / Full Name <span style={requiredStyle}>*</span>
+                </label>
                 <div style={inputWrapStyle}>
                   <User size={18} style={inputIconStyle} />
                   <input
                     type="text"
                     value={formData.fullName}
                     onChange={set('fullName')}
-                    placeholder="Your full name"
+                    placeholder="Your chosen username or full name"
                     style={inputStyle}
                   />
                 </div>
@@ -601,7 +607,7 @@ export default function CompleteProfilePage() {
                   {loading ? (
                     <span style={spinnerStyle} />
                   ) : (
-                    <>Complete Profile <ArrowRight size={18} /></>
+                    <>Complete Profile (100%) <ArrowRight size={18} /></>
                   )}
                 </button>
               </div>
