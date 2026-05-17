@@ -39,6 +39,7 @@ type Listing = {
   house_rules?: string[];
   amenities?: string[];
   lister_id?: string;
+  listerId?: string;
   imageUrl?: string;
   photos: any[];
 };
@@ -319,7 +320,18 @@ export default function MyRoomPage() {
           filters: [{ column: 'id', op: 'eq', value: listerId }],
           accessToken: token
         }).catch(() => []);
-        setLandlord(landlordRows?.[0] || null);
+        
+        let foundLandlord = landlordRows?.[0];
+        if (!foundLandlord && listingData) {
+          foundLandlord = {
+            id: listerId,
+            full_name: listingData.owner_name || 'Property Owner',
+            phone: listingData.owner_phone,
+            email: listingData.owner_email || listingData.email,
+            role: 'landlord'
+          };
+        }
+        setLandlord(foundLandlord || null);
       } else {
         setLandlord(null);
       }
@@ -919,7 +931,7 @@ export default function MyRoomPage() {
                         : <span style={{ color: 'var(--mid)' }}>—</span>}
                     </div>
                   </div>
-                  {(!booking || !['paid', 'confirmed', 'active'].includes(booking.status)) ? (
+                  {(!booking || !['paid', 'confirmed', 'active', 'approved', 'completed'].includes(booking.status)) ? (
                     <p style={{ margin: '0.75rem 0 0 0', fontSize: '0.8rem', color: '#9a3412', background: '#fff7ed', padding: '0.5rem', borderRadius: 8, border: '1px solid #fed7aa', width: '100%', textAlign: 'center', lineHeight: 1.4 }}>
                       🔒 Contact information and chats are unlocked after payment is completed.
                     </p>
@@ -939,7 +951,7 @@ export default function MyRoomPage() {
                           className="btn btn--ghost btn--small" 
                           style={{ flex: 1 }} 
                           onClick={async () => {
-                            const targetLandlordId = landlord?.id || listing?.lister_id || booking?.landlord_id;
+                            const targetLandlordId = landlord?.id || listing?.listerId || listing?.lister_id || booking?.landlord_id;
                             if (!user?.userId || !targetLandlordId || !listing?.id || !token) {
                               alert('Unable to start chat. Missing user or landlord data.');
                               return;
