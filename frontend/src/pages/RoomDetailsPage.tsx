@@ -260,13 +260,18 @@ export default function RoomDetailsPage() {
     setSubmittingMoveOut(true);
     
     try {
-      await insertRows('move_out_notices', {
+      // Build notice payload — only include property_id if we have a confirmed property UUID
+      const noticePayload: Record<string, any> = {
         booking_id: existingBooking.id,
         tenant_id: user?.userId,
         landlord_id: listing.listerId,
-        property_id: listing.propertyId || listing.id,
         intended_move_out_date: moveOutDate
-      }, { accessToken: token });
+      };
+      // Only attach property_id if we have the real property UUID (not the room/listing id)
+      if (listing.propertyId && listing.propertyId !== listing.id) {
+        noticePayload.property_id = listing.propertyId;
+      }
+      await insertRows('move_out_notices', noticePayload, { accessToken: token });
       
       setMoveOutModalOpen(false);
       setMoveOutNotice({ status: 'pending', intended_move_out_date: moveOutDate });
