@@ -264,7 +264,7 @@ export default function RoomDetailsPage() {
         lease_id: existingBooking.id,
         tenant_id: user?.userId,
         landlord_id: listing.listerId,
-        property_id: listing.id,
+        property_id: listing.propertyId || listing.id,  // propertyId = actual property, fallback to id
         intended_move_out_date: moveOutDate
       }, { accessToken: token });
       

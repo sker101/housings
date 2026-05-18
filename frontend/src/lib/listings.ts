@@ -40,6 +40,7 @@ export function mapListingRow(row, photos = []) {
 
   return {
     id: row.id,
+    propertyId: row.property_id || null,
     title: (row.title && String(row.title).trim() !== '') 
       ? String(row.title).trim() 
       : (row.room_type ? `${String(row.room_type).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())} Room` : 'Room for rent'),
