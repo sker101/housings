@@ -261,10 +261,11 @@ export default function RoomDetailsPage() {
     
     try {
       await insertRows('move_out_notices', {
-        lease_id: existingBooking.id,
+        booking_id: existingBooking.id,        // correct FK → bookings(id)
+        lease_id: null,                        // legacy column, now nullable
         tenant_id: user?.userId,
         landlord_id: listing.listerId,
-        property_id: listing.propertyId || listing.id,  // propertyId = actual property, fallback to id
+        property_id: listing.propertyId || listing.id,
         intended_move_out_date: moveOutDate
       }, { accessToken: token });
       
