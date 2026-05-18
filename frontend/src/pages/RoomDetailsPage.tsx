@@ -452,27 +452,42 @@ export default function RoomDetailsPage() {
   }, [listing?.id, user?.userId, token]);
 
   // Check if this tenant has ANY active booking (not just for this listing)
+  // Uses a single server-side RPC to avoid the fragile two-step tenants → bookings query
+  // that fails silently when the tenants table row is missing for a user.
   useEffect(() => {
-    if (!user?.userId || !token || user?.role !== 'tenant') return;
+    if (!user?.userId || !token) return;
+    // Allow check for any authenticated user — roles array may include 'tenant' even
+    // if the active role is temporarily 'landlord' etc.
     async function checkGlobalActiveRoom() {
       try {
-        const tenantRows = await selectRows('tenants', {
-          select: 'id',
-          filters: [{ column: 'profile_id', op: 'eq', value: user.userId }],
-          limit: 1, accessToken: token,
-        });
-        const tenantId = tenantRows?.[0]?.id;
-        if (!tenantId) return;
-        const bookings = await selectRows('bookings', {
-          select: 'id,listing_id,status',
-          filters: [
-            { column: 'tenant_id', op: 'eq', value: tenantId },
-            { column: 'status', op: 'in', value: '(pending,confirmed,approved,paid)' },
-          ],
-          limit: 1, accessToken: token,
-        });
-        setHasAnyActiveRoom(bookings?.length > 0);
-      } catch { /* silent — default false is safe */ }
+        const result = await rpc(
+          'tenant_has_active_booking',
+          { p_profile_id: user.userId },
+          token
+        );
+        // rpc returns the scalar boolean value directly
+        setHasAnyActiveRoom(result === true);
+      } catch {
+        // Fallback: manual two-step if RPC not yet deployed
+        try {
+          const tenantRows = await selectRows('tenants', {
+            select: 'id',
+            filters: [{ column: 'profile_id', op: 'eq', value: user.userId }],
+            limit: 1, accessToken: token,
+          });
+          const tenantId = tenantRows?.[0]?.id;
+          if (!tenantId) return;
+          const bookings = await selectRows('bookings', {
+            select: 'id',
+            filters: [
+              { column: 'tenant_id', op: 'eq', value: tenantId },
+              { column: 'status', op: 'in', value: '(pending,confirmed,approved,paid)' },
+            ],
+            limit: 1, accessToken: token,
+          });
+          setHasAnyActiveRoom(bookings?.length > 0);
+        } catch { /* silent — default false is safe */ }
+      }
     }
     checkGlobalActiveRoom();
   }, [user?.userId, token]);
