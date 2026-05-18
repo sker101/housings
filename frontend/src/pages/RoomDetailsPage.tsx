@@ -1019,6 +1019,94 @@ export default function RoomDetailsPage() {
         </div>
       </section>
 
+      {/* ── Utilities Breakdown ─────────────────────────────── */}
+      {(() => {
+        const elec  = listing?.elecType  || listing?.elec_type  || null;
+        const water = listing?.waterType || listing?.water_type || null;
+        const waste = listing?.wasteCost ?? listing?.waste_cost ?? null;
+        if (!elec && !water && waste === null) return null;
+
+        const utilBadge = (type: string | null) => {
+          if (!type) return null;
+          const badges: Record<string, { label: string; color: string; bg: string }> = {
+            independent: { label: 'Independent', color: '#166534', bg: '#dcfce7' },
+            shared:      { label: 'Shared',      color: '#92400e', bg: '#fef3c7' },
+            included:    { label: 'Included',     color: '#1e40af', bg: '#dbeafe' }
+          };
+          const b = badges[type] || badges['shared'];
+          return (
+            <span style={{ display: 'inline-block', padding: '0.2rem 0.6rem', borderRadius: 20, fontSize: '0.78rem', fontWeight: 600, color: b.color, background: b.bg }}>
+              {b.label}
+            </span>
+          );
+        };
+
+        const isFullyIndependent =
+          elec === 'independent' && water === 'independent';
+
+        return (
+          <section className="rd-section" style={{ padding: 0 }}>
+            <div style={{
+              background: '#f8fafc',
+              border: '1.5px solid #e2e8f0',
+              borderRadius: 16,
+              padding: '1rem 1.25rem',
+              margin: '0 0 1rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.85rem' }}>
+                <span style={{ fontSize: '1rem' }}>⚡</span>
+                <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e293b' }}>Monthly Utilities Setup</span>
+                {isFullyIndependent && (
+                  <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', background: '#dcfce7', color: '#166534', borderRadius: 20, padding: '0.2rem 0.7rem', fontSize: '0.78rem', fontWeight: 700 }}>
+                    ✅ Independent Unit
+                  </span>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                {elec && (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '0.88rem', color: '#475569', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      ⚡ <strong>Electricity (LUKU)</strong>
+                    </span>
+                    {utilBadge(elec)}
+                  </div>
+                )}
+                {water && (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '0.88rem', color: '#475569', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      💧 <strong>Water (DAWASA)</strong>
+                    </span>
+                    {utilBadge(water)}
+                  </div>
+                )}
+                {waste !== null && (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '0.88rem', color: '#475569', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      🗑️ <strong>Waste Collection</strong>
+                    </span>
+                    {Number(waste) > 0 ? (
+                      <span style={{ display: 'inline-block', padding: '0.2rem 0.6rem', borderRadius: 20, fontSize: '0.78rem', fontWeight: 600, color: '#92400e', background: '#fef3c7' }}>
+                        {new Intl.NumberFormat('en-TZ').format(Number(waste))} TZS / mo
+                      </span>
+                    ) : (
+                      <span style={{ display: 'inline-block', padding: '0.2rem 0.6rem', borderRadius: 20, fontSize: '0.78rem', fontWeight: 600, color: '#166534', background: '#dcfce7' }}>
+                        Not charged
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div style={{ marginTop: '0.85rem', display: 'flex', gap: '0.4rem', background: '#fffbeb', borderRadius: 8, padding: '0.5rem 0.75rem', fontSize: '0.78rem', color: '#92400e', alignItems: 'flex-start' }}>
+                <span style={{ flexShrink: 0 }}>ℹ️</span>
+                <span>These utilities are <strong>not included</strong> in your online payment. You arrange them directly with the landlord each month.</span>
+              </div>
+            </div>
+          </section>
+        );
+      })()}
+
       {/* ── Quick Facts Grid ─────────────────────────────── */}
       <section className="rd-facts">
         {facts.map((fact, index) => (
@@ -1032,6 +1120,7 @@ export default function RoomDetailsPage() {
           </div>
         ))}
       </section>
+
 
       {/* ── Description ─────────────────────────────── */}
       <section className="rd-section">

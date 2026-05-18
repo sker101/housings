@@ -88,6 +88,11 @@ const formSchema = z.object({
   lateFeePolicy: z.string().optional(),
   utilitiesIncluded: z.boolean(),
 
+  // Step 2b: Utilities (informational, cash-paid to landlord)
+  elecType:  z.enum(['independent', 'shared', 'included']).default('shared'),
+  waterType: z.enum(['independent', 'shared', 'included']).default('shared'),
+  wasteCost: z.coerce.number().min(0).default(0),
+
   // Step 3: Location
   region: z.string().min(1, 'Region is required'),
   district: z.string().min(1, 'District is required'),
@@ -151,6 +156,9 @@ const DEFAULT_FORM: Partial<FormValues> = {
   paymentSchedule: 'monthly',
   lateFeePolicy: '',
   utilitiesIncluded: false,
+  elecType: 'shared' as const,
+  waterType: 'shared' as const,
+  wasteCost: 0,
   region: 'Dar es Salaam',
   district: '',
   ward: '',
@@ -708,6 +716,10 @@ export default function ListPropertyPage() {
         late_fee_policy: values.lateFeePolicy?.trim() || null,
         video_tour_url: values.videoTourUrl?.trim() || null,
         accessibility_notes: values.accessibilityNotes?.trim() || null,
+        // Utility fields (informational only, paid in cash to landlord)
+        elec_type:  (values as any).elecType  || 'shared',
+        water_type: (values as any).waterType || 'shared',
+        waste_cost: Number((values as any).wasteCost || 0),
         region: values.region,
         district: values.district,
         ward: values.ward,
@@ -1311,9 +1323,58 @@ export default function ListPropertyPage() {
               <label style={{ gridColumn: '1 / -1', cursor: 'pointer' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', fontWeight: 600, color: '#1A1A2E' }}>
                   <input type="checkbox" {...register('utilitiesIncluded')} style={{ width: 18, height: 18, cursor: 'pointer' }} />
-                  Utilities Included
+                  Utilities Included in Rent
                 </div>
               </label>
+
+              {/* ── Utility Setup Section ─────────────────────── */}
+              <div style={{ gridColumn: '1 / -1', background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: 14, padding: '1.25rem', marginTop: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                  <Zap size={16} color="#16a34a" />
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>Monthly Utilities Setup</span>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b', marginLeft: '0.25rem' }}>(shown to tenants — paid in cash to you)</span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                  <label>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                      <Zap size={13} /> Electricity (LUKU)
+                    </div>
+                    <select {...register('elecType' as any)} style={{ width: '100%', padding: '0.65rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.9rem', background: 'white' }}>
+                      <option value="independent">⚡ Independent — Tenant buys own LUKU</option>
+                      <option value="shared">🔌 Shared — Split with other tenants</option>
+                      <option value="included">✅ Included in rent</option>
+                    </select>
+                  </label>
+
+                  <label>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                      <Droplets size={13} /> Water (DAWASA)
+                    </div>
+                    <select {...register('waterType' as any)} style={{ width: '100%', padding: '0.65rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.9rem', background: 'white' }}>
+                      <option value="independent">💧 Independent — Own meter</option>
+                      <option value="shared">🚰 Shared — Split with other tenants</option>
+                      <option value="included">✅ Included in rent</option>
+                    </select>
+                  </label>
+
+                  <label>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                      🗑️ Waste Collection (Monthly TZS)
+                    </div>
+                    <div style={{ position: 'relative' }}>
+                      <Banknote size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#6B6B5A' }} />
+                      <input type="number" {...register('wasteCost' as any)} min="0" placeholder="e.g. 5000 (0 = not charged)" style={{ width: '100%', padding: '0.65rem 0.65rem 0.65rem 2.2rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.9rem' }} />
+                    </div>
+                    <span style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '0.25rem', display: 'block' }}>Enter 0 if no waste fee applies.</span>
+                  </label>
+                </div>
+
+                <div style={{ marginTop: '0.75rem', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '0.6rem 0.8rem', fontSize: '0.78rem', color: '#92400e', display: 'flex', gap: '0.4rem', alignItems: 'flex-start' }}>
+                  <Info size={14} style={{ flexShrink: 0, marginTop: '1px' }} />
+                  These charges are for tenant awareness only. They are NOT included in the upfront payment on iRent — tenants pay you directly in cash each month.
+                </div>
+              </div>
 
               <label style={{ gridColumn: '1 / -1' }}>
                 <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>Late Fee Policy (Optional)</div>
@@ -1321,6 +1382,7 @@ export default function ListPropertyPage() {
               </label>
             </div>
           )}
+
 
           {/* Step 3: Location */}
           {step === 3 && (
