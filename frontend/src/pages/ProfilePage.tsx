@@ -225,85 +225,173 @@ export default function ProfilePage() {
     }
   };
 
-  // Airbnb style UI
+  // iRent-branded profile menu
   if (view === 'menu') {
+    const initial = (form.fullName || user?.email || 'U').charAt(0).toUpperCase();
     return (
-      <div style={{ maxWidth: '600px', margin: '0 auto', paddingBottom: '100px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
-        
-        {/* Top Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem 1.5rem 1rem' }}>
-          <h1 style={{ fontSize: '1.8rem', fontWeight: 700, margin: 0, color: '#000' }}>Profile</h1>
-          <button style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-            <Bell size={20} color="#000" />
-          </button>
-        </div>
+      <div style={{ maxWidth: '600px', margin: '0 auto', paddingBottom: '120px', fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', background: '#f0fdf4', minHeight: '100vh' }}>
+        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+          @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+          .prof-fade { animation: fadeUp 0.4s ease-out both; }
+          .prof-menu-item:hover { background: #f0fdf4 !important; }
+          .prof-card-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(22,163,74,0.15) !important; }
+          .prof-switch-btn:hover { background: linear-gradient(135deg, #15803d, #14532d) !important; }
+        `}</style>
 
-        {/* Profile Identity Card */}
-        <div style={{ background: '#fff', margin: '0 1.5rem 1.5rem', padding: '2rem 1rem', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <div style={{ width: 90, height: 90, borderRadius: '50%', background: '#ede9fe', color: '#5b21b6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.5rem', fontWeight: 600, marginBottom: '1rem' }}>
-            {(form.fullName || user?.email || 'U').charAt(0).toUpperCase()}
-          </div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 600, margin: '0 0 0.25rem', color: '#000' }}>{form.fullName || 'User'}</h2>
-          <p style={{ margin: 0, color: '#6b7280', fontSize: '0.95rem' }}>{humanizeRole(user?.role)}</p>
-        </div>
+        {/* ── Hero Header ─────────────────── */}
+        <div style={{
+          background: 'linear-gradient(135deg, #16a34a 0%, #166534 100%)',
+          padding: '2rem 1.5rem 3.5rem',
+          position: 'relative',
+          overflow: 'hidden'
+        }}>
+          {/* Decorative circles */}
+          <div style={{ position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.07)' }} />
+          <div style={{ position: 'absolute', bottom: -20, left: -20, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
 
-        {/* Quick Links Row */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', margin: '0 1.5rem 1.5rem' }}>
-          <div 
-            onClick={() => navigate('/tenant/dashboard')} 
-            style={{ background: '#fff', padding: '1.25rem', borderRadius: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', position: 'relative', cursor: 'pointer' }}
-          >
-            <span style={{ position: 'absolute', top: 12, right: 12, background: '#334155', color: '#fff', fontSize: '0.6rem', fontWeight: 700, padding: '3px 6px', borderRadius: '4px' }}>NEW</span>
-            <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>🧳</div>
-            <div style={{ fontWeight: 600, fontSize: '0.95rem', color: '#000' }}>Past bookings</div>
-          </div>
-          
-          <div 
-            onClick={() => navigate('/messages')} 
-            style={{ background: '#fff', padding: '1.25rem', borderRadius: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', position: 'relative', cursor: 'pointer' }}
-          >
-            <span style={{ position: 'absolute', top: 12, right: 12, background: '#334155', color: '#fff', fontSize: '0.6rem', fontWeight: 700, padding: '3px 6px', borderRadius: '4px' }}>NEW</span>
-            <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>💬</div>
-            <div style={{ fontWeight: 600, fontSize: '0.95rem', color: '#000' }}>Connections</div>
-          </div>
-        </div>
-
-        {/* Become a Host Card */}
-        {(!user?.roles?.includes('landlord')) && (
-          <div 
-            onClick={() => navigate('/become-host')} 
-            style={{ background: '#fff', margin: '0 1.5rem 1.5rem', padding: '1.5rem', borderRadius: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: '1.25rem', cursor: 'pointer' }}
-          >
-            <div style={{ fontSize: '2.5rem' }}>🏠</div>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: '1.05rem', marginBottom: '0.2rem', color: '#000' }}>Become a host</div>
-              <div style={{ fontSize: '0.9rem', color: '#6b7280' }}>It's easy to start hosting and earn extra income.</div>
+          {/* Brand row */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{ width: 32, height: 32, background: 'rgba(255,255,255,0.15)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Home size={18} color="#fff" />
+              </div>
+              <span style={{ color: '#fff', fontWeight: 700, fontSize: '1.1rem', letterSpacing: '-0.3px' }}>iRent</span>
             </div>
+            <button
+              style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%', width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+            >
+              <Bell size={18} color="#fff" />
+            </button>
+          </div>
+
+          {/* Avatar + name */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+            <div style={{
+              width: 72, height: 72, borderRadius: '50%',
+              background: 'rgba(255,255,255,0.2)',
+              border: '3px solid rgba(255,255,255,0.5)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '2rem', fontWeight: 700, color: '#fff',
+              flexShrink: 0
+            }}>
+              {initial}
+            </div>
+            <div>
+              <div style={{ color: '#fff', fontSize: '1.35rem', fontWeight: 700, marginBottom: '0.2rem' }}>{form.fullName || 'My Profile'}</div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(255,255,255,0.18)', borderRadius: 20, padding: '0.2rem 0.75rem' }}>
+                <Shield size={12} color="#bbf7d0" />
+                <span style={{ color: '#bbf7d0', fontSize: '0.8rem', fontWeight: 600 }}>{humanizeRole(user?.role)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Quick Action Cards ─────────────────── */}
+        <div className="prof-fade" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', margin: '-1.75rem 1.25rem 1.25rem', animationDelay: '0.1s' }}>
+          <div
+            className="prof-card-hover"
+            onClick={() => navigate('/tenant/dashboard')}
+            style={{ background: '#fff', padding: '1.25rem', borderRadius: '16px', boxShadow: '0 4px 16px rgba(22,163,74,0.1)', cursor: 'pointer', transition: 'all 0.2s', border: '1px solid #dcfce7' }}
+          >
+            <div style={{ width: 44, height: 44, borderRadius: 12, background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.75rem' }}>
+              <Building2 size={22} color="#16a34a" />
+            </div>
+            <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#166534' }}>My Bookings</div>
+            <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.2rem' }}>Past & current</div>
+          </div>
+
+          <div
+            className="prof-card-hover"
+            onClick={() => navigate('/messages')}
+            style={{ background: '#fff', padding: '1.25rem', borderRadius: '16px', boxShadow: '0 4px 16px rgba(22,163,74,0.1)', cursor: 'pointer', transition: 'all 0.2s', border: '1px solid #dcfce7' }}
+          >
+            <div style={{ width: 44, height: 44, borderRadius: 12, background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.75rem' }}>
+              <Users size={22} color="#16a34a" />
+            </div>
+            <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#166534' }}>Messages</div>
+            <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.2rem' }}>Chat with landlords</div>
+          </div>
+        </div>
+
+        {/* ── Become a Host Banner ─────────────────── */}
+        {!user?.roles?.includes('landlord') && (
+          <div
+            className="prof-fade"
+            onClick={() => navigate('/become-host')}
+            style={{
+              margin: '0 1.25rem 1.25rem',
+              background: 'linear-gradient(135deg, #166534, #15803d)',
+              borderRadius: '16px',
+              padding: '1.25rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1rem',
+              cursor: 'pointer',
+              animationDelay: '0.15s'
+            }}
+          >
+            <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Home size={24} color="#fff" />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700, fontSize: '1rem', color: '#fff', marginBottom: '0.2rem' }}>Become a Host</div>
+              <div style={{ fontSize: '0.82rem', color: '#bbf7d0' }}>List your property and earn income</div>
+            </div>
+            <ChevronRight size={20} color="rgba(255,255,255,0.6)" />
           </div>
         )}
 
-        {/* Menu Items */}
-        <div style={{ margin: '0 1.5rem' }}>
-          <MenuItem icon={<User size={22} />} title="View profile" onClick={() => setView('settings')} dot={!phoneVerified} />
-          <MenuItem icon={<HelpCircle size={22} />} title="Get help" onClick={() => window.open('tel:+255800000000')} />
-          <MenuItem icon={<Settings size={22} />} title="Account settings" onClick={() => navigate('/tenant/dashboard')} />
-          <MenuItem icon={<Shield size={22} />} title="Privacy" onClick={() => {}} />
-          
-          <hr style={{ border: 'none', borderTop: '1px solid #f1f5f9', margin: '1rem 0' }} />
-          
-          <MenuItem icon={<Users size={22} />} title="Refer a host" onClick={() => setView('referral')} />
-          <MenuItem icon={<UserCog size={22} />} title="Find a co-host" onClick={() => navigate('/search?type=dalali')} />
-          <MenuItem icon={<Gift size={22} />} title="Gift cards" onClick={() => setView('referral')} />
-          <MenuItem icon={<FileText size={22} />} title="Legal" onClick={() => {}} />
-          <MenuItem icon={<LogOut size={22} />} title="Log out" onClick={handleLogout} />
+        {/* ── Main Menu ─────────────────── */}
+        <div className="prof-fade" style={{ margin: '0 1.25rem 1rem', background: '#fff', borderRadius: '16px', border: '1px solid #dcfce7', overflow: 'hidden', animationDelay: '0.2s' }}>
+          {[
+            { icon: <User size={20} color="#16a34a" />, title: 'My Account', sub: 'Edit name, phone, NIDA', onClick: () => setView('settings') , dot: !phoneVerified },
+            { icon: <Gift size={20} color="#16a34a" />, title: 'Refer & Earn', sub: 'Invite landlords, earn TZS 10K', onClick: () => setView('referral') },
+            { icon: <LayoutDashboard size={20} color="#16a34a" />, title: 'Dashboard', sub: 'Go to your dashboard', onClick: () => navigate('/tenant/dashboard') },
+            { icon: <HelpCircle size={20} color="#16a34a" />, title: 'Help & Support', sub: 'Call +255 800 000 000', onClick: () => window.open('tel:+255800000000') },
+            { icon: <Shield size={20} color="#16a34a" />, title: 'Privacy & Safety', sub: 'Manage your data', onClick: () => {} },
+          ].map((item, i) => (
+            <div
+              key={item.title}
+              className="prof-menu-item"
+              onClick={item.onClick}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '1rem',
+                padding: '1rem 1.25rem',
+                borderBottom: i < 4 ? '1px solid #f0fdf4' : 'none',
+                cursor: 'pointer', background: '#fff', transition: 'background 0.15s'
+              }}
+            >
+              <div style={{ width: 40, height: 40, borderRadius: 10, background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative' }}>
+                {item.icon}
+                {item.dot && <div style={{ position: 'absolute', top: 6, right: 6, width: 8, height: 8, background: '#ef4444', borderRadius: '50%', border: '2px solid #fff' }} />}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '0.95rem', fontWeight: 600, color: '#1A1A2E' }}>{item.title}</div>
+                <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '0.1rem' }}>{item.sub}</div>
+              </div>
+              <ChevronRight size={16} color="#cbd5e1" />
+            </div>
+          ))}
         </div>
 
-        {/* Floating Switch Button */}
+        {/* ── Sign Out ─────────────────── */}
+        <div className="prof-fade" style={{ margin: '0 1.25rem', animationDelay: '0.25s' }}>
+          <button
+            onClick={handleLogout}
+            style={{ width: '100%', padding: '0.9rem', background: '#fff', border: '1.5px solid #fca5a5', borderRadius: '14px', color: '#dc2626', fontWeight: 600, fontSize: '0.95rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', transition: 'background 0.15s' }}
+          >
+            <LogOut size={18} /> Sign Out
+          </button>
+        </div>
+
+        {/* ── Floating Switch Role ─────────────────── */}
         {canSwitchRoles && user?.roles && user.roles.length > 1 && (
-          <div style={{ position: 'fixed', bottom: 85, left: 0, right: 0, display: 'flex', justifyContent: 'center', pointerEvents: 'none', zIndex: 50 }}>
-            <button 
-              onClick={handleSwitchRole} 
-              style={{ pointerEvents: 'auto', background: '#222222', color: '#fff', padding: '0.9rem 1.5rem', borderRadius: '30px', fontWeight: 600, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.5rem', border: 'none', boxShadow: '0 4px 15px rgba(0,0,0,0.2)', cursor: 'pointer' }}
+          <div style={{ position: 'fixed', bottom: 90, left: 0, right: 0, display: 'flex', justifyContent: 'center', pointerEvents: 'none', zIndex: 50 }}>
+            <button
+              className="prof-switch-btn"
+              onClick={handleSwitchRole}
+              style={{ pointerEvents: 'auto', background: 'linear-gradient(135deg, #16a34a, #166534)', color: '#fff', padding: '0.85rem 1.75rem', borderRadius: '30px', fontWeight: 700, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', border: 'none', boxShadow: '0 4px 20px rgba(22,163,74,0.4)', cursor: 'pointer', transition: 'all 0.2s' }}
             >
               <Repeat size={16} /> Switch to hosting
             </button>
@@ -312,6 +400,7 @@ export default function ProfilePage() {
       </div>
     );
   }
+
 
   // Referral View
   if (view === 'referral') {
