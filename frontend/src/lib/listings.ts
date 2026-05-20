@@ -92,7 +92,9 @@ export function mapListingRow(row, photos = []) {
     // Utility fields (informational only — paid in cash to landlord)
     elecType:  row.elec_type  || row.elecType  || null,
     waterType: row.water_type || row.waterType || null,
-    wasteCost: row.waste_cost != null ? Number(row.waste_cost) : (row.wasteCost != null ? Number(row.wasteCost) : null)
+    wasteCost: row.waste_cost != null ? Number(row.waste_cost) : (row.wasteCost != null ? Number(row.wasteCost) : null),
+    elecCost:  row.elec_cost != null ? Number(row.elec_cost) : (row.elecCost != null ? Number(row.elecCost) : 0),
+    waterCost: row.water_cost != null ? Number(row.water_cost) : (row.waterCost != null ? Number(row.waterCost) : 0)
   };
 }
 

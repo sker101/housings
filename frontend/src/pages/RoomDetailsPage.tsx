@@ -1044,9 +1044,11 @@ export default function RoomDetailsPage() {
         const elec  = listing?.elecType  || listing?.elec_type  || null;
         const water = listing?.waterType || listing?.water_type || null;
         const waste = listing?.wasteCost ?? listing?.waste_cost ?? null;
+        const elecCost = listing?.elecCost ?? listing?.elec_cost ?? 0;
+        const waterCost = listing?.waterCost ?? listing?.water_cost ?? 0;
         if (!elec && !water && waste === null) return null;
 
-        const utilBadge = (type: string | null) => {
+        const utilBadge = (type: string | null, cost: number) => {
           if (!type) return null;
           const badges: Record<string, { label: string; color: string; bg: string }> = {
             independent: { label: 'Independent', color: '#166534', bg: '#dcfce7' },
@@ -1054,15 +1056,30 @@ export default function RoomDetailsPage() {
             included:    { label: 'Included',     color: '#1e40af', bg: '#dbeafe' }
           };
           const b = badges[type] || badges['shared'];
+          const hasCost = type !== 'included' && cost > 0;
           return (
-            <span style={{ display: 'inline-block', padding: '0.2rem 0.6rem', borderRadius: 20, fontSize: '0.78rem', fontWeight: 600, color: b.color, background: b.bg }}>
-              {b.label}
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ display: 'inline-block', padding: '0.2rem 0.6rem', borderRadius: 20, fontSize: '0.78rem', fontWeight: 600, color: b.color, background: b.bg }}>
+                {b.label}
+              </span>
+              {hasCost && (
+                <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#475569' }}>
+                  {new Intl.NumberFormat('en-TZ').format(cost)} TZS / mo
+                </span>
+              )}
             </span>
           );
         };
 
         const isFullyIndependent =
           elec === 'independent' && water === 'independent';
+
+        const monthlyRent = Number(listing?.priceMonthly || listing?.price_monthly || 0);
+        const activeElecCost = elec !== 'included' ? Number(elecCost) : 0;
+        const activeWaterCost = water !== 'included' ? Number(waterCost) : 0;
+        const activeWasteCost = Number(waste || 0);
+        const totalOngoing = monthlyRent + activeElecCost + activeWaterCost + activeWasteCost;
+        const hasExtraCosts = activeElecCost > 0 || activeWaterCost > 0 || activeWasteCost > 0;
 
         return (
           <section className="rd-section" style={{ padding: 0 }}>
@@ -1089,7 +1106,7 @@ export default function RoomDetailsPage() {
                     <span style={{ fontSize: '0.88rem', color: '#475569', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                       ⚡ <strong>Electricity (LUKU)</strong>
                     </span>
-                    {utilBadge(elec)}
+                    {utilBadge(elec, activeElecCost)}
                   </div>
                 )}
                 {water && (
@@ -1097,7 +1114,7 @@ export default function RoomDetailsPage() {
                     <span style={{ fontSize: '0.88rem', color: '#475569', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                       💧 <strong>Water (DAWASA)</strong>
                     </span>
-                    {utilBadge(water)}
+                    {utilBadge(water, activeWaterCost)}
                   </div>
                 )}
                 {waste !== null && (
@@ -1105,9 +1122,9 @@ export default function RoomDetailsPage() {
                     <span style={{ fontSize: '0.88rem', color: '#475569', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                       🗑️ <strong>Waste Collection</strong>
                     </span>
-                    {Number(waste) > 0 ? (
+                    {activeWasteCost > 0 ? (
                       <span style={{ display: 'inline-block', padding: '0.2rem 0.6rem', borderRadius: 20, fontSize: '0.78rem', fontWeight: 600, color: '#92400e', background: '#fef3c7' }}>
-                        {new Intl.NumberFormat('en-TZ').format(Number(waste))} TZS / mo
+                        {new Intl.NumberFormat('en-TZ').format(activeWasteCost)} TZS / mo
                       </span>
                     ) : (
                       <span style={{ display: 'inline-block', padding: '0.2rem 0.6rem', borderRadius: 20, fontSize: '0.78rem', fontWeight: 600, color: '#166534', background: '#dcfce7' }}>
@@ -1118,9 +1135,58 @@ export default function RoomDetailsPage() {
                 )}
               </div>
 
+              {hasExtraCosts && (
+                <div style={{
+                  marginTop: '1rem',
+                  paddingTop: '1rem',
+                  borderTop: '1px dashed #cbd5e1',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.5rem'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#64748b' }}>
+                    <span>Monthly Room Rent:</span>
+                    <span style={{ fontWeight: 600, color: '#1e293b' }}>{new Intl.NumberFormat('en-TZ').format(monthlyRent)} TZS</span>
+                  </div>
+                  {activeElecCost > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#64748b' }}>
+                      <span>Electricity (Paid separately):</span>
+                      <span style={{ fontWeight: 600, color: '#1e293b' }}>+{new Intl.NumberFormat('en-TZ').format(activeElecCost)} TZS</span>
+                    </div>
+                  )}
+                  {activeWaterCost > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#64748b' }}>
+                      <span>Water (Paid separately):</span>
+                      <span style={{ fontWeight: 600, color: '#1e293b' }}>+{new Intl.NumberFormat('en-TZ').format(activeWaterCost)} TZS</span>
+                    </div>
+                  )}
+                  {activeWasteCost > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#64748b' }}>
+                      <span>Waste Collection (Paid separately):</span>
+                      <span style={{ fontWeight: 600, color: '#1e293b' }}>+{new Intl.NumberFormat('en-TZ').format(activeWasteCost)} TZS</span>
+                    </div>
+                  )}
+                  <div style={{
+                    marginTop: '0.25rem',
+                    background: 'rgba(29, 158, 117, 0.08)',
+                    borderRadius: 10,
+                    padding: '0.65rem 0.85rem',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    border: '1px solid rgba(29, 158, 117, 0.2)'
+                  }}>
+                    <span style={{ fontWeight: 700, color: '#1d9e75', fontSize: '0.88rem' }}>Total Expected Monthly Cost:</span>
+                    <strong style={{ fontSize: '1.05rem', color: '#27500A' }}>
+                      {new Intl.NumberFormat('en-TZ').format(totalOngoing)} TZS / mo
+                    </strong>
+                  </div>
+                </div>
+              )}
+
               <div style={{ marginTop: '0.85rem', display: 'flex', gap: '0.4rem', background: '#fffbeb', borderRadius: 8, padding: '0.5rem 0.75rem', fontSize: '0.78rem', color: '#92400e', alignItems: 'flex-start' }}>
                 <span style={{ flexShrink: 0 }}>ℹ️</span>
-                <span>These utilities are <strong>not included</strong> in your online payment. You arrange them directly with the landlord each month.</span>
+                <span>These utilities are <strong>not included</strong> in your online reservation payment. You arrange and pay them directly to the landlord or utility provider each month.</span>
               </div>
             </div>
           </section>
@@ -1314,6 +1380,11 @@ export default function RoomDetailsPage() {
               availableFrom: listing.availableFrom,
               coverPhoto: Array.isArray(listing?.photos) ? listing.photos[0] : null,
               address: listing.location || listing.district || listing.ward || '',
+              elecType: listing.elecType || listing.elec_type,
+              elecCost: listing.elecCost || listing.elec_cost,
+              waterType: listing.waterType || listing.water_type,
+              waterCost: listing.waterCost || listing.water_cost,
+              wasteCost: listing.wasteCost || listing.waste_cost,
             }}
           >
             <CreditCard size={18} />

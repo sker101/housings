@@ -18,7 +18,8 @@ import {
   Zap,
   Ban,
   RotateCcw,
-  ArrowLeft
+  ArrowLeft,
+  Edit3
 } from 'lucide-react';
 
 import { useAuth } from '../context/AuthContext';

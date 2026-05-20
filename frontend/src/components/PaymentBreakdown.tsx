@@ -5,11 +5,32 @@ import { PaymentBreakdown, formatTZS } from '../lib/paymentCalculations';
 interface Props {
   breakdown: PaymentBreakdown;
   months: number;
+  elecType?: string | null;
+  elecCost?: number;
+  waterType?: string | null;
+  waterCost?: number;
+  wasteCost?: number;
   onConfirm: (confirmed: boolean) => void;
 }
 
-export const PaymentBreakdownComponent: React.FC<Props> = ({ breakdown, months, onConfirm }) => {
+export const PaymentBreakdownComponent: React.FC<Props> = ({ 
+  breakdown, 
+  months, 
+  elecType,
+  elecCost,
+  waterType,
+  waterCost,
+  wasteCost,
+  onConfirm 
+}) => {
   const [checked, setChecked] = useState(false);
+
+  const monthlyRent = breakdown.monthlyRent;
+  const activeElecCost = elecType !== 'included' ? Number(elecCost || 0) : 0;
+  const activeWaterCost = waterType !== 'included' ? Number(waterCost || 0) : 0;
+  const activeWasteCost = Number(wasteCost || 0);
+  const totalOngoingMonthly = monthlyRent + activeElecCost + activeWaterCost + activeWasteCost;
+  const hasOngoingUtilities = activeElecCost > 0 || activeWaterCost > 0 || activeWasteCost > 0;
 
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const isChecked = e.target.checked;
@@ -70,6 +91,66 @@ export const PaymentBreakdownComponent: React.FC<Props> = ({ breakdown, months, 
           <span style={{ fontWeight: 700 }}>Total Due Today</span>
           <span style={{ fontWeight: 800, fontSize: '1.2rem' }}>{formatTZS(breakdown.totalDue)}</span>
         </div>
+
+        {hasOngoingUtilities && (
+          <div style={{
+            marginTop: '1rem',
+            paddingTop: '1rem',
+            borderTop: '2px dashed var(--border)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.65rem'
+          }}>
+            <h4 style={{ margin: '0 0 0.25rem', fontSize: '0.92rem', fontWeight: 700, color: '#1e293b' }}>
+              Ongoing Monthly Payments
+            </h4>
+            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--mid)', fontStyle: 'italic' }}>
+              These recurring monthly costs are paid directly to your landlord or utility provider.
+            </p>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem' }}>
+              <span style={{ color: 'var(--mid)' }}>Monthly Room Rent:</span>
+              <span style={{ fontWeight: 600 }}>{formatTZS(monthlyRent)}</span>
+            </div>
+
+            {activeElecCost > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem' }}>
+                <span style={{ color: 'var(--mid)' }}>Electricity (Estimated/Fixed):</span>
+                <span style={{ fontWeight: 600 }}>+{formatTZS(activeElecCost)}</span>
+              </div>
+            )}
+
+            {activeWaterCost > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem' }}>
+                <span style={{ color: 'var(--mid)' }}>Water (Estimated/Fixed):</span>
+                <span style={{ fontWeight: 600 }}>+{formatTZS(activeWaterCost)}</span>
+              </div>
+            )}
+
+            {activeWasteCost > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem' }}>
+                <span style={{ color: 'var(--mid)' }}>Waste Collection:</span>
+                <span style={{ fontWeight: 600 }}>+{formatTZS(activeWasteCost)}</span>
+              </div>
+            )}
+
+            <div style={{
+              marginTop: '0.25rem',
+              background: '#f8fafc',
+              borderRadius: '8px',
+              padding: '0.75rem 1rem',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              border: '1px solid var(--border)'
+            }}>
+              <span style={{ fontWeight: 700, fontSize: '0.88rem', color: '#475569' }}>Total Ongoing Monthly Layout:</span>
+              <strong style={{ fontSize: '1.05rem', color: '#1e293b' }}>
+                {formatTZS(totalOngoingMonthly)} / mo
+              </strong>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Styled Checkbox Section */}
@@ -120,7 +201,7 @@ export const PaymentBreakdownComponent: React.FC<Props> = ({ breakdown, months, 
             color: checked ? 'var(--ink)' : 'var(--mid)',
             fontWeight: checked ? 600 : 400
           }}>
-            I confirm that I have read and understood the breakdown of charges including the platform deposit and transactional fees.
+            I confirm that I have read the breakdown of charges (due today) and the additional monthly utility expenses (paid separately).
           </span>
         </label>
       </div>

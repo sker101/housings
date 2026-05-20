@@ -92,6 +92,8 @@ const formSchema = z.object({
   elecType:  z.enum(['independent', 'shared', 'included']).default('shared'),
   waterType: z.enum(['independent', 'shared', 'included']).default('shared'),
   wasteCost: z.coerce.number().min(0).default(0),
+  elecCost:  z.coerce.number().min(0).default(0),
+  waterCost: z.coerce.number().min(0).default(0),
 
   // Step 3: Location
   region: z.string().min(1, 'Region is required'),
@@ -159,6 +161,8 @@ const DEFAULT_FORM: Partial<FormValues> = {
   elecType: 'shared' as const,
   waterType: 'shared' as const,
   wasteCost: 0,
+  elecCost: 0,
+  waterCost: 0,
   region: 'Dar es Salaam',
   district: '',
   ward: '',
@@ -720,6 +724,8 @@ export default function ListPropertyPage() {
         elec_type:  (values as any).elecType  || 'shared',
         water_type: (values as any).waterType || 'shared',
         waste_cost: Number((values as any).wasteCost || 0),
+        elec_cost:  Number((values as any).elecCost || 0),
+        water_cost: Number((values as any).waterCost || 0),
         region: values.region,
         district: values.district,
         ward: values.ward,
@@ -1345,6 +1351,17 @@ export default function ListPropertyPage() {
                       <option value="shared">🔌 Shared — Split with other tenants</option>
                       <option value="included">✅ Included in rent</option>
                     </select>
+                    {formValues.elecType !== 'included' && (
+                      <div style={{ marginTop: '0.5rem' }}>
+                        <div style={{ fontSize: '0.72rem', fontWeight: 600, marginBottom: '0.25rem', color: '#64748b' }}>
+                          Estimated/Fixed Monthly Cost (TZS)
+                        </div>
+                        <div style={{ position: 'relative' }}>
+                          <Banknote size={12} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
+                          <input type="number" {...register('elecCost' as any)} min="0" placeholder="e.g. 15000 (0 if tenant pays utility company directly)" style={{ width: '100%', padding: '0.5rem 0.5rem 0.5rem 2rem', border: '1px solid #E5E5E0', borderRadius: 8, fontSize: '0.85rem' }} />
+                        </div>
+                      </div>
+                    )}
                   </label>
 
                   <label>
@@ -1356,6 +1373,17 @@ export default function ListPropertyPage() {
                       <option value="shared">🚰 Shared — Split with other tenants</option>
                       <option value="included">✅ Included in rent</option>
                     </select>
+                    {formValues.waterType !== 'included' && (
+                      <div style={{ marginTop: '0.5rem' }}>
+                        <div style={{ fontSize: '0.72rem', fontWeight: 600, marginBottom: '0.25rem', color: '#64748b' }}>
+                          Estimated/Fixed Monthly Cost (TZS)
+                        </div>
+                        <div style={{ position: 'relative' }}>
+                          <Banknote size={12} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
+                          <input type="number" {...register('waterCost' as any)} min="0" placeholder="e.g. 10000 (0 if tenant pays utility company directly)" style={{ width: '100%', padding: '0.5rem 0.5rem 0.5rem 2rem', border: '1px solid #E5E5E0', borderRadius: 8, fontSize: '0.85rem' }} />
+                        </div>
+                      </div>
+                    )}
                   </label>
 
                   <label>

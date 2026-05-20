@@ -25,6 +25,11 @@ export default function PayPage() {
     coverPhoto?: string | null;
     address?: string;
     listerId?: string;
+    elecType?: string | null;
+    elecCost?: number;
+    waterType?: string | null;
+    waterCost?: number;
+    wasteCost?: number | null;
   } | undefined;
 
   const [listing, setListing] = useState<any>(
@@ -35,7 +40,12 @@ export default function PayPage() {
           price_monthly: state.price,
           available_from: state.availableFrom,
           address: state.address,
-          lister_id: state.listerId
+          lister_id: state.listerId,
+          elec_type: state.elecType,
+          elec_cost: state.elecCost,
+          water_type: state.waterType,
+          water_cost: state.waterCost,
+          waste_cost: state.wasteCost,
         }
       : null
   );
@@ -484,6 +494,11 @@ export default function PayPage() {
           <PaymentBreakdownComponent 
             breakdown={breakdown} 
             months={months}
+            elecType={listing?.elec_type || listing?.elecType || null}
+            elecCost={Number(listing?.elec_cost ?? listing?.elecCost ?? 0)}
+            waterType={listing?.water_type || listing?.waterType || null}
+            waterCost={Number(listing?.water_cost ?? listing?.waterCost ?? 0)}
+            wasteCost={Number(listing?.waste_cost ?? listing?.wasteCost ?? 0)}
             onConfirm={(confirmed) => setIsConfirmed(confirmed)} 
           />
 
