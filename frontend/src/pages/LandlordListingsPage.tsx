@@ -16,10 +16,11 @@ import {
   TrendingUp,
   DollarSign,
   Zap,
-  Edit3,
   Ban,
-  RotateCcw
+  RotateCcw,
+  ArrowLeft
 } from 'lucide-react';
+
 import { useAuth } from '../context/AuthContext';
 import { selectRows, updateRows, deleteRows } from '../lib/supabase';
 import { mapListingRow, fetchPhotosForListings } from '../lib/listings';
@@ -271,8 +272,53 @@ export default function LandlordListingsPage() {
     <>
       <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}} @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}} .lst-page{padding:2rem} .kpi-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:1.5rem} .kpi{background:var(--cream,#f8faf9);border-radius:12px;padding:14px 16px} .kpi-lbl{font-size:11px;color:var(--mid);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em} .kpi-val{font-size:22px;font-weight:700;line-height:1;color:var(--ink)} .kpi-sub{font-size:11px;margin-top:4px;color:var(--mid)} .toolbar{display:flex;align-items:center;gap:10px;margin-bottom:1.25rem;flex-wrap:wrap} .lst-search{flex:1;max-width:360px;padding:8px 12px;border-radius:10px;border:0.5px solid var(--border);background:#fff;font-size:13px;color:var(--ink);outline:none} .ftab{padding:6px 14px;borderRadius:10px;border:0.5px solid var(--border);background:#fff;font-size:12px;color:var(--mid);cursor:pointer;transition:all 0.15s} .ftab.on{background:#EAF3DE;color:#27500A;border-color:#97C459;fontWeight:600} .lst-table-wrap{overflow-x:auto} .lst-table{width:100%;borderCollapse:collapse;font-size:12px} .lst-table th{padding:9px 14px;text-align:left;font-size:10px;font-weight:600;color:var(--mid);textTransform:uppercase;letterSpacing:.05em;borderBottom:0.5px solid var(--border);background:#fafafa;whiteSpace:nowrap} .lst-table td{padding:12px 14px;borderBottom:0.5px solid var(--border);color:var(--ink);verticalAlign:middle} .lst-table tr:last-child td{borderBottom:none} .lst-table tr:hover td{background:#fafcfb} .l-name{font-size:13px;fontWeight:600;color:var(--jade);textDecoration:none} .l-name:hover{textDecoration:underline} .l-type{font-size:11px;color:var(--mid);marginTop:2px} .pill{display:inlineFlex;alignItems:center;gap:4px;padding:2px 9px;borderRadius:20px;fontSize:11px;fontWeight:600} .p-dot{width:5px;height:5px;borderRadius:50%;flexShrink:0} .p-approved{background:#EAF3DE;color:#27500A} .p-approved .p-dot{background:#3B6D11} .p-pending{background:#FAEEDA;color:#633806} .p-pending .p-dot{background:#D97706} .p-flagged{background:#FEE2E2;color:#991B1B} .p-flagged .p-dot{background:#DC2626} .p-available{background:#EAF3DE;color:#27500A} .p-available .p-dot{background:#22C55E} .p-occupied{background:#F1EFE8;color:#444441} .p-occupied .p-dot{background:#A3A3A3} .p-boosted{background:linear-gradient(135deg,#F59E0B,#D97706);color:white} .vbar-wrap{height:3px;background:var(--border);borderRadius:99;overflow:hidden;margin-top:4px} .vbar{height:100%;background:var(--jade);borderRadius:99} .vbar.low{background:#D97706} .act-btn{padding:5px 10px;borderRadius:6px;border:0.5px solid var(--border);background:#fff;fontSize:11px;color:var(--ink);cursor:pointer;transition:all 0.15s} .act-btn:hover{background:var(--cream)} .act-btn:disabled{opacity:0.5;cursor:not-allowed} .act-fix{background:#FEF2F1;color:#B91C1C;border-color:#FCA5A5} .act-boost{background:linear-gradient(135deg,#F59E0B,#D97706);color:white;border:none} .act-done{background:#EAF3DE;color:#27500A;border-color:#97C459} .add-btn{padding:8px 16px;borderRadius:10px;background:linear-gradient(135deg,#16a34a,#166534);color:#fff;fontSize:13px;fontWeight:600;textDecoration:none;display:inlineBlock;boxShadow:0 2px 8px rgba(22,163,74,0.25)} .lst-empty{padding:3rem 2rem;textAlign:center;color:var(--mid)}`}</style>
 
+      {/* Breadcrumb Header */}
+      <header style={{background:'white',borderRadius:'12px',padding:'1rem 1.25rem',margin:'1rem 1.5rem 0',boxShadow:'0 1px 3px rgba(0,0,0,0.06)',display:'flex',alignItems:'center'}}>
+        <button
+          onClick={() => navigate(-1)}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 32,
+            height: 32,
+            borderRadius: '50%',
+            border: '1px solid #e2e8f0',
+            background: 'white',
+            cursor: 'pointer',
+            color: '#64748b',
+            marginRight: '0.75rem',
+            transition: 'all 0.2s',
+            padding: 0
+          }}
+          title="Go Back"
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = '#16a34a';
+            e.currentTarget.style.color = '#16a34a';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = '#e2e8f0';
+            e.currentTarget.style.color = '#64748b';
+          }}
+        >
+          <ArrowLeft size={16} />
+        </button>
+        <nav style={{display:'flex',alignItems:'center',gap:'0.5rem',fontSize:'0.9rem'}}>
+          <Link 
+            to="/landlord/dashboard" 
+            className="topbar-action-btn"
+            style={{display:'flex',alignItems:'center',gap:'0.35rem',color:'#64748b',textDecoration:'none',padding:'4px 8px',background:'transparent',border:'none',borderRadius:'8px'}}
+          >
+            <LayoutDashboard size={16} />
+            <span>Dashboard</span>
+          </Link>
+          <ChevronRight size={16} style={{color:'#cbd5e1'}} />
+          <span style={{color:'#1e293b',fontWeight:600}}>My Properties</span>
+        </nav>
+      </header>
+
       {/* ── Header ──────────────────────────────── */}
-      <header style={{ margin: '1rem 1.5rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
+      <header style={{ margin: '0 1.5rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
         <div style={{ minWidth: 0 }}>
           <h1 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--ink)', margin: 0, whiteSpace: 'nowrap' }}>
             My Properties

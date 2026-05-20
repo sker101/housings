@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ChevronRight, Heart, LayoutGrid, Map as MapIcon } from 'lucide-react';
+import { LayoutDashboard, ChevronRight, Heart, LayoutGrid, Map as MapIcon, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { fetchSavedListings, toggleSavedListing } from '../lib/listings';
 import { listingToMapRoom } from '../lib/mapCoords';
@@ -56,7 +56,7 @@ export default function SavedListingsPage() {
     listings
       .map(listingToMapRoom)
       .filter((r): r is NonNullable<typeof r> => r !== null),
-    [listings]
+      [listings]
   );
 
   return (
@@ -68,6 +68,35 @@ export default function SavedListingsPage() {
         marginBottom: '1.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
         display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem',
       }}>
+        <button
+          onClick={() => navigate(-1)}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 32,
+            height: 32,
+            borderRadius: '50%',
+            border: '1px solid #e2e8f0',
+            background: 'white',
+            cursor: 'pointer',
+            color: '#64748b',
+            marginRight: '0.25rem',
+            transition: 'all 0.2s',
+            padding: 0
+          }}
+          title="Go Back"
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = 'var(--jade, #22c55e)';
+            e.currentTarget.style.color = 'var(--jade, #22c55e)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = '#e2e8f0';
+            e.currentTarget.style.color = '#64748b';
+          }}
+        >
+          <ArrowLeft size={16} />
+        </button>
         <Link
           to="/tenant/dashboard"
           style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#64748b', textDecoration: 'none' }}

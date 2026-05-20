@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Calendar, MapPin, Clock, MessageSquare } from 'lucide-react';
+import { Calendar, MapPin, Clock, MessageSquare, LayoutDashboard, ChevronRight, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { selectRows } from '../lib/supabase';
 import { APP_ROLE } from '../lib/roles';
-import { Link } from 'react-router-dom';
-
+import { Link, useNavigate } from 'react-router-dom';
 export default function BookingsPage() {
     const { user, token } = useAuth();
     const { t } = useTranslation();
+    const navigate = useNavigate();
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -97,7 +97,53 @@ export default function BookingsPage() {
     };
 
     return (
-        <div className="container section">
+        <>
+            {/* Breadcrumb Header */}
+            <header style={{background:'white',borderRadius:'12px',padding:'1rem 1.25rem',margin:'1rem 1rem 0',boxShadow:'0 1px 3px rgba(0,0,0,0.06)',display:'flex',alignItems:'center'}}>
+                <button
+                    onClick={() => navigate(-1)}
+                    style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: 32,
+                        height: 32,
+                        borderRadius: '50%',
+                        border: '1px solid #e2e8f0',
+                        background: 'white',
+                        cursor: 'pointer',
+                        color: '#64748b',
+                        marginRight: '0.75rem',
+                        transition: 'all 0.2s',
+                        padding: 0
+                    }}
+                    title="Go Back"
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--jade, #22c55e)';
+                        e.currentTarget.style.color = 'var(--jade, #22c55e)';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = '#e2e8f0';
+                        e.currentTarget.style.color = '#64748b';
+                    }}
+                >
+                    <ArrowLeft size={16} />
+                </button>
+                <nav style={{display:'flex',alignItems:'center',gap:'0.5rem',fontSize:'0.9rem'}}>
+                    <Link 
+                        to={user?.role === APP_ROLE.LANDLORD ? "/landlord/dashboard" : "/tenant/dashboard"} 
+                        className="topbar-action-btn"
+                        style={{display:'flex',alignItems:'center',gap:'0.35rem',color:'#64748b',textDecoration:'none',padding:'4px 8px',background:'transparent',border:'none',borderRadius:'8px'}}
+                    >
+                        <LayoutDashboard size={16} />
+                        <span>Dashboard</span>
+                    </Link>
+                    <ChevronRight size={16} style={{color:'#cbd5e1'}} />
+                    <span style={{color:'#1e293b',fontWeight:600}}>{t('bookings.title')}</span>
+                </nav>
+            </header>
+
+            <div className="container section" style={{paddingTop: 0}}>
             <div className="section__header">
                 <div>
                     <h1>{t('bookings.title')}</h1>
@@ -162,6 +208,7 @@ export default function BookingsPage() {
                     })
                 )}
             </div>
-        </div>
+            </div>
+        </>
     );
 }

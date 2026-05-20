@@ -4,11 +4,12 @@ import { useAuth } from '../context/AuthContext';
 import { selectRows } from '../lib/supabase';
 import { fetchListingBookingsForUser, upsertListingReview } from '../lib/listings';
 import { APP_ROLE } from '../lib/roles';
-import { useSearchParams } from 'react-router-dom';
-
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { LayoutDashboard, ChevronRight, ArrowLeft } from 'lucide-react';
 export default function ReviewsPage() {
   const { user, token } = useAuth();
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
   const [searchParams] = useSearchParams();
   const listingQuery = searchParams.get('listing');
@@ -181,8 +182,52 @@ export default function ReviewsPage() {
   return (
     <>
       <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}} .rv-page{padding:2rem} .rv-summary{display:flex;gap:12px;margin-bottom:1.5rem;flex-wrap:wrap} .sum-card{background:var(--cream,#f8faf9);border-radius:12px;padding:14px 20px;display:flex;align-items:center;gap:14px} .sum-val{font-size:28px;font-weight:700;line-height:1;color:var(--ink)} .sum-lbl{font-size:11px;color:var(--mid);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px} .rv-stars{display:flex;gap:2px} .star{font-size:14px} .star.on{color:#EF9F27} .star.off{color:var(--border)} .rv-list{display:flex;flex-direction:column;gap:10px} .rv-card{background:#ffffff;border:0.5px solid var(--border);border-radius:14px;padding:15px 16px} .rv-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px} .rv-name{font-size:13px;font-weight:600;color:var(--ink)} .rv-listing{font-size:11px;color:var(--mid);margin-top:2px} .rv-date{font-size:11px;color:var(--mid);margin-top:4px} .rv-comment{font-size:12px;color:var(--ink);line-height:1.6;margin-top:10px;padding:10px 12px;background:var(--cream);border-radius:8px;font-style:italic} .rv-no-comment{font-size:11px;color:var(--mid);font-style:italic;margin-top:8px} .form-card{background:#ffffff;border:0.5px solid var(--border);border-radius:14px;padding:16px;margin-bottom:1.5rem} .form-card h3{font-size:13px;font-weight:600;margin-bottom:12px;color:var(--ink)} .star-btn{font-size:24px;background:none;border:none;cursor:pointer;padding:0 2px;color:var(--border);transition:color 0.1s} .star-btn.on{color:#EF9F27} .rv-textarea{width:100%;padding:9px 12px;border-radius:9px;border:0.5px solid var(--border);font-size:12px;resize:vertical;outline:none;margin-top:10px;font-family:inherit;line-height:1.5;min-height:80px} .rv-submit{padding:8px 18px;border-radius:9px;border:none;background:var(--jade);color:#fff;font-size:12px;font-weight:600;cursor:pointer;margin-top:10px} .rv-submit:disabled{opacity:0.5;cursor:default} .rv-empty{padding:3rem 2rem;text-align:center;color:var(--mid);font-size:13px;background:#ffffff;border:0.5px solid var(--border);border-radius:14px} @media(max-width:768px){.rv-page{padding:1rem}}`}</style>
+      {/* Breadcrumb Header */}
+      <header style={{background:'white',borderRadius:'12px',padding:'1rem 1.25rem',margin:'1rem 1rem 0',boxShadow:'0 1px 3px rgba(0,0,0,0.06)',display:'flex',alignItems:'center'}}>
+        <button
+          onClick={() => navigate(-1)}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 32,
+            height: 32,
+            borderRadius: '50%',
+            border: '1px solid #e2e8f0',
+            background: 'white',
+            cursor: 'pointer',
+            color: '#64748b',
+            marginRight: '0.75rem',
+            transition: 'all 0.2s',
+            padding: 0
+          }}
+          title="Go Back"
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = 'var(--jade, #22c55e)';
+            e.currentTarget.style.color = 'var(--jade, #22c55e)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = '#e2e8f0';
+            e.currentTarget.style.color = '#64748b';
+          }}
+        >
+          <ArrowLeft size={16} />
+        </button>
+        <nav style={{display:'flex',alignItems:'center',gap:'0.5rem',fontSize:'0.9rem'}}>
+          <Link 
+            to={user?.role === APP_ROLE.LANDLORD ? "/landlord/dashboard" : "/tenant/dashboard"} 
+            className="topbar-action-btn"
+            style={{display:'flex',alignItems:'center',gap:'0.35rem',color:'#64748b',textDecoration:'none',padding:'4px 8px',background:'transparent',border:'none',borderRadius:'8px'}}
+          >
+            <LayoutDashboard size={16} />
+            <span>Dashboard</span>
+          </Link>
+          <ChevronRight size={16} style={{color:'#cbd5e1'}} />
+          <span style={{color:'#1e293b',fontWeight:600}}>{t('reviews.title', 'Reviews')}</span>
+        </nav>
+      </header>
 
-      <div className="rv-page">
+      <div className="rv-page" style={{paddingTop:0}}>
         <div
           style={{
             display: 'flex',

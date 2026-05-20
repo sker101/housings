@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, ChevronRight, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { selectRows } from '../lib/supabase';
 import PaymentModal from '../components/PaymentModal';
@@ -93,14 +93,41 @@ export default function LandlordUpgradePage() {
   return (
     <>
       <style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}} .up-page{padding:2rem;animation:fadeUp 0.35s ease} .up-hdr{margin-bottom:2rem} .up-hdr h1{font-size:1.4rem;font-weight:700;margin:0 0 4px} .up-hdr p{font-size:13px;color:var(--mid);margin:0} .plans-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem} .plan-card{background:#fff;border:0.5px solid var(--border);border-radius:16px;padding:1.5rem;position:relative;transition:all 0.2s} .plan-card.rec{border-color:#97C459;box-shadow:0 0 0 1px #97C459} .rec-badge{position:absolute;top:-10px;right:20px;background:#EAF3DE;color:#27500A;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600} .plan-name{font-size:1.1rem;font-weight:700;margin:0 0 0.5rem} .plan-price{font-size:2rem;font-weight:800;margin:0 0 0.25rem} .plan-price span{font-size:14px;font-weight:400;color:var(--mid)} .plan-desc{font-size:13px;color:var(--mid);margin:0 0 1.25rem} .feat-list{display:flex;flex-direction:column;gap:0.6rem;margin-bottom:1.25rem} .feat-item{display:flex;alignItems:center;gap:0.5rem;font-size:13px} .feat-item.off{color:var(--mid);opacity:0.6} .feat-check{width:18px;height:18px;border-radius:50%;display:flex;alignItems:center;justifyContent:center;font-size:12px;font-weight:600} .feat-check:not(.off){background:#EAF3DE;color:#27500A} .feat-check.off{background:#F1EFE8;color:#444441} .up-btn{width:100%;padding:0.75rem 1rem;border-radius:10px;border:none;background:linear-gradient(135deg,#16a34a,#166534);color:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s} .up-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(22,163,74,0.3)} .up-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none;box-shadow:none}`}</style>
-
       {/* Breadcrumb Header */}
-      <header style={{background:'white',borderRadius:'12px',padding:'1rem 1.25rem',margin:'1rem 1rem 0',boxShadow:'0 1px 3px rgba(0,0,0,0.06)'}}>
+      <header style={{background:'white',borderRadius:'12px',padding:'1rem 1.25rem',margin:'1rem 1rem 0',boxShadow:'0 1px 3px rgba(0,0,0,0.06)',display:'flex',alignItems:'center'}}>
+        <button
+          onClick={() => navigate(-1)}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 32,
+            height: 32,
+            borderRadius: '50%',
+            border: '1px solid #e2e8f0',
+            background: 'white',
+            cursor: 'pointer',
+            color: '#64748b',
+            marginRight: '0.75rem',
+            transition: 'all 0.2s',
+            padding: 0
+          }}
+          title="Go Back"
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = '#16a34a';
+            e.currentTarget.style.color = '#16a34a';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = '#e2e8f0';
+            e.currentTarget.style.color = '#64748b';
+          }}
+        >
+          <ArrowLeft size={16} />
+        </button>
         <nav style={{display:'flex',alignItems:'center',gap:'0.5rem',fontSize:'0.9rem'}}>
           <Link 
             to="/landlord/dashboard" 
-            className={`topbar-action-btn ${isDashboardActive ? 'is-active' : ''}`}
-            onClick={() => setIsDashboardActive(true)}
+            className="topbar-action-btn"
             style={{display:'flex',alignItems:'center',gap:'0.35rem',color:'#64748b',textDecoration:'none',padding:'4px 8px',background:'transparent',border:'none',borderRadius:'8px'}}
           >
             <LayoutDashboard size={16} />

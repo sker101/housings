@@ -46,3 +46,8 @@ admin should log in and the directly be taken to the landlords page
  supabase db reset
 
 
+TOMORROW  13 may
+
+follow up on the edit button
+that is the error that happens when i press edit move out button. we need the notification to be sent to the landlord, now i think the landlord has no place to keep/receive the moveout text messages. We'll have to find a way cox the room will have to be posted as coming soon after it has been vacated. 
+Failed to submit notice: Could not find the 'is_read' column of 'notifications' in the schema cache
