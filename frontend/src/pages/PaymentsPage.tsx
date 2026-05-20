@@ -295,14 +295,42 @@ export default function PaymentsPage() {
   };
 
   const backHref = user?.role === APP_ROLE.ADMIN ? '/admin' : '/landlord';
-
   return (
     <>
-      {/* Breadcrumb Header */}
-      <header style={{background:'white',borderRadius:'16px',padding:'1rem 1.25rem',margin:'1rem 1rem 0',boxShadow:'0 1px 3px rgba(0,0,0,0.06)'}}>
+      <header style={{background:'white',borderRadius:'12px',padding:'1rem 1.25rem',margin:'1rem 1rem 0',boxShadow:'0 1px 3px rgba(0,0,0,0.06)',display:'flex',alignItems:'center'}}>
+        <button
+          onClick={() => navigate(-1)}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 32,
+            height: 32,
+            borderRadius: '50%',
+            border: '1px solid #e2e8f0',
+            background: 'white',
+            cursor: 'pointer',
+            color: '#64748b',
+            marginRight: '0.75rem',
+            transition: 'all 0.2s',
+            padding: 0
+          }}
+          title="Go Back"
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = '#16a34a';
+            e.currentTarget.style.color = '#16a34a';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = '#e2e8f0';
+            e.currentTarget.style.color = '#64748b';
+          }}
+        >
+          <ArrowLeft size={16} />
+        </button>
         <nav style={{display:'flex',alignItems:'center',gap:'0.5rem',fontSize:'0.9rem'}}>
           <Link 
             to={backHref}
+            className="topbar-action-btn"
             style={{display:'flex',alignItems:'center',gap:'0.35rem',color:'#64748b',textDecoration:'none',padding:'4px 8px',background:'transparent',border:'none',borderRadius:'8px'}}
           >
             <LayoutDashboard size={16} />
@@ -312,7 +340,6 @@ export default function PaymentsPage() {
           <span style={{color:'#1e293b',fontWeight:600}}>Payments</span>
         </nav>
       </header>
-
       <style>{`
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}} 
         @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}} 
