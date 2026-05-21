@@ -292,7 +292,7 @@ export default function ListPropertyPage() {
   );
 
   const isAdmin = user?.role === 'admin';
-  const hasListerRole = user?.role === 'landlord' || user?.role === 'dalali' || user?.role === 'property_manager' || isAdmin;
+  const hasListerRole = user?.roles?.some(r => ['landlord', 'dalali', 'property_manager', 'lister'].includes(r)) || isAdmin;
   const isVerified = verificationStatus === 'approved' || verificationStatus === 'verified';
   const isRejected = verificationStatus === 'rejected';
   const verificationRequiredMessage = isRejected
@@ -737,8 +737,7 @@ export default function ListPropertyPage() {
         vacancy_status: 'available',
         status: targetStatus,
         featured: false,
-        near_universities: values.university ? [values.university] : [],
-        screening_passed: false
+        near_universities: values.university ? [values.university] : []
       };
 
       const minimalListingPayload = {
@@ -756,7 +755,13 @@ export default function ListPropertyPage() {
         amenities: formattedAmenities,
         vacancy_status: 'available',
         status: targetStatus,
-        featured: false
+        featured: false,
+        // Utility fields (informational only, paid in cash to landlord)
+        elec_type:  (values as any).elecType  || 'shared',
+        water_type: (values as any).waterType || 'shared',
+        waste_cost: Number((values as any).wasteCost || 0),
+        elec_cost:  Number((values as any).elecCost || 0),
+        water_cost: Number((values as any).waterCost || 0)
       };
 
       console.log('📦 Step 2: Creating Listing...');
