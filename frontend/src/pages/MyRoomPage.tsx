@@ -1456,8 +1456,9 @@ export default function MyRoomPage() {
                                   booking_id: booking.id,
                                   tenant_id: user.userId,
                                   landlord_id: landlord?.id || listing.listerId,
-                                  property_id: listing.property_id || listing.id,
-                                  room_id: listing.id,
+                                  // property_id is intentionally omitted — it references the properties
+                                  // table and the listing.id here is a room ID, not a property ID.
+                                  // The approve_move_out_and_reward RPC resolves the listing via booking_id.
                                   intended_move_out_date: intendedMoveOutDate,
                                   status: 'pending'
                                 }, { accessToken: token });
