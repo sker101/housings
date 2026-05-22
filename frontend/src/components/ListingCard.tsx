@@ -25,13 +25,7 @@ function getComingSoonDetails(listing: any) {
   const availableFrom = listing.availableFrom || listing.available_from;
 
   let isSoon = false;
-  if (isComingSoonFlag) {
-    if (!availableFrom) isSoon = true;
-    else {
-      const availDate = new Date(availableFrom + 'T00:00:00').getTime();
-      isSoon = availDate > new Date().setHours(0, 0, 0, 0);
-    }
-  } else if (isLegacy) {
+  if (isComingSoonFlag || isLegacy) {
     isSoon = true;
   }
 
