@@ -702,10 +702,15 @@ export default function HomePage() {
                     </div>
                   )}
                   {comingSoonListings.length > 0 && (
-                    <>
-                      <h3 style={{ marginTop: '2rem', marginBottom: '1rem', fontSize: '1.1rem', fontWeight: 700 }}>Coming Soon</h3>
+                    <div className="coming-soon-section">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', marginTop: '2rem', padding: '0 0.25rem' }}>
+                        <h3 className="coming-soon-section__title" style={{ fontSize: 'clamp(1rem, 3vw, 1.25rem)', fontWeight: 700, color: '#000', margin: 0 }}>Coming Soon</h3>
+                        <span style={{ fontSize: '0.75rem', background: 'var(--jade, #22c55e)', color: '#fff', padding: '0.2rem 0.6rem', borderRadius: '999px', fontWeight: 600 }}>
+                          {comingSoonListings.length}
+                        </span>
+                      </div>
                       <div className="room-grid">{comingSoonListings.map(renderListingCard)}</div>
-                    </>
+                    </div>
                   )}
                   {filteredListings.length === 0 && !loading && (
                     <div className="empty-state" style={{ textAlign: 'center', padding: '4rem 2rem' }}>

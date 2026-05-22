@@ -1028,11 +1028,16 @@ export default function SearchPage() {
 
                     {/* Coming Soon Listings */}
                     {comingSoonListings.length > 0 && (
-                      <>
+                      <div className="coming-soon-section">
                         {availableListings.length > 0 && (
                           <hr style={{ margin: '2rem 0 1.5rem', border: 'none', borderTop: '1px solid var(--border)' }} />
                         )}
-                        <h3 style={{ fontSize: '1.25rem', marginBottom: '1rem', color: 'var(--ink)' }}>Coming Soon</h3>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', padding: '0 0.25rem' }}>
+                          <h3 className="coming-soon-section__title" style={{ fontSize: 'clamp(1rem, 3vw, 1.25rem)', fontWeight: 700, color: '#000', margin: 0 }}>Coming Soon</h3>
+                          <span style={{ fontSize: '0.75rem', background: 'var(--jade, #22c55e)', color: '#fff', padding: '0.2rem 0.6rem', borderRadius: '999px', fontWeight: 600 }}>
+                            {comingSoonListings.length}
+                          </span>
+                        </div>
                         <div className="room-grid">
                           {comingSoonListings.map((listing: any) => (
                             <RoomCard
@@ -1047,7 +1052,7 @@ export default function SearchPage() {
                             />
                           ))}
                         </div>
-                      </>
+                      </div>
                     )}
                   </>
                 )}

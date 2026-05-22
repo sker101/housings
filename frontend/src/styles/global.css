@@ -3539,6 +3539,20 @@ tbody td {
   100% { background-position: -200% 0; }
 }
 
+/* Coming Soon Section */
+.coming-soon-section {
+  margin-top: 0;
+}
+
+.coming-soon-section__title {
+  font-size: clamp(1rem, 3vw, 1.25rem);
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  letter-spacing: -0.02em;
+}
+
 /* Empty State */
 .room-grid-empty {
   text-align: center;
@@ -5533,15 +5547,20 @@ tbody td {
     pointer-events: none;
   }
 
-  /* Smaller Airbnb-style square cards on mobile */
+  /* 2-column grid on mobile — no horizontal scroll */
   .room-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    overflow-x: visible;
     gap: 0.75rem;
     padding: 0 0.75rem 1rem;
+    scroll-snap-type: none;
   }
 
   .room-grid > * {
-    flex: 0 0 160px;
-    scroll-snap-align: start;
+    flex: none;
+    width: 100%;
+    scroll-snap-align: unset;
   }
 
   /* Smaller room card styling */
@@ -5552,7 +5571,7 @@ tbody td {
   .room-card__image-wrapper {
     aspect-ratio: 1 / 1;
     border-radius: var(--radius-sm);
-    height: 160px;
+    height: auto;
   }
 
   .room-card__image {
@@ -5667,9 +5686,20 @@ tbody td {
     letter-spacing: -0.02em;
   }
 
-  /* Hide original h3 on mobile (replaced by our component) */
-  .room-grid-section h3 {
+
+  /* Hide original h3 on mobile, but keep coming-soon-section title */
+  .room-grid-section h3:not(.coming-soon-section__title) {
     display: none !important;
+  }
+
+  /* Coming Soon section header on mobile */
+  .coming-soon-section {
+    padding: 0 0.75rem;
+  }
+
+  .coming-soon-section__title {
+    font-size: 0.9rem !important;
+    display: block !important;
   }
 
   /* Separator line styling */
@@ -5684,9 +5714,10 @@ tbody td {
     padding: 0;
   }
 
-  /* Loading skeleton smaller */
+  /* Loading skeleton - match 2-column grid */
   .room-skeleton {
-    flex: 0 0 160px;
+    flex: none;
+    width: 100%;
   }
 
   .room-skeleton__image {
