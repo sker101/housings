@@ -18,20 +18,34 @@ function humanize(value: string | undefined) {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function isLegacyComingSoon(status: string | undefined): boolean {
-  return status === 'available_soon' || status === 'coming_soon' || status === 'listed_occupied';
-}
+function getComingSoonDetails(listing: any) {
+  const isComingSoonFlag = listing.isComingSoon || listing.is_coming_soon || false;
+  const status = listing.vacancyStatus || listing.vacancy_status;
+  const isLegacy = status === 'available_soon' || status === 'coming_soon' || status === 'listed_occupied';
+  const availableFrom = listing.availableFrom || listing.available_from;
 
-/**
- * Returns true when this room has the is_coming_soon flag AND the
- * available_from date is still in the future.
- * When available_from <= today, treat as normally available.
- */
-function isNewComingSoon(listing: any): boolean {
-  if (!listing.is_coming_soon) return false;
-  if (!listing.available_from) return true; // no date set → still coming soon
-  const availDate = new Date(listing.available_from + 'T00:00:00').getTime();
-  return availDate > new Date().setHours(0, 0, 0, 0);
+  let isSoon = false;
+  if (isComingSoonFlag) {
+    if (!availableFrom) isSoon = true;
+    else {
+      const availDate = new Date(availableFrom + 'T00:00:00').getTime();
+      isSoon = availDate > new Date().setHours(0, 0, 0, 0);
+    }
+  } else if (isLegacy) {
+    isSoon = true;
+  }
+
+  let daysUntil = null;
+  if (availableFrom) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const availDate = new Date(availableFrom + 'T00:00:00');
+    availDate.setHours(0, 0, 0, 0);
+    const diffTime = availDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    if (diffDays > 0) daysUntil = diffDays;
+  }
+  return { isComingSoon: isSoon, daysUntil, availableFrom };
 }
 
 function formatAvailableFrom(iso: string): string {
@@ -56,7 +70,7 @@ export default function ListingCard({
   const monthlyTotal = baseRent + serviceCharge;
   const hasServiceCharge = serviceCharge > 0;
 
-  const comingSoon = isNewComingSoon(listing) || isLegacyComingSoon(listing.vacancyStatus);
+  const { isComingSoon: comingSoon, daysUntil, availableFrom } = getComingSoonDetails(listing);
 
   return (
     <div className="listing-card-wrapper">
@@ -87,7 +101,7 @@ export default function ListingCard({
                 boxShadow: '0 2px 8px rgba(34,197,94,0.35)',
               }}
             >
-              Inakuja Hivi Karibuni
+              {daysUntil !== null ? `Inakuja: Siku ${daysUntil}` : 'Inakuja Hivi Karibuni'}
             </span>
           ) : (
             <span className={`listing-card__chip status-${listing.vacancyStatus || 'available'}`}>
@@ -111,7 +125,7 @@ export default function ListingCard({
           </div>
 
           {/* ── Available-from chip (muted, below price) ── */}
-          {comingSoon && listing.available_from && (
+          {comingSoon && availableFrom && (
             <p style={{
               margin: '0.35rem 0 0',
               fontSize: '0.78rem',
@@ -124,7 +138,7 @@ export default function ListingCard({
               borderRadius: 999,
               border: '1px solid var(--border, #e2e8f0)',
             }}>
-              📅 Inapatikana {formatAvailableFrom(listing.available_from)}
+              📅 Inapatikana {formatAvailableFrom(availableFrom)} {daysUntil !== null ? `(baada ya siku ${daysUntil})` : ''}
             </p>
           )}
         </div>

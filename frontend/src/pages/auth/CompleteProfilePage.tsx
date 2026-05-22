@@ -37,28 +37,41 @@ export default function CompleteProfilePage() {
     }
   }, [user, navigate]);
 
-  const set = (key: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+  const set = (key: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setErrorMsg('');
     setFormData(prev => ({ ...prev, [key]: e.target.value }));
+  };
 
   const handleContinue = () => {
+    setErrorMsg('');
     if (step === 1 && !formData.phone.trim()) {
-      toast.error('Please enter your phone number');
+      const msg = 'Please enter your phone number';
+      setErrorMsg(msg);
+      toast.error(msg);
       return;
     }
     if (step === 1 && formData.phone.length < 10) {
-      toast.error('Please enter a valid phone number');
+      const msg = 'Please enter a valid phone number';
+      setErrorMsg(msg);
+      toast.error(msg);
       return;
     }
     if (step === 1 && !formData.nidaNumber.trim()) {
-      toast.error('Please enter your NIDA number');
+      const msg = 'Please enter your NIDA number';
+      setErrorMsg(msg);
+      toast.error(msg);
       return;
     }
     if (step === 1 && !/^[0-9]{20}$/.test(formData.nidaNumber)) {
-      toast.error('NIDA number must be exactly 20 digits (numbers only)');
+      const msg = 'NIDA number must be exactly 20 digits (numbers only)';
+      setErrorMsg(msg);
+      toast.error(msg);
       return;
     }
     if (step === 1 && (!formData.fullName.trim() || formData.fullName.trim() === user?.email)) {
-      toast.error('Please enter a valid Username or Full Name');
+      const msg = 'Please enter a valid Username or Full Name';
+      setErrorMsg(msg);
+      toast.error(msg);
       return;
     }
     setStep(2);
@@ -419,6 +432,21 @@ export default function CompleteProfilePage() {
           {/* Step 1: Basic Info */}
           {step === 1 && (
             <div style={stepStyle}>
+              {/* Show validation errors prominently */}
+              {errorMsg && (
+                <div style={{
+                  background: '#fee2e2',
+                  color: '#991b1b',
+                  borderRadius: '10px',
+                  padding: '0.75rem 1rem',
+                  marginBottom: '1.25rem',
+                  fontSize: '0.88rem',
+                  lineHeight: 1.5,
+                }}>
+                  {errorMsg}
+                </div>
+              )}
+
               <div style={stepHeaderStyle}>
                 <Phone size={24} color="var(--jade)" />
                 <h2 style={stepTitleStyle}>Contact Information</h2>
@@ -457,6 +485,7 @@ export default function CompleteProfilePage() {
                     inputMode="numeric"
                     value={formData.nidaNumber}
                     onChange={e => {
+                      setErrorMsg('');
                       // Strip non-digits immediately
                       const digits = e.target.value.replace(/\D/g, '').slice(0, 20);
                       setFormData(prev => ({ ...prev, nidaNumber: digits }));
@@ -466,7 +495,7 @@ export default function CompleteProfilePage() {
                     maxLength={20}
                   />
                 </div>
-                <p style={hintStyle}>Numbers only · exactly 20 digits · e.g. 19900101-12345-00001-1</p>
+                <p style={hintStyle}>Numbers only · exactly 20 digits · e.g. 19900101-12345-00001-12</p>
               </div>
 
               <div style={fieldStyle}>

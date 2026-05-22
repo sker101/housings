@@ -111,6 +111,46 @@ interface Listing {
   viewCount: number;
 }
 
+function getComingSoonDetails(listing: any) {
+  const isComingSoonFlag = listing.isComingSoon || listing.is_coming_soon || false;
+  const status = listing.vacancyStatus || listing.vacancy_status;
+  const isLegacy = status === 'available_soon' || status === 'coming_soon' || status === 'listed_occupied';
+  const availableFrom = listing.availableFrom || listing.available_from;
+
+  let isSoon = false;
+  if (isComingSoonFlag) {
+    if (!availableFrom) isSoon = true;
+    else {
+      const availDate = new Date(availableFrom + 'T00:00:00').getTime();
+      isSoon = availDate > new Date().setHours(0, 0, 0, 0);
+    }
+  } else if (isLegacy) {
+    isSoon = true;
+  }
+
+  let daysUntil = null;
+  if (availableFrom) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const availDate = new Date(availableFrom + 'T00:00:00');
+    availDate.setHours(0, 0, 0, 0);
+    const diffTime = availDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    if (diffDays > 0) daysUntil = diffDays;
+  }
+  return { isComingSoon: isSoon, daysUntil, availableFrom };
+}
+
+function formatAvailableFrom(iso: string): string {
+  try {
+    return new Date(iso + 'T00:00:00').toLocaleDateString('sw-TZ', {
+      day: 'numeric', month: 'short', year: 'numeric',
+    });
+  } catch {
+    return iso;
+  }
+}
+
 export default function HomePage() {
   const navigate = useNavigate();
   const { user, token, isAuthenticated } = useAuth();
@@ -440,12 +480,27 @@ export default function HomePage() {
     const currentImageIndex = imageIndices[listing.id] || 0;
     const photos = listing.photos?.length > 0 ? listing.photos.map(p => p.public_url) : [listing.imageUrl];
     const currentImage = photos[currentImageIndex];
+    const soonDetails = getComingSoonDetails(listing);
 
     return (
       <div key={listing.id} className="room-card" onClick={() => navigate(`/listings/${listing.id}`)}>
         <div className="room-card__image-wrapper">
           <img src={currentImage} alt={listing.title} className="room-card__image" loading="lazy" />
           {listing.featured && <span className="room-card__badge room-card__badge--featured">Featured</span>}
+          {soonDetails.isComingSoon && (
+            <span
+              className="room-card__badge"
+              style={{
+                background: 'var(--jade, #22c55e)',
+                color: '#fff',
+                left: listing.featured ? '5.5rem' : '0.75rem',
+                fontWeight: 700,
+                boxShadow: '0 2px 8px rgba(34,197,94,0.35)',
+              }}
+            >
+              {soonDetails.daysUntil !== null ? `Inakuja: Siku ${soonDetails.daysUntil}` : 'Inakuja'}
+            </span>
+          )}
           <button
             className={`room-card__save-btn ${savedIds.has(listing.id) ? 'is-saved' : ''}`}
             onClick={(e) => { e.stopPropagation(); handleToggleSave(listing.id); }}
@@ -463,7 +518,7 @@ export default function HomePage() {
             </>
           )}
         </div>
-        <div className="room-card__content" style={{ padding: '0.15rem 0.25rem 0.4rem' }}>
+        <div className="room-card__content" style={{ padding: '0.15rem 0.25rem 0.4rem', display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
           <h3 style={{ margin: '0', fontSize: '0.9rem', fontWeight: 600, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {listing.title}
           </h3>
@@ -475,14 +530,42 @@ export default function HomePage() {
             <span style={{ fontSize: '0.7rem', fontWeight: 700 }}>TSh {formatPrice(listing.priceMonthly)}</span>
             <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>/ month</span>
           </div>
+          {soonDetails.isComingSoon && soonDetails.availableFrom && (
+            <div style={{
+              fontSize: '0.7rem',
+              color: 'var(--mid, #64748b)',
+              background: 'var(--cream, #f8fafc)',
+              padding: '0.15rem 0.4rem',
+              borderRadius: '4px',
+              border: '1px solid var(--border, #e2e8f0)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              width: 'max-content',
+              maxWidth: '100%',
+              gap: '0.25rem'
+            }}>
+              📅 Inapatikana {formatAvailableFrom(soonDetails.availableFrom)} {soonDetails.daysUntil !== null ? `(baada ya siku ${soonDetails.daysUntil})` : ''}
+            </div>
+          )}
         </div>
       </div>
     );
   };
 
-  const isComingSoon = (status: string | undefined) => status === 'available_soon' || status === 'coming_soon' || status === 'listed_occupied';
-  const availableListings = filteredListings.filter(l => !isComingSoon((l as any).vacancyStatus));
-  const comingSoonListings = filteredListings.filter(l => isComingSoon((l as any).vacancyStatus));
+  const listingStatuses = useMemo(() => {
+    return filteredListings.map(l => {
+      const details = getComingSoonDetails(l);
+      return { listing: l, details };
+    });
+  }, [filteredListings]);
+
+  const availableListings = useMemo(() => {
+    return listingStatuses.filter(x => !x.details.isComingSoon).map(x => x.listing);
+  }, [listingStatuses]);
+
+  const comingSoonListings = useMemo(() => {
+    return listingStatuses.filter(x => x.details.isComingSoon).map(x => x.listing);
+  }, [listingStatuses]);
 
   return (
     <div style={{ minHeight: '100vh', position: 'relative' }}>

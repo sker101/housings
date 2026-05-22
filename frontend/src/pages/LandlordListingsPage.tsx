@@ -70,13 +70,14 @@ export default function LandlordListingsPage() {
 
         if (!mounted) return;
 
-        if (rows.length === 0) {
-          setListings([]);
-          return;
-        }
-
         const rawRows = rows as any[];
         const listingIds = rawRows.map(r => r.id);
+        const listingById = new Map(rawRows.map((row) => [row.id, row]));
+        const listingByPropertyId = new Map(
+          rawRows
+            .filter((row) => row.property_id)
+            .map((row) => [row.property_id, row])
+        );
 
         // Fetch photos for these listings
         const photosMap = await fetchPhotosForListings(listingIds, token);
@@ -87,21 +88,26 @@ export default function LandlordListingsPage() {
         });
 
         // Fetch saves
-        const savedRows = await selectRows('saved_listings', {
-          select: 'listing_id',
-          filters: [{ column: 'listing_id', op: 'in', value: `(${listingIds.join(',')})` }],
-          limit: 5000,
-          accessToken: token
-        });
+        const savedRows = listingIds.length > 0
+          ? await selectRows('saved_listings', {
+              select: 'listing_id',
+              filters: [{ column: 'listing_id', op: 'in', value: `(${listingIds.join(',')})` }],
+              limit: 5000,
+              accessToken: token
+            })
+          : [];
 
         // Fetch bookings
         let bookingRows: any[] = [];
-        bookingRows = await selectRows('bookings', {
-          select: 'id,listing_id,status,total_tzs,created_at',
-          filters: [{ column: 'listing_id', op: 'in', value: `(${listingIds.join(',')})` }],
-          limit: 5000,
-          accessToken: token
-        }).catch(() => []);
+        if (listingIds.length > 0) {
+          bookingRows = await selectRows('bookings', {
+            select: 'id,listing_id,status,total_tzs,created_at',
+            filters: [{ column: 'listing_id', op: 'in', value: `(${listingIds.join(',')})` }],
+            limit: 5000,
+            accessToken: token
+          }).catch(() => []);
+        }
+        const bookingById = new Map(bookingRows.map((row) => [row.id, row]));
 
         // Aggregate stats
         const savesByListing = savedRows.reduce((acc: any, r: any) => {
@@ -130,7 +136,7 @@ export default function LandlordListingsPage() {
 
         // Fetch move out notices for this landlord
         const notices = await selectRows('move_out_notices', {
-          select: '*, profiles:tenant_id(full_name, phone), listings:property_id(title)',
+          select: '*, profiles:tenant_id(full_name, phone)',
           filters: [
             { column: 'landlord_id', op: 'eq', value: user.userId },
             { column: 'status', op: 'eq', value: 'pending' }
@@ -138,7 +144,66 @@ export default function LandlordListingsPage() {
           limit: 100,
           accessToken: token
         }).catch(() => []);
-        if (mounted) setMoveOutNotices(notices || []);
+
+        const missingBookingIds = Array.from(new Set((notices || [])
+          .map((notice: any) => notice.booking_id)
+          .filter((bookingId: string | null | undefined): bookingId is string => Boolean(bookingId) && !bookingById.has(bookingId))));
+
+        let noticeBookingRows: any[] = [];
+        if (missingBookingIds.length > 0) {
+          noticeBookingRows = await selectRows('bookings', {
+            select: 'id,listing_id,property_id,status,total_tzs,created_at',
+            filters: [{ column: 'id', op: 'in', value: `(${missingBookingIds.join(',')})` }],
+            limit: missingBookingIds.length,
+            accessToken: token
+          }).catch(() => []);
+        }
+
+        const allBookingsById = new Map([
+          ...bookingRows.map((row) => [row.id, row] as const),
+          ...noticeBookingRows.map((row) => [row.id, row] as const)
+        ]);
+
+        const missingListingIds = Array.from(new Set((notices || [])
+          .map((notice: any) => notice.room_id || allBookingsById.get(notice.booking_id)?.listing_id)
+          .filter((listingId: string | null | undefined): listingId is string => Boolean(listingId) && !listingById.has(listingId))));
+
+        let noticeListingRows: any[] = [];
+        if (missingListingIds.length > 0) {
+          noticeListingRows = await selectRows('listings', {
+            select: 'id,property_id,title',
+            filters: [{ column: 'id', op: 'in', value: `(${missingListingIds.join(',')})` }],
+            limit: missingListingIds.length,
+            accessToken: token
+          }).catch(() => []);
+        }
+
+        const allListingsById = new Map([
+          ...rawRows.map((row) => [row.id, row] as const),
+          ...noticeListingRows.map((row) => [row.id, row] as const)
+        ]);
+        const allListingsByPropertyId = new Map([
+          ...Array.from(listingByPropertyId.entries()),
+          ...noticeListingRows
+            .filter((row) => row.property_id)
+            .map((row) => [row.property_id, row] as const)
+        ]);
+
+        const enrichedNotices = (notices || []).map((notice: any) => {
+          const booking = allBookingsById.get(notice.booking_id);
+          const resolvedListing =
+            allListingsById.get(notice.room_id) ||
+            allListingsById.get(booking?.listing_id) ||
+            allListingsByPropertyId.get(notice.property_id);
+
+          return {
+            ...notice,
+            resolvedListingId: resolvedListing?.id || booking?.listing_id || notice.room_id || null,
+            resolvedListingTitle: resolvedListing?.title || null
+          };
+        });
+
+        if (mounted) setMoveOutNotices(enrichedNotices);
 
       } catch (err: any) {
         if (mounted) setError(err.message);
@@ -199,22 +264,23 @@ export default function LandlordListingsPage() {
   };
 
   const [approvingNotice, setApprovingNotice] = useState<string | null>(null);
-  const handleApproveNotice = async (noticeId: string, propertyTitle: string) => {
+  const handleApproveNotice = async (noticeId: string, propertyTitle?: string | null) => {
     setApprovingNotice(noticeId);
     try {
+      const cleanTitle = propertyTitle?.trim();
       const { rpc } = await import('../lib/supabase');
       await rpc('approve_move_out_and_reward', {
         p_notice_id: noticeId,
         p_reward_amount: 5000,
-        p_new_listing_title: propertyTitle + ' (Coming Soon)',
+        p_new_listing_title: cleanTitle ? `${cleanTitle} (Coming Soon)` : null,
         p_new_listing_price: null
       }, token);
 
       setMoveOutNotices(prev => prev.filter(n => n.id !== noticeId));
       window.location.reload(); 
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Failed to approve notice.');
+      alert(`Failed to approve notice: ${err?.message || 'Unknown error'}`);
     } finally {
       setApprovingNotice(null);
     }
@@ -421,11 +487,11 @@ export default function LandlordListingsPage() {
               <div key={notice.id} style={{ background: '#fff', border: '1px solid #fcd34d', borderRadius: 12, padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
                   <p style={{ margin: '0 0 0.25rem', fontWeight: 600, color: 'var(--ink)' }}>{notice.profiles?.full_name} is moving out</p>
-                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--mid)' }}>Property: {notice.listings?.title}</p>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--mid)' }}>Property: {notice.resolvedListingTitle || 'Original room'}</p>
                   <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', color: 'var(--mid)' }}>Intended Date: <strong>{new Date(notice.intended_move_out_date).toLocaleDateString()}</strong></p>
                 </div>
                 <button 
-                  onClick={() => handleApproveNotice(notice.id, notice.listings?.title || 'Room')}
+                  onClick={() => handleApproveNotice(notice.id, notice.resolvedListingTitle)}
                   disabled={approvingNotice === notice.id}
                   className="act-btn" 
                   style={{ background: '#d97706', color: '#fff', border: 'none', padding: '0.6rem 1rem', borderRadius: 8, fontWeight: 600 }}

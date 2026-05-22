@@ -172,6 +172,46 @@ const searchPageStyles = `
   }
 `;
 
+function getComingSoonDetails(listing: any) {
+  const isComingSoonFlag = listing.isComingSoon || listing.is_coming_soon || false;
+  const status = listing.vacancyStatus || listing.vacancy_status;
+  const isLegacy = status === 'available_soon' || status === 'coming_soon' || status === 'listed_occupied';
+  const availableFrom = listing.availableFrom || listing.available_from;
+
+  let isSoon = false;
+  if (isComingSoonFlag) {
+    if (!availableFrom) isSoon = true;
+    else {
+      const availDate = new Date(availableFrom + 'T00:00:00').getTime();
+      isSoon = availDate > new Date().setHours(0, 0, 0, 0);
+    }
+  } else if (isLegacy) {
+    isSoon = true;
+  }
+
+  let daysUntil = null;
+  if (availableFrom) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const availDate = new Date(availableFrom + 'T00:00:00');
+    availDate.setHours(0, 0, 0, 0);
+    const diffTime = availDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    if (diffDays > 0) daysUntil = diffDays;
+  }
+  return { isComingSoon: isSoon, daysUntil, availableFrom };
+}
+
+function formatAvailableFrom(iso: string): string {
+  try {
+    return new Date(iso + 'T00:00:00').toLocaleDateString('sw-TZ', {
+      day: 'numeric', month: 'short', year: 'numeric',
+    });
+  } catch {
+    return iso;
+  }
+}
+
 // Room Card Component - matches homepage style
 interface RoomCardProps {
   listing: any;
@@ -186,6 +226,7 @@ interface RoomCardProps {
 function RoomCard({ listing, savedIds, imageIndexes, onToggleSave, onNextImage, onPrevImage, onClick }: RoomCardProps) {
   const photos = listing.photos || listing.photo_urls || [];
   const currentImageIndex = imageIndexes[listing.id] || 0;
+  const soonDetails = getComingSoonDetails(listing);
 
   // Get image URL from various possible sources
   const getImageUrl = () => {
@@ -225,6 +266,21 @@ function RoomCard({ listing, savedIds, imageIndexes, onToggleSave, onNextImage, 
 
         {listing.featured && (
           <span className="room-card__badge room-card__badge--featured">Featured</span>
+        )}
+
+        {soonDetails.isComingSoon && (
+          <span
+            className="room-card__badge"
+            style={{
+              background: 'var(--jade, #22c55e)',
+              color: '#fff',
+              left: listing.featured ? '5.5rem' : '0.75rem',
+              fontWeight: 700,
+              boxShadow: '0 2px 8px rgba(34,197,94,0.35)',
+            }}
+          >
+            {soonDetails.daysUntil !== null ? `Inakuja: Siku ${soonDetails.daysUntil}` : 'Inakuja'}
+          </span>
         )}
 
         <button
@@ -283,6 +339,24 @@ function RoomCard({ listing, savedIds, imageIndexes, onToggleSave, onNextImage, 
           </span>
           <span style={{ fontSize: '0.75rem', color: '#64748b' }}>/month</span>
         </div>
+        {soonDetails.isComingSoon && soonDetails.availableFrom && (
+          <div style={{
+            fontSize: '0.7rem',
+            color: 'var(--mid, #64748b)',
+            background: 'var(--cream, #f8fafc)',
+            padding: '0.15rem 0.4rem',
+            borderRadius: '4px',
+            border: '1px solid var(--border, #e2e8f0)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            width: 'max-content',
+            maxWidth: '100%',
+            gap: '0.25rem',
+            marginTop: '0.1rem'
+          }}>
+            📅 Inapatikana {formatAvailableFrom(soonDetails.availableFrom)} {soonDetails.daysUntil !== null ? `(baada ya siku ${soonDetails.daysUntil})` : ''}
+          </div>
+        )}
       </div>
     </div>
   );

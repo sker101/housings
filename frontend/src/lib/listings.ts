@@ -89,6 +89,7 @@ export function mapListingRow(row, photos = []) {
       photos.find((photo) => Boolean(photo?.url))?.url ||
       'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1200&q=80',
     verified: row.status === 'approved',
+    isComingSoon: Boolean(row.is_coming_soon),
     // Utility fields (informational only — paid in cash to landlord)
     elecType:  row.elec_type  || row.elecType  || null,
     waterType: row.water_type || row.waterType || null,
