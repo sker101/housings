@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import SuspenseLoader from './components/SuspenseLoader';
 import ProtectedRoute from './components/ProtectedRoute';
 import PageErrorBoundary from './components/PageErrorBoundary';
 import { PWAUpdateBanner } from './components/PWAUpdateBanner';
@@ -9,64 +10,63 @@ import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 // ── Public pages ──────────────────────────────────────────────
 import Layout from './components/Layout';
 import HomePage          from './pages/HomePage';
-import SearchPage        from './pages/SearchPage';
-import RoomDetailsPage   from './pages/RoomDetailsPage';
-import NotFoundPage      from './pages/NotFoundPage';
-import ResetPasswordPage from './pages/ResetPasswordPage';
-import BecomeHostPage    from './pages/BecomeHostPage';
+const SearchPage = React.lazy(() => import('./pages/SearchPage'));
+const RoomDetailsPage = React.lazy(() => import('./pages/RoomDetailsPage'));
+const NotFoundPage = React.lazy(() => import('./pages/NotFoundPage'));
+const ResetPasswordPage = React.lazy(() => import('./pages/ResetPasswordPage'));
+const BecomeHostPage = React.lazy(() => import('./pages/BecomeHostPage'));
 
-// ── Auth pages (new) ──────────────────────────────────────────
 import LoginPage          from './pages/auth/LoginPage';
 import SignupPage         from './pages/auth/SignupPage';
 import OAuthCallback      from './pages/auth/OAuthCallback';
-import CompleteProfilePage from './pages/auth/CompleteProfilePage';
-import VerifyEmailPage    from './pages/auth/VerifyEmailPage';
+const CompleteProfilePage = React.lazy(() => import('./pages/auth/CompleteProfilePage'));
+const VerifyEmailPage = React.lazy(() => import('./pages/auth/VerifyEmailPage'));
 
 // ── Shared Dashboard Layout (Role-based) ──────────────────────
 import RoleBasedLayout from './components/RoleBasedLayout';
 
 // ── Tenant pages ──────────────────────────────────────────────
-import TenantDashboard   from './pages/tenant/Dashboard';
-import MessagesPage      from './pages/MessagesPage';
-import SavedListingsPage from './pages/SavedListingsPage';
-import ProfilePage       from './pages/ProfilePage';
-import BookingsPage      from './pages/BookingsPage';
-import ReviewsPage       from './pages/ReviewsPage';
-import NotificationsPage from './pages/NotificationsPage';
-import PayPage           from './pages/PayPage';
-import MyRoomPage        from './pages/MyRoomPage';
+const TenantDashboard = React.lazy(() => import('./pages/tenant/Dashboard'));
+const MessagesPage = React.lazy(() => import('./pages/MessagesPage'));
+const SavedListingsPage = React.lazy(() => import('./pages/SavedListingsPage'));
+const ProfilePage = React.lazy(() => import('./pages/ProfilePage'));
+const BookingsPage = React.lazy(() => import('./pages/BookingsPage'));
+const ReviewsPage = React.lazy(() => import('./pages/ReviewsPage'));
+const NotificationsPage = React.lazy(() => import('./pages/NotificationsPage'));
+const PayPage = React.lazy(() => import('./pages/PayPage'));
+const MyRoomPage = React.lazy(() => import('./pages/MyRoomPage'));
 
 // ── Landlord pages ────────────────────────────────────────────
-import LandlordDashboard     from './pages/landlord/Dashboard';
-import LandlordInquiries     from './pages/landlord/Inquiries';
-import LandlordListingsPage  from './pages/LandlordListingsPage';
-import LandlordTenantsPage   from './pages/LandlordTenantsPage';
-import LandlordAnalyticsPage from './pages/LandlordAnalyticsPage';
-import LandlordUpgradePage   from './pages/LandlordUpgradePage';
-import ListPropertyPage      from './pages/ListPropertyPage';
-import PaymentsPage          from './pages/PaymentsPage';
+const LandlordDashboard = React.lazy(() => import('./pages/landlord/Dashboard'));
+const LandlordInquiries = React.lazy(() => import('./pages/landlord/Inquiries'));
+const LandlordListingsPage = React.lazy(() => import('./pages/LandlordListingsPage'));
+const LandlordTenantsPage = React.lazy(() => import('./pages/LandlordTenantsPage'));
+const LandlordAnalyticsPage = React.lazy(() => import('./pages/LandlordAnalyticsPage'));
+const LandlordUpgradePage = React.lazy(() => import('./pages/LandlordUpgradePage'));
+const ListPropertyPage = React.lazy(() => import('./pages/ListPropertyPage'));
+const PaymentsPage = React.lazy(() => import('./pages/PaymentsPage'));
 
 // ── Property Manager pages ────────────────────────────────────
-import ManagerDashboard    from './pages/manager/Dashboard';
-import ManagerProperties   from './pages/manager/Properties';
-import ManagerNewProperty  from './pages/manager/NewProperty';
-import ManagerInquiries    from './pages/manager/Inquiries';
-import ManagerEarnings     from './pages/manager/Earnings';
-import ManagerSubscription from './pages/manager/Subscription';
+const ManagerDashboard = React.lazy(() => import('./pages/manager/Dashboard'));
+const ManagerProperties = React.lazy(() => import('./pages/manager/Properties'));
+const ManagerNewProperty = React.lazy(() => import('./pages/manager/NewProperty'));
+const ManagerInquiries = React.lazy(() => import('./pages/manager/Inquiries'));
+const ManagerEarnings = React.lazy(() => import('./pages/manager/Earnings'));
+const ManagerSubscription = React.lazy(() => import('./pages/manager/Subscription'));
 
 // ── Admin pages ───────────────────────────────────────────────
-import AdminDashboardPage from './pages/AdminDashboardPage';
-import AdminUsersPage     from './pages/admin/UsersPage';
-import AdminListingsPage  from './pages/AdminListingsPage';
-import AdminReportsPage   from './pages/AdminReportsPage';
-import AdminClaimsPage    from './pages/AdminClaimsPage';
-import AdminAccessPage    from './pages/AdminAccessPage';
-import AdminDisputesPage  from './pages/AdminDisputesPage';
-import AdminFlagsPage     from './pages/AdminFlagsPage';
-import AdminConfigPage    from './pages/AdminConfigPage';
-import AdminAuditPage     from './pages/AdminAuditPage';
-import AdminAuditLogPage  from './pages/AdminAuditLogPage';
-import AdminLandlordsPage from './pages/AdminLandlordsPage';
+const AdminDashboardPage = React.lazy(() => import('./pages/AdminDashboardPage'));
+const AdminUsersPage = React.lazy(() => import('./pages/admin/UsersPage'));
+const AdminListingsPage = React.lazy(() => import('./pages/AdminListingsPage'));
+const AdminReportsPage = React.lazy(() => import('./pages/AdminReportsPage'));
+const AdminClaimsPage = React.lazy(() => import('./pages/AdminClaimsPage'));
+const AdminAccessPage = React.lazy(() => import('./pages/AdminAccessPage'));
+const AdminDisputesPage = React.lazy(() => import('./pages/AdminDisputesPage'));
+const AdminFlagsPage = React.lazy(() => import('./pages/AdminFlagsPage'));
+const AdminConfigPage = React.lazy(() => import('./pages/AdminConfigPage'));
+const AdminAuditPage = React.lazy(() => import('./pages/AdminAuditPage'));
+const AdminAuditLogPage = React.lazy(() => import('./pages/AdminAuditLogPage'));
+const AdminLandlordsPage = React.lazy(() => import('./pages/AdminLandlordsPage'));
 
 type AllRoles = 'tenant' | 'landlord' | 'property_manager' | 'admin';
 const ALL: AllRoles[] = ['tenant', 'landlord', 'property_manager', 'admin'];
@@ -87,9 +87,10 @@ export default function App() {
       <Toaster position="bottom-right" />
       <PWAUpdateBanner />
       <PWAInstallPrompt />
-      <Routes>
+      <Suspense fallback={<SuspenseLoader />}>
+        <Routes>
 
-        {/* ── Public ──────────────────────────────────────── */}
+          {/* ── Public ──────────────────────────────────────── */}
         <Route path="/"              element={<PL><HomePage /></PL>} />
         <Route path="/listings"      element={<PL><SearchPage /></PL>} />
         <Route path="/listings/:roomId" element={<PageErrorBoundary><RoomDetailsLayout><RoomDetailsPage /></RoomDetailsLayout></PageErrorBoundary>} />
@@ -178,9 +179,10 @@ export default function App() {
 
         </Route>
 
-        {/* ── 404 ─────────────────────────────────────────── */}
-        <Route path="*" element={<NotFoundPage />} />
-      </Routes>
+          {/* ── 404 ─────────────────────────────────────────── */}
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </Suspense>
     </>
   );
 }
