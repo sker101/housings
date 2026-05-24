@@ -28,7 +28,8 @@ import {
   getActiveRole,
   setActiveRole,
   clearActiveRole,
-  canSwitchRoles
+  canSwitchRoles,
+  computeValidRoles
 } from '../lib/roles';
 import type { Profile, AuthUser } from '../types';
 
@@ -248,9 +249,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.log('[Auth] Hydrate: Upgrading role to', effectiveRequestedRole);
           try {
             const currentRoles = (fetchedProfile as unknown as Record<string, unknown>)?.roles as string[] || [fetchedProfile.role || 'tenant'];
-            if (!currentRoles.includes(effectiveRequestedRole)) {
-              const newRoles = [...currentRoles, effectiveRequestedRole];
-              
+            const newRoles = computeValidRoles(effectiveRequestedRole, currentRoles);
+            
+            // Only update if roles actually changed
+            if (JSON.stringify(currentRoles.sort()) !== JSON.stringify(newRoles.sort())) {
               try {
                 // Try updating both columns (roles and role)
                 await updateRows('profiles', {
@@ -608,8 +610,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           try {
             const currentRoles = (fetchedProfile as unknown as Record<string, unknown>)?.roles as string[] || [fetchedProfile.role || 'tenant'];
             console.log('[Auth] Current roles:', currentRoles);
-            if (!currentRoles.includes(requestedRole)) {
-              const newRoles = [...currentRoles, requestedRole];
+            const newRoles = computeValidRoles(requestedRole, currentRoles);
+            
+            if (JSON.stringify(currentRoles.sort()) !== JSON.stringify(newRoles.sort())) {
               console.log('[Auth] New roles array:', newRoles);
               try {
                 await updateRows('profiles', {
@@ -774,8 +777,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.log('[Auth] Adding new role to existing profile via OTP:', requestedRole);
           try {
             const currentRoles = (fetchedProfile as unknown as Record<string, unknown>)?.roles as string[] || [fetchedProfile.role || 'tenant'];
-            if (!currentRoles.includes(requestedRole)) {
-              const newRoles = [...currentRoles, requestedRole];
+            const newRoles = computeValidRoles(requestedRole, currentRoles);
+            
+            if (JSON.stringify(currentRoles.sort()) !== JSON.stringify(newRoles.sort())) {
               try {
                 await updateRows('profiles', {
                   role: requestedRole,

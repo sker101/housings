@@ -113,3 +113,26 @@ export function deriveRoleFromPath(pathname: string, allRoles: string[]): string
 export function canSwitchRoles(allRoles: string[]): boolean {
   return allRoles.length > 1;
 }
+
+/**
+ * Ensures that a user cannot be both a landlord and a property_manager at the same time,
+ * while preserving the tenant role.
+ */
+export function computeValidRoles(requestedRole: string, currentRoles: string[]): string[] {
+  const newRoles = new Set(currentRoles);
+  
+  // Ensure tenant is always present
+  newRoles.add(APP_ROLE.TENANT);
+  
+  if (requestedRole === APP_ROLE.LANDLORD) {
+    // If upgrading to landlord, remove property_manager
+    newRoles.delete(APP_ROLE.PROPERTY_MANAGER);
+    newRoles.add(APP_ROLE.LANDLORD);
+  } else if (requestedRole === APP_ROLE.PROPERTY_MANAGER) {
+    // If upgrading to property_manager, remove landlord
+    newRoles.delete(APP_ROLE.LANDLORD);
+    newRoles.add(APP_ROLE.PROPERTY_MANAGER);
+  }
+  
+  return Array.from(newRoles);
+}

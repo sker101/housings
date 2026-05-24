@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { updateRows } from '../lib/supabase';
 import { Building2, Home, ArrowLeft, RefreshCw, CheckCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { computeValidRoles } from '../lib/roles';
 
 export default function BecomeHostPage() {
   const { user, token, refreshMe, switchRole } = useAuth();
@@ -18,14 +19,16 @@ export default function BecomeHostPage() {
       // Get current roles array, ensure it's an array
       const currentRoles = Array.isArray(user.roles) ? [...user.roles] : ['tenant'];
       
-      // If they don't already have the target role, add it
-      if (!currentRoles.includes(selectedRole)) {
-        currentRoles.push(selectedRole);
-        
+      // Use computeValidRoles to securely enforce constraints
+      const newRoles = computeValidRoles(selectedRole, currentRoles);
+      
+      // If roles changed, update them
+      if (JSON.stringify(currentRoles.sort()) !== JSON.stringify(newRoles.sort())) {
         await updateRows(
           'profiles',
           { 
-            roles: currentRoles
+            roles: newRoles,
+            role: selectedRole // Update active role in DB as well
           },
           { filters: [{ column: 'id', op: 'eq', value: user.userId }], accessToken: token }
         );
@@ -36,8 +39,7 @@ export default function BecomeHostPage() {
       
       // Switch active role to the newly registered role and navigate to dashboard
       switchRole(selectedRole);
-      navigate(selectedRole === 'landlord' ? '/landlord/dashboard' : '/manager/dashboard');
-
+      // switchRole handles the navigation and refresh
     } catch (err: any) {
       toast.error(err.message || 'Failed to register. Please try again.');
     } finally {
@@ -113,6 +115,20 @@ export default function BecomeHostPage() {
           </div>
 
         </div>
+
+        {/* Warning if switching host types */}
+        {selectedRole && Array.isArray(user?.roles) && (
+          (selectedRole === 'landlord' && user.roles.includes('property_manager')) ||
+          (selectedRole === 'property_manager' && user.roles.includes('landlord'))
+        ) && (
+          <div style={{ padding: '0.75rem', background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '8px', marginBottom: '1.5rem', display: 'flex', gap: '0.5rem', color: '#92400e', fontSize: '0.85rem' }}>
+            <span style={{ fontSize: '1rem' }}>⚠️</span>
+            <p style={{ margin: 0 }}>
+              You are currently a <strong>{user.roles.includes('landlord') ? 'Landlord' : 'Property Manager'}</strong>. 
+              Switching to <strong>{selectedRole === 'landlord' ? 'Landlord' : 'Property Manager'}</strong> will replace your existing host role. You cannot be both at the same time.
+            </p>
+          </div>
+        )}
 
         <button 
           onClick={handleRegister}
