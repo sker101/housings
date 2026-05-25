@@ -1,0 +1,200 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* Responsive Utilities */
+.hide-on-mobile {
+  display: none !important;
+}
+
+@media (min-width: 1024px) {
+  .hide-on-mobile {
+    display: block !important;
+  }
+  
+  .hide-on-desktop {
+    display: none !important;
+  }
+  
+  .show-on-mobile {
+    display: none !important;
+  }
+}
+
+@media (max-width: 1023px) {
+  .show-on-desktop {
+    display: none !important;
+  }
+}
+
+:root {
+  --ink: #222222;
+  --paper: #ffffff;
+  --cream: #f7f7f7;
+  --surface: #ffffff;
+  --jade: #166534;
+  --jade-light: #15803d;
+  --jade-muted: #dcfce7;
+  --jade-dark: #14532d;
+  --amber: #f59e0b;
+  --amber-light: #fef3c7;
+  --red: #ef4444;
+  --red-light: #fef2f2;
+  --blue: #3b82f6;
+  --blue-light: #eff6ff;
+  --mid: #6b7280;
+  --mid-light: #9ca3af;
+  --border: #e5e7eb;
+  --border-dark: #d1d5db;
+  --shadow-soft: 0 6px 16px rgba(0, 0, 0, 0.08);
+  --shadow-hard: 0 20px 48px rgba(0, 0, 0, 0.15);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+  --radius-sm: 8px;
+}
+
+/* Dark Mode Variables - Premium Slate/Zinc Palette */
+[data-theme='dark'] {
+  --ink: #f8fafc;        /* Slate 50 */
+  --paper: #0f172a;      /* Slate 950 - Deep Navy/Slate */
+  --cream: #1e293b;      /* Slate 800 */
+  --surface: #1e293b;    /* Slate 800 */
+  --mid: #94a3b8;        /* Slate 400 */
+  --mid-light: #475569;  /* Slate 600 */
+  --border: #334155;     /* Slate 700 */
+  --border-dark: #475569; /* Slate 600 */
+  --jade-muted: #064e3b; /* Deep emerald */
+  --jade: #22c55e;       /* Bright emerald for dark mode */
+}
+
+[data-theme='dark'] body {
+  background-color: var(--paper);
+  color: var(--ink);
+}
+
+[data-theme='dark'] .topbar {
+  background: rgba(15, 23, 42, 0.8) !important;
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+}
+
+[data-theme='dark'] .a11y-menu {
+  background: var(--surface);
+  border-color: var(--border);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme='dark'] .a11y-menu__item {
+  color: var(--ink);
+}
+
+[data-theme='dark'] .a11y-menu__item:hover {
+  background: #334155;
+}
+
+[data-theme='dark'] .topbar-search-pill {
+  background: #1e293b !important;
+  border-color: var(--border) !important;
+  color: var(--ink) !important;
+}
+
+[data-theme='dark'] .card, 
+[data-theme='dark'] .room-card,
+[data-theme='dark'] .listing-card,
+[data-theme='dark'] .sidebar-content {
+  background: var(--surface) !important;
+  border-color: var(--border) !important;
+}
+
+/* Dark Mode Mobile Fixes */
+[data-theme='dark'] .bottom-nav {
+  background: rgba(30, 41, 59, 0.95) !important; /* Slate 800 */
+  border-top-color: var(--border);
+  backdrop-filter: blur(12px);
+}
+
+[data-theme='dark'] .mobile-bottom-menu-item {
+  color: #94a3b8; /* Slate 400 */
+}
+
+[data-theme='dark'] .mobile-bottom-menu-item.is-active {
+  color: #22c55e !important;
+}
+
+[data-theme='dark'] .mobile-search-modal {
+  background: #0f172a !important; /* Slate 950 */
+  color: var(--ink);
+}
+
+[data-theme='dark'] .mobile-search-modal-header {
+  background: rgba(15, 23, 42, 0.9) !important;
+  border-bottom-color: var(--border);
+}
+
+[data-theme='dark'] .mobile-search-modal-close {
+  background: #1e293b;
+  color: var(--ink);
+}
+
+[data-theme='dark'] .mobile-search-input-wrapper {
+  background: #1e293b;
+  border-color: var(--border);
+}
+
+[data-theme='dark'] .mobile-search-input-wrapper:focus-within {
+  background: #0f172a;
+  border-color: var(--jade);
+}
+
+[data-theme='dark'] .mobile-search-input {
+  color: var(--ink);
+}
+
+[data-theme='dark'] .mobile-search-input::placeholder {
+  color: #64748b;
+}
+
+[data-theme='dark'] .mobile-filter-section {
+  border-bottom-color: var(--border);
+}
+
+[data-theme='dark'] .mobile-price-input {
+  background: #1e293b;
+  border-color: var(--border);
+  color: var(--ink);
+}
+
+[data-theme='dark'] .mobile-price-slider {
+  background: #334155;
+}
+
+[data-theme='dark'] .mobile-room-type-item,
+[data-theme='dark'] .mobile-amenity-item,
+[data-theme='dark'] .mobile-gender-item,
+[data-theme='dark'] .mobile-filter-clear {
+  background: #1e293b;
+  border-color: var(--border);
+  color: var(--ink);
+}
+
+[data-theme='dark'] .mobile-room-type-item:has(input:checked),
+[data-theme='dark'] .mobile-amenity-item:has(input:checked),
+[data-theme='dark'] .mobile-gender-item:has(input:checked) {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: var(--jade);
+}
+
+[data-theme='dark'] .mobile-room-type-item input,
+[data-theme='dark'] .mobile-gender-item input {
+  background: #0f172a;
+  border-color: #475569;
+}
+
+[data-theme='dark'] .mobile-filter-section-title {
+  color: #f8fafc;
+}
+
+[data-theme='dark'] .mobile-filter-actions {
+  background: #0f172a;
+}
+

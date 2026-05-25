@@ -9,6 +9,7 @@ import StudentSidebar from './StudentSidebar';
 import AdminSidebar from './AdminSidebar';
 import Footer from './Footer';
 import SmartInstallBanner from './SmartInstallBanner';
+import PullToRefresh from './PullToRefresh';
 import { Menu, Globe, UserPlus, LogIn, HelpCircle, X, Home, User, Download, Moon, Sun, Map, Accessibility, Search, Heart, MessageCircle, Wifi, Car, Droplets, Shield, Utensils, Shirt, Filter, Star, LayoutGrid, Bell, Smartphone, Tablet, Zap, Share2, PlusCircle, CheckCircle2, Chrome, AppWindow } from 'lucide-react';
 import { dashboardDefaultPath } from '../lib/roles';
 import { Toaster } from 'react-hot-toast';
@@ -851,7 +852,9 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
 
           <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
             <main className="main-content" style={{ flex: 1, minWidth: 0, transition: 'all 0.3s ease', padding: isHomePage ? 0 : undefined }}>
-              {children ?? <Outlet />}
+              <PullToRefresh>
+                {children ?? <Outlet />}
+              </PullToRefresh>
             </main>
 
             {/* Footer on all pages unless hideFooter is true */}

@@ -9,19 +9,23 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import './styles/global.css';
 import './lib/i18n';
 
+import { HelmetProvider } from 'react-helmet-async';
+
 const rootElement = document.getElementById('root');
 if (!rootElement) {
   console.error('iRent: Fatal Error - #root element not found in DOM.');
 } else {
   ReactDOM.createRoot(rootElement).render(
     <React.StrictMode>
-      <ErrorBoundary>
-        <BrowserRouter>
-          <AuthProvider>
-            <App />
-          </AuthProvider>
-        </BrowserRouter>
-      </ErrorBoundary>
+      <HelmetProvider>
+        <ErrorBoundary>
+          <BrowserRouter>
+            <AuthProvider>
+              <App />
+            </AuthProvider>
+          </BrowserRouter>
+        </ErrorBoundary>
+      </HelmetProvider>
     </React.StrictMode>
   );
 

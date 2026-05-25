@@ -1,0 +1,396 @@
+/* Enhanced Login Form Styling - Mobile Optimized */
+.auth-shell__form {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.25rem 1rem;
+  box-shadow: none;
+  border: 1px solid var(--border);
+}
+
+.auth-shell__form h2 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 0.75rem;
+  text-align: center;
+}
+
+.auth-shell__form label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 0.25rem;
+  display: block;
+}
+
+.auth-shell__form input[type="email"],
+.auth-shell__form input[type="password"],
+.auth-shell__form input[type="text"] {
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: #fff;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.auth-shell__form input[type="email"]:focus,
+.auth-shell__form input[type="password"]:focus,
+.auth-shell__form input[type="text"]:focus {
+  border-color: var(--jade);
+  box-shadow: 0 0 0 2px rgba(29, 158, 117, 0.08);
+}
+
+.auth-shell__form .btn {
+  width: 100%;
+  padding: 0.7rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--jade) 0%, var(--jade-dark) 100%);
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 0.25rem;
+}
+
+.auth-shell__form .btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(29, 158, 117, 0.3);
+}
+
+.auth-shell__form .btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.auth-shell__form .btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.password-toggle {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--mid);
+  padding: 0.3rem 0.6rem;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.password-toggle:hover {
+  border-color: var(--jade);
+  color: var(--jade);
+}
+
+.password-checklist {
+  padding: 0.35rem 0;
+}
+
+.password-checklist span {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+}
+
+.remember-me {
+  padding: 0.15rem 0;
+}
+
+.remember-me input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--jade);
+  cursor: pointer;
+}
+
+.remember-me span {
+  font-size: 0.8rem;
+  color: var(--ink);
+}
+
+.error-text {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+
+/* Google Sign-in Button */
+.google-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.65rem;
+  background: #fff;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.google-btn:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.google-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.google-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.google-btn svg {
+  color: #4285f4;
+  width: 18px;
+  height: 18px;
+}
+
+/* Divider */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.35rem 0;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.divider span {
+  font-size: 0.75rem;
+  color: var(--mid);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.room-page {
+  display: grid;
+  gap: 1rem;
+}
+
+.room-hero {
+  display: grid;
+  gap: 1rem;
+}
+
+.room-hero__gallery {
+  display: grid;
+  gap: 0.56rem;
+}
+
+.room-hero__image-wrap {
+  position: relative;
+}
+
+.room-hero__image-btn {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: zoom-in;
+}
+
+.room-hero__image {
+  width: 100%;
+  border-radius: 16px;
+  min-height: 270px;
+  max-height: 390px;
+  object-fit: cover;
+  cursor: zoom-in;
+}
+
+.room-hero__image-meta {
+  position: absolute;
+  left: 0.7rem;
+  right: 0.7rem;
+  top: 0.7rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.room-photo-angle,
+.room-photo-count {
+  border-radius: var(--radius-pill);
+  padding: 0.22rem 0.58rem;
+  font-size: 0.73rem;
+  font-weight: 700;
+  background: rgba(18, 16, 12, 0.64);
+  color: #f9f4ea;
+}
+
+.room-hero__nav {
+  position: absolute;
+  right: 0.7rem;
+  bottom: 0.7rem;
+  display: flex;
+  gap: 0.4rem;
+}
+
+.room-nav-btn {
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 10px;
+  background: rgba(18, 16, 12, 0.64);
+  color: #fff8ee;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.room-hero__thumbs {
+  display: flex;
+  gap: 0.45rem;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.room-hero__thumbs::-webkit-scrollbar {
+  display: none;
+}
+
+.room-thumb {
+  flex: 0 0 calc(25% - 0.45rem);
+  min-width: 68px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0;
+  overflow: hidden;
+  background: #fff;
+  cursor: pointer;
+  display: grid;
+}
+
+.room-thumb img {
+  width: 100%;
+  height: 68px;
+  object-fit: cover;
+}
+
+.room-thumb__label {
+  border-top: 1px solid var(--border);
+  font-size: 0.7rem;
+  color: #5e5650;
+  padding: 0.16rem 0.35rem;
+  text-align: center;
+  background: #f9f7f2;
+}
+
+.room-thumb.is-active {
+  border-color: var(--jade-light);
+  box-shadow: 0 0 0 2px rgba(42, 143, 99, 0.18);
+}
+
+.room-hero__content {
+  display: grid;
+  gap: 0.66rem;
+}
+
+.room-hero__title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.52rem;
+}
+
+.room-featured-badge {
+  border-radius: var(--radius-pill);
+  padding: 0.2rem 0.54rem;
+  background: var(--amber-light);
+  color: #583811;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.room-hero__location {
+  color: var(--mid);
+}
+
+.room-price {
+  color: #1D9E75;
+  font-family: inherit;
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.room-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.room-chip {
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  background: #fff;
+  padding: 0.23rem 0.56rem;
+  font-size: 0.78rem;
+  color: #4b453f;
+}
+
+.room-chip--amenity {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+}
+
+.room-chip__emoji {
+  line-height: 1;
+}
+
+.room-lister-card {
+  border-style: dashed;
+  box-shadow: none;
+}
+
+.room-lister-card__header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.room-lister-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  object-fit: cover;
+  border: 1px solid var(--border);
+}
+
+.room-lister-avatar--fallback {
+  background: var(--jade-muted);
+  color: var(--jade);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+

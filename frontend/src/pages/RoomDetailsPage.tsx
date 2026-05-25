@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { Helmet } from 'react-helmet-async';
 import { 
   ArrowLeft, 
   Sparkles, 
@@ -904,6 +905,23 @@ export default function RoomDetailsPage() {
 
   return (
     <div className="room-details-container">
+      <Helmet>
+        <title>{listing.title} | iRent</title>
+        <meta name="description" content={`Pata ${humanize(listing.roomType)} bora ${listing.location}. Tsh ${listing.priceMonthly}/mwezi.`} />
+        
+        {/* Open Graph / WhatsApp */}
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content={`${listing.title} | iRent`} />
+        <meta property="og:description" content={`Tsh ${new Intl.NumberFormat('en-TZ').format(listing.priceMonthly)}/month • ${listing.location}`} />
+        <meta property="og:image" content={listing.imageUrl} />
+        
+        {/* Twitter */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={`${listing.title} | iRent`} />
+        <meta name="twitter:description" content={`Tsh ${new Intl.NumberFormat('en-TZ').format(listing.priceMonthly)}/month • ${listing.location}`} />
+        <meta name="twitter:image" content={listing.imageUrl} />
+      </Helmet>
+
       {/* Inject mobile styles */}
       <style>{roomDetailsStyles}</style>
 

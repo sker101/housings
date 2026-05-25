@@ -17,6 +17,18 @@ export default function SavedListingsPage() {
   const [error, setError]     = useState('');
   const [removing, setRemoving] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -27,7 +39,12 @@ export default function SavedListingsPage() {
         const rows = await fetchSavedListings(user.userId, token);
         if (mounted) setItems(rows);
       } catch (err: any) {
-        if (mounted) { setError(err.message); setItems([]); }
+        if (mounted) { 
+          // If offline and fetching fails, we might just have empty items or cached items.
+          // The error message will be shown, but we can make it friendlier if offline
+          setError(isOffline ? 'You are currently offline. Displaying cached rooms if available.' : err.message); 
+          setItems([]); 
+        }
       } finally {
         if (mounted) setLoading(false);
       }
@@ -106,6 +123,18 @@ export default function SavedListingsPage() {
         <ChevronRight size={14} color="#cbd5e1" />
         <span style={{ fontWeight: 600, color: '#1e293b' }}>Saved Rooms</span>
       </header>
+
+      {/* ── Offline Banner ── */}
+      {isOffline && (
+        <div style={{
+          background: '#fffbeb', border: '1px solid #fcd34d', color: '#92400e',
+          padding: '0.75rem 1rem', borderRadius: 10, marginBottom: '1.5rem',
+          display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', fontWeight: 500
+        }}>
+          <span style={{ fontSize: '1.2rem' }}>📶</span>
+          You are currently offline. Viewing cached saved rooms.
+        </div>
+      )}
 
       {/* ── Title + view toggle ── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: 8 }}>

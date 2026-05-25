@@ -1,0 +1,374 @@
+.listing-grid {
+  display: grid;
+  gap: 1.5rem 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+/* Wrapper used by ListingCard for relative positioning (Coming Soon CTA).
+   display:contents makes it transparent to grid layout so the inner <a>
+   becomes the actual grid item with correct sizing. */
+.listing-card-wrapper {
+  display: contents;
+}
+
+.listing-card {
+  position: relative;
+  border: 1px solid var(--border) !important;
+  background: var(--surface) !important;
+  border-radius: 16px !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  height: auto !important;
+  text-decoration: none !important;
+  color: inherit !important;
+}
+
+.listing-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+}
+
+.listing-card__image-wrap {
+  position: relative !important;
+  display: block !important;
+  overflow: hidden !important;
+  aspect-ratio: 16 / 10 !important;
+  width: 100% !important;
+  background-color: #f3f4f6 !important;
+}
+
+.listing-card__image {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  transition: transform 0.45s ease;
+}
+
+.listing-card:hover .listing-card__image {
+  transform: scale(1.04);
+}
+
+.listing-card__chip {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  border-radius: var(--radius-pill);
+  padding: 0.18rem 0.5rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: rgba(17, 17, 17, 0.72);
+  color: #f9f4ea;
+  z-index: 2;
+  max-width: calc(100% - 5rem);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.listing-card__chip--price {
+  background: var(--amber-light);
+  color: #4d330f;
+}
+
+.listing-card__chip--status {
+  top: auto;
+  bottom: 0.5rem;
+  background: rgba(245, 241, 230, 0.9);
+  color: #3a342d;
+}
+
+.status-available {
+  background: var(--jade-muted);
+  color: var(--jade);
+}
+
+.status-occupied {
+  background: #eee8df;
+  color: #60584f;
+}
+
+.status-coming_soon {
+  background: var(--blue-light);
+  color: var(--blue);
+}
+
+.verified-badge {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: var(--radius-pill);
+  padding: 0.18rem 0.5rem;
+  background: rgba(26, 107, 74, 0.94);
+  color: #f2f8f4;
+  font-size: 0.62rem;
+  font-weight: 700;
+  z-index: 2;
+}
+
+.verified-badge svg {
+  width: 0.86rem;
+  height: 0.86rem;
+}
+
+.listing-card__content {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.15rem !important;
+  padding: 0.5rem 0.75rem 0.75rem !important;
+  flex: 1 !important;
+}
+
+.listing-card__content h3 {
+  font-size: 1.02rem;
+}
+
+.listing-card__address {
+  color: var(--mid);
+  font-size: 0.88rem;
+}
+
+.listing-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.42rem;
+}
+
+.listing-card__meta span {
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: var(--radius-pill);
+  padding: 0.2rem 0.56rem;
+  font-size: 0.74rem;
+  color: #544d47;
+}
+
+.listing-card__actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.listing-card__action {
+  font-weight: 600;
+}
+
+.listing-card__action-link {
+  color: var(--jade);
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.listing-card__save {
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 10px;
+  padding: 0.35rem 0.64rem;
+  color: #37322d;
+  cursor: pointer;
+}
+
+.listing-card__save.is-saved,
+.btn.is-saved {
+  border-color: rgba(212, 132, 10, 0.45);
+  background: var(--amber-light);
+  color: #66410c;
+}
+
+.segmented-control {
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 0.18rem;
+  background: #fff;
+}
+
+.segmented-control button {
+  border: 0;
+  border-radius: var(--radius-pill);
+  padding: 0.42rem 0.72rem;
+  background: transparent;
+  color: var(--mid);
+  cursor: pointer;
+}
+
+.segmented-control button.is-active {
+  background: var(--jade-muted);
+  color: var(--jade);
+  font-weight: 700;
+}
+
+.filter-drawer {
+  display: grid;
+  gap: 0.6rem;
+  margin-bottom: 0.85rem;
+  background: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 0.68rem;
+}
+
+.search-load-more {
+  margin-top: 0.95rem;
+  display: grid;
+  place-items: center;
+}
+
+.map-view {
+  display: grid;
+  gap: 0.65rem;
+}
+
+/* Map container — works with Mapbox GL */
+.map-wrap {
+  position: relative;
+}
+
+.map-container {
+  min-height: 360px;
+  width: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.map-wrap .map-loading {
+  margin-bottom: 0.5rem;
+}
+
+.map-loading--overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0 !important;
+  z-index: 10;
+  background: rgba(247, 244, 238, 0.85);
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  pointer-events: none;
+}
+
+
+.auth-page {
+  min-height: auto;
+  display: grid;
+  align-content: flex-start;
+  padding: 1rem 0.75rem 0.5rem;
+  background: #fff;
+}
+
+.auth-shell {
+  display: grid;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 360px;
+  margin: 0 auto;
+  animation: slideUpFade 0.4s ease-out;
+}
+
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.auth-shell__intro {
+  display: none;
+}
+
+.auth-shell__eyebrow {
+  display: none;
+}
+
+.auth-shell__form,
+.auth-form-card {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.auth-shell__form form,
+.auth-form-card form,
+.profile-card form {
+  display: grid;
+  gap: 0.72rem;
+}
+
+.password-field {
+  position: relative;
+}
+
+.password-field input {
+  padding-right: 4.8rem;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.36rem;
+  transform: translateY(-50%);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  padding: 0.26rem 0.55rem;
+  color: #4f4841;
+  cursor: pointer;
+}
+
+.password-checklist {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.82rem;
+}
+
+.password-checklist .is-pass {
+  color: var(--jade);
+}
+
+.password-checklist .is-pending {
+  color: var(--mid);
+}
+
+.remember-me,
+.checkbox-field {
+  display: flex;
+  align-items: center;
+  gap: 0.52rem;
+  width: fit-content;
+}
+
+.checkbox-field input,
+.remember-me input {
+  width: auto;
+}
+
+.auth-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  padding-top: 0.5rem;
+}
+
+.auth-links a {
+  color: var(--jade);
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: color 0.2s ease;
+  text-decoration: none;
+}
+
+.auth-links a:hover {
+  color: var(--jade-dark);
+  text-decoration: none;
+}
+

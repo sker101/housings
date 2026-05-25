@@ -154,6 +154,8 @@ export default function HomePage() {
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const refreshCallbackRef = useRef<(() => void) | null>(null);
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
@@ -286,6 +288,11 @@ export default function HomePage() {
         if (mounted) {
           setLoading(false);
         }
+        // Signal completion of pull-to-refresh
+        if (refreshCallbackRef.current) {
+          refreshCallbackRef.current();
+          refreshCallbackRef.current = null;
+        }
       }
     }
 
@@ -294,7 +301,7 @@ export default function HomePage() {
     return () => {
       mounted = false;
     };
-  }, [token, selectedRoomType, selectedPriceRange, searchQuery]);
+  }, [token, selectedRoomType, selectedPriceRange, searchQuery, refreshTrigger]);
 
   // Fetch saved listings
   useEffect(() => {
@@ -323,7 +330,28 @@ export default function HomePage() {
     return () => {
       mounted = false;
     };
-  }, [user?.userId, token]);
+  }, [user?.userId, token, refreshTrigger]);
+
+  // Listen for the custom app-refresh event from PullToRefresh component
+  useEffect(() => {
+    const handleRefresh = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      // Prevent full page reload fallback
+      customEvent.preventDefault();
+
+      if (customEvent.detail && typeof customEvent.detail.complete === 'function') {
+        refreshCallbackRef.current = customEvent.detail.complete;
+      }
+
+      // Trigger re-fetches
+      setRefreshTrigger((prev) => prev + 1);
+    };
+
+    window.addEventListener('app-refresh', handleRefresh);
+    return () => {
+      window.removeEventListener('app-refresh', handleRefresh);
+    };
+  }, []);
 
   // Filter listings client-side
   const filteredListings = useMemo(() => {
