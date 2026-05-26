@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
+import { Link, NavLink, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import {
   Bell,
   LogOut,
@@ -19,6 +19,7 @@ import {
   ShieldAlert,
   Award,
   Globe,
+  LayoutGrid,
 } from 'lucide-react';
 import topImage from '../images/modern-home-exterior-with-landscaping-driveway.jpg';
 import { useTranslation } from 'react-i18next';
@@ -29,6 +30,7 @@ import {
   humanizeRole,
   deriveRoleFromPath 
 } from '../lib/roles';
+import { selectRows } from '../lib/supabase';
 import { RoleBadge } from './RoleBadge';
 import { initials } from '../utils/format';
 import type { Role } from '../types';
@@ -327,7 +329,7 @@ function RoleBasedSidebarContent({
 }
 
 export default function RoleBasedLayout() {
-  const { user, profile, logout, switchRole } = useAuth();
+  const { user, profile, token, isAuthenticated, logout, switchRole } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const { i18n } = useTranslation();
@@ -336,6 +338,75 @@ export default function RoleBasedLayout() {
   const [isHamburgerActive, setIsHamburgerActive] = useState(false);
   const [isLangActive, setIsLangActive] = useState(false);
   const [isNotifActive, setIsNotifActive] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notifCount, setNotifCount] = useState(0);
+
+  // Poll for unread chat messages
+  useEffect(() => {
+    let mounted = true;
+    async function loadUnreadCount() {
+      if (!isAuthenticated || !user?.userId || !token) {
+        if (mounted) { setUnreadCount(0); }
+        return;
+      }
+      try {
+        const filterCol = user.role === 'tenant' ? 'tenant_id' : 'landlord_id';
+        const conversations = await selectRows('room_inquiries', {
+          select: 'id',
+          filters: [
+            { column: filterCol, op: 'eq', value: user.userId }
+          ],
+          limit: 500,
+          accessToken: token
+        });
+        const conversationIds = conversations.map((item) => item.id).filter(Boolean);
+        if (conversationIds.length === 0) {
+          if (mounted) { setUnreadCount(0); }
+          return;
+        }
+        const unreadRows = await selectRows('chat_messages', {
+          select: 'id',
+          filters: [
+            { column: 'inquiry_id', op: 'in', value: `(${conversationIds.join(',')})` },
+            { column: 'sender_id', op: 'neq', value: user.userId },
+            { column: 'is_read', op: 'eq', value: 'false' }
+          ],
+          accessToken: token
+        });
+        if (mounted) { setUnreadCount(unreadRows.length); }
+      } catch {
+        if (mounted) { setUnreadCount(0); }
+      }
+    }
+    loadUnreadCount();
+    const intervalId = setInterval(loadUnreadCount, 20000);
+    return () => { mounted = false; clearInterval(intervalId); };
+  }, [isAuthenticated, token, user?.userId, user?.role]);
+
+  // Poll for unread notifications
+  useEffect(() => {
+    let mounted = true;
+    async function loadNotifCount() {
+      if (!isAuthenticated || !user?.userId || !token) { setNotifCount(0); return; }
+      try {
+        const rows = await selectRows('notifications', {
+          select: 'id',
+          filters: [
+            { column: 'user_id', op: 'eq', value: user.userId },
+            { column: 'read_at', op: 'is', value: 'null' }
+          ],
+          limit: 99,
+          accessToken: token
+        });
+        if (mounted) setNotifCount(rows.length);
+      } catch {
+        if (mounted) setNotifCount(0);
+      }
+    }
+    loadNotifCount();
+    const id = setInterval(loadNotifCount, 30000);
+    return () => { mounted = false; clearInterval(id); };
+  }, [isAuthenticated, token, user?.userId]);
 
   const currentLanguage = i18n.language || 'en';
 
@@ -645,6 +716,202 @@ export default function RoleBasedLayout() {
         >
           <Outlet />
         </main>
+
+        {/* Mobile Bottom Navigation - Only visible on mobile */}
+        <div className="mobile-bottom-nav-container">
+          <nav className="mobile-bottom-menu-bar">
+            {activeRole === 'tenant' ? (
+              <>
+                <NavLink
+                  to="/tenant/dashboard"
+                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                >
+                  <LayoutGrid size={22} />
+                  <span>Dashboard</span>
+                </NavLink>
+
+                <NavLink
+                  to="/tenant/search"
+                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                >
+                  <Search size={22} />
+                  <span>Search</span>
+                </NavLink>
+
+                <NavLink
+                  to="/tenant/saved"
+                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                >
+                  <Heart size={22} />
+                  <span>Wishlist</span>
+                </NavLink>
+
+                <NavLink
+                  to="/messages"
+                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                >
+                  <MessageCircle size={22} />
+                  <span>Messages</span>
+                  {unreadCount > 0 && <span className="mobile-bottom-nav-badge">{unreadCount}</span>}
+                </NavLink>
+
+                <NavLink
+                  to="/profile"
+                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                >
+                  <User size={22} />
+                  <span>Profile</span>
+                </NavLink>
+              </>
+            ) : (activeRole as string) === 'landlord' || (activeRole as string) === 'lister' ? (
+              <>
+                <NavLink
+                  to="/landlord/dashboard"
+                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                >
+                  <LayoutGrid size={22} />
+                  <span>Dashboard</span>
+                </NavLink>
+
+                <NavLink
+                  to="/landlord/properties"
+                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                >
+                  <Building size={22} />
+                  <span>Properties</span>
+                </NavLink>
+
+                <NavLink
+                  to="/landlord/inquiries"
+                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                >
+                  <MessageCircle size={22} />
+                  <span>Inquiries</span>
+                  {unreadCount > 0 && <span className="mobile-bottom-nav-badge">{unreadCount}</span>}
+                </NavLink>
+
+                <NavLink
+                  to="/landlord/payments"
+                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                >
+                  <Zap size={22} />
+                  <span>Earnings</span>
+                </NavLink>
+
+                <NavLink
+                  to="/profile"
+                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                >
+                  <User size={22} />
+                  <span>Profile</span>
+                </NavLink>
+              </>
+            ) : activeRole === 'property_manager' ? (
+              <>
+                <NavLink
+                  to="/manager/dashboard"
+                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                >
+                  <LayoutGrid size={22} />
+                  <span>Dashboard</span>
+                </NavLink>
+
+                <NavLink
+                  to="/manager/properties"
+                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                >
+                  <Building size={22} />
+                  <span>Properties</span>
+                </NavLink>
+
+                <NavLink
+                  to="/manager/inquiries"
+                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                >
+                  <MessageCircle size={22} />
+                  <span>Inquiries</span>
+                  {unreadCount > 0 && <span className="mobile-bottom-nav-badge">{unreadCount}</span>}
+                </NavLink>
+
+                <NavLink
+                  to="/manager/earnings"
+                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                >
+                  <Zap size={22} />
+                  <span>Earnings</span>
+                </NavLink>
+
+                <NavLink
+                  to="/profile"
+                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                >
+                  <User size={22} />
+                  <span>Profile</span>
+                </NavLink>
+              </>
+            ) : activeRole === 'admin' ? (
+              <>
+                <NavLink
+                  to="/admin"
+                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                >
+                  <LayoutGrid size={22} />
+                  <span>Dashboard</span>
+                </NavLink>
+
+                <NavLink
+                  to="/admin/users"
+                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                >
+                  <Users size={22} />
+                  <span>Users</span>
+                </NavLink>
+
+                <NavLink
+                  to="/admin/listings"
+                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                >
+                  <Building size={22} />
+                  <span>Listings</span>
+                </NavLink>
+
+                <NavLink
+                  to="/admin/reports"
+                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                >
+                  <AlertTriangle size={22} />
+                  <span>Reports</span>
+                </NavLink>
+
+                <NavLink
+                  to="/profile"
+                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                >
+                  <User size={22} />
+                  <span>Profile</span>
+                </NavLink>
+              </>
+            ) : (
+              <>
+                <NavLink
+                  to="/"
+                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                >
+                  <Home size={22} />
+                  <span>Home</span>
+                </NavLink>
+
+                <NavLink
+                  to="/profile"
+                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                >
+                  <User size={22} />
+                  <span>Profile</span>
+                </NavLink>
+              </>
+            )}
+          </nav>
+        </div>
       </div>
 
       <style>{`

@@ -10,7 +10,7 @@ import AdminSidebar from './AdminSidebar';
 import Footer from './Footer';
 import SmartInstallBanner from './SmartInstallBanner';
 import PullToRefresh from './PullToRefresh';
-import { Menu, Globe, UserPlus, LogIn, HelpCircle, X, Home, User, Download, Moon, Sun, Map, Accessibility, Search, Heart, MessageCircle, Wifi, Car, Droplets, Shield, Utensils, Shirt, Filter, Star, LayoutGrid, Bell, Smartphone, Tablet, Zap, Share2, PlusCircle, CheckCircle2, Chrome, AppWindow } from 'lucide-react';
+import { Menu, Globe, UserPlus, LogIn, HelpCircle, X, Home, User, Download, Moon, Sun, Map, Accessibility, Search, Heart, MessageCircle, Wifi, Car, Droplets, Shield, Utensils, Shirt, Filter, Star, LayoutGrid, Bell, Smartphone, Tablet, Zap, Share2, PlusCircle, CheckCircle2, Chrome, AppWindow, Building, AlertTriangle } from 'lucide-react';
 import { dashboardDefaultPath } from '../lib/roles';
 import { Toaster } from 'react-hot-toast';
 import topImage from '../images/modern-home-exterior-with-landscaping-driveway.jpg';
@@ -1003,8 +1003,102 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
                   <span>{profileLabel}</span>
                 </NavLink>
               </>
+            ) : isAuthenticated && (user?.role === APP_ROLE.LANDLORD || user?.role === 'lister') ? (
+              <>
+                <NavLink
+                  to="/landlord/dashboard"
+                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                >
+                  <LayoutGrid size={22} />
+                  <span>Dashboard</span>
+                </NavLink>
+
+                <NavLink
+                  to="/landlord/properties"
+                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                >
+                  <Building size={22} />
+                  <span>Properties</span>
+                </NavLink>
+
+                <NavLink
+                  to="/landlord/inquiries"
+                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                >
+                  <MessageCircle size={22} />
+                  <span>Inquiries</span>
+                  {unreadCount > 0 && isAuthenticated && <span className="mobile-bottom-nav-badge">{unreadCount}</span>}
+                </NavLink>
+
+                <NavLink
+                  to="/landlord/payments"
+                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                >
+                  <Zap size={22} />
+                  <span>Earnings</span>
+                </NavLink>
+
+                <NavLink
+                  to={profileTarget}
+                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                >
+                  <User size={22} />
+                  <span>{profileLabel}</span>
+                </NavLink>
+              </>
+            ) : isAuthenticated && user?.role === APP_ROLE.PROPERTY_MANAGER ? (
+              <>
+                <NavLink
+                  to="/manager/dashboard"
+                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                >
+                  <LayoutGrid size={22} />
+                  <span>Dashboard</span>
+                </NavLink>
+
+                <NavLink
+                  to="/manager/properties"
+                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                >
+                  <Building size={22} />
+                  <span>Properties</span>
+                </NavLink>
+
+                <NavLink
+                  to="/manager/inquiries"
+                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                >
+                  <MessageCircle size={22} />
+                  <span>Inquiries</span>
+                  {unreadCount > 0 && isAuthenticated && <span className="mobile-bottom-nav-badge">{unreadCount}</span>}
+                </NavLink>
+
+                <NavLink
+                  to="/manager/earnings"
+                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                >
+                  <Zap size={22} />
+                  <span>Earnings</span>
+                </NavLink>
+
+                <NavLink
+                  to={profileTarget}
+                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                >
+                  <User size={22} />
+                  <span>{profileLabel}</span>
+                </NavLink>
+              </>
             ) : isAuthenticated && user?.role === APP_ROLE.ADMIN ? (
               <>
+                <NavLink
+                  to="/admin"
+                  className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
+                >
+                  <LayoutGrid size={22} />
+                  <span>Dashboard</span>
+                </NavLink>
+
                 <NavLink
                   to="/admin/users"
                   className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
@@ -1025,16 +1119,16 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
                   to="/admin/listings"
                   className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
                 >
-                  <Home size={22} />
+                  <Building size={22} />
                   <span>Listings</span>
                 </NavLink>
 
                 <NavLink
-                  to="/admin/reports"
+                  to={profileTarget}
                   className={({ isActive }) => `mobile-bottom-menu-item ${isActive ? 'is-active' : ''}`}
                 >
-                  <Bell size={22} />
-                  <span>Reports</span>
+                  <User size={22} />
+                  <span>{profileLabel}</span>
                 </NavLink>
               </>
             ) : (

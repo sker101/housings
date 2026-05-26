@@ -130,7 +130,11 @@ function getComingSoonDetails(listing: any) {
     availDate.setHours(0, 0, 0, 0);
     const diffTime = availDate.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    if (diffDays > 0) daysUntil = diffDays;
+    if (diffDays > 0) {
+      daysUntil = diffDays;
+    } else {
+      isSoon = false; // The day has arrived or passed!
+    }
   }
   return { isComingSoon: isSoon, daysUntil, availableFrom };
 }

@@ -658,7 +658,7 @@ export default function RoomDetailsPage() {
       { label: t('roomDetails.genderPreference'), value: humanize(listing?.genderPreference) },
       { label: t('roomDetails.utilitiesIncluded'), value: listing?.utilitiesIncluded ? t('roomDetails.yes') : t('roomDetails.no') },
       { label: t('roomDetails.vacancy'), value: humanize(listing?.vacancyStatus) },
-      { label: t('roomDetails.availableFrom', { date: formatDate(listing?.availableFrom) }), value: '' },
+      { label: t('roomDetails.availableFrom'), value: listing?.availableFrom ? formatDate(listing.availableFrom) : null },
       { label: t('roomDetails.views'), value: `${new Intl.NumberFormat('en-TZ').format(listing?.viewCount || 0)}` },
       { label: t('roomDetails.posted'), value: formatShortDate(listing?.createdAt) }
     ].filter(f => f.value && f.value !== 'Not specified' && f.value !== 'N/A'),
