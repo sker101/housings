@@ -306,6 +306,29 @@ export default function LandlordDashboard() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
           <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--ink)' }}>Revenue Breakdown</h3>
         </div>
+        
+        {/* 100% of rent green banner */}
+        <div style={{
+          backgroundColor: 'var(--jade-muted)',
+          border: '1px solid rgba(22, 101, 52, 0.2)',
+          borderRadius: 'var(--radius-md)',
+          padding: '0.75rem 1rem',
+          marginBottom: '0.75rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem'
+        }}>
+          <span style={{ fontSize: '1.25rem' }}>💚</span>
+          <div>
+            <p style={{ margin: 0, fontWeight: 700, fontSize: '0.88rem', color: 'var(--jade-dark, var(--jade))' }}>
+              100% Landlord Guarantee
+            </p>
+            <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--jade-dark, var(--jade))', opacity: 0.85 }}>
+              CampusStay TZ does not deduct any fees from your listed rent. You receive 100% of your earnings.
+            </p>
+          </div>
+        </div>
+
         {Object.keys(roomEarnings).length === 0 ? (
           <div style={{ textAlign: 'center', padding: '1.5rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14 }}>
             <p style={{ color: 'var(--mid)', fontSize: '0.85rem' }}>No income generated yet.</p>
@@ -316,18 +339,25 @@ export default function LandlordDashboard() {
           }}>
             {Object.values(roomEarnings).map((room, idx) => (
               <div key={idx} style={{ 
-                background: 'white', padding: '1rem', borderRadius: '14px', border: '1px solid var(--border)',
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                background: 'white', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)',
+                display: 'flex', flexDirection: 'column', gap: '0.5rem'
               }}>
-                <div style={{ minWidth: 0 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.4rem' }}>
                   <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {room.title}
                   </p>
-                  <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--mid)' }}>Occupied & Paid</p>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--mid)', backgroundColor: 'var(--cream)', padding: '0.15rem 0.4rem', borderRadius: 'var(--radius-sm)' }}>
+                    Occupied & Paid
+                  </span>
                 </div>
-                <p style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--jade)' }}>
-                  {TZSFormat(room.amount)}
-                </p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}>
+                  <span style={{ color: 'var(--mid)' }}>Listed rent</span>
+                  <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{TZSFormat(room.amount)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}>
+                  <span style={{ color: 'var(--mid)' }}>You receive</span>
+                  <span style={{ fontWeight: 800, color: 'var(--jade)' }}>{TZSFormat(room.amount)}</span>
+                </div>
               </div>
             ))}
           </div>

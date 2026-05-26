@@ -67,16 +67,25 @@ Deno.serve(async (req) => {
             .update({ vacancy_status: 'occupied' })
             .eq('id', listing_id);
 
+        const rent = Number(amount || listing.price_monthly || 0);
+        const pmFee = Math.round(rent * 0.03);
+        const platformFee = Math.round(rent * 0.02);
+        const totalAmount = rent + pmFee + platformFee;
+
         // Insert a paid payment record
         await supabase
             .from('payment_records')
             .insert({
                 booking_id: bookingId,
-                amount: amount || listing.price_monthly,
+                amount: totalAmount,
                 due_date: moveInDate,
                 status: 'paid',
                 paid_at: new Date().toISOString(),
-                reference: `MOCK-${Date.now()}`
+                reference: `MOCK-${Date.now()}`,
+                base_rent: rent,
+                pm_fee: pmFee,
+                platform_fee: platformFee,
+                total_amount: totalAmount
             });
 
         return json({

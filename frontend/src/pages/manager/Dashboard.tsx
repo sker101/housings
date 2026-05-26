@@ -13,8 +13,9 @@ import { selectRows } from '../../lib/supabase';
 import { TZSFormat, formatRenewal, formatDate } from '../../utils/format';
 import type { Subscription } from '../../types';
 import toast from 'react-hot-toast';
+import { calculateFees } from '../../utils/feeCalculator';
 
-const COMMISSION_RATE = 0.05;
+const COMMISSION_RATE = 0.03;
 
 function KpiCard({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: string }) {
   return (
@@ -75,7 +76,7 @@ export default function DalaliDashboard() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(155px, 1fr))', gap: '0.75rem', marginBottom: '1.5rem' }}>
         <KpiCard label="Monthly Income"    value={TZSFormat(monthlyIncome)} sub="paid bookings" accent="var(--amber)" />
-        <KpiCard label="Commission Earned" value={TZSFormat(totalCommission)} sub="5% of payments" />
+        <KpiCard label="Commission Earned" value={TZSFormat(totalCommission)} sub="3% of payments" />
         <KpiCard label="Active Properties" value={String(activeListings)} sub={`of ${listings.length} total`} />
         <KpiCard label="Open Inquiries"    value={String(pendingInquiries.length)} sub="awaiting response" />
       </div>
@@ -118,6 +119,50 @@ export default function DalaliDashboard() {
                   <Link to="/dalali/subscription" className="btn btn--small">Upgrade</Link>
                 </>
               )}
+            </div>
+          )}
+        </section>
+
+        <section>
+          <h3 style={{ fontFamily: " sans-serif", fontSize: '1rem', marginBottom: '0.75rem' }}>Commission Breakdown</h3>
+          {listings.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '1.5rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14 }}>
+              <p style={{ color: 'var(--mid)' }}>No active properties listed.</p>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '0.75rem' }}>
+              {listings.map((listing) => {
+                const rent = listing.price || 0;
+                const fees = calculateFees(rent);
+                return (
+                  <div key={listing.id} style={{
+                    background: 'var(--amber-light)',
+                    border: '1px solid rgba(245, 158, 11, 0.3)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '1rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.5rem'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(245, 158, 11, 0.2)', paddingBottom: '0.4rem' }}>
+                      <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: '#78350f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {listing.title}
+                      </p>
+                      <span style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--amber)', backgroundColor: 'white', padding: '0.15rem 0.35rem', borderRadius: 'var(--radius-sm)' }}>
+                        3% PM Fee
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#78350f' }}>
+                      <span>Listed rent</span>
+                      <span style={{ fontWeight: 600 }}>{TZSFormat(rent)}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#78350f' }}>
+                      <span>Your commission</span>
+                      <span style={{ fontWeight: 800, fontSize: '0.88rem' }}>{TZSFormat(fees.pmFee)}</span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </section>

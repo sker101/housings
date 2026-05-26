@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { selectRows, insertRows } from '../lib/supabase';
 import ListingMap from '../components/ListingMap';
 import { mapListingRow } from '../lib/listings';
+import { calculateFees } from '../utils/feeCalculator';
 
 const PRIMARY = '#16a34a';
 
@@ -703,6 +704,40 @@ export default function MyRoomPage() {
                     <InfoRow label="Move-in" value={formatDate(booking?.move_in_date)} />
                     <InfoRow label="Duration" value={`${booking?.months_duration || 0} months`} />
                     <InfoRow label="Monthly rent" value={formatTZS(listing?.price_monthly)} />
+                    {(() => {
+                      const rent = listing?.price_monthly || 0;
+                      const fees = calculateFees(rent);
+                      return (
+                        <div style={{
+                          gridColumn: 'span 2',
+                          backgroundColor: 'var(--cream)',
+                          border: '1px solid var(--border)',
+                          borderRadius: 'var(--radius-md)',
+                          padding: '0.75rem',
+                          marginTop: '0.25rem',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.35rem'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+                            <span style={{ color: 'var(--mid)' }}>Base rent</span>
+                            <span style={{ fontWeight: 500, color: 'var(--ink)' }}>{formatTZS(rent)}</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+                            <span style={{ color: 'var(--mid)' }}>PM service fee (3%)</span>
+                            <span style={{ fontWeight: 500, color: 'var(--ink)' }}>+ {formatTZS(fees.pmFee)}</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+                            <span style={{ color: 'var(--mid)' }}>iRent platform fee (2%)</span>
+                            <span style={{ fontWeight: 500, color: 'var(--ink)' }}>+ {formatTZS(fees.platformFee)}</span>
+                          </div>
+                          <div style={{ borderTop: '1px dashed var(--border)', paddingTop: '0.5rem', marginTop: '0.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--ink)' }}>Total monthly payment</span>
+                            <strong style={{ fontSize: '1.05rem', color: 'var(--jade)' }}>{formatTZS(fees.totalAmount)}</strong>
+                          </div>
+                        </div>
+                      );
+                    })()}
                     <InfoRow label="Security deposit" value={formatTZS(listing?.security_deposit)} />
                     <InfoRow label="Utilities included" value={listing?.utilities_included ? 'Yes' : 'No'} />
                     <InfoRow 
