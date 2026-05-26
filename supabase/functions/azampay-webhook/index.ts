@@ -111,17 +111,26 @@ serve(async (req) => {
          .from("listings")
          .update({ vacancy_status: "occupied" })
          .eq("id", booking.listing_id)
- 
-       // 3. Insert payment record
-       const { error: paymentError } = await supabase
-         .from("payment_records")
-         .insert({
-           booking_id: booking.id,
-           amount: Number(amount) || 0,
-           status: "paid",
-           reference: transactionId || `AZAM-${Date.now()}`,
-           paid_at: new Date().toISOString()
-         })
+        const totalVal = Number(amount) || 0;
+        const rent = Math.round(totalVal / 1.05);
+        const pmFee = Math.round(rent * 0.03);
+        const platformFee = Math.round(rent * 0.02);
+        const totalAmount = rent + pmFee + platformFee;
+
+        // 3. Insert payment record
+        const { error: paymentError } = await supabase
+          .from("payment_records")
+          .insert({
+            booking_id: booking.id,
+            amount: totalAmount,
+            status: "paid",
+            reference: transactionId || `AZAM-${Date.now()}`,
+            paid_at: new Date().toISOString(),
+            base_rent: rent,
+            pm_fee: pmFee,
+            platform_fee: platformFee,
+            total_amount: totalAmount
+          })
  
        if (paymentError) {
          console.error("Error creating payment record:", paymentError.message)

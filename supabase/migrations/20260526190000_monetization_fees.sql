@@ -16,7 +16,7 @@ ALTER TABLE payment_records
 CREATE TABLE IF NOT EXISTS pm_commissions (
   id            UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   pm_user_id    UUID REFERENCES auth.users(id),
-  listing_id    UUID REFERENCES listings(id),
+  listing_id    UUID REFERENCES rooms(id),
   payment_id    UUID REFERENCES payments(id),
   base_rent     NUMERIC(12,2) NOT NULL,
   commission    NUMERIC(12,2) NOT NULL,  -- 3% of base_rent
@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS pm_commissions (
 -- Add platform revenue tracking
 CREATE TABLE IF NOT EXISTS platform_revenue (
   id            UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  listing_id    UUID REFERENCES listings(id),
+  listing_id    UUID REFERENCES rooms(id),
   payment_id    UUID REFERENCES payments(id),
   base_rent     NUMERIC(12,2) NOT NULL,
   revenue       NUMERIC(12,2) NOT NULL,  -- 2% of base_rent
