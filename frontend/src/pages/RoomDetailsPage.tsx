@@ -36,6 +36,15 @@ import {
   toggleSavedListing
 } from '../lib/listings';
 import { countRows, insertRows, invokeFunction, rpc, selectRows, updateRows } from '../lib/supabase';
+import {
+  calculateTenantPayment,
+  formatTZS,
+  formatRate,
+  PM_FEE_RATE,
+  PLATFORM_FEE_RATE,
+  DEPOSIT_RATE,
+  GATEWAY_FEE_RATE,
+} from '../lib/paymentCalculations';
 
 const MESSAGE_TEMPLATES = [
   'Hi, I am interested in this room. Is it still available?',
@@ -181,6 +190,8 @@ export default function RoomDetailsPage() {
   const [listerListingCount, setListerListingCount] = useState(0);
   const [savedIds, setSavedIds] = useState(new Set());
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
+  const [previewMonths, setPreviewMonths] = useState(1);
+  const [feeAccordionOpen, setFeeAccordionOpen] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [swipeStartX, setSwipeStartX] = useState(null);
   const [startingChat, setStartingChat] = useState(false);
@@ -1383,6 +1394,159 @@ export default function RoomDetailsPage() {
           )}
         </section>
       )}
+
+      {/* ── Cost Estimate Preview ─────────────────────────────── */}
+      {canReserveListing && listing?.priceMonthly && (() => {
+        const rent    = Number(listing.priceMonthly);
+        const est     = calculateTenantPayment(rent, previewMonths);
+        const elec    = listing?.elecType  || listing?.elec_type  || null;
+        const water   = listing?.waterType || listing?.water_type || null;
+        const elecCostVal  = Number(listing?.elecCost  ?? listing?.elec_cost  ?? 0);
+        const waterCostVal = Number(listing?.waterCost ?? listing?.water_cost ?? 0);
+        const wasteCostVal = Number(listing?.wasteCost ?? listing?.waste_cost ?? 0);
+        const activeElec  = elec  !== 'included' ? elecCostVal  : 0;
+        const activeWater = water !== 'included' ? waterCostVal : 0;
+        const totalOngoing = rent + activeElec + activeWater + wasteCostVal;
+        const hasUtilities = activeElec > 0 || activeWater > 0 || wasteCostVal > 0;
+
+        return (
+          <section className="rd-section" style={{ padding: 0, marginBottom: '0.75rem' }}>
+            <div style={{
+              background: '#f8fafc',
+              border: '1.5px solid #e2e8f0',
+              borderRadius: 16,
+              padding: '1.1rem 1.25rem',
+              fontFamily: "'Inter', sans-serif",
+            }}>
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
+                <span style={{ fontWeight: 700, fontSize: '0.92rem', color: '#1e293b' }}>💰 Reservation Cost Estimate</span>
+                <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Before you pay</span>
+              </div>
+
+              {/* Month selector */}
+              <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                {[1, 3, 6, 12].map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setPreviewMonths(m)}
+                    style={{
+                      padding: '0.3rem 0.7rem',
+                      borderRadius: 20,
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      border: previewMonths === m ? '1.5px solid #1d9e75' : '1.5px solid #e2e8f0',
+                      background: previewMonths === m ? 'rgba(29,158,117,0.08)' : 'white',
+                      color: previewMonths === m ? '#1d9e75' : '#64748b',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    {m === 1 ? '1 mo' : `${m} mo`}
+                  </button>
+                ))}
+              </div>
+
+              {/* Breakdown rows */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem' }}>
+                  <span style={{ color: '#475569' }}>
+                    {previewMonths > 1 ? `Rent × ${previewMonths} months` : 'Monthly Rent'}
+                  </span>
+                  <span style={{ fontWeight: 600 }}>{formatTZS(est.monthlyRent)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem' }}>
+                  <span style={{ color: '#475569' }}>
+                    Platform Deposit ({formatRate(DEPOSIT_RATE)}, one-time)
+                  </span>
+                  <span style={{ fontWeight: 600 }}>{formatTZS(est.platformDepositFee)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem' }}>
+                  <span style={{ color: '#475569' }}>Gateway Fee ({formatRate(GATEWAY_FEE_RATE)})</span>
+                  <span style={{ fontWeight: 600 }}>{formatTZS(est.gatewayFee)}</span>
+                </div>
+
+                {/* Total */}
+                <div style={{
+                  marginTop: '0.35rem',
+                  background: 'linear-gradient(135deg, #1d9e75 0%, #27500A 100%)',
+                  color: 'white',
+                  borderRadius: 9,
+                  padding: '0.65rem 0.85rem',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}>
+                  <span style={{ fontWeight: 700, fontSize: '0.88rem' }}>Total Due at Reservation</span>
+                  <span style={{ fontWeight: 800, fontSize: '1.1rem' }}>{formatTZS(est.totalDue)}</span>
+                </div>
+              </div>
+
+              {/* Ongoing monthly (utilities) */}
+              {hasUtilities && (
+                <div style={{
+                  marginTop: '0.85rem',
+                  paddingTop: '0.75rem',
+                  borderTop: '1.5px dashed #cbd5e1',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  fontSize: '0.85rem',
+                }}>
+                  <span style={{ color: '#64748b' }}>Ongoing monthly (rent + utilities):</span>
+                  <span style={{ fontWeight: 700, color: '#1e293b' }}>{formatTZS(totalOngoing)} / mo</span>
+                </div>
+              )}
+
+              {/* Fee transparency accordion */}
+              <div style={{ marginTop: '0.85rem', border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
+                <button
+                  type="button"
+                  onClick={() => setFeeAccordionOpen((o) => !o)}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '0.55rem 0.85rem',
+                    background: '#f1f5f9',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    color: '#475569',
+                  }}
+                >
+                  <span>ℹ️ How platform fees work</span>
+                  <span style={{ fontSize: '1rem' }}>{feeAccordionOpen ? '▲' : '▼'}</span>
+                </button>
+
+                {feeAccordionOpen && (
+                  <div style={{ padding: '0.85rem', background: '#fff', fontSize: '0.82rem', color: '#475569', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <p style={{ margin: '0 0 0.5rem', lineHeight: 1.5 }}>
+                      Two fees are included in your rent and deducted before the landlord is paid. <strong>They are not extra charges to you.</strong>
+                    </p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Property Mgmt. Fee ({formatRate(PM_FEE_RATE)}/mo):</span>
+                      <span style={{ fontWeight: 600 }}>{formatTZS(est.pmFee)}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Platform Service Fee ({formatRate(PLATFORM_FEE_RATE)}/mo):</span>
+                      <span style={{ fontWeight: 600 }}>{formatTZS(est.platformFee)}</span>
+                    </div>
+                    <div style={{ height: 1, background: '#e2e8f0', margin: '0.25rem 0' }} />
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ fontWeight: 700, color: '#16a34a' }}>Landlord Receives ({formatRate(1 - PM_FEE_RATE - PLATFORM_FEE_RATE)} of rent):</span>
+                      <span style={{ fontWeight: 700, color: '#16a34a' }}>{formatTZS(est.landlordReceives)}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+        );
+      })()}
 
       {/* ── Action Buttons ─────────────────────────────── */}
       <section className="rd-actions">
