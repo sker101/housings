@@ -15,6 +15,7 @@ import {
 } from '../lib/supabase';
 import MapboxListingMap from '../components/MapboxListingMap';
 import { sanitizeInput } from '../utils/format';
+import { calculateFees, formatTZS } from '../utils/feeCalculator';
 import imageCompression from 'browser-image-compression';
 import {
   User,
@@ -315,7 +316,7 @@ export default function ListPropertyPage() {
       latitude: Number(formValues.lat),
       longitude: Number(formValues.lng),
       title: formValues.title || 'Property Location',
-      price_tzs: Number(formValues.priceMonthly || 0),
+      price_tzs: Math.round(Number(formValues.priceMonthly || 0) * 1.05),
       availability_status: 'available' as const
     }];
   }, [formValues.lat, formValues.lng, formValues.title, formValues.priceMonthly]);
@@ -410,7 +411,7 @@ export default function ListPropertyPage() {
               totalRooms: row.total_rooms || undefined,
               furnished: row.furnished || false,
               genderPreference: row.gender_preference || 'any',
-              priceMonthly: row.price_monthly || 0,
+              priceMonthly: row.price_monthly ? Math.round(row.price_monthly / 1.05) : 0,
               securityDeposit: row.security_deposit || 0,
               minLeaseMonths: row.min_lease_months || 1,
               paymentSchedule: row.payment_schedule || 'monthly',
@@ -706,7 +707,7 @@ export default function ListPropertyPage() {
         title: sanitizeInput(values.title),
         description: sanitizeInput(values.description),
         room_type: values.roomType,
-        price_monthly: Number(values.priceMonthly),
+        price_monthly: Math.round(Number(values.priceMonthly) * 1.05),
         security_deposit: Number(values.securityDeposit || 0),
         floor: values.floor || null,
         total_rooms: values.totalRooms ? Number(values.totalRooms) : null,
@@ -745,7 +746,7 @@ export default function ListPropertyPage() {
         title: values.title.trim(),
         description: values.description.trim(),
         room_type: values.roomType,
-        price_monthly: Number(values.priceMonthly),
+        price_monthly: Math.round(Number(values.priceMonthly) * 1.05),
         region: values.region,
         district: values.district,
         ward: values.ward,
@@ -1298,13 +1299,71 @@ export default function ListPropertyPage() {
               </div>
 
               <label>
-                <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>Monthly Rent (TZS)</div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>Monthly rent you want to receive (Net TZS)</div>
                 <div style={{ position: 'relative' }}>
                   <Banknote size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#6B6B5A' }} />
                   <input type="number" {...register('priceMonthly')} min="50000" placeholder="250000" style={{ width: '100%', padding: '0.65rem 0.65rem 0.65rem 2.5rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.9rem' }} />
                 </div>
                 {errors.priceMonthly && <span style={{ color: '#C0392B', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>{errors.priceMonthly.message}</span>}
               </label>
+
+              {(() => {
+                const rent = Number(formValues.priceMonthly || 0);
+                if (!rent || rent < 50000) return null;
+                const { pmFee, platformFee, totalAmount } = calculateFees(rent);
+                return (
+                  <div style={{
+                    gridColumn: '1 / -1',
+                    background: 'linear-gradient(135deg, #F8FAF9 0%, #F1F7F4 100%)',
+                    border: '1px solid #C2E2D3',
+                    borderRadius: 14,
+                    padding: '1.25rem',
+                    boxShadow: '0 4px 15px rgba(22, 163, 74, 0.04)',
+                    marginTop: '0.5rem',
+                    animation: 'fadeIn 0.3s ease-out'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                      <Info size={16} color="#15803d" />
+                      <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#166534' }}>
+                        Platform Fee Breakdown (Tenant Pays on Top)
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'grid', gap: '0.6rem', fontSize: '0.82rem', color: '#4b5563' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>Your Desired Earnings (Net Rent):</span>
+                        <span style={{ fontWeight: 600, color: '#1f2937' }}>{formatTZS(rent)}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingLeft: '0.5rem', borderLeft: '2px solid #C2E2D3' }}>
+                        <span style={{ color: '#6b7280' }}>+ 3% Property Manager Commission:</span>
+                        <span style={{ fontWeight: 500, color: '#1f2937' }}>+{formatTZS(pmFee)}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingLeft: '0.5rem', borderLeft: '2px solid #C2E2D3' }}>
+                        <span style={{ color: '#6b7280' }}>+ 2% iRent Platform Fee:</span>
+                        <span style={{ fontWeight: 500, color: '#1f2937' }}>+{formatTZS(platformFee)}</span>
+                      </div>
+
+                      <div style={{
+                        marginTop: '0.5rem',
+                        background: 'linear-gradient(90deg, #EAF5EE 0%, #D8EFE0 100%)',
+                        borderRadius: 10,
+                        padding: '0.75rem 1rem',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        border: '1px solid #A3DFBA'
+                      }}>
+                        <span style={{ fontWeight: 700, color: '#166534' }}>Listed Monthly Rent for Tenant:</span>
+                        <strong style={{ fontSize: '1rem', color: '#14532d' }}>{formatTZS(totalAmount)}</strong>
+                      </div>
+
+                      <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', color: '#6b7280', lineHeight: 1.4 }}>
+                        💡 Tenants will see the listed price of <strong>{formatTZS(totalAmount)}/month</strong>. When reserved online, these fees are routed automatically and you receive your full <strong>{formatTZS(rent)}</strong> net.
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
 
               <label>
                 <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>Security Deposit</div>
@@ -1617,7 +1676,7 @@ export default function ListPropertyPage() {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <Banknote size={14} style={{ color: '#6B6B5A' }} />
-                    <span style={{ whiteSpace: 'nowrap' }}><strong>Rent:</strong> {formatPrice(formValues.priceMonthly)}</span>
+                    <span style={{ whiteSpace: 'nowrap' }}><strong>Rent (Tenant Pays):</strong> {formatPrice(Math.round(Number(formValues.priceMonthly || 0) * 1.05))} (Your Net: {formatPrice(formValues.priceMonthly)})</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <MapPin size={14} style={{ color: '#6B6B5A' }} />

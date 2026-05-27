@@ -709,6 +709,9 @@ export default function LandlordDashboardPage() {
                         ) : (
                           <>
                             TZS {currency(listing.price_monthly ?? 0)}/mo
+                            <span style={{ fontSize: '10px', color: 'var(--mid)', marginLeft: '4px' }}>
+                              (Net: TZS {currency(Math.round((Number(listing.price_monthly) || 0) * 0.95))})
+                            </span>
                             {listing.featured ? (
                               <span
                                 style={{

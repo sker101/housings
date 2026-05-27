@@ -708,10 +708,15 @@ export default function LandlordListingsPage() {
                           </div>
                         </td>
                         <td>
-                          <span style={{ fontWeight: 500 }}>
-                            TZS {new Intl.NumberFormat('sw-TZ').format(Number(l.priceMonthly || 0))}
-                          </span>{' '}
-                          <span style={{ fontSize: 10, color: 'var(--mid)' }}>/mo</span>
+                          <div>
+                            <span style={{ fontWeight: 500 }}>
+                              TZS {new Intl.NumberFormat('sw-TZ').format(Number(l.priceMonthly || 0))}
+                            </span>{' '}
+                            <span style={{ fontSize: 10, color: 'var(--mid)' }}>/mo</span>
+                          </div>
+                          <div style={{ fontSize: '10px', color: 'var(--mid)', marginTop: '2px' }}>
+                            Net: TZS {new Intl.NumberFormat('sw-TZ').format(Math.round(Number(l.priceMonthly || 0) * 0.95))}
+                          </div>
                         </td>
                         <td>
                           <span className={`pill p-${statusClass}`}>
