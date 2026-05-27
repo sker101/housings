@@ -731,7 +731,7 @@
   /* 2-column grid on mobile — no horizontal scroll */
   .room-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     overflow-x: visible;
     gap: 0.75rem;
     padding: 0 0.75rem 1rem;
@@ -742,11 +742,13 @@
     flex: none;
     width: 100%;
     scroll-snap-align: unset;
+    min-width: 0;
   }
 
   /* Smaller room card styling */
   .room-card {
     gap: 0.5rem;
+    min-width: 0;
   }
 
   .room-card__image-wrapper {

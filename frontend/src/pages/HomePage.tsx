@@ -544,7 +544,7 @@ export default function HomePage() {
             </>
           )}
         </div>
-        <div className="room-card__content" style={{ padding: '0.15rem 0.25rem 0.4rem', display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+        <div className="room-card__content" style={{ padding: '0.15rem 0.25rem 0.4rem', display: 'flex', flexDirection: 'column', gap: '0.15rem', minWidth: 0 }}>
           <h3 style={{ margin: '0', fontSize: '0.9rem', fontWeight: 600, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {listing.title}
           </h3>
