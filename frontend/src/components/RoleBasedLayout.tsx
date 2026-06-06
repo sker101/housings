@@ -349,6 +349,7 @@ export default function RoleBasedLayout() {
         if (mounted) { setUnreadCount(0); }
         return;
       }
+      if (user.role === 'admin') return;
       try {
         const filterCol = user.role === 'tenant' ? 'tenant_id' : 'landlord_id';
         const conversations = await selectRows('room_inquiries', {
@@ -388,6 +389,7 @@ export default function RoleBasedLayout() {
     let mounted = true;
     async function loadNotifCount() {
       if (!isAuthenticated || !user?.userId || !token) { setNotifCount(0); return; }
+      if (user.role === 'admin') return;
       try {
         const rows = await selectRows('notifications', {
           select: 'id',

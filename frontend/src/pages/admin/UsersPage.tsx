@@ -37,7 +37,7 @@ export default function AdminUsersPage() {
     setLoading(true);
     try {
       const rows = await selectRows('profiles', {
-        select: 'id,role,full_name,phone,phone_verified,verification_status,subscription_plan,created_at',
+        select: 'id,role,full_name,email,phone,phone_verified,verification_status,subscription_plan,created_at',
         order: 'created_at.desc',
         limit: 500,
         accessToken: token,
@@ -141,7 +141,7 @@ export default function AdminUsersPage() {
       (activeTab === 'admin'            && p.role === 'admin');
     
     const q = search.trim().toLowerCase();
-    const matchSearch = !q || p.full_name?.toLowerCase().includes(q) || p.phone?.toLowerCase().includes(q);
+    const matchSearch = !q || p.full_name?.toLowerCase().includes(q) || p.phone?.toLowerCase().includes(q) || p.email?.toLowerCase().includes(q);
     return matchTab && matchSearch;
   });
 
@@ -300,6 +300,10 @@ export default function AdminUsersPage() {
               </div>
               
               <div className="user-card-details">
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <div className="detail-label">Email</div>
+                  <div className="detail-value" style={{ wordBreak: 'break-all' }}>{p.email || '—'}</div>
+                </div>
                 <div>
                   <div className="detail-label">Phone</div>
                   <div className="detail-value">{p.phone || '—'}</div>
@@ -359,7 +363,7 @@ export default function AdminUsersPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.83rem', minWidth: 680 }}>
             <thead>
               <tr style={{ background: 'var(--cream)' }}>
-                {['Name', 'Phone', 'Role', 'ID', 'Status', 'Joined', 'Actions'].map((h) => (
+                {['Name', 'Email', 'Phone', 'Role', 'ID', 'Status', 'Joined', 'Actions'].map((h) => (
                   <th key={h} style={{ textAlign: 'left', padding: '0.55rem 0.75rem', fontWeight: 700, color: 'var(--mid)', fontSize: '0.72rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
@@ -368,6 +372,7 @@ export default function AdminUsersPage() {
               {filtered.map((p, i) => (
                 <tr key={p.id} style={{ borderTop: i > 0 ? '1px solid var(--border)' : 'none', opacity: busyId === p.id ? 0.6 : 1 }}>
                   <td style={{ padding: '0.6rem 0.75rem', fontWeight: 600 }}>{p.full_name || '—'}</td>
+                  <td style={{ padding: '0.6rem 0.75rem', color: 'var(--mid)' }}>{p.email || '—'}</td>
                   <td style={{ padding: '0.6rem 0.75rem', color: 'var(--mid)' }}>{p.phone || '—'}</td>
                   <td style={{ padding: '0.6rem 0.75rem' }}>
                     <div style={{ fontWeight: 600, color: 'var(--jade)', fontSize: '0.75rem', textTransform: 'uppercase' }}>

@@ -323,6 +323,7 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
         if (mounted) { setUnreadCount(0); }
         return;
       }
+      if (user.role === 'admin') return;
       try {
         const conversations = await selectRows('room_inquiries', {
           select: 'id',
@@ -361,6 +362,7 @@ export default function Layout({ children, hideSidebar = false, hideHeader = fal
     let mounted = true;
     async function loadNotifCount() {
       if (!isAuthenticated || !user?.userId || !token) { setNotifCount(0); return; }
+      if (user.role === 'admin') return;
       try {
         const rows = await selectRows('notifications', {
           select: 'id',
