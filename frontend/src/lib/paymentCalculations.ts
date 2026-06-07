@@ -11,7 +11,7 @@
  */
 
 // ── Rate constants (single source of truth) ──────────────────────────────────
-export const PM_FEE_RATE = 0;          // No longer deducted from landlord
+export const PM_FEE_RATE = 0.03;       // 3% — project manager fee (conditional for dalalis)
 export const PLATFORM_FEE_RATE = 0.05; // 5% — platform service fee charged to TENANT
 export const DEPOSIT_RATE = 0.50;      // 50% — one-time platform deposit
 export const GATEWAY_FEE_RATE = 0.035; // 3.5% — payment gateway processing fee
@@ -27,18 +27,20 @@ export interface PaymentBreakdown {
   // ── Fees charged to the tenant ────────────────────────────────────────────
   /** Platform service fee (5% of total rent). */
   platformFee: number;
+  /** Project Manager fee (3% of total rent), only if managed by dalali. */
+  pmFee: number;
   /**
    * One-time platform deposit (50% of ONE month's rent).
    * Acts as an advance payment on rent.
    */
   platformDepositFee: number;
-  /** Payment gateway processing fee (3.5% of total rent + platform fee). */
+  /** Payment gateway processing fee (3.5% of total rent + platform fee + pm fee). */
   gatewayFee: number;
 
   // ── Totals ────────────────────────────────────────────────────────────────
   /** Grand total cost of the lease including all fees. */
   totalLeaseCost: number;
-  /** Amount the tenant must pay TODAY to reserve the room (Deposit + Platform Fee + Gateway Fee). */
+  /** Amount the tenant must pay TODAY to reserve the room (Deposit + Platform Fee + PM Fee + Gateway Fee). */
   dueAtReservation: number;
   /** Amount the tenant will pay LATER (Total Rent - Deposit). */
   dueLater: number;
@@ -47,22 +49,23 @@ export interface PaymentBreakdown {
 /**
  * Calculates the full payment breakdown for a tenant at lease initiation.
  */
-export function calculateTenantPayment(monthlyRent: number, months: number = 1): PaymentBreakdown {
+export function calculateTenantPayment(monthlyRent: number, months: number = 1, isManagedByDalali: boolean = false): PaymentBreakdown {
   const safeMonths = Math.max(1, Math.round(months));
   const rentTotal = monthlyRent * safeMonths;
   
   // Tenant fees
   const platformFee = Math.round(rentTotal * PLATFORM_FEE_RATE);
+  const pmFee = isManagedByDalali ? Math.round(rentTotal * PM_FEE_RATE) : 0;
   const platformDepositFee = monthlyRent * DEPOSIT_RATE; // 50% of ONE month only
   
-  // Gateway fee is calculated based on the TOTAL cost (Rent + Platform Fee) once.
-  const gatewayFee = Math.round((rentTotal + platformFee) * GATEWAY_FEE_RATE);
+  // Gateway fee is calculated based on the TOTAL cost (Rent + Platform Fee + PM Fee) once.
+  const gatewayFee = Math.round((rentTotal + platformFee + pmFee) * GATEWAY_FEE_RATE);
   
   // Grand total for the entire lease duration
-  const totalLeaseCost = rentTotal + platformFee + gatewayFee;
+  const totalLeaseCost = rentTotal + platformFee + pmFee + gatewayFee;
   
-  // What they pay today to reserve (Deposit + Platform Fee + Gateway Fee)
-  const dueAtReservation = platformDepositFee + platformFee + gatewayFee;
+  // What they pay today to reserve (Deposit + Platform Fee + PM Fee + Gateway Fee)
+  const dueAtReservation = platformDepositFee + platformFee + pmFee + gatewayFee;
   
   // What they pay later (Remaining rent)
   const dueLater = rentTotal - platformDepositFee;
@@ -72,6 +75,7 @@ export function calculateTenantPayment(monthlyRent: number, months: number = 1):
     monthlyRent: rentTotal,
     months: safeMonths,
     platformFee,
+    pmFee,
     platformDepositFee: Math.round(platformDepositFee),
     gatewayFee,
     totalLeaseCost,

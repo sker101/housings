@@ -191,7 +191,6 @@ export default function RoomDetailsPage() {
   const [savedIds, setSavedIds] = useState(new Set());
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
   const [previewMonths, setPreviewMonths] = useState(1);
-  const [feeAccordionOpen, setFeeAccordionOpen] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [swipeStartX, setSwipeStartX] = useState(null);
   const [startingChat, setStartingChat] = useState(false);
@@ -1398,7 +1397,8 @@ export default function RoomDetailsPage() {
       {/* ── Cost Estimate Preview ─────────────────────────────── */}
       {canReserveListing && listing?.priceMonthly && (() => {
         const rent    = Number(listing.priceMonthly);
-        const est     = calculateTenantPayment(rent, previewMonths);
+        const isManagedByDalali = listerProfile?.lister_type === 'dalali' || listerProfile?.role === 'dalali' || listing?.listerType === 'dalali';
+        const est     = calculateTenantPayment(rent, previewMonths, isManagedByDalali);
         const elec    = listing?.elecType  || listing?.elec_type  || null;
         const water   = listing?.waterType || listing?.water_type || null;
         const elecCostVal  = Number(listing?.elecCost  ?? listing?.elec_cost  ?? 0);
@@ -1463,6 +1463,16 @@ export default function RoomDetailsPage() {
                   <span style={{ fontWeight: 600 }}>{formatTZS(est.platformDepositFee)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem' }}>
+                  <span style={{ color: '#475569' }}>Platform Service Fee ({formatRate(PLATFORM_FEE_RATE)})</span>
+                  <span style={{ fontWeight: 600 }}>{formatTZS(est.platformFee)}</span>
+                </div>
+                {est.pmFee > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem' }}>
+                    <span style={{ color: '#475569' }}>Project Manager Fee ({formatRate(PM_FEE_RATE)})</span>
+                    <span style={{ fontWeight: 600 }}>{formatTZS(est.pmFee)}</span>
+                  </div>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem' }}>
                   <span style={{ color: '#475569' }}>Gateway Fee ({formatRate(GATEWAY_FEE_RATE)})</span>
                   <span style={{ fontWeight: 600 }}>{formatTZS(est.gatewayFee)}</span>
                 </div>
@@ -1479,8 +1489,14 @@ export default function RoomDetailsPage() {
                   alignItems: 'center',
                 }}>
                   <span style={{ fontWeight: 700, fontSize: '0.88rem' }}>Total Due at Reservation</span>
-                  <span style={{ fontWeight: 800, fontSize: '1.1rem' }}>{formatTZS(est.totalDue)}</span>
+                  <span style={{ fontWeight: 800, fontSize: '1.1rem' }}>{formatTZS(est.dueAtReservation)}</span>
                 </div>
+              </div>
+
+              {/* Note about 100% landlord rent */}
+              <div style={{ marginTop: '0.85rem', padding: '0.75rem', background: '#f1f5f9', borderRadius: 8, fontSize: '0.78rem', color: '#475569', display: 'flex', gap: '0.4rem', alignItems: 'flex-start' }}>
+                <span>ℹ️</span>
+                <span><strong>Note:</strong> The landlord receives 100% of the rent. The Platform Service Fee and Project Manager Fee (if applicable) are paid entirely by the tenant.</span>
               </div>
 
               {/* Ongoing monthly (utilities) */}
@@ -1498,51 +1514,6 @@ export default function RoomDetailsPage() {
                   <span style={{ fontWeight: 700, color: '#1e293b' }}>{formatTZS(totalOngoing)} / mo</span>
                 </div>
               )}
-
-              {/* Fee transparency accordion */}
-              <div style={{ marginTop: '0.85rem', border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
-                <button
-                  type="button"
-                  onClick={() => setFeeAccordionOpen((o) => !o)}
-                  style={{
-                    width: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '0.55rem 0.85rem',
-                    background: '#f1f5f9',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontSize: '0.78rem',
-                    fontWeight: 600,
-                    color: '#475569',
-                  }}
-                >
-                  <span>ℹ️ How platform fees work</span>
-                  <span style={{ fontSize: '1rem' }}>{feeAccordionOpen ? '▲' : '▼'}</span>
-                </button>
-
-                {feeAccordionOpen && (
-                  <div style={{ padding: '0.85rem', background: '#fff', fontSize: '0.82rem', color: '#475569', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    <p style={{ margin: '0 0 0.5rem', lineHeight: 1.5 }}>
-                      Two fees are included in your rent and deducted before the landlord is paid. <strong>They are not extra charges to you.</strong>
-                    </p>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Property Mgmt. Fee ({formatRate(PM_FEE_RATE)}/mo):</span>
-                      <span style={{ fontWeight: 600 }}>{formatTZS(est.pmFee)}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Platform Service Fee ({formatRate(PLATFORM_FEE_RATE)}/mo):</span>
-                      <span style={{ fontWeight: 600 }}>{formatTZS(est.platformFee)}</span>
-                    </div>
-                    <div style={{ height: 1, background: '#e2e8f0', margin: '0.25rem 0' }} />
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ fontWeight: 700, color: '#16a34a' }}>Landlord Receives ({formatRate(1 - PM_FEE_RATE - PLATFORM_FEE_RATE)} of rent):</span>
-                      <span style={{ fontWeight: 700, color: '#16a34a' }}>{formatTZS(est.landlordReceives)}</span>
-                    </div>
-                  </div>
-                )}
-              </div>
             </div>
           </section>
         );
@@ -1557,6 +1528,7 @@ export default function RoomDetailsPage() {
             state={{
               listingId: listing.id,
               listerId: listing.listerId,
+              listerType: listerProfile?.lister_type, // Pass lister_type to PayPage
               price: listing.priceMonthly,
               title: listing.title,
               availableFrom: listing.availableFrom,

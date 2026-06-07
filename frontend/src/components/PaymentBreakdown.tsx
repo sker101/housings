@@ -116,6 +116,13 @@ export const PaymentBreakdownComponent: React.FC<Props> = ({
           value={formatTZS(breakdown.platformFee)}
           sub={`Based on total lease (${formatTZS(breakdown.monthlyRent)})`}
         />
+        {breakdown.pmFee > 0 && (
+          <Row
+            label={`Project Manager Fee (${formatRate(PM_FEE_RATE)})`}
+            value={formatTZS(breakdown.pmFee)}
+            sub={`Dalali service fee based on total lease`}
+          />
+        )}
         <Row
           label={`Payment Gateway Fee (${formatRate(GATEWAY_FEE_RATE)})`}
           value={formatTZS(breakdown.gatewayFee)}
@@ -250,6 +257,8 @@ export const PaymentBreakdownComponent: React.FC<Props> = ({
             fontWeight: checked ? 600 : 400,
           }}>
             I confirm that I understand I am paying the reservation deposit and platform fees today, and the remaining rent balance will be due later.
+            <br/><br/>
+            <strong>Note:</strong> The landlord receives 100% of the rent. The Platform Service Fee and Project Manager Fee (if applicable) are paid entirely by the tenant.
           </span>
         </label>
       </div>

@@ -220,7 +220,7 @@ export async function fetchListingById(listingId, accessToken) {
 
     if (listingRow.lister_id) {
       const profiles = await selectRows('profiles', {
-        select: 'id,full_name,verification_status,profile_photo_url,created_at,phone',
+        select: 'id,full_name,verification_status,profile_photo_url,created_at,phone,role,lister_type',
         filters: [{ column: 'id', op: 'eq', value: listingRow.lister_id }],
         limit: 1,
         accessToken

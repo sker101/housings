@@ -25,6 +25,7 @@ export default function PayPage() {
     coverPhoto?: string | null;
     address?: string;
     listerId?: string;
+    listerType?: string;
     elecType?: string | null;
     elecCost?: number;
     waterType?: string | null;
@@ -105,8 +106,9 @@ export default function PayPage() {
 
   const breakdown = useMemo(() => {
     const monthlyPrice = Number(listing?.price_monthly || 0);
-    return calculateTenantPayment(monthlyPrice, months);
-  }, [listing?.price_monthly, months]);
+    const isManagedByDalali = state?.listerType === 'dalali' || state?.listerType === 'project_manager';
+    return calculateTenantPayment(monthlyPrice, months, isManagedByDalali);
+  }, [listing?.price_monthly, months, state?.listerType]);
 
   const [isConfirmed, setIsConfirmed] = useState(false);
 
