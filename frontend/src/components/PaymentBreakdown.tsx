@@ -116,13 +116,11 @@ export const PaymentBreakdownComponent: React.FC<Props> = ({
           value={formatTZS(breakdown.platformFee)}
           sub={`Based on total lease (${formatTZS(breakdown.monthlyRent)})`}
         />
-        {breakdown.pmFee > 0 && (
-          <Row
-            label={`Project Manager Fee (${formatRate(PM_FEE_RATE)})`}
-            value={formatTZS(breakdown.pmFee)}
-            sub={`Dalali service fee based on total lease`}
-          />
-        )}
+        <Row
+          label={`Project Manager Fee (${formatRate(PM_FEE_RATE)})`}
+          value={formatTZS(breakdown.pmFee)}
+          sub="Goes to landlord if no dalali is involved"
+        />
         <Row
           label={`Payment Gateway Fee (${formatRate(GATEWAY_FEE_RATE)})`}
           value={formatTZS(breakdown.gatewayFee)}

@@ -1397,8 +1397,7 @@ export default function RoomDetailsPage() {
       {/* ── Cost Estimate Preview ─────────────────────────────── */}
       {canReserveListing && listing?.priceMonthly && (() => {
         const rent    = Number(listing.priceMonthly);
-        const isManagedByDalali = listerProfile?.lister_type === 'dalali' || listerProfile?.role === 'dalali' || listing?.listerType === 'dalali';
-        const est     = calculateTenantPayment(rent, previewMonths, isManagedByDalali);
+        const est     = calculateTenantPayment(rent, previewMonths);
         const elec    = listing?.elecType  || listing?.elec_type  || null;
         const water   = listing?.waterType || listing?.water_type || null;
         const elecCostVal  = Number(listing?.elecCost  ?? listing?.elec_cost  ?? 0);
@@ -1466,12 +1465,10 @@ export default function RoomDetailsPage() {
                   <span style={{ color: '#475569' }}>Platform Service Fee ({formatRate(PLATFORM_FEE_RATE)})</span>
                   <span style={{ fontWeight: 600 }}>{formatTZS(est.platformFee)}</span>
                 </div>
-                {est.pmFee > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem' }}>
-                    <span style={{ color: '#475569' }}>Project Manager Fee ({formatRate(PM_FEE_RATE)})</span>
-                    <span style={{ fontWeight: 600 }}>{formatTZS(est.pmFee)}</span>
-                  </div>
-                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem' }}>
+                  <span style={{ color: '#475569' }}>Project Manager Fee ({formatRate(PM_FEE_RATE)})</span>
+                  <span style={{ fontWeight: 600 }}>{formatTZS(est.pmFee)}</span>
+                </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem' }}>
                   <span style={{ color: '#475569' }}>Gateway Fee ({formatRate(GATEWAY_FEE_RATE)})</span>
                   <span style={{ fontWeight: 600 }}>{formatTZS(est.gatewayFee)}</span>

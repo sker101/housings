@@ -49,13 +49,13 @@ export interface PaymentBreakdown {
 /**
  * Calculates the full payment breakdown for a tenant at lease initiation.
  */
-export function calculateTenantPayment(monthlyRent: number, months: number = 1, isManagedByDalali: boolean = false): PaymentBreakdown {
+export function calculateTenantPayment(monthlyRent: number, months: number = 1): PaymentBreakdown {
   const safeMonths = Math.max(1, Math.round(months));
   const rentTotal = monthlyRent * safeMonths;
   
   // Tenant fees
   const platformFee = Math.round(rentTotal * PLATFORM_FEE_RATE);
-  const pmFee = isManagedByDalali ? Math.round(rentTotal * PM_FEE_RATE) : 0;
+  const pmFee = Math.round(rentTotal * PM_FEE_RATE); // Always charged
   const platformDepositFee = monthlyRent * DEPOSIT_RATE; // 50% of ONE month only
   
   // Gateway fee is calculated based on the TOTAL cost (Rent + Platform Fee + PM Fee) once.
