@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Info, ShieldCheck, ChevronDown, ChevronUp } from 'lucide-react';
+import { Info, ShieldCheck } from 'lucide-react';
 import {
   PaymentBreakdown,
   formatTZS,
@@ -61,7 +61,6 @@ export const PaymentBreakdownComponent: React.FC<Props> = ({
   onConfirm,
 }) => {
   const [checked, setChecked] = useState(false);
-  const [feeDetailOpen, setFeeDetailOpen] = useState(false);
 
   const activeElecCost  = elecType  !== 'included' ? Number(elecCost  || 0) : 0;
   const activeWaterCost = waterType !== 'included' ? Number(waterCost || 0) : 0;
@@ -93,20 +92,16 @@ export const PaymentBreakdownComponent: React.FC<Props> = ({
 
       {/* ── What you pay today ─────────────────────────── */}
       <p style={{ margin: '0 0 0.75rem', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#94a3b8', fontWeight: 600 }}>
-        Due at Reservation
+        Due at Reservation (Online)
       </p>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-        <Row
-          label={months > 1 ? `Base Rent (${months} months × ${formatTZS(breakdown.baseMonthlyRent)})` : 'Monthly Rent'}
-          value={formatTZS(breakdown.monthlyRent)}
-        />
         <Row
           label={
             <>
               Platform Deposit{' '}
               <span
-                title={`One-time deposit = ${formatRate(DEPOSIT_RATE)} of 1 month's rent. Held securely by iRent.`}
+                title={`Advance payment = ${formatRate(DEPOSIT_RATE)} of 1 month's rent. Deducted from your final rent.`}
                 style={{ cursor: 'help', verticalAlign: 'middle' }}
               >
                 <Info size={13} style={{ display: 'inline', marginLeft: 3 }} />
@@ -114,7 +109,12 @@ export const PaymentBreakdownComponent: React.FC<Props> = ({
             </>
           }
           value={formatTZS(breakdown.platformDepositFee)}
-          sub={`${formatRate(DEPOSIT_RATE)} of 1 month — one-time, held securely`}
+          sub={`${formatRate(DEPOSIT_RATE)} of 1 month — advance rent payment`}
+        />
+        <Row
+          label={`Platform Service Fee (${formatRate(PLATFORM_FEE_RATE)})`}
+          value={formatTZS(breakdown.platformFee)}
+          sub={`Based on total lease (${formatTZS(breakdown.monthlyRent)})`}
         />
         <Row
           label={`Payment Gateway Fee (${formatRate(GATEWAY_FEE_RATE)})`}
@@ -123,7 +123,7 @@ export const PaymentBreakdownComponent: React.FC<Props> = ({
         />
       </div>
 
-      {/* Total due */}
+      {/* Total due today */}
       <div style={{
         marginTop: '1rem',
         background: 'linear-gradient(135deg, #1d9e75 0%, #27500A 100%)',
@@ -135,61 +135,34 @@ export const PaymentBreakdownComponent: React.FC<Props> = ({
         alignItems: 'center',
       }}>
         <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>Total Due Today</span>
-        <span style={{ fontWeight: 800, fontSize: '1.3rem' }}>{formatTZS(breakdown.totalDue)}</span>
+        <span style={{ fontWeight: 800, fontSize: '1.3rem' }}>{formatTZS(breakdown.dueAtReservation)}</span>
       </div>
 
-      {/* ── Fee transparency accordion ─────────────────── */}
-      <div style={{ marginTop: '1rem', border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
-        <button
-          type="button"
-          onClick={() => setFeeDetailOpen((o) => !o)}
-          style={{
-            width: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0.7rem 1rem',
-            background: '#f1f5f9',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: '0.82rem',
-            fontWeight: 600,
-            color: '#475569',
-          }}
-        >
-          <span>ℹ️ How platform fees work</span>
-          {feeDetailOpen ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-        </button>
-
-        {feeDetailOpen && (
-          <div style={{ padding: '0.85rem 1rem', background: '#fff', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-            <p style={{ margin: '0 0 0.5rem', fontSize: '0.8rem', color: '#64748b', lineHeight: 1.5 }}>
-              Two additional fees are included inside your monthly rent and deducted before the landlord is paid.
-              <strong> These are not extra charges to you.</strong>
-            </p>
-            <Row
-              label={`Property Mgmt. Fee (${formatRate(PM_FEE_RATE)} / month)`}
-              value={formatTZS(breakdown.pmFee)}
-              sub="Covers property oversight & coordination"
-              indent
-            />
-            <Row
-              label={`Platform Service Fee (${formatRate(PLATFORM_FEE_RATE)} / month)`}
-              value={formatTZS(breakdown.platformFee)}
-              sub="Keeps iRent running & improves your experience"
-              indent
-            />
-            <Divider />
-            <Row
-              label="Landlord Receives (from rent)"
-              value={formatTZS(breakdown.landlordReceives)}
-              green
-              bold
-              sub={`${formatRate(1 - PM_FEE_RATE - PLATFORM_FEE_RATE)} of base rent`}
-            />
-          </div>
-        )}
+      {/* ── What you pay later ─────────────────────────── */}
+      <div style={{ marginTop: '1.25rem', border: '1px solid #e2e8f0', borderRadius: 10, padding: '1rem', background: '#fff' }}>
+        <p style={{ margin: '0 0 0.75rem', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#94a3b8', fontWeight: 600 }}>
+          Due Later (Move-in)
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+          <Row
+            label={months > 1 ? `Base Rent (${months} months × ${formatTZS(breakdown.baseMonthlyRent)})` : 'Total Monthly Rent'}
+            value={formatTZS(breakdown.monthlyRent)}
+          />
+          <Row
+            label="Less Deposit Paid Today"
+            value={`-${formatTZS(breakdown.platformDepositFee)}`}
+            green
+          />
+          <Divider />
+          <Row
+            label="Remaining Rent Balance"
+            value={formatTZS(breakdown.dueLater)}
+            bold
+          />
+        </div>
       </div>
+
+
 
       {/* ── Ongoing monthly costs (utilities) ──────────── */}
       {hasOngoingUtilities && (
@@ -276,7 +249,7 @@ export const PaymentBreakdownComponent: React.FC<Props> = ({
             color: checked ? 'var(--ink)' : '#64748b',
             fontWeight: checked ? 600 : 400,
           }}>
-            I confirm that I have reviewed the payment breakdown above — including fees due today and any ongoing monthly utility costs paid separately.
+            I confirm that I understand I am paying the reservation deposit and platform fees today, and the remaining rent balance will be due later.
           </span>
         </label>
       </div>

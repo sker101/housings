@@ -11,13 +11,13 @@
  */
 
 // ── Rate constants (single source of truth) ──────────────────────────────────
-export const PM_FEE_RATE = 0.03;       // 3%  — property manager share
-export const PLATFORM_FEE_RATE = 0.02; // 2%  — platform service share
+export const PM_FEE_RATE = 0;          // No longer deducted from landlord
+export const PLATFORM_FEE_RATE = 0.05; // 5% — platform service fee charged to TENANT
 export const DEPOSIT_RATE = 0.50;      // 50% — one-time platform deposit
 export const GATEWAY_FEE_RATE = 0.035; // 3.5% — payment gateway processing fee
 
 export interface PaymentBreakdown {
-  /** The raw per-month rent price (not multiplied by months). */
+  /** The raw per-month rent price. */
   baseMonthlyRent: number;
   /** Rent portion of payment (baseMonthlyRent × months). */
   monthlyRent: number;
@@ -25,64 +25,58 @@ export interface PaymentBreakdown {
   months: number;
 
   // ── Fees charged to the tenant ────────────────────────────────────────────
+  /** Platform service fee (5% of total rent). */
+  platformFee: number;
   /**
    * One-time platform deposit (50% of ONE month's rent).
-   * Held securely by the platform and applied towards tenancy.
+   * Acts as an advance payment on rent.
    */
   platformDepositFee: number;
-  /** Payment gateway processing fee (3.5% of rentTotal + deposit). */
+  /** Payment gateway processing fee (3.5% of total rent + platform fee). */
   gatewayFee: number;
 
-  // ── Fee transparency (not extra charges — deducted from landlord's share) ──
-  /**
-   * Property manager commission (3% of base rent per month × months).
-   * Informational: included in rent, not an additional tenant charge.
-   */
-  pmFee: number;
-  /**
-   * Platform service fee (2% of base rent per month × months).
-   * Informational: included in rent, not an additional tenant charge.
-   */
-  platformFee: number;
-  /** Amount landlord actually receives after PM & platform fees. */
-  landlordReceives: number;
-
-  /** Grand total the tenant must pay today to reserve the room. */
-  totalDue: number;
+  // ── Totals ────────────────────────────────────────────────────────────────
+  /** Grand total cost of the lease including all fees. */
+  totalLeaseCost: number;
+  /** Amount the tenant must pay TODAY to reserve the room (Deposit + Platform Fee + Gateway Fee). */
+  dueAtReservation: number;
+  /** Amount the tenant will pay LATER (Total Rent - Deposit). */
+  dueLater: number;
 }
 
 /**
  * Calculates the full payment breakdown for a tenant at lease initiation.
- *
- * What the tenant pays:
- *   rent (× months) + platformDeposit (50%, one-time) + gatewayFee (3.5%)
- *
- * Fee transparency (included in rent, not extra):
- *   PM fee (3% / month) + Platform fee (2% / month)
  */
 export function calculateTenantPayment(monthlyRent: number, months: number = 1): PaymentBreakdown {
   const safeMonths = Math.max(1, Math.round(months));
   const rentTotal = monthlyRent * safeMonths;
-  const platformDepositFee = monthlyRent * DEPOSIT_RATE; // 50% of ONE month only
-  const subtotal = rentTotal + platformDepositFee;
-  const gatewayFee = Math.round(subtotal * GATEWAY_FEE_RATE);
-  const totalDue = Math.round(subtotal + gatewayFee);
-
-  // Informational — deducted from rent before remittance to landlord
-  const pmFee = Math.round(rentTotal * PM_FEE_RATE);
+  
+  // Tenant fees
   const platformFee = Math.round(rentTotal * PLATFORM_FEE_RATE);
-  const landlordReceives = rentTotal - pmFee - platformFee;
+  const platformDepositFee = monthlyRent * DEPOSIT_RATE; // 50% of ONE month only
+  
+  // Gateway fee is calculated based on the TOTAL cost (Rent + Platform Fee) once.
+  const gatewayFee = Math.round((rentTotal + platformFee) * GATEWAY_FEE_RATE);
+  
+  // Grand total for the entire lease duration
+  const totalLeaseCost = rentTotal + platformFee + gatewayFee;
+  
+  // What they pay today to reserve (Deposit + Platform Fee + Gateway Fee)
+  const dueAtReservation = platformDepositFee + platformFee + gatewayFee;
+  
+  // What they pay later (Remaining rent)
+  const dueLater = rentTotal - platformDepositFee;
 
   return {
     baseMonthlyRent: monthlyRent,
     monthlyRent: rentTotal,
     months: safeMonths,
+    platformFee,
     platformDepositFee: Math.round(platformDepositFee),
     gatewayFee,
-    pmFee,
-    platformFee,
-    landlordReceives,
-    totalDue,
+    totalLeaseCost,
+    dueAtReservation: Math.round(dueAtReservation),
+    dueLater: Math.round(dueLater),
   };
 }
 
