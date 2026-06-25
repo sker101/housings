@@ -40,10 +40,9 @@ import {
   calculateTenantPayment,
   formatTZS,
   formatRate,
-  PM_FEE_RATE,
   PLATFORM_FEE_RATE,
-  DEPOSIT_RATE,
   GATEWAY_FEE_RATE,
+  DALALI_FEE_RATE,
 } from '../lib/paymentCalculations';
 
 const MESSAGE_TEMPLATES = [
@@ -1408,6 +1407,8 @@ export default function RoomDetailsPage() {
         const totalOngoing = rent + activeElec + activeWater + wasteCostVal;
         const hasUtilities = activeElec > 0 || activeWater > 0 || wasteCostVal > 0;
 
+        const isDalali = listing?.listerType === 'dalali' || listing?.lister_type === 'dalali';
+
         return (
           <section className="rd-section" style={{ padding: 0, marginBottom: '0.75rem' }}>
             <div style={{
@@ -1447,53 +1448,65 @@ export default function RoomDetailsPage() {
                 ))}
               </div>
 
-              {/* Breakdown rows */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem' }}>
-                  <span style={{ color: '#475569' }}>
-                    {previewMonths > 1 ? `Rent × ${previewMonths} months` : 'Monthly Rent'}
-                  </span>
-                  <span style={{ fontWeight: 600 }}>{formatTZS(est.monthlyRent)}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem' }}>
-                  <span style={{ color: '#475569' }}>
-                    Platform Deposit ({formatRate(DEPOSIT_RATE)}, one-time)
-                  </span>
-                  <span style={{ fontWeight: 600 }}>{formatTZS(est.platformDepositFee)}</span>
-                </div>
+              {/* ── Section 1: Pay Online ── */}
+              <p style={{ margin: '0 0 0.5rem', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#2563eb', fontWeight: 700 }}>📱 Pay Online — To Reserve</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', marginBottom: '0.75rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem' }}>
                   <span style={{ color: '#475569' }}>Platform Service Fee ({formatRate(PLATFORM_FEE_RATE)})</span>
                   <span style={{ fontWeight: 600 }}>{formatTZS(est.platformFee)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem' }}>
-                  <span style={{ color: '#475569' }}>Project Manager Fee ({formatRate(PM_FEE_RATE)})</span>
-                  <span style={{ fontWeight: 600 }}>{formatTZS(est.pmFee)}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem' }}>
-                  <span style={{ color: '#475569' }}>Gateway Fee ({formatRate(GATEWAY_FEE_RATE)})</span>
+                  <span style={{ color: '#475569' }}>Gateway Fee ({formatRate(GATEWAY_FEE_RATE)} of fee)</span>
                   <span style={{ fontWeight: 600 }}>{formatTZS(est.gatewayFee)}</span>
                 </div>
-
-                {/* Total */}
-                <div style={{
-                  marginTop: '0.35rem',
-                  background: 'linear-gradient(135deg, #1d9e75 0%, #27500A 100%)',
-                  color: 'white',
-                  borderRadius: 9,
-                  padding: '0.65rem 0.85rem',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}>
-                  <span style={{ fontWeight: 700, fontSize: '0.88rem' }}>Total Due at Reservation</span>
-                  <span style={{ fontWeight: 800, fontSize: '1.1rem' }}>{formatTZS(est.dueAtReservation)}</span>
-                </div>
+              </div>
+              <div style={{
+                background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                color: 'white',
+                borderRadius: 9,
+                padding: '0.65rem 0.85rem',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '1rem',
+              }}>
+                <span style={{ fontWeight: 700, fontSize: '0.88rem' }}>🔒 Reserve Now (Online)</span>
+                <span style={{ fontWeight: 800, fontSize: '1.1rem' }}>{formatTZS(est.dueTodayOnline)}</span>
               </div>
 
-              {/* Note about 100% landlord rent */}
-              <div style={{ marginTop: '0.85rem', padding: '0.75rem', background: '#f1f5f9', borderRadius: 8, fontSize: '0.78rem', color: '#475569', display: 'flex', gap: '0.4rem', alignItems: 'flex-start' }}>
+              {/* ── Section 2: Pay Cash ── */}
+              <p style={{ margin: '0 0 0.5rem', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#16a34a', fontWeight: 700 }}>💵 Pay at Move-In — Cash to Landlord</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', marginBottom: '0.75rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem' }}>
+                  <span style={{ color: '#475569' }}>
+                    {previewMonths > 1 ? `Rent × ${previewMonths} months` : 'Monthly Rent'}
+                  </span>
+                  <span style={{ fontWeight: 600 }}>{formatTZS(est.dueLaterRent)}</span>
+                </div>
+                {isDalali && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem' }}>
+                    <span style={{ color: '#d97706' }}>Dalali Fee ({formatRate(DALALI_FEE_RATE)} of 1 month)</span>
+                    <span style={{ fontWeight: 600, color: '#d97706' }}>{formatTZS(est.daliFee)}</span>
+                  </div>
+                )}
+              </div>
+              <div style={{
+                background: '#f0fdf4',
+                border: '1.5px solid #bbf7d0',
+                borderRadius: 9,
+                padding: '0.65rem 0.85rem',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}>
+                <span style={{ fontWeight: 700, fontSize: '0.88rem', color: '#16a34a' }}>Cash at Move-In</span>
+                <span style={{ fontWeight: 800, fontSize: '1.1rem', color: '#15803d' }}>{formatTZS(est.dueLaterTotal)}</span>
+              </div>
+
+              {/* Info note */}
+              <div style={{ marginTop: '0.85rem', padding: '0.6rem 0.75rem', background: '#f1f5f9', borderRadius: 8, fontSize: '0.77rem', color: '#475569', display: 'flex', gap: '0.4rem', alignItems: 'flex-start' }}>
                 <span>ℹ️</span>
-                <span><strong>Note:</strong> The landlord receives 100% of the rent. The Platform Service Fee and Project Manager Fee (if applicable) are paid entirely by the tenant.</span>
+                <span>Landlord receives <strong>100% of rent</strong> directly — iRent takes no cut from the rent.</span>
               </div>
 
               {/* Ongoing monthly (utilities) */}

@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
-import { Info, ShieldCheck } from 'lucide-react';
+import { Info, ShieldCheck, Smartphone, Banknote, UserCheck } from 'lucide-react';
 import {
   PaymentBreakdown,
   formatTZS,
   formatRate,
-  PM_FEE_RATE,
   PLATFORM_FEE_RATE,
-  DEPOSIT_RATE,
   GATEWAY_FEE_RATE,
+  DALALI_FEE_RATE,
 } from '../lib/paymentCalculations';
 
 interface Props {
@@ -50,6 +49,24 @@ const Divider = () => (
   <div style={{ height: 1, background: '#e2e8f0', margin: '0.5rem 0' }} />
 );
 
+// ── Section header ────────────────────────────────────────────────────────────
+const SectionHeader: React.FC<{ icon: React.ReactNode; label: string; subtitle: string; color: string; bg: string }> =
+  ({ icon, label, subtitle, color, bg }) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.85rem' }}>
+      <div style={{
+        width: 34, height: 34, borderRadius: '50%',
+        background: bg, color, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexShrink: 0,
+      }}>
+        {icon}
+      </div>
+      <div>
+        <p style={{ margin: 0, fontWeight: 700, fontSize: '0.88rem', color: 'var(--ink)' }}>{label}</p>
+        <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8' }}>{subtitle}</p>
+      </div>
+    </div>
+  );
+
 export const PaymentBreakdownComponent: React.FC<Props> = ({
   breakdown,
   months,
@@ -90,94 +107,168 @@ export const PaymentBreakdownComponent: React.FC<Props> = ({
         💳 Payment Breakdown
       </h3>
 
-      {/* ── What you pay today ─────────────────────────── */}
-      <p style={{ margin: '0 0 0.75rem', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#94a3b8', fontWeight: 600 }}>
-        Due at Reservation (Online)
-      </p>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-        <Row
-          label={
-            <>
-              Platform Deposit{' '}
-              <span
-                title={`Advance payment = ${formatRate(DEPOSIT_RATE)} of 1 month's rent. Deducted from your final rent.`}
-                style={{ cursor: 'help', verticalAlign: 'middle' }}
-              >
-                <Info size={13} style={{ display: 'inline', marginLeft: 3 }} />
-              </span>
-            </>
-          }
-          value={formatTZS(breakdown.platformDepositFee)}
-          sub={`${formatRate(DEPOSIT_RATE)} of 1 month — advance rent payment`}
-        />
-        <Row
-          label={`Platform Service Fee (${formatRate(PLATFORM_FEE_RATE)})`}
-          value={formatTZS(breakdown.platformFee)}
-          sub={`Based on total lease (${formatTZS(breakdown.monthlyRent)})`}
-        />
-        <Row
-          label={`Project Manager Fee (${formatRate(PM_FEE_RATE)})`}
-          value={formatTZS(breakdown.pmFee)}
-          sub="Goes to landlord if no dalali is involved"
-        />
-        <Row
-          label={`Payment Gateway Fee (${formatRate(GATEWAY_FEE_RATE)})`}
-          value={formatTZS(breakdown.gatewayFee)}
-          sub="Mobile money processing charge"
-        />
-      </div>
-
-      {/* Total due today */}
+      {/* ── SECTION 1: Pay Online Now ─────────────────────────────────────────── */}
       <div style={{
-        marginTop: '1rem',
-        background: 'linear-gradient(135deg, #1d9e75 0%, #27500A 100%)',
-        color: 'white',
-        padding: '1rem 1.25rem',
-        borderRadius: 10,
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
+        background: 'white',
+        borderRadius: 12,
+        border: '1.5px solid #3b82f6',
+        padding: '1rem 1.15rem',
+        marginBottom: '1rem',
       }}>
-        <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>Total Due Today</span>
-        <span style={{ fontWeight: 800, fontSize: '1.3rem' }}>{formatTZS(breakdown.dueAtReservation)}</span>
-      </div>
+        <SectionHeader
+          icon={<Smartphone size={17} />}
+          label="Pay Online — Reserve the Room"
+          subtitle="Paid now via mobile money"
+          color="#2563eb"
+          bg="#eff6ff"
+        />
 
-      {/* ── What you pay later ─────────────────────────── */}
-      <div style={{ marginTop: '1.25rem', border: '1px solid #e2e8f0', borderRadius: 10, padding: '1rem', background: '#fff' }}>
-        <p style={{ margin: '0 0 0.75rem', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#94a3b8', fontWeight: 600 }}>
-          Due Later (Move-in)
-        </p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
           <Row
-            label={months > 1 ? `Base Rent (${months} months × ${formatTZS(breakdown.baseMonthlyRent)})` : 'Total Monthly Rent'}
-            value={formatTZS(breakdown.monthlyRent)}
+            label={
+              <>
+                Platform Service Fee{' '}
+                <span
+                  title={`5% of total rent (${formatTZS(breakdown.totalRent)}). This is iRent's fee to secure your room.`}
+                  style={{ cursor: 'help', verticalAlign: 'middle' }}
+                >
+                  <Info size={13} style={{ display: 'inline', marginLeft: 3 }} />
+                </span>
+              </>
+            }
+            value={formatTZS(breakdown.platformFee)}
+            sub={`${formatRate(PLATFORM_FEE_RATE)} of total rent (${formatTZS(breakdown.totalRent)})`}
           />
           <Row
-            label="Less Deposit Paid Today"
-            value={`-${formatTZS(breakdown.platformDepositFee)}`}
-            green
-          />
-          <Divider />
-          <Row
-            label="Remaining Rent Balance"
-            value={formatTZS(breakdown.dueLater)}
-            bold
+            label={`Mobile Money Gateway Fee (${formatRate(GATEWAY_FEE_RATE)})`}
+            value={formatTZS(breakdown.gatewayFee)}
+            sub="Processing fee — charged on the platform fee only"
           />
         </div>
+
+        {/* Total online */}
+        <div style={{
+          marginTop: '0.85rem',
+          background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+          color: 'white',
+          padding: '0.9rem 1.1rem',
+          borderRadius: 10,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}>
+          <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>🔒 Total to Pay Now</span>
+          <span style={{ fontWeight: 800, fontSize: '1.3rem' }}>{formatTZS(breakdown.dueTodayOnline)}</span>
+        </div>
+
+        <p style={{ margin: '0.65rem 0 0', fontSize: '0.75rem', color: '#64748b', textAlign: 'center' }}>
+          Your room is secured the moment this payment clears ✓
+        </p>
       </div>
 
+      {/* ── SECTION 2: Pay Cash at Move-In ──────────────────────────────────── */}
+      <div style={{
+        background: 'white',
+        borderRadius: 12,
+        border: '1.5px solid #d1fae5',
+        padding: '1rem 1.15rem',
+        marginBottom: '1rem',
+      }}>
+        <SectionHeader
+          icon={<Banknote size={17} />}
+          label="Pay at Move-In — Cash / M-Pesa Direct"
+          subtitle="Paid directly to the recipient — not through iRent"
+          color="#16a34a"
+          bg="#f0fdf4"
+        />
 
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+          <Row
+            label={months > 1 ? `Rent — ${months} months × ${formatTZS(breakdown.baseMonthlyRent)}` : 'Monthly Rent'}
+            value={formatTZS(breakdown.dueLaterRent)}
+            sub="Paid 100% directly to the landlord in cash"
+          />
 
-      {/* ── Ongoing monthly costs (utilities) ──────────── */}
+          {breakdown.isDalaliListing && (
+            <>
+              <Divider />
+              <Row
+                label={
+                  <>
+                    <UserCheck size={13} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+                    Dalali (Agent) Fee{' '}
+                    <span
+                      title={`${formatRate(DALALI_FEE_RATE)} of one month's rent, paid directly to your dalali in cash. This replaces the traditional 1-month rent commission.`}
+                      style={{ cursor: 'help', verticalAlign: 'middle' }}
+                    >
+                      <Info size={13} style={{ display: 'inline', marginLeft: 3 }} />
+                    </span>
+                  </>
+                }
+                value={formatTZS(breakdown.daliFee)}
+                sub={`${formatRate(DALALI_FEE_RATE)} of 1 month — paid directly to your dalali (saves ~80% vs. old 1-month fee)`}
+                amber
+              />
+            </>
+          )}
+        </div>
+
+        {/* Total cash needed */}
+        <div style={{
+          marginTop: '0.85rem',
+          background: '#f0fdf4',
+          border: '1.5px solid #bbf7d0',
+          padding: '0.9rem 1.1rem',
+          borderRadius: 10,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}>
+          <span style={{ fontWeight: 700, fontSize: '0.88rem', color: '#16a34a' }}>
+            💵 Total Cash at Move-In
+          </span>
+          <span style={{ fontWeight: 800, fontSize: '1.1rem', color: '#15803d' }}>
+            {formatTZS(breakdown.dueLaterTotal)}
+          </span>
+        </div>
+
+        <p style={{ margin: '0.65rem 0 0', fontSize: '0.75rem', color: '#64748b', textAlign: 'center' }}>
+          The landlord receives 100% of the rent — iRent takes no cut from your rent.
+        </p>
+      </div>
+
+      {/* ── Dalali loyalty note ──────────────────────────────────────────────── */}
+      {breakdown.isDalaliListing && (
+        <div style={{
+          background: '#fefce8',
+          border: '1px solid #fde68a',
+          borderRadius: 10,
+          padding: '0.75rem 1rem',
+          marginBottom: '1rem',
+          fontSize: '0.8rem',
+          color: '#92400e',
+          display: 'flex',
+          gap: '0.5rem',
+          alignItems: 'flex-start',
+        }}>
+          <UserCheck size={15} style={{ flexShrink: 0, marginTop: 1 }} />
+          <span>
+            <strong>Your Dalali, Your Agent for Life:</strong> This dalali will be linked to your account.
+            When you next shift rooms, they will be your go-to agent — giving you a trusted guide and them a loyal client base.
+          </span>
+        </div>
+      )}
+
+      {/* ── Ongoing monthly costs (utilities) ──────────────────────────────── */}
       {hasOngoingUtilities && (
         <div style={{
-          marginTop: '1.25rem',
+          marginTop: '0.25rem',
           paddingTop: '1rem',
           borderTop: '2px dashed #cbd5e1',
           display: 'flex',
           flexDirection: 'column',
           gap: '0.65rem',
+          marginBottom: '1rem',
         }}>
           <p style={{ margin: '0 0 0.35rem', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#94a3b8', fontWeight: 600 }}>
             Ongoing Monthly (paid separately)
@@ -211,8 +302,8 @@ export const PaymentBreakdownComponent: React.FC<Props> = ({
         </div>
       )}
 
-      {/* ── Confirmation checkbox ────────────────────────── */}
-      <div style={{ marginTop: '1.5rem' }}>
+      {/* ── Confirmation checkbox ────────────────────────────────────────────── */}
+      <div style={{ marginTop: '0.5rem' }}>
         <label
           style={{
             display: 'flex',
@@ -254,9 +345,12 @@ export const PaymentBreakdownComponent: React.FC<Props> = ({
             color: checked ? 'var(--ink)' : '#64748b',
             fontWeight: checked ? 600 : 400,
           }}>
-            I confirm that I understand I am paying the reservation deposit and platform fees today, and the remaining rent balance will be due later.
-            <br/><br/>
-            <strong>Note:</strong> The landlord receives 100% of the rent. The Platform Service Fee and Project Manager Fee (if applicable) are paid entirely by the tenant.
+            I confirm I understand the payment breakdown:
+            <br />• I will pay <strong>{formatTZS(breakdown.dueTodayOnline)}</strong> online now to reserve this room.
+            <br />• At move-in I will pay <strong>{formatTZS(breakdown.dueLaterRent)}</strong> directly to the landlord in cash.
+            {breakdown.isDalaliListing && (
+              <><br />• I will pay <strong>{formatTZS(breakdown.daliFee)}</strong> to my dalali directly in cash.</>
+            )}
           </span>
         </label>
       </div>

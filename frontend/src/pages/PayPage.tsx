@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ShieldCheck, Home, AlertTriangle } from 'lucide-react';
+import { ShieldCheck, Home, UserCheck } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { selectRows, upsertRows, updateRows, insertRows, rpc } from '../lib/supabase';
@@ -32,6 +32,9 @@ export default function PayPage() {
     waterCost?: number;
     wasteCost?: number | null;
   } | undefined;
+
+  // Is this listing managed by a dalali? Used to show dalali fee.
+  const isDalaliListing = state?.listerType === 'dalali' || state?.listerType === 'property_manager';
 
   const [listing, setListing] = useState<any>(
     state?.listingId
@@ -106,8 +109,8 @@ export default function PayPage() {
 
   const breakdown = useMemo(() => {
     const monthlyPrice = Number(listing?.price_monthly || 0);
-    return calculateTenantPayment(monthlyPrice, months);
-  }, [listing?.price_monthly, months]);
+    return calculateTenantPayment(monthlyPrice, months, isDalaliListing);
+  }, [listing?.price_monthly, months, isDalaliListing]);
 
   const [isConfirmed, setIsConfirmed] = useState(false);
 
@@ -292,13 +295,17 @@ export default function PayPage() {
           tenant_id: tenantIdForBooking,
           move_in_date: moveInDate,
           months_duration: months,
-          total_tzs: breakdown.totalDue,
-          platform_deposit_fee: breakdown.platformDepositFee,
-          gateway_fee: breakdown.gatewayFee,
-          total_amount_due: breakdown.totalDue,
+          total_tzs: breakdown.totalRent,
+          platform_fee: breakdown.platformFee,
+          gateway_fee_online: breakdown.gatewayFee,
+          dalali_fee: breakdown.daliFee,
+          rent_due_cash: breakdown.dueLaterRent,
+          paid_online: breakdown.dueTodayOnline,
+          total_amount_due: breakdown.totalRent,
+          assigned_pm_id: listing.lister_id || null,
           status: 'pending',
           reference: reference,
-          notes: `Reservation for ${listing.title} including platform deposit fee`
+          notes: `Reservation for ${listing.title} — hybrid model`,
         };
         console.log('[Pay][V2-NULL-FIX] Creating booking with data:', bookingData);
         
@@ -318,7 +325,7 @@ export default function PayPage() {
       // 3. Initiate Payment using Provider Abstraction
       const provider = getPaymentProvider(token || '', gateway);
       const response = await provider.initiatePayment({
-        amount: breakdown.totalDue,
+        amount: breakdown.dueTodayOnline,
         reference: reference,
         customerName: user.fullName,
         customerEmail: user.email,
@@ -331,10 +338,23 @@ export default function PayPage() {
       });
 
       if (response.success) {
+        // Assign PM to tenant (dalali loyalty — first-time assignment only)
+        if (isDalaliListing && listing.lister_id && user.userId) {
+          try {
+            await rpc('assign_pm_to_tenant', {
+              p_tenant_profile_id: user.userId,
+              p_pm_profile_id: listing.lister_id,
+            }, token || '');
+            console.log('[Pay] Dalali assigned to tenant:', listing.lister_id);
+          } catch (pmErr) {
+            console.warn('[Pay] PM assignment failed (non-critical):', pmErr);
+          }
+        }
+
         if (response.checkoutUrl) {
           window.location.href = response.checkoutUrl;
         } else {
-          setSuccessData({ reference: reference, amount: breakdown.totalDue });
+          setSuccessData({ reference: reference, amount: breakdown.dueTodayOnline });
         }
       } else {
         throw new Error(response.error || 'Payment failed to initiate.');
@@ -366,9 +386,26 @@ export default function PayPage() {
               <span style={{ color: 'var(--mid)', fontSize: '0.9rem' }}>Reference</span>
               <span style={{ fontWeight: 700, fontFamily: 'monospace' }}>{successData.reference}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: 'var(--mid)', fontSize: '0.9rem' }}>Amount Paid</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+              <span style={{ color: 'var(--mid)', fontSize: '0.9rem' }}>Paid Online</span>
               <span style={{ fontWeight: 700 }}>{formatTZS(successData.amount)}</span>
+            </div>
+          </div>
+
+          {/* Remind tenant about cash payment */}
+          <div style={{ background: '#fefce8', border: '1px solid #fde68a', borderRadius: 12, padding: '1rem', marginBottom: '2rem', textAlign: 'left' }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+              <span style={{ fontSize: '1.1rem' }}>💵</span>
+              <div>
+                <p style={{ margin: '0 0 0.25rem', fontWeight: 700, fontSize: '0.88rem', color: '#92400e' }}>Remember: Pay Rent at Move-In</p>
+                <p style={{ margin: 0, fontSize: '0.82rem', color: '#78350f', lineHeight: 1.5 }}>
+                  Your room is now reserved! The landlord's contact has been unlocked.
+                  Arrange a visit and bring the <strong>rent in cash</strong> on move-in day.
+                  {isDalaliListing && (
+                    <> Also bring the <strong>dalali fee in cash</strong> for your agent.</>
+                  )}
+                </p>
+              </div>
             </div>
           </div>
 
@@ -551,9 +588,9 @@ export default function PayPage() {
               }}
             >
               <div>
-                <p style={{ margin: 0, color: 'var(--mid)' }}>Grand Total</p>
+                <p style={{ margin: 0, color: 'var(--mid)' }}>Due Now (Online)</p>
                 <strong style={{ fontSize: '1.3rem', color: '#27500A' }}>
-                  {formatTZS(breakdown.totalDue)}
+                  {formatTZS(breakdown.dueTodayOnline)}
                 </strong>
               </div>
               <button 

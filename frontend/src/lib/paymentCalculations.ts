@@ -1,86 +1,107 @@
 /**
  * paymentCalculations.ts
- * Pure functions for tenant payment calculations.
- * Provider-agnostic.
+ * Pure functions for the iRent Hybrid Payment Model.
+ * Provider-agnostic. Single source of truth for all fee rates.
  *
- * Fee structure (all rates defined here as single source of truth):
- *  - PM_FEE_RATE        3%   Property manager commission (from rent, not extra)
- *  - PLATFORM_FEE_RATE  2%   Platform service fee (from rent, not extra)
- *  - DEPOSIT_RATE       50%  One-time platform deposit (held securely, first month only)
- *  - GATEWAY_FEE_RATE   3.5% Payment processing fee charged to tenant
+ * ─────────────────────────────────────────────────────────────────────────
+ * HOW THE HYBRID MODEL WORKS:
+ * ─────────────────────────────────────────────────────────────────────────
+ *
+ *  WHAT THE TENANT PAYS ONLINE (to reserve the room):
+ *    1. Platform Service Fee  — 5% of total rent. Goes to iRent.
+ *    2. Gateway Fee           — 3.5% of the Platform Fee only (not the full rent).
+ *                               This keeps mobile money charges minimal.
+ *
+ *  WHAT THE TENANT PAYS IN CASH AT MOVE-IN (directly to the people):
+ *    3. Monthly Rent          — 100% goes directly to the landlord.
+ *    4. Dalali Fee            — 20% of ONE month's rent, paid directly to the
+ *                               dalali (property manager) who found the room.
+ *                               Only applies if the listing is managed by a dalali.
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * WHY THIS WORKS FOR EVERYONE:
+ *   - Tenant saves ~80% vs traditional one-month-rent dalali fee.
+ *   - Dalali gets a reliable income per placement, plus a loyal recurring client.
+ *   - Landlord receives 100% of rent directly — zero platform cuts.
+ *   - iRent earns its 5% commission reliably without touching rent money.
+ * ─────────────────────────────────────────────────────────────────────────
  */
 
 // ── Rate constants (single source of truth) ──────────────────────────────────
-export const PM_FEE_RATE = 0.03;       // 3% — project manager fee (conditional for dalalis)
-export const PLATFORM_FEE_RATE = 0.05; // 5% — platform service fee charged to TENANT
-export const DEPOSIT_RATE = 0.50;      // 50% — one-time platform deposit
-export const GATEWAY_FEE_RATE = 0.035; // 3.5% — payment gateway processing fee
+export const PLATFORM_FEE_RATE = 0.05;   // 5%  — iRent service fee (charged online)
+export const GATEWAY_FEE_RATE  = 0.035;  // 3.5% — Mobile money fee (on platform fee only)
+export const DALALI_FEE_RATE   = 0.20;   // 20%  — Dalali commission (one month, paid in cash)
 
+/**
+ * PaymentBreakdown — the complete financial picture for a tenant reservation.
+ */
 export interface PaymentBreakdown {
-  /** The raw per-month rent price. */
-  baseMonthlyRent: number;
-  /** Rent portion of payment (baseMonthlyRent × months). */
-  monthlyRent: number;
   /** Number of months being reserved. */
   months: number;
+  /** The raw per-month rent price. */
+  baseMonthlyRent: number;
+  /** Total rent for all reserved months (baseMonthlyRent × months). */
+  totalRent: number;
 
-  // ── Fees charged to the tenant ────────────────────────────────────────────
-  /** Platform service fee (5% of total rent). */
+  // ── Online charges (processed by mobile money) ────────────────────────────
+  /** Platform Service Fee: 5% of total rent. Paid to iRent online. */
   platformFee: number;
-  /** Project Manager fee (3% of total rent), only if managed by dalali. */
-  pmFee: number;
-  /**
-   * One-time platform deposit (50% of ONE month's rent).
-   * Acts as an advance payment on rent.
-   */
-  platformDepositFee: number;
-  /** Payment gateway processing fee (3.5% of total rent + platform fee + pm fee). */
+  /** Gateway processing fee: 3.5% of the platform fee (NOT of full rent). */
   gatewayFee: number;
+  /** Grand total charged online to reserve the room. */
+  dueTodayOnline: number;
 
-  // ── Totals ────────────────────────────────────────────────────────────────
-  /** Grand total cost of the lease including all fees. */
-  totalLeaseCost: number;
-  /** Amount the tenant must pay TODAY to reserve the room (Deposit + Platform Fee + PM Fee + Gateway Fee). */
-  dueAtReservation: number;
-  /** Amount the tenant will pay LATER (Total Rent - Deposit). */
-  dueLater: number;
+  // ── Cash charges (paid directly at move-in) ───────────────────────────────
+  /** Full rent amount — 100% paid directly to the landlord in cash. */
+  dueLaterRent: number;
+  /**
+   * Dalali (Property Manager) fee: 20% of ONE month's rent, paid in cash.
+   * Only applies when listing lister_type = 'dalali' | 'property_manager'.
+   * Pass isDalaliListing = true to calculateTenantPayment() to include this.
+   */
+  daliFee: number;
+  /** True if this listing is managed by a Dalali. */
+  isDalaliListing: boolean;
+  /** Total cash to prepare at move-in (rent + dalali fee if applicable). */
+  dueLaterTotal: number;
 }
 
 /**
  * Calculates the full payment breakdown for a tenant at lease initiation.
+ *
+ * @param monthlyRent      The monthly rent price in TZS.
+ * @param months           Number of months to reserve (default 1).
+ * @param isDalaliListing  Whether the listing is managed by a dalali (default false).
  */
-export function calculateTenantPayment(monthlyRent: number, months: number = 1): PaymentBreakdown {
+export function calculateTenantPayment(
+  monthlyRent: number,
+  months: number = 1,
+  isDalaliListing: boolean = false
+): PaymentBreakdown {
   const safeMonths = Math.max(1, Math.round(months));
-  const rentTotal = monthlyRent * safeMonths;
-  
-  // Tenant fees
-  const platformFee = Math.round(rentTotal * PLATFORM_FEE_RATE);
-  const pmFee = Math.round(rentTotal * PM_FEE_RATE); // Always charged
-  const platformDepositFee = monthlyRent * DEPOSIT_RATE; // 50% of ONE month only
-  
-  // Gateway fee is calculated based on the TOTAL cost (Rent + Platform Fee + PM Fee) once.
-  const gatewayFee = Math.round((rentTotal + platformFee + pmFee) * GATEWAY_FEE_RATE);
-  
-  // Grand total for the entire lease duration
-  const totalLeaseCost = rentTotal + platformFee + pmFee + gatewayFee;
-  
-  // What they pay today to reserve (Deposit + Platform Fee + PM Fee + Gateway Fee)
-  const dueAtReservation = platformDepositFee + platformFee + pmFee + gatewayFee;
-  
-  // What they pay later (Remaining rent)
-  const dueLater = rentTotal - platformDepositFee;
+  const totalRent  = monthlyRent * safeMonths;
+
+  // ── Online ────────────────────────────────────────────────────────────────
+  const platformFee     = Math.round(totalRent * PLATFORM_FEE_RATE);
+  const gatewayFee      = Math.round(platformFee * GATEWAY_FEE_RATE);
+  const dueTodayOnline  = platformFee + gatewayFee;
+
+  // ── Cash at move-in ───────────────────────────────────────────────────────
+  const dueLaterRent = totalRent;
+  const daliFee      = isDalaliListing ? Math.round(monthlyRent * DALALI_FEE_RATE) : 0;
+  const dueLaterTotal = dueLaterRent + daliFee;
 
   return {
-    baseMonthlyRent: monthlyRent,
-    monthlyRent: rentTotal,
     months: safeMonths,
+    baseMonthlyRent: monthlyRent,
+    totalRent,
     platformFee,
-    pmFee,
-    platformDepositFee: Math.round(platformDepositFee),
     gatewayFee,
-    totalLeaseCost,
-    dueAtReservation: Math.round(dueAtReservation),
-    dueLater: Math.round(dueLater),
+    dueTodayOnline,
+    dueLaterRent,
+    daliFee,
+    isDalaliListing,
+    dueLaterTotal,
   };
 }
 
@@ -99,5 +120,6 @@ export function formatTZS(amount: number): string {
  * Formats a percentage as a human-readable string e.g. 0.035 → "3.5%"
  */
 export function formatRate(rate: number): string {
-  return `${(rate * 100).toFixed(rate % 0.01 === 0 ? 0 : 1)}%`;
+  const pct = rate * 100;
+  return `${Number.isInteger(pct) ? pct : pct.toFixed(1)}%`;
 }
