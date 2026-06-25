@@ -41,6 +41,56 @@ export default function PullToRefresh({ children, onRefresh }: PullToRefreshProp
     return false;
   };
 
+  const animateBack = useCallback(() => {
+    setPullDistance(0);
+  }, []);
+
+  const triggerRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    setPullDistance(threshold); // Lock the spinner in place at the threshold
+    
+    let resolved = false;
+    const promise = new Promise<void>((resolve) => {
+      const handleDone = () => {
+        if (!resolved) {
+          resolved = true;
+          resolve();
+        }
+      };
+
+      if (onRefresh) {
+        Promise.resolve(onRefresh()).then(handleDone).catch(handleDone);
+      } else {
+        // Create cancelable custom event with completion callback in details
+        const event = new CustomEvent('app-refresh', {
+          detail: { complete: handleDone },
+          cancelable: true
+        });
+
+        // Dispatch event to window
+        const isPrevented = !window.dispatchEvent(event);
+
+        if (!isPrevented) {
+          // Fallback: Perform standard reload if no page is listening or handling dynamically
+          window.location.reload();
+          resolve();
+        } else {
+          // Dynamic handler is in charge. Set safety timeout of 3.5s to avoid permanent freeze
+          setTimeout(() => {
+            if (!resolved) {
+              resolved = true;
+              resolve();
+            }
+          }, 3500);
+        }
+      }
+    });
+
+    await promise;
+    setIsRefreshing(false);
+    animateBack();
+  }, [onRefresh, threshold, animateBack]);
+
   const handleTouchStart = useCallback((e: TouchEvent) => {
     if (isRefreshing) return;
     
@@ -102,7 +152,7 @@ export default function PullToRefresh({ children, onRefresh }: PullToRefreshProp
     
     startY.current = null;
     startX.current = null;
-  }, [isPulling, pullDistance]);
+  }, [isPulling, pullDistance, threshold, triggerRefresh, animateBack]);
   
   // Mouse events for desktop simulation and testing
   const handleMouseDown = useCallback((e: MouseEvent) => {
@@ -156,57 +206,7 @@ export default function PullToRefresh({ children, onRefresh }: PullToRefreshProp
     
     startY.current = null;
     startX.current = null;
-  }, [isPulling, pullDistance]);
-
-  const triggerRefresh = async () => {
-    setIsRefreshing(true);
-    setPullDistance(threshold); // Lock the spinner in place at the threshold
-    
-    let resolved = false;
-    const promise = new Promise<void>((resolve) => {
-      const handleDone = () => {
-        if (!resolved) {
-          resolved = true;
-          resolve();
-        }
-      };
-
-      if (onRefresh) {
-        Promise.resolve(onRefresh()).then(handleDone).catch(handleDone);
-      } else {
-        // Create cancelable custom event with completion callback in details
-        const event = new CustomEvent('app-refresh', {
-          detail: { complete: handleDone },
-          cancelable: true
-        });
-
-        // Dispatch event to window
-        const isPrevented = !window.dispatchEvent(event);
-
-        if (!isPrevented) {
-          // Fallback: Perform standard reload if no page is listening or handling dynamically
-          window.location.reload();
-          resolve();
-        } else {
-          // Dynamic handler is in charge. Set safety timeout of 3.5s to avoid permanent freeze
-          setTimeout(() => {
-            if (!resolved) {
-              resolved = true;
-              resolve();
-            }
-          }, 3500);
-        }
-      }
-    });
-
-    await promise;
-    setIsRefreshing(false);
-    animateBack();
-  };
-
-  const animateBack = () => {
-    setPullDistance(0);
-  };
+  }, [isPulling, pullDistance, threshold, triggerRefresh, animateBack]);
 
   useEffect(() => {
     // Add touch event listeners to window (passive: false for touchmove to enable preventDefault)
