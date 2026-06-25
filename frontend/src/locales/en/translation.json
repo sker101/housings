@@ -347,5 +347,14 @@
         "recentActivity": "Recent Activity",
         "noActivity": "No activity yet. Start by searching for a room!",
         "searchNow": "Search now"
+    },
+    "pwa": {
+        "updateTitle": "New Version Available! 🎉",
+        "updateSubtitle": "iRent has been updated — click below to get the latest improvements.",
+        "updateButton": "Update Now",
+        "updateNote": "No re-installation required. The app will reload instantly.",
+        "chipBugFixes": "🐛 Bug Fixes",
+        "chipPerformance": "⚡ Faster",
+        "chipNewFeatures": "✨ New Features"
     }
 }

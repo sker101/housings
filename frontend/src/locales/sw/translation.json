@@ -347,5 +347,14 @@
         "recentActivity": "Shughuli za Hivi Karibuni",
         "noActivity": "Hakuna shughuli bado. Anza kwa kutafuta chumba!",
         "searchNow": "Tafuta sasa"
+    },
+    "pwa": {
+        "updateTitle": "Toleo Jipya Lipo! 🎉",
+        "updateSubtitle": "iRent imeboreshwa — bonyeza ili kupata maboresho mapya.",
+        "updateButton": "Sasisha Sasa",
+        "updateNote": "Huhitaji kusakinisha upya. Programu itaendelea moja kwa moja.",
+        "chipBugFixes": "🐛 Matatizo yaliyotatuliwa",
+        "chipPerformance": "⚡ Haraka zaidi",
+        "chipNewFeatures": "✨ Vipengele vipya"
     }
 }

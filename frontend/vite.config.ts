@@ -8,7 +8,7 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       VitePWA({
-        registerType: 'autoUpdate',
+        registerType: 'prompt',
         injectRegister: 'auto',
         // Disable SW in dev — it causes false offline triggers when testing locally
         devOptions: {
@@ -74,7 +74,7 @@ export default defineConfig(({ mode }) => {
           ],
         },
         workbox: {
-          skipWaiting: true,
+          skipWaiting: false,
           clientsClaim: true,
           cleanupOutdatedCaches: true,
 
@@ -95,13 +95,23 @@ export default defineConfig(({ mode }) => {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff2}'],
           runtimeCaching: [
             {
-              // Supabase API — network first, 24h cache
+              // Supabase API — network first, 24h cache with 5s timeout for fast offline response
               urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
               handler: 'NetworkFirst',
               options: {
                 cacheName: 'supabase-cache',
                 expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 },
-                networkTimeoutSeconds: 10,
+                networkTimeoutSeconds: 5,
+              },
+            },
+            {
+              // Local /api endpoints — network first, 24h cache
+              urlPattern: /^\/api\/.*/i,
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'local-api-cache',
+                expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 },
+                networkTimeoutSeconds: 5,
               },
             },
             {

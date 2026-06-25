@@ -42,17 +42,5 @@ export function usePWAUpdate() {
     },
   });
 
-  // ── BROWSER (non-installed): silently auto-apply the update ──────────────
-  // On desktop/browser we don't interrupt the user — just reload when a new
-  // SW is ready. The page reloads in the background; users see the new version
-  // on their next navigation.
-  useEffect(() => {
-    if (needRefresh && !isInstalledPWA()) {
-      // Small delay so the current navigation completes first
-      const t = setTimeout(() => updateServiceWorker(true), 3_000);
-      return () => clearTimeout(t);
-    }
-  }, [needRefresh]);
-
   return { needRefresh, offlineReady, updateServiceWorker };
 }
