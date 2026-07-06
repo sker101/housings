@@ -726,7 +726,7 @@ export default function SearchPage() {
           paddingBottom: '0.5rem',
           scrollbarWidth: 'none'
         }}>
-          {ROOM_TYPE_OPTIONS.map((type) => {
+          {ROOM_TYPES.map((type) => {
             const Icon = type.icon;
             const isActive = selectedRoomType === type.value;
             return (
