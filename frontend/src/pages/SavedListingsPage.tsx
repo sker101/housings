@@ -77,7 +77,7 @@ export default function SavedListingsPage() {
   );
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--cream, #f8fafc)', padding: '1rem' }}>
+    <div style={{ minHeight: '100dvh', background: 'var(--cream, #f8fafc)', padding: '1rem' }}>
 
       {/* ── Breadcrumb ── */}
       <header style={{

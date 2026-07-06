@@ -246,7 +246,7 @@ export default function DashboardLayout({
     <div
       style={{
         display: 'flex',
-        minHeight: '100vh',
+        minHeight: '100dvh',
         background: 'var(--paper)',
       }}
     >
@@ -261,7 +261,7 @@ export default function DashboardLayout({
           flexDirection: 'column',
           position: 'sticky',
           top: 0,
-          height: '100vh',
+          height: '100dvh',
           overflowY: 'auto',
         }}
         className="dashboard-sidebar"

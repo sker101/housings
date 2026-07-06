@@ -229,7 +229,7 @@ export default function ProfilePage() {
   if (view === 'menu') {
     const initial = (form.fullName || user?.email || 'U').charAt(0).toUpperCase();
     return (
-      <div style={{ maxWidth: '600px', margin: '0 auto', paddingBottom: '120px', fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', background: '#f0fdf4', minHeight: '100vh' }}>
+      <div style={{ maxWidth: '600px', margin: '0 auto', paddingBottom: '120px', fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', background: '#f0fdf4', minHeight: '100dvh' }}>
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
           @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }

@@ -45,7 +45,7 @@ export default class PageErrorBoundary extends Component<Props, State> {
 
     return (
       <div style={{
-        minHeight: '100vh', display: 'flex', flexDirection: 'column',
+        minHeight: '100dvh', display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',
         background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 50%, #f9fafb 100%)',
         padding: '2rem', fontFamily: "'DM Sans', sans-serif",

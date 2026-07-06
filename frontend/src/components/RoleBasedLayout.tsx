@@ -462,7 +462,7 @@ export default function RoleBasedLayout() {
     <div
       style={{
         display: 'flex',
-        minHeight: '100vh',
+        minHeight: '100dvh',
         background: 'var(--paper)',
       }}
     >
@@ -476,7 +476,7 @@ export default function RoleBasedLayout() {
           flexDirection: 'column',
           position: 'sticky',
           top: 0,
-          height: '100vh',
+          height: '100dvh',
           overflowY: 'auto',
           zIndex: 50,
         }}
@@ -710,7 +710,8 @@ export default function RoleBasedLayout() {
         <main
           style={{
             flex: 1,
-            padding: '1.25rem 1rem 5rem',
+            padding: '1.25rem 1rem',
+            paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))',
             maxWidth: 1100,
             width: '100%',
             margin: '0 auto',

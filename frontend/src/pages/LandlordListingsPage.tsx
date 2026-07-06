@@ -648,7 +648,7 @@ export default function LandlordListingsPage() {
                 rooms={filtered
                   .map(listingToMapRoom)
                   .filter((r): r is NonNullable<typeof r> => r !== null)}
-                height="calc(100vh - 220px)"
+                height="calc(100dvh - 220px)"
                 onRoomClick={(id) => navigate(`/listings/${id}`)}
               />
               <div style={{

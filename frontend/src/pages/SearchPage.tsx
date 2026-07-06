@@ -930,7 +930,7 @@ export default function SearchPage() {
         <section style={{ position: 'relative' }}>
           {mapRooms.length === 0 && !loading ? (
             <div style={{
-              height: 'calc(100vh - 200px)', display: 'flex', flexDirection: 'column',
+              height: 'calc(100dvh - 200px)', display: 'flex', flexDirection: 'column',
               alignItems: 'center', justifyContent: 'center', gap: 12,
               background: '#f1f5f9', borderRadius: 16,
             }}>
@@ -946,7 +946,7 @@ export default function SearchPage() {
               <MapboxListingMap
                 rooms={mapRooms}
                 searchWard={searchQuery}
-                height="calc(100vh - 200px)"
+                height="calc(100dvh - 200px)"
                 onRoomClick={(roomId) => navigate(`/rooms/${roomId}`)}
                 onBoundsChange={handleBoundsChange}
               />

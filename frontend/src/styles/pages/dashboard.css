@@ -1138,7 +1138,7 @@
   /* Ensure body allows scrolling */
   html, body {
     height: auto;
-    min-height: 100vh;
+    min-height: 100dvh;
     overflow-x: hidden;
   }
 
@@ -1764,3 +1764,119 @@
     border-width: 5px;
     border-color: var(--jade);
   }
+
+/* ==========================================================================
+   GLOBAL MOBILE FIXES - Cross-platform touch & viewport improvements
+   ========================================================================== */
+
+/* Prevent body from scrolling when overlay is open */
+body.modal-open {
+  overflow: hidden;
+  touch-action: none;
+}
+
+/* Improve tap responsiveness everywhere */
+a, button, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* iOS momentum scrolling for scrollable containers */
+.overscroll-contain {
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ==========================================================================
+   LIST PROPERTY PAGE - Mobile Multi-step Form Fixes
+   ========================================================================== */
+
+@media (max-width: 679px) {
+  /* Step progress bar — wrap on narrow screens */
+  .step-progress-bar,
+  div[style*="stepper"] {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .step-progress-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Step wizard form container */
+  .step-content {
+    padding: 0.75rem !important;
+  }
+
+  /* Make form grids single-column on phones */
+  .step-content > div[style*="gridTemplateColumns"],
+  .step-content > label {
+    grid-column: 1 / -1 !important;
+  }
+
+  /* Photo grid on phones */
+  div[style*="grid-template-columns: repeat(3"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Review page summary chips */
+  div[style*="flexWrap: 'wrap'"] {
+    flex-wrap: wrap;
+  }
+
+  /* Ensure nav buttons at bottom of form are visible */
+  .step-nav-buttons,
+  div[style*="justify-content: space-between"][style*="marginTop"] {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
+/* ==========================================================================
+   SAFE AREA INSET - Full device support (notch, home indicator)
+   ========================================================================== */
+
+/* Sticky headers should respect top safe area */
+header[style*="position: sticky"],
+.topbar {
+  padding-top: max(0px, env(safe-area-inset-top));
+}
+
+/* Fixed bottom elements should account for home indicator */
+.mobile-bottom-nav-container,
+.bottom-nav {
+  padding-bottom: max(env(safe-area-inset-bottom), 8px) !important;
+}
+
+/* Prevent horizontal overflow globally on mobile */
+@media (max-width: 679px) {
+  html, body, #root {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  /* Fix tables that might cause horizontal scroll */
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Cards should not overflow on mobile */
+  .card, .auth-card, .room-card, .listing-card {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Dashboard container on mobile - proper safe-area padding */
+  .dashboard-container {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Messages page - no margin on mobile so it fills screen */
+  .msg-shell {
+    margin: 0 !important;
+    border-radius: 0 !important;
+    height: calc(100dvh - 140px) !important;
+    min-height: unset !important;
+  }
+}

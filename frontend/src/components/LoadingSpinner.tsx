@@ -22,7 +22,7 @@ export function LoadingSpinner({
   const { spinner, border } = sizeMap[size];
 
   const containerStyle: React.CSSProperties = fullPage ? {
-    minHeight: '100vh',
+    minHeight: '100dvh',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
@@ -75,7 +75,7 @@ export function LoadingSpinner({
 export function DashboardSkeleton() {
   return (
     <div style={{
-      minHeight: '100vh',
+      minHeight: '100dvh',
       background: '#f8fafc',
       padding: '2rem'
     }}>

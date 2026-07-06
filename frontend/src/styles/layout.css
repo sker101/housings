@@ -9,12 +9,12 @@
 }
 
 .main-content {
-  min-height: calc(100vh - 64px);
+  min-height: calc(100dvh - 64px);
   padding-bottom: 96px;
 }
 
 .app-shell {
-  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .section {
@@ -253,6 +253,14 @@
   gap: 2rem;
 }
 
+@media (max-width: 679px) {
+  .footer__stats-inner {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    padding: 0 1rem;
+  }
+}
+
 .footer__stat {
   text-align: center;
   color: white;
@@ -292,6 +300,14 @@
   display: grid;
   grid-template-columns: 2fr 1fr 1fr;
   gap: 3rem;
+}
+
+@media (max-width: 679px) {
+  .footer__main-inner {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    padding: 0 1rem;
+  }
 }
 
 /* Brand Column */
@@ -444,6 +460,15 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+@media (max-width: 679px) {
+  .footer__bottom-inner {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+    padding: 0 1rem;
+  }
 }
 
 .footer__copyright {

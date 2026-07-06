@@ -587,7 +587,7 @@ export default function HomePage() {
   }, [listingStatuses]);
 
   return (
-    <div style={{ minHeight: '100vh', position: 'relative' }}>
+    <div style={{ minHeight: '100dvh', position: 'relative' }}>
       <div className="homepage-wrapper">
         <div className="homepage-bg" style={{ backgroundImage: `url(${bgImage})` }} />
         <div className="homepage-overlay" />
@@ -695,7 +695,7 @@ export default function HomePage() {
             <>
               {viewMode === 'map' ? (
                 <div className={`map-view-container ${isTransitioning ? 'is-transitioning' : ''}`} style={{ 
-                  height: 'calc(100vh - 240px)', 
+                  height: 'calc(100dvh - 240px)', 
                   width: '100%', 
                   borderRadius: '20px', 
                   overflow: 'hidden',

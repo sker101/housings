@@ -407,7 +407,7 @@ export default function MessagesPage() {
         @keyframes slideIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
         @keyframes fadeIn{from{opacity:0}to{opacity:1}}
         @keyframes bubblePop{0%{transform:scale(0.9);opacity:0}50%{transform:scale(1.02)}100%{transform:scale(1);opacity:1}}
-        .msg-shell{display:flex;height:calc(100vh - 80px);min-height:600px;background:#f1f5f9;margin:0;overflow:hidden}
+        .msg-shell{display:flex;height:calc(100dvh - 80px);min-height:600px;background:#f1f5f9;margin:0;overflow:hidden}
         @media(min-width:768px){.msg-shell{margin:1rem;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,0.08);border:1px solid #e2e8f0}}
         
         /* Mobile Back Button */
@@ -553,7 +553,7 @@ export default function MessagesPage() {
         </nav>
       </header>
 
-        <div className="msg-shell" style={{margin:'1rem',height:'calc(100vh - 180px)'}}>
+        <div className="msg-shell" style={{margin:'1rem',height:'calc(100dvh - 180px)'}}>
           {/* Sidebar */}
           <div className={`conv-sidebar${threadId ? ' thread-active' : ''}`}>
             <div className="conv-sidebar-hdr">

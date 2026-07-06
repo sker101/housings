@@ -72,7 +72,7 @@
 
 .ts-page-wrapper .cover {
     background: var(--ink);
-    min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
     flex-direction: column;
     justify-content: center;
