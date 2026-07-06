@@ -847,14 +847,63 @@ export default function ListPropertyPage() {
         }
       } else {
         try {
-          const inserted = await insertRows('listings', fullListingPayload, { accessToken });
-          createdListingId = inserted[0].id;
-          console.log('✅ Listing created (Full Mode)');
+          console.log('📦 Creating Listing (Direct Table Access due to missing view trigger)...');
+          
+          // 1. Get or create landlord
+          const landlordRows = await selectRows('landlords', {
+            filters: [{ column: 'profile_id', op: 'eq', value: targetListerId }],
+            accessToken
+          });
+          let landlordId;
+          if (landlordRows && landlordRows.length > 0) {
+            landlordId = landlordRows[0].id;
+          } else {
+            const insertedLandlord = await insertRows('landlords', { profile_id: targetListerId }, { accessToken });
+            landlordId = insertedLandlord[0].id;
+          }
+
+          // 2. Create property
+          const propertyPayload = {
+            landlord_id: landlordId,
+            title: fullListingPayload.title,
+            description: fullListingPayload.description,
+            city: fullListingPayload.region,
+            district: fullListingPayload.district,
+            neighbourhood: fullListingPayload.district,
+            ward: fullListingPayload.ward,
+            address: fullListingPayload.street,
+            latitude: fullListingPayload.lat || 0,
+            longitude: fullListingPayload.lng || 0,
+            status: 'active',
+            verification_status: fullListingPayload.status === 'approved' ? 'verified' : 'pending'
+          };
+          const insertedProperty = await insertRows('properties', propertyPayload, { accessToken });
+          const propertyId = insertedProperty[0].id;
+
+          // 3. Create room
+          const roomPayload = {
+            property_id: propertyId,
+            room_type: fullListingPayload.room_type,
+            price_tzs: fullListingPayload.price_monthly,
+            deposit_tzs: fullListingPayload.security_deposit || 0,
+            availability_status: fullListingPayload.vacancy_status || 'available',
+            is_available: true,
+            amenities: fullListingPayload.amenities,
+            elec_type: fullListingPayload.elec_type,
+            water_type: fullListingPayload.water_type,
+            waste_cost: fullListingPayload.waste_cost,
+            elec_cost: fullListingPayload.elec_cost,
+            water_cost: fullListingPayload.water_cost,
+            available_from: fullListingPayload.available_from,
+            is_coming_soon: fullListingPayload.vacancy_status === 'available_soon'
+          };
+          const insertedRoom = await insertRows('rooms', roomPayload, { accessToken });
+          createdListingId = insertedRoom[0].id;
+          
+          console.log('✅ Listing created directly in tables');
         } catch (insertErr: any) {
-          console.warn('⚠️ Full listing insert failed, trying Safe Mode...', insertErr.message);
-          const inserted = await insertRows('listings', minimalListingPayload, { accessToken });
-          createdListingId = inserted[0].id;
-          console.log('✅ Listing created (Safe Mode)');
+          console.error('⚠️ Direct listing insert failed:', insertErr);
+          throw new Error(`Failed to insert listing: ${insertErr.message || insertErr}`);
         }
       }
       
