@@ -754,11 +754,25 @@ export default function ListPropertyPage() {
       // For now, if admin, keep original status, else pending.
       const targetStatus = (isAdmin && editId && originalStatus) ? originalStatus : 'pending';
 
+      const safeRoomTypeMap: Record<string, string> = {
+        '1_bedroom': 'single',
+        '2_bedroom': 'double',
+        'studio': 'bedsitter',
+        'apartment': 'self_contained',
+        'guesthouse': 'single',
+        'sq': 'single'
+      };
+      const validRoomTypes = ['single', 'double', 'self_contained', 'shared', 'bedsitter'];
+      let safeRoomType = values.roomType;
+      if (!validRoomTypes.includes(safeRoomType)) {
+         safeRoomType = safeRoomTypeMap[safeRoomType] || 'single';
+      }
+
       const fullListingPayload = {
         lister_id: targetListerId,
         title: sanitizeInput(values.title),
         description: sanitizeInput(values.description),
-        room_type: values.roomType,
+        room_type: safeRoomType,
         price_monthly: Math.round(Number(values.priceMonthly) * 1.05),
         security_deposit: Number(values.securityDeposit || 0),
         floor: values.floor || null,
@@ -797,7 +811,7 @@ export default function ListPropertyPage() {
         lister_id: targetListerId,
         title: values.title.trim(),
         description: values.description.trim(),
-        room_type: values.roomType,
+        room_type: safeRoomType,
         price_monthly: Math.round(Number(values.priceMonthly) * 1.05),
         region: values.region,
         district: values.district,
