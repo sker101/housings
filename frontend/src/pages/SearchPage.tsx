@@ -26,16 +26,12 @@ const UNIVERSITY_OPTIONS = [
 ];
 
 // Room type options with icons
-const ROOM_TYPE_OPTIONS = [
-  { value: 'all', label: 'All types', icon: Bed },
-  { value: 'single', label: 'Single room', icon: Bed },
-  { value: 'shared', label: 'Shared room', icon: Users },
-  { value: 'bedsit', label: 'Bedsit', icon: Bed },
-  { value: 'studio', label: 'Studio', icon: Bed },
-  { value: 'apartment', label: 'Apartment', icon: Bath },
-  { value: 'self_contained', label: 'Self contained', icon: Bath },
-  { value: '1_bedroom', label: '1 Bedroom', icon: Bed },
-  { value: '2_bedroom', label: '2 Bedroom', icon: Bed },
+const ROOM_TYPES = [
+  { value: 'single', label: 'Single Room', icon: Bed },
+  { value: 'double', label: 'Double Room', icon: Bed },
+  { value: 'self_contained', label: 'Self Contained', icon: Bath },
+  { value: 'shared', label: 'Shared Room', icon: Users },
+  { value: 'bedsitter', label: 'Bedsitter', icon: Bed }
 ];
 
 // Amenity options with icons

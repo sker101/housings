@@ -37,13 +37,10 @@ export const DAR_WARDS = {
 
 export const ROOM_TYPES = [
     { value: 'single', label: 'Single Room' },
+    { value: 'double', label: 'Double Room' },
     { value: 'self_contained', label: 'Self-Contained' },
     { value: 'shared', label: 'Shared Room' },
-    { value: 'studio', label: 'Studio Apartment' },
-    { value: '1_bedroom', label: '1-Bedroom Apartment' },
-    { value: '2_bedroom', label: '2-Bedroom Apartment' },
-    { value: 'guesthouse', label: 'Guesthouse Room' },
-    { value: 'sq', label: 'Servants Quarters (SQ)' }
+    { value: 'bedsitter', label: 'Bedsitter' }
 ];
 
 export const SORT_OPTIONS = [
