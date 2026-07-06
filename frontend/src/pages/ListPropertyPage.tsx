@@ -92,9 +92,9 @@ const formSchema = z.object({
   // Step 2b: Utilities (informational, cash-paid to landlord)
   elecType:  z.enum(['independent', 'shared', 'included']).default('shared'),
   waterType: z.enum(['independent', 'shared', 'included']).default('shared'),
-  wasteCost: z.coerce.number().min(0).default(0),
-  elecCost:  z.coerce.number().min(0).default(0),
-  waterCost: z.coerce.number().min(0).default(0),
+  wasteCost: z.preprocess((val) => (val === '' || val === null || val === undefined ? '' : val), z.union([z.string(), z.number()]).optional().default('')),
+  elecCost:  z.preprocess((val) => (val === '' || val === null || val === undefined ? '' : val), z.union([z.string(), z.number()]).optional().default('')),
+  waterCost: z.preprocess((val) => (val === '' || val === null || val === undefined ? '' : val), z.union([z.string(), z.number()]).optional().default('')),
 
   // Step 3: Location
   region: z.string().min(1, 'Region is required'),
@@ -1419,7 +1419,10 @@ export default function ListPropertyPage() {
 
               <label>
                 <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>Security Deposit</div>
-                <input type="number" {...register('securityDeposit')} min="0" placeholder="250000" style={{ width: '100%', padding: '0.65rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.9rem' }} />
+                <div style={{ position: 'relative' }}>
+                  <Banknote size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#6B6B5A' }} />
+                  <input type="number" {...register('securityDeposit')} min="0" placeholder="e.g. 250000" style={{ width: '100%', padding: '0.65rem 0.65rem 0.65rem 2.5rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.9rem' }} />
+                </div>
               </label>
 
               <label>
@@ -1450,68 +1453,78 @@ export default function ListPropertyPage() {
               </label>
 
               {/* ── Utility Setup Section ─────────────────────── */}
-              <div style={{ gridColumn: '1 / -1', background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: 14, padding: '1.25rem', marginTop: '0.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                  <Zap size={16} color="#16a34a" />
-                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>Monthly Utilities Setup</span>
-                  <span style={{ fontSize: '0.75rem', color: '#64748b', marginLeft: '0.25rem' }}>(shown to tenants — paid in cash to you)</span>
+              <div style={{ gridColumn: '1 / -1', background: 'linear-gradient(to bottom right, #f8fafc, #f1f5f9)', border: '1px solid #e2e8f0', borderRadius: 14, padding: '1.5rem', marginTop: '0.5rem', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem' }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: '#dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb' }}>
+                    <Zap size={16} />
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e293b', display: 'block' }}>Monthly Utilities Setup</span>
+                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>(shown to tenants — paid in cash to you)</span>
+                  </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-                  <label>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                      <Zap size={13} /> Electricity (LUKU)
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
+                  {/* Electricity */}
+                  <div style={{ background: 'white', padding: '1rem', borderRadius: 12, border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.5rem', color: '#1A1A2E', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <Zap size={14} color="#eab308" /> Electricity (LUKU)
                     </div>
-                    <select {...register('elecType' as any)} style={{ width: '100%', padding: '0.65rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.9rem', background: 'white' }}>
+                    <select {...register('elecType' as any)} style={{ width: '100%', padding: '0.65rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.85rem', background: '#f8fafc', marginBottom: '0.75rem', outline: 'none' }}>
                       <option value="independent">⚡ Independent — Tenant buys own LUKU</option>
                       <option value="shared">🔌 Shared — Split with other tenants</option>
                       <option value="included">✅ Included in rent</option>
                     </select>
-                    {formValues.elecType !== 'included' && (
-                      <div style={{ marginTop: '0.5rem' }}>
-                        <div style={{ fontSize: '0.72rem', fontWeight: 600, marginBottom: '0.25rem', color: '#64748b' }}>
-                          Estimated/Fixed Monthly Cost (TZS)
+                    {formValues.elecType === 'shared' && (
+                      <div style={{ animation: 'fadeIn 0.2s ease-out' }}>
+                        <div style={{ fontSize: '0.72rem', fontWeight: 600, marginBottom: '0.35rem', color: '#64748b' }}>
+                          Estimated Monthly Cost (TZS)
                         </div>
                         <div style={{ position: 'relative' }}>
-                          <Banknote size={12} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
-                          <input type="number" {...register('elecCost' as any)} min="0" placeholder="e.g. 15000 (0 if tenant pays utility company directly)" style={{ width: '100%', padding: '0.5rem 0.5rem 0.5rem 2rem', border: '1px solid #E5E5E0', borderRadius: 8, fontSize: '0.85rem' }} />
+                          <Banknote size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                          <input type="number" {...register('elecCost' as any)} min="0" placeholder="e.g. 15000" style={{ width: '100%', padding: '0.6rem 0.6rem 0.6rem 2.2rem', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: '0.85rem', outline: 'none', transition: 'border-color 0.2s' }} />
                         </div>
                       </div>
                     )}
-                  </label>
+                  </div>
 
-                  <label>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                      <Droplets size={13} /> Water (DAWASA)
+                  {/* Water */}
+                  <div style={{ background: 'white', padding: '1rem', borderRadius: 12, border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.5rem', color: '#1A1A2E', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <Droplets size={14} color="#3b82f6" /> Water (DAWASA)
                     </div>
-                    <select {...register('waterType' as any)} style={{ width: '100%', padding: '0.65rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.9rem', background: 'white' }}>
+                    <select {...register('waterType' as any)} style={{ width: '100%', padding: '0.65rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.85rem', background: '#f8fafc', marginBottom: '0.75rem', outline: 'none' }}>
                       <option value="independent">💧 Independent — Own meter</option>
                       <option value="shared">🚰 Shared — Split with other tenants</option>
                       <option value="included">✅ Included in rent</option>
                     </select>
-                    {formValues.waterType !== 'included' && (
-                      <div style={{ marginTop: '0.5rem' }}>
-                        <div style={{ fontSize: '0.72rem', fontWeight: 600, marginBottom: '0.25rem', color: '#64748b' }}>
-                          Estimated/Fixed Monthly Cost (TZS)
+                    {formValues.waterType === 'shared' && (
+                      <div style={{ animation: 'fadeIn 0.2s ease-out' }}>
+                        <div style={{ fontSize: '0.72rem', fontWeight: 600, marginBottom: '0.35rem', color: '#64748b' }}>
+                          Estimated Monthly Cost (TZS)
                         </div>
                         <div style={{ position: 'relative' }}>
-                          <Banknote size={12} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
-                          <input type="number" {...register('waterCost' as any)} min="0" placeholder="e.g. 10000 (0 if tenant pays utility company directly)" style={{ width: '100%', padding: '0.5rem 0.5rem 0.5rem 2rem', border: '1px solid #E5E5E0', borderRadius: 8, fontSize: '0.85rem' }} />
+                          <Banknote size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                          <input type="number" {...register('waterCost' as any)} min="0" placeholder="e.g. 10000" style={{ width: '100%', padding: '0.6rem 0.6rem 0.6rem 2.2rem', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: '0.85rem', outline: 'none', transition: 'border-color 0.2s' }} />
                         </div>
                       </div>
                     )}
-                  </label>
+                  </div>
 
-                  <label>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                      🗑️ Waste Collection (Monthly TZS)
+                  {/* Waste Collection */}
+                  <div style={{ background: 'white', padding: '1rem', borderRadius: 12, border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.5rem', color: '#1A1A2E', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <span style={{ fontSize: '14px' }}>🗑️</span> Waste Collection
                     </div>
-                    <div style={{ position: 'relative' }}>
-                      <Banknote size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#6B6B5A' }} />
-                      <input type="number" {...register('wasteCost' as any)} min="0" placeholder="e.g. 5000 (0 = not charged)" style={{ width: '100%', padding: '0.65rem 0.65rem 0.65rem 2.2rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.9rem' }} />
+                    <div style={{ fontSize: '0.72rem', fontWeight: 600, marginBottom: '0.35rem', color: '#64748b' }}>
+                      Fixed Monthly Cost (TZS)
                     </div>
-                    <span style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '0.25rem', display: 'block' }}>Enter 0 if no waste fee applies.</span>
-                  </label>
+                    <div style={{ position: 'relative', marginBottom: '0.25rem' }}>
+                      <Banknote size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                      <input type="number" {...register('wasteCost' as any)} min="0" placeholder="e.g. 5000" style={{ width: '100%', padding: '0.6rem 0.6rem 0.6rem 2.2rem', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: '0.85rem', outline: 'none' }} />
+                    </div>
+                    <span style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'block' }}>Leave empty or 0 if no waste fee applies.</span>
+                  </div>
                 </div>
 
                 <div style={{ marginTop: '0.75rem', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '0.6rem 0.8rem', fontSize: '0.78rem', color: '#92400e', display: 'flex', gap: '0.4rem', alignItems: 'flex-start' }}>
