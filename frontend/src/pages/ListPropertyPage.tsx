@@ -120,18 +120,63 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
+// ── Structured 6-mandatory photo slots ─────────────────────────────────────
+// These 6 views are REQUIRED for every listing. They give tenants a complete,
+// honest picture of the property and build trust in the platform.
 const PHOTO_SLOTS = [
-  { key: 'outside', label: 'Outside', required: true },
-  { key: 'bedroom', label: 'Bedroom', required: true },
-  { key: 'kitchen', label: 'Kitchen', required: true },
-  { key: 'bathroom', label: 'Bathroom', required: true },
-  { key: 'other1', label: 'Other', required: false },
-  { key: 'other2', label: 'Other', required: false },
-  { key: 'other3', label: 'Other', required: false },
-  { key: 'other4', label: 'Other', required: false },
-  { key: 'other5', label: 'Other', required: false },
-  { key: 'other6', label: 'Other', required: false },
+  {
+    key: 'exterior_front',
+    label: 'Front View',
+    icon: '🏠',
+    hint: 'Front of the house / building entrance',
+    required: true,
+  },
+  {
+    key: 'exterior_side',
+    label: 'Side View',
+    icon: '🏡',
+    hint: 'Another angle of the exterior (side or back)',
+    required: true,
+  },
+  {
+    key: 'bathroom',
+    label: 'Washroom',
+    icon: '🚿',
+    hint: 'Bathroom / toilet / shower area',
+    required: true,
+  },
+  {
+    key: 'bedroom',
+    label: 'Bedroom Area',
+    icon: '🛏️',
+    hint: 'Where the bed will stay (the actual room)',
+    required: true,
+  },
+  {
+    key: 'road_access',
+    label: 'Road / Access',
+    icon: '🛣️',
+    hint: 'The road or path leading to the house',
+    required: true,
+  },
+  {
+    key: 'surroundings',
+    label: 'Surroundings',
+    icon: '🌳',
+    hint: 'Outside environment / neighbourhood view',
+    required: true,
+  },
+  // ── Optional extra photos for further advertisement ───────────────────────
+  { key: 'extra_1', label: 'Additional Photo', icon: '📷', hint: 'Kitchen, living room, compound, etc.', required: false },
+  { key: 'extra_2', label: 'Additional Photo', icon: '📷', hint: 'Kitchen, living room, compound, etc.', required: false },
+  { key: 'extra_3', label: 'Additional Photo', icon: '📷', hint: 'Kitchen, living room, compound, etc.', required: false },
+  { key: 'extra_4', label: 'Additional Photo', icon: '📷', hint: 'Kitchen, living room, compound, etc.', required: false },
+  { key: 'extra_5', label: 'Additional Photo', icon: '📷', hint: 'Kitchen, living room, compound, etc.', required: false },
+  { key: 'extra_6', label: 'Additional Photo', icon: '📷', hint: 'Kitchen, living room, compound, etc.', required: false },
 ];
+
+const REQUIRED_PHOTO_SLOTS = PHOTO_SLOTS.filter(s => s.required);
+const OPTIONAL_PHOTO_SLOTS = PHOTO_SLOTS.filter(s => !s.required);
 
 const DEFAULT_AMENITIES = Object.fromEntries(
   AMENITIES_LIST.map(a => [a.key, false])
@@ -236,15 +281,22 @@ function validateStep(step: number, values: any, files: any, previews: any): str
       return '';
     },
     5: () => {
-      // If editing, existing photos will be kept if new ones aren't provided.
-      const isEditingOffset = new URLSearchParams(window.location.search).has('edit');
-      
-      const uploadedCount = Object.values(files || {}).filter(f => f).length;
-      const existingCount = Object.values(previews || {}).filter(p => p && String(p).startsWith('http')).length;
-      const totalPhotos = uploadedCount + existingCount;
+      // Check each mandatory slot individually and report the first missing one.
+      const missingSlotsLabels: string[] = [];
 
-      if (totalPhotos < 4 && !isEditingOffset) {
-        return 'Please upload at least 4 photos (Outside, Bedroom, Kitchen, Bathroom) to publish this listing.';
+      for (const slot of REQUIRED_PHOTO_SLOTS) {
+        const hasNew = !!(files || {})[slot.key];
+        const hasExisting = !!(previews || {})[slot.key] && String((previews || {})[slot.key]).startsWith('http');
+        if (!hasNew && !hasExisting) {
+          missingSlotsLabels.push(`${slot.icon} ${slot.label}`);
+        }
+      }
+
+      if (missingSlotsLabels.length > 0) {
+        if (missingSlotsLabels.length === REQUIRED_PHOTO_SLOTS.length) {
+          return 'Please upload all 6 required photos before continuing.';
+        }
+        return `Missing required photo${missingSlotsLabels.length > 1 ? 's' : ''}: ${missingSlotsLabels.join(', ')}.`;
       }
       return '';
     },
@@ -1595,67 +1647,264 @@ export default function ListPropertyPage() {
           )}
 
           {/* Step 5: Photos */}
-          {step === 5 && (
-            <div className="step-content" style={{ display: 'grid', gap: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                <div style={{ width: 32, height: 32, borderRadius: 8, background: '#EAF3DE', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#166534' }}>
-                  <ImageIcon size={16} />
-                </div>
-                <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#1A1A2E', whiteSpace: 'nowrap' }}>Photos & Video</span>
-              </div>
+          {step === 5 && (() => {
+            // Count how many required slots are filled
+            const requiredFilled = REQUIRED_PHOTO_SLOTS.filter(slot =>
+              !!(files[slot.key] || (previews[slot.key] && String(previews[slot.key]).startsWith('http')))
+            ).length;
+            const totalRequired = REQUIRED_PHOTO_SLOTS.length;
+            const progressPctPhotos = Math.round((requiredFilled / totalRequired) * 100);
+            const allRequiredDone = requiredFilled === totalRequired;
 
-              <p style={{ color: '#6B6B5A', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>Upload 4-10 photos. First 4 required.</p>
+            return (
+              <div className="step-content" style={{ display: 'grid', gap: '1.25rem' }}>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '0.75rem' }}>
-                {PHOTO_SLOTS.map((slot) => (
-                  <div key={slot.key} style={{
-                    border: (files[slot.key] || previews[slot.key]) ? '2px solid #16a34a' : '2px dashed #E5E5E0',
-                    borderRadius: 12,
-                    padding: '0.75rem',
-                    textAlign: 'center',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    position: 'relative',
-                    background: (files[slot.key] || previews[slot.key]) ? '#EAF3DE' : 'white'
-                  }}>
-                    {(files[slot.key] || previews[slot.key]) && (
-                      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFiles(prev => ({ ...prev, [slot.key]: null })); setPreviews(prev => ({ ...prev, [slot.key]: null })); if (editId) setPhotosToDelete(prev => [...prev, slot.key]); }} style={{ position: 'absolute', top: '4px', right: '4px', background: '#DC2626', color: 'white', border: 'none', borderRadius: '50%', width: 22, height: 22, cursor: 'pointer', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}>✕</button>
-                    )}
-                    <label style={{ cursor: 'pointer', display: 'block' }}>
-                      <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.3rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>
-                        {slot.label} {slot.required && <span style={{ color: '#DC2626' }}>*</span>}
-                      </div>
-                      {previews[slot.key] ? (
-                        <div style={{ marginBottom: '0.5rem' }}>
-                          <img src={previews[slot.key]!} alt={slot.label} style={{ width: 60, height: 45, objectFit: 'cover', borderRadius: 6, border: '1px solid #E5E5E0' }} />
-                        </div>
-                      ) : (
-                        <div style={{ width: 60, height: 45, margin: '0 auto 0.5rem', borderRadius: 6, background: '#f5f5f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6B6B5A' }}>
-                          <ImageIcon size={20} />
-                        </div>
-                      )}
-                      {files[slot.key] ? (
-                        <div style={{ color: '#16a34a', fontSize: '0.7rem', whiteSpace: 'nowrap' }}><CheckCircle size={12} style={{ display: 'inline' }} /> Done</div>
-                      ) : previews[slot.key] ? (
-                        <div style={{ color: '#16a34a', fontSize: '0.7rem', whiteSpace: 'nowrap' }}>Saved</div>
-                      ) : (
-                        <div style={{ color: '#6B6B5A', fontSize: '0.7rem', whiteSpace: 'nowrap' }}>Click to upload</div>
-                      )}
-                      <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => { const file = e.target.files?.[0] || null; setFiles(prev => ({ ...prev, [slot.key]: file })); if (file) { setPreviews(prev => ({ ...prev, [slot.key]: URL.createObjectURL(file) })); setPhotosToDelete(prev => prev.filter(a => a !== slot.key)); } }} style={{ display: 'none' }} />
-                    </label>
+                {/* Header */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: '#EAF3DE', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#166534' }}>
+                    <ImageIcon size={16} />
                   </div>
-                ))}
-              </div>
-
-              <label style={{ marginTop: '0.5rem' }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>Video Tour URL (Optional)</div>
-                <div style={{ position: 'relative' }}>
-                  <Video size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#6B6B5A' }} />
-                  <input {...register('videoTourUrl')} placeholder="https://youtube.com/watch?v=..." style={{ width: '100%', padding: '0.65rem 0.65rem 0.65rem 2.5rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.9rem' }} />
+                  <div>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1A1A2E', display: 'block' }}>Photos & Video</span>
+                    <span style={{ fontSize: '0.75rem', color: '#6B6B5A' }}>6 specific photos required · Extra photos optional</span>
+                  </div>
                 </div>
-              </label>
-            </div>
-          )}
+
+                {/* Progress bar */}
+                <div style={{ background: '#F1F5F9', borderRadius: 10, padding: '0.85rem 1rem', border: '1px solid #E2E8F0' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: allRequiredDone ? '#16a34a' : '#1A1A2E' }}>
+                      {allRequiredDone ? '✅ All required photos uploaded!' : `${requiredFilled} of ${totalRequired} required photos uploaded`}
+                    </span>
+                    <span style={{ fontSize: '0.75rem', color: '#6B6B5A', fontWeight: 600 }}>{progressPctPhotos}%</span>
+                  </div>
+                  <div style={{ height: 6, background: '#E2E8F0', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{
+                      width: `${progressPctPhotos}%`,
+                      height: '100%',
+                      background: allRequiredDone ? 'linear-gradient(90deg, #16a34a, #22c55e)' : 'linear-gradient(90deg, #f59e0b, #fbbf24)',
+                      transition: 'width 0.4s cubic-bezier(0.4,0,0.2,1)',
+                      borderRadius: 3
+                    }} />
+                  </div>
+                </div>
+
+                {/* ── SECTION A: Mandatory Photos ──────────────────────────── */}
+                <div style={{
+                  background: 'linear-gradient(135deg, #FAFFF9 0%, #F0F9F4 100%)',
+                  border: '1.5px solid #BBF7D0',
+                  borderRadius: 14,
+                  padding: '1.25rem',
+                }}>  
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                    <Shield size={15} color="#16a34a" />
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#15803d' }}>6 Required Photos</span>
+                    <span style={{ fontSize: '0.72rem', color: '#6B6B5A', background: '#DCFCE7', padding: '2px 8px', borderRadius: 20, fontWeight: 600, marginLeft: 'auto', whiteSpace: 'nowrap' }}>Builds tenant trust</span>
+                  </div>
+                  <p style={{ fontSize: '0.75rem', color: '#4b7a5a', marginBottom: '1rem', lineHeight: 1.5 }}>
+                    These 6 photos are mandatory and show on every listing. They give tenants a complete, honest view of the property before they visit.
+                  </p>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '0.75rem' }}>
+                    {REQUIRED_PHOTO_SLOTS.map((slot) => {
+                      const hasFile = !!files[slot.key];
+                      const hasPreview = !!(previews[slot.key] && String(previews[slot.key]).startsWith('http'));
+                      const isFilled = hasFile || hasPreview;
+                      return (
+                        <div key={slot.key} style={{
+                          border: isFilled ? '2px solid #16a34a' : '2px dashed #86efac',
+                          borderRadius: 12,
+                          padding: '0.75rem 0.5rem',
+                          textAlign: 'center',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          position: 'relative',
+                          background: isFilled ? '#F0FDF4' : 'white',
+                          boxShadow: isFilled ? '0 2px 8px rgba(22,163,74,0.12)' : 'none'
+                        }}>
+                          {/* Required badge */}
+                          <div style={{
+                            position: 'absolute',
+                            top: 6,
+                            left: 6,
+                            background: isFilled ? '#16a34a' : '#FEF2F2',
+                            color: isFilled ? 'white' : '#DC2626',
+                            fontSize: '0.6rem',
+                            fontWeight: 700,
+                            padding: '1px 5px',
+                            borderRadius: 4,
+                            letterSpacing: '0.03em',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            {isFilled ? '✓ Done' : 'Required'}
+                          </div>
+                          {/* Remove button */}
+                          {isFilled && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault(); e.stopPropagation();
+                                setFiles(prev => ({ ...prev, [slot.key]: null }));
+                                setPreviews(prev => ({ ...prev, [slot.key]: null }));
+                                if (editId) setPhotosToDelete(prev => [...prev, slot.key]);
+                              }}
+                              style={{
+                                position: 'absolute', top: 6, right: 6,
+                                background: '#DC2626', color: 'white', border: 'none',
+                                borderRadius: '50%', width: 20, height: 20, cursor: 'pointer',
+                                zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px'
+                              }}
+                            >✕</button>
+                          )}
+                          <label style={{ cursor: 'pointer', display: 'block', marginTop: '0.5rem' }}>
+                            {/* Preview or icon */}
+                            {previews[slot.key] ? (
+                              <img
+                                src={previews[slot.key]!}
+                                alt={slot.label}
+                                style={{ width: '100%', height: 75, objectFit: 'cover', borderRadius: 8, marginBottom: '0.4rem', border: '1px solid #BBF7D0' }}
+                              />
+                            ) : (
+                              <div style={{
+                                width: '100%', height: 75, borderRadius: 8, background: '#F0FDF4',
+                                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                marginBottom: '0.4rem', color: '#86EFAC', gap: '0.2rem'
+                              }}>
+                                <span style={{ fontSize: '1.6rem', lineHeight: 1 }}>{slot.icon}</span>
+                              </div>
+                            )}
+                            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#1A1A2E', marginBottom: '0.15rem' }}>
+                              {slot.label}
+                            </div>
+                            <div style={{ fontSize: '0.65rem', color: '#6B6B5A', lineHeight: 1.3, minHeight: '1.8em' }}>
+                              {slot.hint}
+                            </div>
+                            {!isFilled && (
+                              <div style={{
+                                marginTop: '0.4rem', fontSize: '0.7rem', color: '#16a34a',
+                                fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.2rem'
+                              }}>
+                                <ImageIcon size={11} /> Tap to upload
+                              </div>
+                            )}
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0] || null;
+                                setFiles(prev => ({ ...prev, [slot.key]: file }));
+                                if (file) {
+                                  setPreviews(prev => ({ ...prev, [slot.key]: URL.createObjectURL(file) }));
+                                  setPhotosToDelete(prev => prev.filter(a => a !== slot.key));
+                                }
+                              }}
+                              style={{ display: 'none' }}
+                            />
+                          </label>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* ── SECTION B: Optional Extra Photos ─────────────────────── */}
+                <div style={{
+                  background: '#FAFAFA',
+                  border: '1.5px solid #E5E5E0',
+                  borderRadius: 14,
+                  padding: '1.25rem',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                    <ImageIcon size={15} color="#6B6B5A" />
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#374151' }}>Additional Photos</span>
+                    <span style={{ fontSize: '0.72rem', color: '#6B6B5A', background: '#F3F4F6', padding: '2px 8px', borderRadius: 20, fontWeight: 600, marginLeft: 'auto', whiteSpace: 'nowrap' }}>Optional · up to 6</span>
+                  </div>
+                  <p style={{ fontSize: '0.75rem', color: '#6B6B5A', marginBottom: '0.85rem', lineHeight: 1.5 }}>
+                    Add more photos to showcase your property — kitchen, living room, compound, storage, etc.
+                  </p>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '0.6rem' }}>
+                    {OPTIONAL_PHOTO_SLOTS.map((slot) => {
+                      const hasFile = !!files[slot.key];
+                      const hasPreview = !!(previews[slot.key] && String(previews[slot.key]).startsWith('http'));
+                      const isFilled = hasFile || hasPreview;
+                      return (
+                        <div key={slot.key} style={{
+                          border: isFilled ? '2px solid #6B6B5A' : '2px dashed #E5E5E0',
+                          borderRadius: 10,
+                          padding: '0.6rem 0.4rem',
+                          textAlign: 'center',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          position: 'relative',
+                          background: isFilled ? '#F3F4F6' : 'white'
+                        }}>
+                          {isFilled && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault(); e.stopPropagation();
+                                setFiles(prev => ({ ...prev, [slot.key]: null }));
+                                setPreviews(prev => ({ ...prev, [slot.key]: null }));
+                                if (editId) setPhotosToDelete(prev => [...prev, slot.key]);
+                              }}
+                              style={{
+                                position: 'absolute', top: 4, right: 4,
+                                background: '#6B7280', color: 'white', border: 'none',
+                                borderRadius: '50%', width: 18, height: 18, cursor: 'pointer',
+                                zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px'
+                              }}
+                            >✕</button>
+                          )}
+                          <label style={{ cursor: 'pointer', display: 'block' }}>
+                            {previews[slot.key] ? (
+                              <img
+                                src={previews[slot.key]!}
+                                alt="Extra"
+                                style={{ width: '100%', height: 65, objectFit: 'cover', borderRadius: 7, marginBottom: '0.35rem' }}
+                              />
+                            ) : (
+                              <div style={{
+                                width: '100%', height: 65, borderRadius: 7, background: '#F9FAFB',
+                                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                marginBottom: '0.35rem', color: '#D1D5DB'
+                              }}>
+                                <span style={{ fontSize: '1.3rem' }}>📷</span>
+                              </div>
+                            )}
+                            <div style={{ fontSize: '0.7rem', color: isFilled ? '#374151' : '#9CA3AF', fontWeight: isFilled ? 600 : 400 }}>
+                              {isFilled ? '✓ Added' : '+ Add photo'}
+                            </div>
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0] || null;
+                                setFiles(prev => ({ ...prev, [slot.key]: file }));
+                                if (file) {
+                                  setPreviews(prev => ({ ...prev, [slot.key]: URL.createObjectURL(file) }));
+                                  setPhotosToDelete(prev => prev.filter(a => a !== slot.key));
+                                }
+                              }}
+                              style={{ display: 'none' }}
+                            />
+                          </label>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Video Tour */}
+                <label>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', color: '#1A1A2E', whiteSpace: 'nowrap' }}>Video Tour URL (Optional)</div>
+                  <div style={{ position: 'relative' }}>
+                    <Video size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#6B6B5A' }} />
+                    <input {...register('videoTourUrl')} placeholder="https://youtube.com/watch?v=..." style={{ width: '100%', padding: '0.65rem 0.65rem 0.65rem 2.5rem', border: '1px solid #E5E5E0', borderRadius: 10, fontSize: '0.9rem' }} />
+                  </div>
+                </label>
+              </div>
+            );
+          })()}
 
           {/* Step 6: Review & Submit */}
           {step === 6 && (

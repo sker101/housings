@@ -595,8 +595,21 @@ export default function RoomDetailsPage() {
       return [];
     }
 
+    // Sort photos so mandatory structured slots come first in consistent order
+    const PHOTO_ORDER = [
+      'exterior_front', 'exterior_side', 'bathroom', 'bedroom', 'road_access', 'surroundings'
+    ];
+
     if (Array.isArray(listing.photos) && listing.photos.length > 0) {
-      return listing.photos.map((photo, index) => ({
+      const sorted = [...listing.photos].sort((a: any, b: any) => {
+        const ai = PHOTO_ORDER.indexOf(a.angle);
+        const bi = PHOTO_ORDER.indexOf(b.angle);
+        // Mandatory slots first, then extras
+        const aPos = ai === -1 ? 99 + (a.position ?? 99) : ai;
+        const bPos = bi === -1 ? 99 + (b.position ?? 99) : bi;
+        return aPos - bPos;
+      });
+      return sorted.map((photo: any, index: number) => ({
         ...photo,
         id: photo.id || `photo-${index}`
       }));
@@ -959,6 +972,38 @@ export default function RoomDetailsPage() {
             className="rd-gallery-img"
           />
           <div className="rd-gallery-overlay">
+            {/* Photo angle label caption */}
+            {activePhoto?.angle && activePhoto.angle !== 'main' && (() => {
+              const ANGLE_LABELS: Record<string, string> = {
+                exterior_front: '🏠 Front View',
+                exterior_side: '🏡 Side View',
+                bathroom: '🚿 Washroom',
+                bedroom: '🛏️ Bedroom Area',
+                road_access: '🛣️ Road / Access',
+                surroundings: '🌳 Surroundings',
+              };
+              const label = ANGLE_LABELS[activePhoto.angle];
+              if (!label) return null;
+              return (
+                <span style={{
+                  position: 'absolute',
+                  bottom: 40,
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  background: 'rgba(0,0,0,0.62)',
+                  color: 'white',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  padding: '4px 10px',
+                  borderRadius: 20,
+                  whiteSpace: 'nowrap',
+                  backdropFilter: 'blur(4px)',
+                  letterSpacing: '0.01em'
+                }}>
+                  {label}
+                </span>
+              );
+            })()}
             <span className="rd-photo-badge">
               {activePhotoIndex + 1} / {galleryPhotos.length}
             </span>
@@ -995,15 +1040,45 @@ export default function RoomDetailsPage() {
         {/* Thumbnail Strip */}
         {galleryPhotos.length > 1 && (
           <div className="rd-thumbs">
-            {galleryPhotos.map((photo, index) => (
-              <button
-                key={photo.id}
-                className={`rd-thumb ${activePhotoIndex === index ? 'is-active' : ''}`}
-                onClick={() => setActivePhotoIndex(index)}
-              >
-                <img src={photo.public_url} alt="" loading="lazy" />
-              </button>
-            ))}
+            {(() => {
+              const ANGLE_LABELS: Record<string, string> = {
+                exterior_front: '🏠 Front',
+                exterior_side: '🏡 Side',
+                bathroom: '🚿 WC',
+                bedroom: '🛏️ Room',
+                road_access: '🛣️ Road',
+                surroundings: '🌳 Area',
+              };
+              return galleryPhotos.map((photo: any, index: number) => {
+                const angleLabel = ANGLE_LABELS[photo.angle];
+                return (
+                  <button
+                    key={photo.id}
+                    className={`rd-thumb ${activePhotoIndex === index ? 'is-active' : ''}`}
+                    onClick={() => setActivePhotoIndex(index)}
+                    title={angleLabel || photo.caption || `Photo ${index + 1}`}
+                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 0, background: 'none', border: 'none' }}
+                  >
+                    <img src={photo.public_url} alt={angleLabel || ''} loading="lazy" />
+                    {angleLabel && (
+                      <span style={{
+                        fontSize: '0.55rem',
+                        color: activePhotoIndex === index ? '#16a34a' : '#6B6B5A',
+                        fontWeight: activePhotoIndex === index ? 700 : 500,
+                        marginTop: '2px',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        maxWidth: '100%',
+                        lineHeight: 1.2
+                      }}>
+                        {angleLabel}
+                      </span>
+                    )}
+                  </button>
+                );
+              });
+            })()}
           </div>
         )}
       </section>
