@@ -613,7 +613,7 @@ export default function HomePage() {
           </div>
 
           <div className="filter-categories">
-            {ROOM_TYPES.map((type) => {
+            {ROOM_TYPE_OPTIONS.map((type) => {
               const Icon = type.icon;
               return (
                 <button
